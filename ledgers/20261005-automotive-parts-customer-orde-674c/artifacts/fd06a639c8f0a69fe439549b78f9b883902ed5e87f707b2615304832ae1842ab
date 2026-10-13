@@ -1,0 +1,361 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Categories",
+     "subtitle": "Single-level categories that buyers filter the catalogue by. Retired ones are hidden from buyers.",
+     "crumbs": [
+      "Catalogue",
+      "Categories"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search categories",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Retired"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "New category",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Category",
+        "Products",
+        "Status",
+        "Created",
+        "Last changed"
+       ],
+       "rows": [
+        [
+         "Brakes",
+         "412",
+         "Active",
+         "12 Jan 2026 · S. Patel",
+         "03 Mar 2026 · R. Moore"
+        ],
+        [
+         "Filters",
+         "287",
+         "Active",
+         "12 Jan 2026 · S. Patel",
+         "12 Jan 2026 · S. Patel"
+        ],
+        [
+         "Clutch & transmission",
+         "164",
+         "Active",
+         "14 Jan 2026 · S. Patel",
+         "21 Feb 2026 · J. Okafor"
+        ],
+        [
+         "Electrical & lighting",
+         "339",
+         "Active",
+         "15 Jan 2026 · R. Moore",
+         "09 Mar 2026 · R. Moore"
+        ],
+        [
+         "Body panels",
+         "0",
+         "Retired",
+         "12 Jan 2026 · S. Patel",
+         "27 Feb 2026 · J. Okafor"
+        ]
+       ],
+       "statusColumn": 2,
+       "sortBy": 0,
+       "sortDir": "asc"
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "text": "Retiring a category hides it from the buyers' category filter. Its products stay assigned until you move them in Products."
+      }
+     ],
+     "links": [
+      {
+       "from": "Brakes",
+       "to": "S-26"
+      },
+      {
+       "from": "Filters",
+       "to": "S-26"
+      },
+      {
+       "from": "Clutch & transmission",
+       "to": "S-26"
+      },
+      {
+       "from": "Electrical & lighting",
+       "to": "S-26"
+      },
+      {
+       "from": "Body panels",
+       "to": "S-26"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "New category",
+       "title": "New category",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Category name",
+           "kind": "text",
+           "placeholder": "e.g. Engine cooling",
+           "required": true,
+           "help": "Shown to buyers in the category filter. Up to 40 characters.",
+           "error": "A category called Brakes already exists"
+          }
+         ],
+         "submit": "Create category"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Create category",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Category actions",
+       "items": [
+        "Rename",
+        "View products",
+        "Retire"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Retire",
+       "title": "Retire Clutch & transmission?",
+       "text": "It will disappear from the buyers' category filter. Its 164 products keep this category until you move them.",
+       "actions": [
+        {
+         "label": "Retire category",
+         "variant": "danger"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Create category",
+       "text": "Category created and shown to buyers",
+       "tone": "ok"
+      },
+      {
+       "after": "Retire category",
+       "text": "Clutch & transmission retired and hidden from buyers",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No categories yet",
+      "emptyHint": "Create your first category so buyers can filter the catalogue by it.",
+      "validation": "Enter a category name that isn't already in use.",
+      "success": "Category saved.",
+      "error": "Categories couldn't be loaded. Try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Categories",
+     "subtitle": "Single-level categories that buyers filter the catalogue by. Retired ones are hidden from buyers.",
+     "crumbs": [
+      "Catalogue",
+      "Categories"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search categories",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Retired"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "New category",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Category",
+        "Products",
+        "Status",
+        "Created",
+        "Last changed"
+       ],
+       "rows": [
+        [
+         "Accessories",
+         "0",
+         "Retired",
+         "12 Jan 2026 · S. Patel",
+         "18 Feb 2026 · S. Patel"
+        ],
+        [
+         "Batteries",
+         "58",
+         "Active",
+         "13 Jan 2026 · S. Patel",
+         "02 Mar 2026 · J. Okafor"
+        ],
+        [
+         "Belts & chains",
+         "121",
+         "Active",
+         "13 Jan 2026 · S. Patel",
+         "13 Jan 2026 · S. Patel"
+        ],
+        [
+         "Body panels",
+         "0",
+         "Retired",
+         "12 Jan 2026 · S. Patel",
+         "27 Feb 2026 · J. Okafor"
+        ],
+        [
+         "Brakes",
+         "412",
+         "Active",
+         "12 Jan 2026 · S. Patel",
+         "03 Mar 2026 · R. Moore"
+        ],
+        [
+         "Clutch & transmission",
+         "164",
+         "Active",
+         "14 Jan 2026 · S. Patel",
+         "21 Feb 2026 · J. Okafor"
+        ],
+        [
+         "Electrical & lighting",
+         "339",
+         "Active",
+         "15 Jan 2026 · R. Moore",
+         "09 Mar 2026 · R. Moore"
+        ],
+        [
+         "Engine cooling",
+         "196",
+         "Active",
+         "15 Jan 2026 · R. Moore",
+         "24 Feb 2026 · R. Moore"
+        ],
+        [
+         "Exhaust",
+         "143",
+         "Active",
+         "16 Jan 2026 · R. Moore",
+         "16 Jan 2026 · R. Moore"
+        ],
+        [
+         "Filters",
+         "287",
+         "Active",
+         "12 Jan 2026 · S. Patel",
+         "12 Jan 2026 · S. Patel"
+        ],
+        [
+         "Ignition",
+         "97",
+         "Active",
+         "16 Jan 2026 · R. Moore",
+         "05 Mar 2026 · J. Okafor"
+        ],
+        [
+         "Oils & fluids",
+         "74",
+         "Active",
+         "19 Jan 2026 · J. Okafor",
+         "11 Mar 2026 · J. Okafor"
+        ],
+        [
+         "Suspension & steering",
+         "258",
+         "Active",
+         "14 Jan 2026 · S. Patel",
+         "28 Feb 2026 · R. Moore"
+        ],
+        [
+         "Workshop consumables",
+         "6",
+         "Retired",
+         "20 Jan 2026 · J. Okafor",
+         "10 Mar 2026 · S. Patel"
+        ]
+       ],
+       "statusColumn": 2,
+       "sortBy": 0,
+       "sortDir": "asc"
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "text": "Retiring a category hides it from the buyers' category filter. Its products stay assigned until you move them in Products."
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No categories yet",
+      "emptyHint": "Create your first category so buyers can filter the catalogue by it.",
+      "validation": "Enter a category name that isn't already in use.",
+      "success": "Category saved.",
+      "error": "Categories couldn't be loaded. Try again in a moment."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

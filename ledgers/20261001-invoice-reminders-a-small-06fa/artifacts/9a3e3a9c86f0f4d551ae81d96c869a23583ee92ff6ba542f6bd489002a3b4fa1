@@ -1,0 +1,197 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "data-model",
+      "text": "Should 'overdue' be worked out each time from the due date and paid status, or saved as a status on the invoice record?",
+      "options": [
+       "Worked out each time; nothing is written to invoices",
+       "Saved as a flag/status by a scheduled job",
+       "Saved when someone opens the list"
+      ],
+      "recommended": "Worked out each time; nothing is written to invoices",
+      "reason": "This avoids writing to the client's existing invoice table and stays correct once an invoice is paid (Q-4).",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether we write to existing invoice data and need a background job."
+     },
+     {
+      "id": "Q-7",
+      "category": "identifiers",
+      "text": "Should the 7-day threshold be fixed in the code or a setting?",
+      "options": [
+       "Fixed constant in code",
+       "App setting (config file/env)",
+       "Staff-editable setting in the UI"
+      ],
+      "recommended": "App setting (config file/env)",
+      "reason": "It's cheap to do and lets the client change it without a code release.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which invoices show as overdue."
+     },
+     {
+      "id": "Q-8",
+      "category": "data-model",
+      "text": "Which timezone defines 'today' when checking due date + 7 days?",
+      "options": [
+       "The business's local timezone (fixed setting)",
+       "UTC",
+       "Server local time"
+      ],
+      "recommended": "The business's local timezone (fixed setting)",
+      "reason": "Staff will expect invoices to become overdue on local calendar days.",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Invoices near the boundary could appear or disappear a day early or late."
+     },
+     {
+      "id": "Q-9",
+      "category": "external",
+      "text": "How should emails be sent?",
+      "options": [
+       "The client's existing email service/SMTP relay",
+       "A transactional email provider (e.g. SendGrid, Postmark) with an API key",
+       "Decide later behind an interface"
+      ],
+      "recommended": "The client's existing email service/SMTP relay",
+      "reason": "It reuses the client's infrastructure and sender domain. This needs confirming.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Affects integration work and what failure information we can get."
+     },
+     {
+      "id": "Q-10",
+      "category": "errors",
+      "text": "What counts as a 'delivery failure' that gets recorded with a reason?",
+      "options": [
+       "Only errors returned at send time (rejected by SMTP/provider)",
+       "Send-time errors plus later bounces reported back by the provider",
+       "Also a missing or invalid customer email address"
+      ],
+      "recommended": "Send-time errors plus later bounces reported back by the provider",
+      "reason": "Many real failures are bounces that arrive after the send. It also matches the 'failed + reason' answer (Q-3).",
+      "spans": [
+       "I-3",
+       "I-4",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Changes how a history record's status gets updated later and what staff see."
+     },
+     {
+      "id": "Q-11",
+      "category": "existing-data",
+      "text": "Where does the customer's email address come from, and what happens if there isn't one or there are several?",
+      "options": [
+       "Single email field on the existing customer record; block sending if missing",
+       "Existing customer record; send to all listed contacts",
+       "Staff enter or confirm the address at send time"
+      ],
+      "recommended": "Single email field on the existing customer record; block sending if missing",
+      "reason": "It's the simplest option, and it uses existing data.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who receives emails containing invoice details."
+     },
+     {
+      "id": "Q-12",
+      "category": "errors",
+      "text": "How should accidental double submits be blocked (from Q-5)?",
+      "options": [
+       "Disable the button while the request is in flight (client only)",
+       "Client disable plus a server-side check that rejects a second send for the same invoice within a short window (e.g. 60s)",
+       "Server-side idempotency key per click"
+      ],
+      "recommended": "Client disable plus a server-side check that rejects a second send for the same invoice within a short window (e.g. 60s)",
+      "reason": "A client-only guard won't stop duplicates from retries or a second tab.",
+      "spans": [
+       "I-2",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Controls whether duplicate emails reach customers."
+     },
+     {
+      "id": "Q-13",
+      "category": "scope",
+      "text": "How should the 'days overdue' filter work, and what is it counted from?",
+      "options": [
+       "Minimum days past due date (e.g. ≥30)",
+       "Preset ranges past due date (7–14, 15–30, 30+)",
+       "Min/max range counted from the due date"
+      ],
+      "recommended": "Preset ranges past due date (7–14, 15–30, 30+)",
+      "reason": "These are typical aging buckets and easy for staff to use.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Shapes the filter UI and query."
+     },
+     {
+      "id": "Q-14",
+      "category": "scope",
+      "text": "Who decides the wording, sender address and language of the reminder email?",
+      "options": [
+       "A fixed template we draft, approved by the client",
+       "A template the client provides",
+       "Staff can edit the message before sending"
+      ],
+      "recommended": "A fixed template we draft, approved by the client",
+      "reason": "This keeps the scope small while still covering number, amount and due date.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Visible to customers; editable messages would add UI."
+     },
+     {
+      "id": "Q-15",
+      "category": "scope",
+      "text": "Can reminders only be sent from the overdue list, or also from the invoice detail screen (for example, to retry after a failure)?",
+      "options": [
+       "Overdue list only",
+       "Both overdue list and invoice detail"
+      ],
+      "recommended": "Both overdue list and invoice detail",
+      "reason": "Failures are shown on the detail screen, so a retry there is the natural next step.",
+      "spans": [
+       "I-6",
+       "I-7",
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Adds an action and flow to a screen."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "How specific create validation requirements are stated",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 4,
+        "summary": "Says invalid create data is rejected with the contract-specified error response, without listing specific field limits."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Explicitly requires title length 3–80, allowed area and priority, optional description up to 500 characters, and field-identifying validation errors."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Explicitly requires title length and supported area/priority validation and a description limit, with field-specific contract errors."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-2",
+      "topic": "Failure behavior when PostgreSQL is unreachable",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Requires startup or database-dependent operations to fail if PostgreSQL cannot be reached."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Requires startup failure when the connection string is missing, but does not specify behavior when PostgreSQL is unreachable."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Requires startup failure when the connection string is absent, but does not specify behavior when PostgreSQL is unreachable."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-3",
+      "topic": "Demo seed set size and composition",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Seeds a small representative set of examples and does not require exactly eight requests."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Requires eight demo requests with specified status counts, an Urgent Open request, and every area represented."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Requires a small set of believable example rows, including named request examples, without requiring eight or specified status/area coverage."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

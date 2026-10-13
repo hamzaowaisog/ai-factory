@@ -1,0 +1,72 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "data-model",
+      "text": "When a ration defines ingredient proportions, what basis should the API use to calculate inventory consumption and ration cost?",
+      "options": [
+       "Treat proportions as percentages of as-fed ingredient weight; use dry-matter values only for nutritional calculations.",
+       "Treat proportions as percentages of dry-matter weight and convert to as-fed quantities using each ingredient's dry-matter percentage.",
+       "Require ingredient quantities in explicit weight units and do not interpret percentages."
+      ],
+      "recommended": "Treat proportions as percentages of as-fed ingredient weight; use dry-matter values only for nutritional calculations.",
+      "reason": "This gives the existing inventory quantities and ingredient mix a direct, simplest calculation basis.",
+      "spans": [
+       "I-1",
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "The choice changes ingredient quantities decremented and costs recorded for feeding events."
+     },
+     {
+      "id": "Q-2",
+      "category": "errors",
+      "text": "What should happen when recording a feeding event whose ration requires more of an ingredient than is currently in inventory?",
+      "options": [
+       "Reject the entire event without changing inventory or feed rollups.",
+       "Record the event and allow inventory to become negative.",
+       "Record the event, consume available stock, and leave the unmet quantity as a shortage."
+      ],
+      "recommended": "Reject the entire event without changing inventory or feed rollups.",
+      "reason": "This preserves the requested inventory accounting without adding partial-consumption behavior.",
+      "spans": [
+       "I-1",
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines whether feeding records and inventory balances are written, and whether stock can go below zero."
+     },
+     {
+      "id": "Q-3",
+      "category": "errors",
+      "text": "How should the feed-to-gain metrics and projected ship date be represented when Days on Feed is zero or ADG is zero or negative?",
+      "options": [
+       "Return the affected metrics and projected ship date as unavailable until the required positive denominator or gain exists.",
+       "Return zero for metrics that cannot be calculated and omit only the projected ship date.",
+       "Reject a weight measurement that would leave ADG at zero or below."
+      ],
+      "recommended": "Return the affected metrics and projected ship date as unavailable until the required positive denominator or gain exists.",
+      "reason": "This avoids presenting an undefined or misleading projection while allowing the recorded data to remain usable.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "This changes the values exposed to API consumers in calculation and reporting flows."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

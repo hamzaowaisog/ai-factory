@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Employee Parking Record - Ayesha Siddiqui</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#1F6F5C',
+              dark: '#165244',
+              light: '#E6F3EE',
+              surface: '#F4F8F6',
+              border: '#BFE0D7',
+            },
+            textMain: '#18181B',
+            textMuted: '#52525B',
+            borderSubtle: '#E4E4E7',
+          },
+          fontFamily: {
+            sans: ['"Hanken Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #18181B;
+      background-color: #F8FAF9;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[#18181B] flex flex-col">
+
+  <!-- Interactive State Bar / Testing Switcher -->
+  <aside aria-label="Demo Simulator Bar" class="bg-zinc-900 text-zinc-100 px-6 py-2 text-xs flex flex-wrap items-center justify-between border-b border-zinc-800 z-50">
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5 font-medium text-emerald-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        ADMIN WORKFLOW DEMO
+      </span>
+      <span class="text-zinc-400">|</span>
+      <span class="text-zinc-300">Target Record: <strong class="text-white">Ayesha Siddiqui (F3-0921)</strong></span>
+    </div>
+    <div class="flex items-center gap-2 mt-1 sm:mt-0">
+      <span class="text-zinc-400 mr-1">Switch view:</span>
+      <button onclick="setState('default')" id="btn-state-default" class="px-2.5 py-1 rounded bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition">Default View</button>
+      <button onclick="setState('dialog')" id="btn-state-dialog" class="px-2.5 py-1 rounded bg-brand text-white font-medium hover:bg-brand-dark transition">Edit-Plate Dialog</button>
+      <button onclick="setState('conflict')" id="btn-state-conflict" class="px-2.5 py-1 rounded bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition">Conflict Error State</button>
+      <button onclick="setState('success')" id="btn-state-success" class="px-2.5 py-1 rounded bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition">Success Toast</button>
+    </div>
+  </aside>
+
+  <!-- Shell Layout -->
+  <div class="flex flex-1">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-60 bg-white border-r border-[#E4E4E7] flex flex-col justify-between py-5 px-3 select-none flex-shrink-0 min-h-screen">
+      <div class="space-y-6">
+        <!-- Logo & Product Header -->
+        <div class="flex items-center gap-3 px-3">
+          <div class="w-8 h-8 rounded-lg bg-[#1F6F5C] text-white font-bold flex items-center justify-center text-sm shadow-sm">
+            F3
+          </div>
+          <div>
+            <div class="font-bold text-sm leading-tight text-[#18181B]">Folio3 Parking</div>
+            <div class="text-[11px] text-[#52525B] font-medium">Bay Management Portal</div>
+          </div>
+        </div>
+
+        <!-- Claim CTA Button -->
+        <div class="px-1">
+          <a href="#" class="w-full flex items-center justify-center gap-2 bg-[#1F6F5C] hover:bg-[#165244] text-white text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+            <span>Assign Space</span>
+          </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="space-y-1">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#18181B] hover:bg-zinc-50 transition">
+            <span class="material-symbols-outlined text-[18px]">swap_driving_apps</span>
+            <span>Claim & Release</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#18181B] hover:bg-zinc-50 transition">
+            <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+            <span>Daily Allocations</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#18181B] hover:bg-zinc-50 transition">
+            <span class="material-symbols-outlined text-[18px]">security</span>
+            <span>Guard Console</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold text-[#1F6F5C] bg-[#E6F3EE] border-l-2 border-[#1F6F5C]">
+            <span class="material-symbols-outlined text-[18px] text-[#1F6F5C]">group</span>
+            <span>Employees & Roster</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#18181B] hover:bg-zinc-50 transition">
+            <span class="material-symbols-outlined text-[18px]">local_parking</span>
+            <span>Parking Spaces</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#18181B] hover:bg-zinc-50 transition">
+            <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+            <span>Audit Log</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Footer navigation -->
+      <div class="pt-4 border-t border-[#E4E4E7] space-y-1">
+        <a href="#" class="flex items-center gap-3 px-3 py-1.5 rounded text-xs font-medium text-[#52525B] hover:text-[#18181B] transition">
+          <span class="material-symbols-outlined text-[18px]">help_outline</span>
+          <span>Help & Policies</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-1.5 rounded text-xs font-medium text-[#52525B] hover:text-[#18181B] transition">
+          <span class="material-symbols-outlined text-[18px]">logout</span>
+          <span>Sign out</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col min-w-0 bg-[#F8FAF9]">
+      
+      <!-- Top Bar -->
+      <header class="h-14 bg-white border-b border-[#E4E4E7] px-8 flex items-center justify-between sticky top-0 z-30">
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-xs text-[#52525B]">
+          <a href="#" class="hover:text-[#18181B] font-medium">Admin</a>
+          <span class="text-zinc-300">/</span>
+          <a href="#" class="hover:text-[#18181B] font-medium">Employees & Roster</a>
+          <span class="text-zinc-300">/</span>
+          <span class="text-[#18181B] font-semibold">Ayesha Siddiqui (F3-0921)</span>
+        </div>
+
+        <!-- Top Right Actions -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-xs px-2.5 py-1 rounded border border-emerald-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Live Directory Sync</span>
+          </div>
+
+          <div class="h-4 w-px bg-zinc-200 mx-1"></div>
+
+          <button class="text-[#52525B] hover:text-[#18181B] p-1.5 rounded hover:bg-zinc-100 transition">
+            <span class="material-symbols-outlined text-[20px]">notifications</span>
+          </button>
+          <button class="text-[#52525B] hover:text-[#18181B] p-1.5 rounded hover:bg-zinc-100 transition">
+            <span class="material-symbols-outlined text-[20px]">help</span>
+          </button>
+
+          <!-- Current Admin Avatar -->
+          <div class="flex items-center gap-2 pl-2">
+            <div class="w-8 h-8 rounded-full bg-zinc-200 text-[#18181B] font-semibold text-xs flex items-center justify-center border border-zinc-300">
+              FA
+            </div>
+            <div class="hidden sm:block text-left text-xs">
+              <div class="font-semibold text-[#18181B] leading-none">Farhan Akhtar</div>
+              <div class="text-[11px] text-[#52525B]">Head of Facilities</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <main class="flex-1 p-8 max-w-5xl mx-auto w-full">
+
+        <!-- Back Button & Page Header -->
+        <div class="mb-6">
+          <a href="#" class="inline-flex items-center gap-1.5 text-xs text-[#52525B] hover:text-[#18181B] font-medium mb-3 transition">
+            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span>Back to Employee Roster</span>
+          </a>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-[#18181B]">Employee Parking & Vehicle Maintenance</h1>
+              <p class="text-xs text-[#52525B] mt-1">Configure dedicated stall allocations, floor privileges, and ANPR authorized license plates.</p>
+            </div>
+            <!-- Global Action in Header -->
+            <div class="flex items-center gap-3">
+              <button type="button" class="px-3.5 py-2 text-xs font-medium text-[#52525B] bg-white border border-[#E4E4E7] rounded-lg hover:bg-zinc-50 transition">
+                Discard Changes
+              </button>
+              <button type="button" onclick="handleSave()" class="px-4 py-2 text-xs font-semibold text-white bg-[#1F6F5C] hover:bg-[#165244] rounded-lg shadow-sm transition flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">save</span>
+                <span>Save changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conflict Error Banner (Hidden by default, toggled via state) -->
+        <div id="conflict-banner" class="hidden mb-6 bg-red-50 border border-red-200 rounded-xl p-4 text-xs">
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-red-600 text-[20px] flex-shrink-0 mt-0.5">error</span>
+            <div class="flex-1">
+              <div class="font-bold text-red-900 text-sm">Validation Conflict: Space Assignment Failed</div>
+              <p class="text-red-700 mt-0.5 leading-relaxed">
+                <strong>Space B1-03 is already held by another employee.</strong> Please release space B1-03 from its existing assignment or select an available bay on Floor B1.
+              </p>
+              <div class="mt-2.5 flex items-center gap-3">
+                <button type="button" onclick="resolveConflict()" class="text-xs font-semibold text-red-800 underline hover:text-red-950">
+                  Select next available bay (B1-04)
+                </button>
+                <span class="text-red-300">·</span>
+                <a href="#" class="text-xs font-semibold text-red-800 underline hover:text-red-950">
+                  Inspect space B1-03 allocation holder
+                </a>
+              </div>
+            </div>
+            <button onclick="toggleElement('conflict-banner', false)" class="text-red-400 hover:text-red-700">
+              <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+
+          <!-- SECTION 1: Directory Identity (Read-only) -->
+          <section class="bg-white border border-[#E4E4E7] rounded-xl p-6 shadow-xs">
+            <div class="flex items-center justify-between pb-4 border-b border-[#E4E4E7] mb-5">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#1F6F5C] text-[20px]">badge</span>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-[#18181B]">1. Directory Identity</h2>
+                <span class="bg-zinc-100 text-zinc-600 text-[10px] font-semibold px-2 py-0.5 rounded border border-zinc-200 uppercase">Read-only Sync</span>
+              </div>
+              <span class="text-xs text-[#52525B] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
+                Synced with Google HRIS
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+              <!-- Employee Card Header with Initials -->
+              <div class="flex items-center gap-3 md:col-span-2">
+                <div class="w-12 h-12 rounded-full bg-[#E6F3EE] text-[#1F6F5C] font-bold text-base flex items-center justify-center border border-[#BFE0D7] flex-shrink-0">
+                  AS
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-base font-bold text-[#18181B]">Ayesha Siddiqui</span>
+                    <span class="bg-emerald-50 text-[#1F6F5C] text-[11px] font-semibold px-2 py-0.5 rounded border border-[#BFE0D7]">Active Staff</span>
+                  </div>
+                  <!-- Required exact string presentation -->
+                  <div class="text-xs text-[#52525B] font-mono mt-0.5">
+                    Ayesha Siddiqui · F3-0921 · ayesha.siddiqui@folio3.com
+                  </div>
+                </div>
+              </div>
+
+              <!-- HR Meta details -->
+              <div class="bg-[#F8FAF9] p-3 rounded-lg border border-[#E4E4E7] text-xs space-y-1">
+                <div class="flex justify-between">
+                  <span class="text-[#52525B]">Department:</span>
+                  <span class="font-medium text-[#18181B]">Engineering Directorate</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#52525B]">Designation:</span>
+                  <span class="font-medium text-[#18181B]">Lead Systems Architect</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#52525B]">Campus Office:</span>
+                  <span class="font-medium text-[#18181B]">HQ Building A (Karachi)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Structured breakdown tags -->
+            <div class="mt-4 pt-4 border-t border-zinc-100 flex flex-wrap gap-2 text-xs">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-50 border border-zinc-200 text-[#52525B]">
+                <span class="text-zinc-400 font-mono text-[11px]">NAME:</span>
+                <strong class="text-[#18181B] font-sans">Ayesha Siddiqui</strong>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-50 border border-zinc-200 text-[#52525B]">
+                <span class="text-zinc-400 font-mono text-[11px]">EMPLOYEE ID:</span>
+                <strong class="text-[#18181B] font-mono">F3-0921</strong>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-50 border border-zinc-200 text-[#52525B]">
+                <span class="text-zinc-400 font-mono text-[11px]">CORPORATE EMAIL:</span>
+                <strong class="text-[#18181B] font-mono">ayesha.siddiqui@folio3.com</strong>
+              </span>
+            </div>
+          </section>
+
+          <!-- SECTION 2: Parking Assignment Form -->
+          <section class="bg-white border border-[#E4E4E7] rounded-xl p-6 shadow-xs">
+            <div class="flex items-center justify-between pb-4 border-b border-[#E4E4E7] mb-5">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#1F6F5C] text-[20px]">local_parking</span>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-[#18181B]">2. Parking Assignment</h2>
+              </div>
+              <span class="text-xs text-[#52525B]">Policy: Permanent Dedicated Bay Allocation</span>
+            </div>
+
+            <form id="parking-form" onsubmit="event.preventDefault();" class="space-y-6">
+              
+              <!-- Dedicated Parking Toggle -->
+              <div class="flex items-center justify-between p-4 bg-[#F8FAF9] rounded-xl border border-[#E4E4E7]">
+                <div class="space-y-0.5 pr-4">
+                  <div class="flex items-center gap-2">
+                    <label for="dedicated-toggle" class="text-sm font-semibold text-[#18181B] cursor-pointer">
+                      Dedicated parking
+                    </label>
+                    <span id="toggle-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                      Enabled (ON)
+                    </span>
+                  </div>
+                  <p class="text-xs text-[#52525B] leading-relaxed">
+                    When enabled, assigns a fixed stall reserved exclusively for this employee. If disabled, employee participates in the daily pool lottery at 08:00 PKT.
+                  </p>
+                </div>
+
+                <!-- Custom Styled Toggle Switch (Default ON) -->
+                <div class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input type="checkbox" id="dedicated-toggle" checked onchange="toggleDedicated(this.checked)" class="sr-only peer">
+                  <div class="w-11 h-6 bg-zinc-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#1F6F5C] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F6F5C]"></div>
+                </div>
+              </div>
+
+              <!-- Floor & Space Selectors Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-5" id="assignment-inputs">
+                
+                <!-- Assigned Floor -->
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="assigned-floor">
+                    Assigned Floor <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <select id="assigned-floor" class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2.5 text-xs text-[#18181B] font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:border-transparent">
+                      <option value="B1" selected>Floor B1 (Basement 1 - Executive & Leads)</option>
+                      <option value="B2">Floor B2 (Basement 2 - General Staff)</option>
+                      <option value="B3">Floor B3 (Basement 3 - Overflow & Visitor)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#52525B]">
+                      <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-[#52525B] mt-1.5">Connected to Elevator Bank A & North Barrier Gate.</p>
+                </div>
+
+                <!-- Space Input with conflict detector -->
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="space-code">
+                    Space Code <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <input 
+                      type="text" 
+                      id="space-code" 
+                      value="B1-03" 
+                      class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2.5 text-xs text-[#18181B] font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:border-transparent uppercase"
+                      placeholder="e.g. B1-03"
+                    >
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <span id="space-valid-icon" class="material-symbols-outlined text-[18px] text-emerald-600">verified</span>
+                      <span id="space-error-icon" class="material-symbols-outlined text-[18px] text-red-600 hidden">error</span>
+                    </div>
+                  </div>
+                  <div id="space-helper-text" class="text-[11px] text-[#52525B] mt-1.5 flex items-center gap-1">
+                    <span>Pillar proximity: <strong>Pillar P-14 (North Wing)</strong> · Standard EV 7.4kW bay</span>
+                  </div>
+                  <!-- Error notice inline -->
+                  <div id="space-conflict-inline" class="text-[11px] text-red-600 font-medium mt-1.5 hidden flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">warning</span>
+                    <span>Space B1-03 is already held by another employee.</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Bay Status & Release Rules Preview Callout -->
+              <div class="bg-[#E6F3EE] border border-[#BFE0D7] rounded-lg p-3 text-xs flex items-center justify-between text-[#1F6F5C]">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[18px]">info</span>
+                  <span><strong>Dedicated Bay Protocol:</strong> Ayesha Siddiqui holds priority claim on <strong>B1-03</strong> every weekday until released via self-service.</span>
+                </div>
+                <span class="font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-[#BFE0D7] font-semibold text-[#18181B]">
+                  B1-03 · Confirmed
+                </span>
+              </div>
+
+            </form>
+          </section>
+
+          <!-- SECTION 3: Registered Vehicles Table -->
+          <section class="bg-white border border-[#E4E4E7] rounded-xl p-6 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E4E4E7] mb-5 gap-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#1F6F5C] text-[20px]">directions_car</span>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-[#18181B]">3. Registered Vehicles</h2>
+                <span class="bg-zinc-100 text-zinc-600 text-[10px] font-semibold px-2 py-0.5 rounded border border-zinc-200">1 of 2 Slots Active</span>
+              </div>
+              <button type="button" onclick="openEditModal('add')" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1F6F5C] bg-[#E6F3EE] hover:bg-[#BFE0D7] px-3 py-1.5 rounded-lg border border-[#BFE0D7] transition">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                <span>Register Spare Vehicle</span>
+              </button>
+            </div>
+
+            <!-- Vehicles Table -->
+            <div class="overflow-x-auto border border-[#E4E4E7] rounded-lg">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-[#F8FAF9] text-[#52525B] font-semibold uppercase tracking-wider border-b border-[#E4E4E7]">
+                  <tr>
+                    <th scope="col" class="py-3 px-4">License Plate</th>
+                    <th scope="col" class="py-3 px-4">Make</th>
+                    <th scope="col" class="py-3 px-4">Model</th>
+                    <th scope="col" class="py-3 px-4">Color</th>
+                    <th scope="col" class="py-3 px-4">Tier / Role</th>
+                    <th scope="col" class="py-3 px-4">ANPR Status</th>
+                    <th scope="col" class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[#E4E4E7] bg-white font-medium">
+                  <!-- Vehicle Row: LEC-18-3320 · Suzuki · Swift · Red -->
+                  <tr class="hover:bg-zinc-50 transition" id="vehicle-row-1">
+                    <td class="py-3.5 px-4 font-mono font-bold text-sm text-[#18181B]">
+                      <div class="inline-flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded bg-zinc-100 border border-zinc-300 tracking-wider">
+                          <span id="display-plate">LEC-18-3320</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-[#18181B]" id="display-make">Suzuki</td>
+                    <td class="py-3.5 px-4 text-[#18181B]" id="display-model">Swift</td>
+                    <td class="py-3.5 px-4">
+                      <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-red-600 border border-red-700 shadow-xs flex-shrink-0"></span>
+                        <span class="text-[#18181B]" id="display-color">Red</span>
+                      </div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <span class="px-2 py-0.5 rounded bg-emerald-50 text-[#1F6F5C] text-[11px] font-semibold border border-[#BFE0D7]">
+                        Primary
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-[#52525B]">
+                      <span class="inline-flex items-center gap-1 text-emerald-700 text-xs">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                        Verified Gate 1 & 2
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                      <div class="inline-flex items-center gap-2">
+                        <!-- Edit Button -->
+                        <button 
+                          type="button" 
+                          onclick="openEditModal('edit')" 
+                          class="px-2.5 py-1 text-xs font-semibold text-[#1F6F5C] hover:bg-[#E6F3EE] rounded border border-[#BFE0D7] transition inline-flex items-center gap-1"
+                          title="Edit vehicle details and license plate"
+                        >
+                          <span class="material-symbols-outlined text-[14px]">edit</span>
+                          <span>Edit</span>
+                        </button>
+                        <!-- Remove Button -->
+                        <button 
+                          type="button" 
+                          onclick="confirmRemoveVehicle()" 
+                          class="px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded border border-red-200 transition inline-flex items-center gap-1"
+                          title="Remove vehicle from employee roster"
+                        >
+                          <span class="material-symbols-outlined text-[14px]">delete</span>
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Table helper summary -->
+            <div class="mt-3 flex items-center justify-between text-xs text-[#52525B]">
+              <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-zinc-400">info</span>
+                <span>Active vehicle license plate is mapped directly to the automated gate RFID/optical ANPR camera barrier.</span>
+              </div>
+              <span class="font-mono text-[11px]">Primary vehicle ID: F3-VEH-0842</span>
+            </div>
+          </section>
+
+          <!-- SECTION 5: Save Changes Controls -->
+          <section class="bg-white border border-[#E4E4E7] rounded-xl p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-xs text-[#52525B]">
+              <div class="font-semibold text-[#18181B] text-sm">Save employee parking configuration</div>
+              <p class="mt-0.5">Modifications to dedicated bays and authorized vehicles propagate immediately across Gate Consoles.</p>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button 
+                type="button" 
+                onclick="resetForm()" 
+                class="px-4 py-2 text-xs font-semibold text-[#52525B] bg-white border border-[#E4E4E7] rounded-lg hover:bg-zinc-50 transition"
+              >
+                Reset
+              </button>
+              <button 
+                type="button" 
+                id="btn-save-main"
+                onclick="handleSave()" 
+                class="px-6 py-2.5 text-xs font-bold text-white bg-[#1F6F5C] hover:bg-[#165244] rounded-lg shadow-sm transition flex items-center gap-2"
+              >
+                <span class="material-symbols-outlined text-[18px]">check</span>
+                <span>Save changes</span>
+              </button>
+            </div>
+          </section>
+
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="bg-white border-t border-[#E4E4E7] px-8 py-4 text-xs text-[#52525B] flex flex-col md:flex-row items-center justify-between gap-2 mt-8">
+        <div>
+          © 2025 Folio3 Software. Internal system for authorised personnel only.
+        </div>
+        <div class="flex items-center gap-4 text-xs">
+          <span>Server: <strong>PK-KHI-DC1</strong></span>
+          <span class="text-zinc-300">|</span>
+          <span>Build: <strong>v2.4.12</strong></span>
+          <span class="text-zinc-300">|</span>
+          <a href="#" class="hover:text-[#18181B] underline">Security Policy</a>
+          <a href="#" class="hover:text-[#18181B] underline">Help Desk (ext. 4022)</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Edit-Plate Dialog (Modal) -->
+  <div id="edit-plate-modal" class="fixed inset-0 bg-zinc-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 transition-opacity duration-200">
+    <div class="bg-white border border-[#E4E4E7] rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-[#E4E4E7] flex items-center justify-between bg-[#F8FAF9]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#E6F3EE] text-[#1F6F5C] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">edit_square</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-[#18181B]">Edit Registered Vehicle & Plate</h3>
+            <p class="text-[11px] text-[#52525B]">Ayesha Siddiqui · Employee ID F3-0921</p>
+          </div>
+        </div>
+        <button onclick="closeEditModal()" class="text-zinc-400 hover:text-[#18181B] p-1 rounded-lg hover:bg-zinc-200 transition">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-5">
+        
+        <!-- Mandatory Notice Box -->
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs">
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-amber-700 text-[20px] flex-shrink-0 mt-0.5">info</span>
+            <div class="space-y-1">
+              <div class="font-bold text-amber-900 text-xs uppercase tracking-wide">Effective Schedule Notice</div>
+              <p class="text-amber-800 leading-relaxed font-medium">
+                Plate changes apply from 11 Jun 2025 onward. Existing claims keep the plate recorded at claim time (e.g. 10 Jun 2025 claim keeps LEC-18-3320).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form fields -->
+        <div class="space-y-4">
+          <!-- License Plate Input -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="modal-input-plate">
+              License Plate Number <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="modal-input-plate" 
+                value="LEC-18-3320" 
+                class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2.5 text-xs text-[#18181B] font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:border-transparent uppercase"
+                placeholder="e.g. LEC-18-3320"
+              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                <span class="text-[10px] bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded font-mono border border-zinc-200">Standard PK</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-[#52525B] mt-1">Provincial vehicle registration format (e.g. ICT, Punjab, Sindh).</p>
+          </div>
+
+          <!-- Make & Model row -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="modal-input-make">
+                Make
+              </label>
+              <input 
+                type="text" 
+                id="modal-input-make" 
+                value="Suzuki" 
+                class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2 text-xs text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#1F6F5C]"
+              >
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="modal-input-model">
+                Model
+              </label>
+              <input 
+                type="text" 
+                id="modal-input-model" 
+                value="Swift" 
+                class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2 text-xs text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#1F6F5C]"
+              >
+            </div>
+          </div>
+
+          <!-- Color & Tier -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="modal-input-color">
+                Color
+              </label>
+              <input 
+                type="text" 
+                id="modal-input-color" 
+                value="Red" 
+                class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2 text-xs text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#1F6F5C]"
+              >
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-[#18181B] mb-1.5" for="modal-input-tier">
+                Allocation Role
+              </label>
+              <select id="modal-input-tier" class="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2 text-xs text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#1F6F5C]">
+                <option value="primary" selected>Primary Allocation</option>
+                <option value="secondary">Secondary / Alternate</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 bg-[#F8FAF9] border-t border-[#E4E4E7] flex items-center justify-between">
+        <span class="text-[11px] text-[#52525B]">Audit logs will record your admin ID.</span>
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="closeEditModal()" class="px-3.5 py-2 text-xs font-semibold text-[#52525B] bg-white border border-[#E4E4E7] rounded-lg hover:bg-zinc-50 transition">
+            Cancel
+          </button>
+          <button type="button" onclick="savePlateFromModal()" class="px-4 py-2 text-xs font-semibold text-white bg-[#1F6F5C] hover:bg-[#165244] rounded-lg shadow-sm transition flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">check</span>
+            <span>Update Plate</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Success Toast (Hidden by default, triggered on save) -->
+  <div id="toast-success" class="fixed bottom-6 right-6 bg-[#18181B] text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-zinc-700 z-50 hidden transition-all duration-300 transform translate-y-2">
+    <div class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+      <span class="material-symbols-outlined text-[18px]">check_circle</span>
+    </div>
+    <div class="text-xs">
+      <div class="font-bold text-white">Employee record updated</div>
+      <div class="text-zinc-400 text-[11px]">Changes saved for Ayesha Siddiqui (F3-0921).</div>
+    </div>
+    <button onclick="dismissToast()" class="text-zinc-400 hover:text-white ml-2 p-1">
+      <span class="material-symbols-outlined text-[16px]">close</span>
+    </button>
+  </div>
+
+  <!-- Client-side Logic for Interactive Fidelity & Testing -->
+  <script>
+    function setState(state) {
+      // Highlight active switcher button
+      const buttons = ['default', 'dialog', 'conflict', 'success'];
+      buttons.forEach(b => {
+        const btn = document.getElementById('btn-state-' + b);
+        if (btn) {
+          if (b === state) {
+            btn.className = "px-2.5 py-1 rounded bg-brand text-white font-medium hover:bg-brand-dark transition";
+          } else {
+            btn.className = "px-2.5 py-1 rounded bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition";
+          }
+        }
+      });
+
+      if (state === 'default') {
+        closeEditModal();
+        hideConflict();
+        dismissToast();
+      } else if (state === 'dialog') {
+        hideConflict();
+        dismissToast();
+        openEditModal('edit');
+      } else if (state === 'conflict') {
+        closeEditModal();
+        dismissToast();
+        showConflict();
+      } else if (state === 'success') {
+        closeEditModal();
+        hideConflict();
+        showToast();
+      }
+    }
+
+    function openEditModal(mode) {
+      const modal = document.getElementById('edit-plate-modal');
+      modal.classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      const modal = document.getElementById('edit-plate-modal');
+      modal.classList.add('hidden');
+    }
+
+    function savePlateFromModal() {
+      const plate = document.getElementById('modal-input-plate').value;
+      const make = document.getElementById('modal-input-make').value;
+      const model = document.getElementById('modal-input-model').value;
+      const color = document.getElementById('modal-input-color').value;
+
+      document.getElementById('display-plate').innerText = plate;
+      document.getElementById('display-make').innerText = make;
+      document.getElementById('display-model').innerText = model;
+      document.getElementById('display-color').innerText = color;
+
+      closeEditModal();
+      showToast();
+    }
+
+    function handleSave() {
+      const spaceCode = document.getElementById('space-code').value.trim().toUpperCase();
+      // If Space B1-03 is entered, demonstrate validation state
+      if (spaceCode === 'B1-03') {
+        showConflict();
+      } else {
+        hideConflict();
+        showToast();
+      }
+    }
+
+    function showConflict() {
+      document.getElementById('conflict-banner').classList.remove('hidden');
+      document.getElementById('space-code').classList.add('border-red-500', 'bg-red-50', 'text-red-900');
+      document.getElementById('space-valid-icon').classList.add('hidden');
+      document.getElementById('space-error-icon').classList.remove('hidden');
+      document.getElementById('space-conflict-inline').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hideConflict() {
+      document.getElementById('conflict-banner').classList.add('hidden');
+      document.getElementById('space-code').classList.remove('border-red-500', 'bg-red-50', 'text-red-900');
+      document.getElementById('space-valid-icon').classList.remove('hidden');
+      document.getElementById('space-error-icon').classList.add('hidden');
+      document.getElementById('space-conflict-inline').classList.add('hidden');
+    }
+
+    function resolveConflict() {
+      document.getElementById('space-code').value = 'B1-04';
+      hideConflict();
+      showToast();
+    }
+
+    function showToast() {
+      const toast = document.getElementById('toast-success');
+      toast.classList.remove('hidden', 'translate-y-2');
+      toast.classList.add('translate-y-0');
+      setTimeout(() => {
+        // keep visible for demonstration or auto hide after 5s
+      }, 5000);
+    }
+
+    function dismissToast() {
+      const toast = document.getElementById('toast-success');
+      toast.classList.add('hidden', 'translate-y-2');
+    }
+
+    function toggleDedicated(isOn) {
+      const badge = document.getElementById('toggle-badge');
+      const inputs = document.getElementById('assignment-inputs');
+      if (isOn) {
+        badge.innerText = "Enabled (ON)";
+        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800";
+        inputs.classList.remove('opacity-40', 'pointer-events-none');
+      } else {
+        badge.innerText = "Disabled (OFF)";
+        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-200 text-zinc-700";
+        inputs.classList.add('opacity-40', 'pointer-events-none');
+      }
+    }
+
+    function confirmRemoveVehicle() {
+      if (confirm("Remove LEC-18-3320 from Ayesha Siddiqui's active gate clearance?")) {
+        const row = document.getElementById('vehicle-row-1');
+        row.classList.add('opacity-30');
+        alert("Vehicle removed. Click 'Save changes' to commit updates to the Gate Barrier roster.");
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('space-code').value = 'B1-03';
+      document.getElementById('assigned-floor').value = 'B1';
+      document.getElementById('dedicated-toggle').checked = true;
+      toggleDedicated(true);
+      hideConflict();
+      dismissToast();
+    }
+
+    function toggleElement(id, show) {
+      const el = document.getElementById(id);
+      if (show) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

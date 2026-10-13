@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 4230,
+    "end": 4288
+   },
+   "ms": 1,
+   "resultChars": 1798,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:4230,&quot;end&quot;:4288}\">\ncontracts/openapi.yaml lines 4230-4288\n4230\t          type: string\n4231\t        contentBase64:\n4232\t          type: string\n4233\t          format: byte\n4234\t    ProfitabilityRow:\n4235\t      type: object\n4236\t      required:\n4237\t        - id\n4238\t        - lotCode\n4239\t        - breed\n4240\t        - class\n4241\t        - pen\n4242\t        - head\n4243\t        - daysOnFeed\n4244\t        - currentWeight\n4245\t        - returnedInvestment\n4246\t        - totalGainValue\n4247\t        - netReturn\n4248\t        - roiPercent\n4249\t        - sampleData\n4250\t      properties:\n4251\t        id:\n4252\t          type: integer\n4253\t        lotCode:\n4254\t          type: string\n4255\t        breed:\n4256\t          type: string\n4257\t        class:\n4258\t          type: string\n4259\t        pen:\n4260\t          type: string\n4261\t        head:\n4262\t          type: integer\n4263\t        daysOnFeed:\n4264\t          type: integer\n4265\t        currentWeight:\n4266\t          type: number\n4267\t          format: double\n4268\t          nullable: true\n4269\t        returnedInvestment:\n4270\t          type: number\n4271\t          format: double\n4272\t          nullable: true\n4273\t        totalGainValue:\n4274\t          type: number\n4275\t          format: double\n4276\t          nullable: true\n4277\t        netReturn:\n4278\t          type: number\n4279\t          format: double\n4280\t          nullable: true\n4281\t        roiPercent:\n4282\t          type: number\n4283\t          format: double\n4284\t          nullable: true\n4285\t        sampleData:\n4286\t          type: boolean\n4287\t    ProfitabilityResponse:\n4288\t      type: object\n… (4376 lines total; ask for start=4289)\n</untrusted_document>"
+  }
+ ]
+}

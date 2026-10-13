@@ -1,0 +1,34 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "problems": [
+       1
+      ],
+      "text": "How should the web app complete password reset after a user opens the reset link, including when the link is invalid or expired?",
+      "options": [
+       "Open a form to set a new password; for an invalid or expired link, explain that it cannot be used and let the user request another reset email.",
+       "Open a form to set a new password; for an invalid or expired link, show a generic error and direct the user to contact support.",
+       "Keep the flow limited to requesting a reset email; do not add a page for setting a new password."
+      ],
+      "recommended": "Open a form to set a new password; for an invalid or expired link, explain that it cannot be used and let the user request another reset email.",
+      "reason": "This completes the specified self-service reset with the smallest additional web flow.",
+      "impact": 3,
+      "impactReason": "Resetting a password changes account credentials."
+     }
+    ],
+    "inRequest": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

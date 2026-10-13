@@ -1,0 +1,1 @@
+{"partial":true,"path":"App.Api/openapi/built.json","text":"{\n  \"openapi\": \"3.0.1\",\n  \"info\": {\n    \"title\": \"App.Api | v1\",\n    \"version\": \"1.0.0\"\n  },\n  \"paths\": { },\n  \"components\": { }\n}"}

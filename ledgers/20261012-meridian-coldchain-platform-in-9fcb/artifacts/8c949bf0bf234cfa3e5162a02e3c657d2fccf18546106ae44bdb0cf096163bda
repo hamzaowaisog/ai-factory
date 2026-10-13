@@ -1,0 +1,58 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "problems": [
+       1
+      ],
+      "text": "If an offline handover is queued and the API returns a restriction because the stock went On Hold or was recalled, how should the app handle that recorded handover?",
+      "options": [
+       "Do not mark the delivery as completed; show the returned restriction and leave the affected quantity outstanding for follow-up.",
+       "Record the reported handover as an exception for quality review, without treating it as an approved delivery.",
+       "Allow the handover to count as completed despite the returned restriction, and show the restriction as a warning."
+      ],
+      "recommended": "Do not mark the delivery as completed; show the returned restriction and leave the affected quantity outstanding for follow-up.",
+      "reason": "This is the smallest behavior consistent with the requirement that affected stock cannot be handed over until quality staff decide its disposition.",
+      "impact": 3,
+      "impactReason": "This determines whether restricted quantities are recorded as delivered or remain outstanding."
+     },
+     {
+      "problems": [
+       2
+      ],
+      "text": "Q-10 settles that queued actions stay tied to the originating driver across sign-out and workday end, and are erased or rejected if access is refused or the account is disabled. Should any additional local protection or expiry rule apply to queued actions containing recipient names on a shared browser?",
+      "options": [
+       "Keep the existing same-driver access rule and retain queued actions until sync or API rejection/refusal; add no local encryption or expiry.",
+       "Encrypt queued actions in browser storage and retain them until sync or API rejection/refusal.",
+       "Encrypt queued actions in browser storage and delete them after 7 days if they are still unsynced."
+      ],
+      "recommended": "Keep the existing same-driver access rule and retain queued actions until sync or API rejection/refusal; add no local encryption or expiry.",
+      "reason": "This preserves the existing retention decision without adding unrequested storage mechanisms or risking loss of offline work.",
+      "impact": 3,
+      "impactReason": "This determines how long recipient PII remains on the browser and what additional protection applies to it."
+     }
+    ],
+    "inRequest": [
+     {
+      "problem": 3,
+      "quote": "Meridian staff shall sign in with their Meridian Microsoft account."
+     },
+     {
+      "problem": 3,
+      "quote": "Customer users shall sign in with an email address and password and a second step using a one-time code."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

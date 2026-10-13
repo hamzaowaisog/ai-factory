@@ -1,0 +1,81 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "max_tokens",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Buyers sign in, find parts by search, category or vehicle fitment in the catalogue, open a product to add it to the basket (or fill the basket from a past order or a template), then pick a delivery address and date and submit from the review page; they follow the order on its timeline and download the invoice once it is delivered. Office staff start on the Today dashboard, work the order queue into each order (amend, confirm, advance, cancel), take phone orders for customers, export the day's delivery list and mark invoices paid. Administrators also manage customers, products, categories, price lists, users, settings and the audit log from the same sidebar.",
+    "theme": {
+     "reading": {
+      "users": "Buyers at garages and fleet workshops ordering parts; distributor office staff and admins working orders all day",
+      "context": "Buyers at a workshop counter between jobs, often on a phone; office staff at desks working the order queue from 8 to 6",
+      "device": "both",
+      "tone": "plain, exact, trade-like",
+      "hero": "A buyer finds the part that fits the car on the ramp, sees their own price and stock, and gets it on tomorrow's van",
+      "traits": [
+       "Vehicle fitment search",
+       "Company-specific prices",
+       "Cutoff-driven delivery",
+       "Order status timeline"
+      ]
+     },
+     "basis": [
+      {
+       "ref": "IKEA",
+       "took": "Plain white bar, one deep blue for navigation, selection and the main action; amber reserved for a single highlight"
+      },
+      {
+       "ref": "Amazon",
+       "took": "Dense results with a filter rail beside them, price as the heaviest text on every part"
+      },
+      {
+       "ref": "Stripe",
+       "took": "Cool, compact back-office tables with quiet status chips and tabular figures for the office side"
+      }
+     ],
+     "mood": "dependable trade counter",
+     "brand": "#1C4F8F",
+     "accent": "#F2A516",
+     "neutral": "cool",
+     "chrome": "plain",
+     "font": "sans",
+     "heading": "slab",
+     "mark": "emblem",
+     "radius": "soft",
+     "density": "compact",
+     "surface": "flat",
+     "motion": "calm",
+     "fx": "modern",
+     "mode": "light",
+     "shell": "auto",
+     "hero": "none",
+     "charts": "soft",
+     "imagery": "day"
+    },
+    "apps": [
+     {
+      "id": "buyer",
+      "name": "PartLine Trade",
+      "device": "web",
+      "shell": "topbar",
+      "users": "Buyers at customer garages and fleet workshops, desk or phone"
+     },
+     {
+      "id": "office",
+      "name": "PartLine Office",
+      "device": "web",
+      "shell": "sidebar",
+      "users": "Halden office staff and administrators, at a desk all day"
+     }
+    ]
+   },
+   "ms": 12,
+   "resultChars": 133,
+   "isError": true,
+   "result": "The result doesn't match the schema: screens: Invalid input: expected array, received undefined. Fix it and call submit_result again."
+  }
+ ]
+}

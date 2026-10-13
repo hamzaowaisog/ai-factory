@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — Sign In</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Hanken Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              primary: '#3FA77A',
+              primaryHover: '#338c66',
+              primaryActive: '#297353',
+              surface: '#0C0F12',
+              card: '#14181E',
+              cardElevated: '#1A2028',
+              border: 'rgba(255, 255, 255, 0.08)',
+              borderFocus: 'rgba(63, 167, 122, 0.45)',
+              textMuted: '#8B949E',
+              textSubtle: '#586069',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Design System Motion Tokens & Custom Keyframes */
+    :root {
+      --motion-timing-entrance: 380ms;
+      --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --motion-ease-handoff: cubic-bezier(0.65, 0, 0.35, 1);
+      --motion-dur-handoff: 420ms;
+    }
+
+    /* Ambient live availability status breathing cycle */
+    @keyframes statusBreath {
+      0%, 100% {
+        opacity: 0.94;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.08);
+        filter: drop-shadow(0 0 7px rgba(63, 167, 122, 0.75));
+      }
+    }
+
+    /* Page & Card Entrance Stagger */
+    @keyframes entrancePanel {
+      0% {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes entranceHeader {
+      0% {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Bay-mark handoff view-transition token */
+    .bay-mark-handoff {
+      view-transition-name: parking-record;
+      transition: all var(--motion-dur-handoff) var(--motion-ease-handoff);
+    }
+
+    .ambient-live-dot {
+      animation: statusBreath 7.5s ease-in-out infinite;
+    }
+
+    .animate-entrance-header {
+      animation: entranceHeader var(--motion-timing-entrance) var(--motion-ease-out) forwards;
+    }
+
+    .animate-entrance-panel {
+      animation: entrancePanel 460ms var(--motion-ease-out) 100ms backwards;
+    }
+
+    /* Button interaction micro-motions */
+    .btn-google-auth {
+      transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-google-auth:hover {
+      background-color: #1e252e;
+      border-color: rgba(63, 167, 122, 0.45);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(63, 167, 122, 0.2);
+      transform: translateY(-1px);
+    }
+    .btn-google-auth:focus-visible {
+      outline: none;
+      border-color: #3FA77A;
+      box-shadow: 0 0 0 3px rgba(63, 167, 122, 0.25), 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .btn-google-auth:active {
+      transform: translateY(1px) scale(0.995);
+      background-color: #161b22;
+      border-color: rgba(63, 167, 122, 0.5);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    /* Accessibility: Respect Reduced Motion Preferences */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .ambient-live-dot {
+        animation: none !important;
+        opacity: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#0C0F12] text-[#E6EDF3] font-sans min-h-screen flex flex-col justify-between antialiased selection:bg-[#3FA77A]/30 selection:text-white relative overflow-x-hidden">
+
+  <!-- Subtle civic grid backdrop indicator -->
+  <div class="fixed inset-0 pointer-events-none opacity-[0.035] bg-[radial-gradient(#3FA77A_1px,transparent_1px)] [background-size:24px_24px]"></div>
+
+  <!-- Top bar: Folio3 Parking Identity & Live Availability Telemetry -->
+  <header class="w-full max-w-7xl mx-auto px-6 py-6 md:px-10 flex items-center justify-between relative z-10 animate-entrance-header">
+    <div class="flex items-center gap-3">
+      <!-- Folio3 Parking Geometric Monogram / Wordmark Anchor -->
+      <div class="w-8 h-8 rounded-lg bg-[#14181E] border border-white/10 flex items-center justify-center text-[#3FA77A] font-mono font-bold text-sm shadow-inner">
+        P
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-sm font-semibold tracking-tight text-white uppercase tracking-wider">Folio3</span>
+        <span class="text-xs font-medium text-[#3FA77A] font-mono tracking-widest uppercase">Parking</span>
+      </div>
+    </div>
+
+    <!-- Live System Telemetry / Facility Monitor pill -->
+    <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#14181E]/80 border border-white/[0.08] text-xs text-[#8B949E] backdrop-blur-sm select-none">
+      <span class="relative flex h-2 w-2">
+        <span class="ambient-live-dot inline-flex h-2 w-2 rounded-full bg-[#3FA77A]"></span>
+      </span>
+      <span class="font-mono text-[11px] text-[#A2ACB5] tracking-tight">Facility Systems Live</span>
+    </div>
+  </header>
+
+  <!-- Main Sign-In Canvas: Generous intentional empty space -->
+  <main class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-10 sm:py-16 relative z-10">
+    <div class="w-full max-w-md mx-auto animate-entrance-panel">
+      
+      <!-- Card Container with subtle precision styling -->
+      <div class="bg-[#14181E] border border-white/[0.08] rounded-xl p-8 sm:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+        
+        <!-- Subtle civic top rule / Bay-mark handoff row rule token -->
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#3FA77A]/50 to-transparent bay-mark-handoff"></div>
+
+        <!-- Header / Identification -->
+        <div class="mb-8">
+          <div class="text-[11px] font-mono uppercase tracking-widest text-[#3FA77A] mb-2 font-medium">
+            Authorized Personnel Gateway
+          </div>
+          <h1 class="text-2xl sm:text-[26px] font-medium text-white tracking-tight leading-snug">
+            Parking for Folio3 employees
+          </h1>
+        </div>
+
+        <!-- Guidance note on employee credentials -->
+        <div class="mb-6">
+          <p class="text-sm text-[#8B949E] leading-relaxed">
+            Access is limited to active Folio3 employees using their corporate Google account.
+          </p>
+        </div>
+
+        <!-- Primary Touch-sized Action Control -->
+        <div class="mb-6">
+          <button 
+            type="button"
+            class="btn-google-auth w-full min-h-[52px] sm:min-h-[54px] px-5 py-3.5 rounded-lg bg-[#181D24] text-white border border-white/10 flex items-center justify-center gap-3.5 text-sm font-medium focus:outline-none cursor-pointer"
+            aria-label="Continue with Google"
+          >
+            <!-- Google standard 'G' vector -->
+            <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span class="tracking-normal font-medium text-white">Continue with Google</span>
+          </button>
+        </div>
+
+        <!-- Security / Account Verification Notice -->
+        <div class="pt-4 border-t border-white/[0.06] flex items-start gap-2.5">
+          <svg class="w-4 h-4 text-[#3FA77A]/80 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+          </svg>
+          <p class="text-xs text-[#8B949E] leading-relaxed">
+            Your corporate account is checked and verified against active employee rosters before parking access is granted.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Under-card facility context indicator -->
+      <div class="mt-8 flex items-center justify-center gap-2 text-[12px] font-mono text-[#586069]">
+        <span>Campus Facility Parking Portal</span>
+        <span>•</span>
+        <span>Identity Protocol v2.4</span>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Quiet, minimal footer without navigational links -->
+  <footer class="w-full max-w-7xl mx-auto px-6 py-6 md:px-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#586069] relative z-10 border-t border-white/[0.04]">
+    <div class="font-mono text-[11px]">
+      Folio3 Enterprise Systems &copy; 2025
+    </div>
+    <div class="text-[11px] text-[#586069] text-center sm:text-right">
+      Internal corporate parking allocation &amp; access control
+    </div>
+  </footer>
+
+</body>
+</html>

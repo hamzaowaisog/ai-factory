@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 13,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetProfitabilityResponseMock|getGetFeedToGainReportResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 4,
+   "resultChars": 804,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetProfitabilityResponseMock|getGetFeedToGainReportResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:127: export const getGetFeedToGainReportResponseMock = (): FeedToGainResponse => ({\"permissions\":[\"reports.view\",\"reports.export\"],\"rows\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\nlib/api/client.msw.ts:131: export const getGetProfitabilityResponseMock = (): ProfitabilityResponse => ({\"permissions\":[\"profitability.view\",\"profitability.export\"],\"canViewProfitability\":true,\"rows\":[{\"id\":2407,\"lotCode\":\"L-24\nlib/api/client.msw.ts:593: : getGetFeedToGainReportResponseMock()),\nlib/api/client.msw.ts:617: : getGetProfitabilityResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

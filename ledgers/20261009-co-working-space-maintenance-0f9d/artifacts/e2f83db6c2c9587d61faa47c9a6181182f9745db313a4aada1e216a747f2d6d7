@@ -1,0 +1,162 @@
+diff --git a/components/screens/s-1/container.tsx b/components/screens/s-1/container.tsx
+index feb04c2..d92f7cb 100644
+--- a/components/screens/s-1/container.tsx
++++ b/components/screens/s-1/container.tsx
+@@ -3,10 +3,153 @@
+ // S-1 Requests (/requests): the approved page with the app's data and behaviour.
+ // The look is screen.tsx (the approved design, not edited here); this file loads the data in the fixtures' shape,
+ // handles the page's actions, and shows the states (loading, empty, error) the design drew.
+-import { RequestsScreen } from "./screen";
++import { useCallback, useEffect, useRef, useState } from "react";
++import { toast } from "sonner";
++import { AlertBlock, FormBlock, type AlertData, type Field } from "@/components/blocks";
++import { useNav } from "@/lib/nav";
++import { createRequest, listRequests } from "@/lib/api/client";
++import type { CreateRequest, MaintenanceRequest, RequestStatus } from "@/lib/api/client.schemas";
++import { RequestsScreen, SPEC } from "./screen";
++import { fixture, overlayBlocks, type ScreenData } from "./fixtures";
+ 
+-export function RequestsContainer({ fixture }: { fixture?: string }) {
++const FILTERS = ["All", "Open", "In progress", "Done"];
++const FIELD_KEYS = ["title", "area", "priority", "description"] as const;
++type FieldKey = (typeof FIELD_KEYS)[number];
++type FormProblem = { kind: "validation"; errors: Partial<Record<FieldKey, string>> } | { kind: "failed" } | null;
++
++const formFields = overlayBlocks[0]!.flatMap((b) => (b.type === "form" ? b.fields : []));
++
++function readForm(form: HTMLFormElement): CreateRequest {
++  const read = (label: string) => {
++    const l = Array.from(form.querySelectorAll("label")).find((x) => x.textContent?.trim().startsWith(label));
++    const el = l ? form.ownerDocument.getElementById(l.htmlFor) : null;
++    if (!el) return "";
++    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return el.value;
++    return el.hasAttribute("data-placeholder") ? "" : (el.textContent ?? "");
++  };
++  const description = read("Description");
++  return {
++    title: read("Title"),
++    area: read("Area") as CreateRequest["area"],
++    priority: read("Priority") as CreateRequest["priority"],
++    ...(description ? { description } : {}),
++  };
++}
++
++function LiveRequests() {
++  const nav = useNav();
++  const [filter, setFilter] = useState("All");
++  const [reload, setReload] = useState(0);
++  const [screenKey, setScreenKey] = useState(0);
++  const [items, setItems] = useState<MaintenanceRequest[] | null>(null);
++  const [failed, setFailed] = useState(false);
++  const [problem, setProblem] = useState<FormProblem>(null);
++  const sending = useRef(false);
++
++  useEffect(() => {
++    let current = true;
++    setItems(null);
++    setFailed(false);
++    listRequests(filter === "All" ? undefined : { status: filter as RequestStatus })
++      .then((res) => {
++        if (!current) return;
++        if (res.status === 200) setItems(res.data.requests);
++        else setFailed(true);
++      })
++      .catch(() => { if (current) setFailed(true); });
++    return () => { current = false; };
++  }, [filter, reload]);
++
++  const submit = useCallback(async (form: HTMLFormElement) => {
++    if (sending.current) return;
++    sending.current = true;
++    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
++    if (button) button.disabled = true;
++    setProblem(null);
++    try {
++      const res = await createRequest(readForm(form));
++      if (res.status === 201) {
++        toast.success(SPEC.toasts![0]!.text);
++        setFilter("All");
++        setReload((n) => n + 1);
++        setScreenKey((n) => n + 1);
++        return;
++      }
++      const errors: Partial<Record<FieldKey, string>> = {};
++      if (res.status === 400) {
++        for (const [key, messages] of Object.entries(res.data.errors ?? {})) {
++          const k = key.toLowerCase() as FieldKey;
++          if (FIELD_KEYS.includes(k) && messages[0]) errors[k] = messages[0];
++        }
++      }
++      setProblem(Object.keys(errors).length ? { kind: "validation", errors } : { kind: "failed" });
++    } catch {
++      setProblem({ kind: "failed" });
++    } finally {
++      sending.current = false;
++      if (button) button.disabled = false;
++    }
++  }, []);
++
++  const loading = items === null && !failed;
++  const rows = items ?? [];
++  const copy = SPEC.copy!;
++  const alert: AlertData = failed
++      ? { tone: "bad", title: "Could not load requests.", text: "Retry to check for requests again.", action: "Retry" }
++      : loading
++        ? { tone: "info", text: "Loading requests…" }
++        : rows.length === 0
++          ? { tone: "info", title: filter === "All" ? "No requests here." : copy.emptyTitle!, text: copy.emptyHint! }
++          : { tone: "info", text: `Showing ${rows.length} ${rows.length === 1 ? "request" : "requests"}, newest first.` };
++  const data: ScreenData = {
++    ...fixture,
++    b1: alert as ScreenData["b1"],
++    b3: {
++      ...fixture.b3,
++      pages: 1,
++      rows: rows.map((r) => [r.title, r.area, r.priority, r.status, r.createdAt.slice(0, 10)]),
++    },
++  };
++
++  const onAction = (label: string) => {
++    if (label === "New request" || label === "Cancel") setProblem(null);
++    else if (label === "Retry") setReload((n) => n + 1);
++    else if (FILTERS.includes(label)) setFilter(label);
++    else {
++      const row = items?.find((r) => r.title === label);
++      if (row) nav.go(`/requests/${row.id}`);
++    }
++  };
++
++  const fields: Field[] = formFields.map((f) => {
++    const error = problem?.kind === "validation" ? problem.errors[f.label.toLowerCase() as FieldKey] : undefined;
++    return problem?.kind === "validation" ? (error ? { ...f, required: true, error } : { ...f, required: false }) : f;
++  });
++
++  return (
++    <RequestsScreen
++      key={screenKey}
++      data={data}
++      onAction={onAction}
++      overlayBody={(index, act) => index !== 0 ? null : (
++        <>
++          {problem?.kind === "validation" && <AlertBlock mark="alert" tone="warn" text={copy.validation!} />}
++          {problem?.kind === "failed" && <AlertBlock mark="alert" tone="bad" text={copy.error!} />}
++          <FormBlock
++            mark="form"
++            fields={fields}
++            submit="Create"
++            invalid={problem?.kind === "validation"}
++            onAction={(label, at) => (label === "Create" ? void submit(at as HTMLFormElement) : act(label, at))}
++          />
++        </>
++      )}
++    />
++  );
++}
++
++export function RequestsContainer({ fixture: state }: { fixture?: string }) {
+   // fixture mode (?fixture=S-1:<state>): the approved sample data in that state, no backend
+-  if (fixture) return <RequestsScreen state={fixture} />;
+-  return <RequestsScreen />;
++  if (state) return <RequestsScreen state={state} />;
++  return <LiveRequests />;
+ }

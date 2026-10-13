@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "sample-data/(reset|replace)|sample-data/reset|sample-data/replace",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 315,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;sample-data/(reset|replace)|sample-data/reset|sample-data/replace&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:2069: /sample-data/reset:\ncontracts/openapi.yaml:2103: /sample-data/replace:\n</untrusted_document>"
+  }
+ ]
+}

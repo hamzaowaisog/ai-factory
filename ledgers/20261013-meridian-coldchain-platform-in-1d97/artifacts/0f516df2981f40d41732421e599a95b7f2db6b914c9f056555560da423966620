@@ -1,0 +1,674 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Meridian API shall expose and implement every path, HTTP method, parameter, request and response schema, media type, and response status defined in the locked `contracts/openapi.yaml`, without adding contract operations.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "Each operation in the locked OpenAPI document has a valid authorized request and a fixture for its required records",
+        "when": "A client calls each declared operation at its declared path and method",
+        "then": "The response status, media type, and body shape match the operation's contract-defined success response",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "An operation has a contract-defined validation, authentication, authorization, missing-record, state-conflict, or server-error response",
+        "when": "The corresponding condition is exercised through that operation",
+        "then": "The response status and error body match the corresponding contract-defined response",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The Meridian API shall continue serving the existing root health response, OpenAPI document, and Swagger UI while the contracted operations are added.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 27,
+        "lineEnd": 31,
+        "quote": "app.UseCors();\napp.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n// The API's own document (/openapi/v1.json) and a page to read and try it (/swagger). Keep both: the factory's product page links to the page.\napp.MapOpenApi();\napp.UseSwaggerUI(o => o.SwaggerEndpoint(\"/openapi/v1.json\", \"API\"));"
+       }
+      ],
+      "sources": [
+       "I-1",
+       "ASM-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "The API is running",
+        "when": "A client requests `/`, `/openapi/v1.json`, and `/swagger`",
+        "then": "Each response status is 200 and the root response value is `API is up`",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "The Meridian API shall implement the contracted staff authorization-URL, customer email-and-password challenge, one-time-code verification and resend, and password-reset request, token-inspection, and completion flows, sending customer codes and reset links by email.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "ASM-1",
+       "ASM-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "An active customer account has valid credentials and an email delivery service is configured",
+        "when": "The customer submits credentials to the contracted sign-in operation",
+        "then": "The response contains a challenge identifier and an email message contains the one-time code, with no authenticated customer result issued before code verification",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "A customer challenge is pending",
+        "when": "The customer verifies a valid code, submits an invalid or reused code, or requests a resend",
+        "then": "Each response status and returned authentication or challenge value reflects the contract-defined outcome, and only a valid unused code produces an authenticated customer result",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.3",
+        "given": "A customer account requests a password reset",
+        "when": "The account requests, inspects, and completes a reset using the issued token",
+        "then": "The response values identify token usability and the reset link is sent by email, and a consumed or invalid token cannot reset the password again",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.4",
+        "given": "The staff identity-provider authorization URL is configured",
+        "when": "An unauthenticated client calls the staff authorization-URL operation",
+        "then": "The response status is 200 and the returned value is the configured URL",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The Meridian API shall enforce the contracted role, warehouse, and customer-organisation access restrictions on every operation, including read-only Auditor access and immediate denial of access to deactivated accounts.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "Two customer organisations have separate orders, deliveries, certificates, and recall records",
+        "when": "An authenticated user from one organisation lists or requests another organisation's records",
+        "then": "The response status is 403 or the contract-defined not-found status and contains no other-organisation record",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "A staff member is assigned to one warehouse and a second warehouse has records",
+        "when": "The staff member lists or requests warehouse-scoped stock, receipts, routes, or quality records",
+        "then": "The response list contains only assigned-warehouse records and the response for an inaccessible record contains no record value",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.3",
+        "given": "An Auditor is authenticated and a record is available",
+        "when": "The Auditor reads the record and attempts a contracted create, update, or delete operation",
+        "then": "The read response contains the record and each prohibited write response status is 403",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.4",
+        "given": "An account has been deactivated or removed",
+        "when": "That account makes a subsequent authenticated API request",
+        "then": "The response status is 401 or 403 and contains no protected record",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "The Meridian API shall persist contracted receipt, receipt-logger, receipt-evidence, stock, movement, and opening-stock records and enforce separate receipt traceability, quarantine, receipt-expiry validation, and Quality Officer release.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-3",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A permitted Warehouse Operator submits a valid receipt with product, lot number, expiry date, quantity, supplier, and location",
+        "when": "The operator creates the receipt and retrieves it",
+        "then": "The response record contains those submitted values and a Quarantined status",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "A product and lot number already have a receipt",
+        "when": "A second permitted receipt with the same product and lot number is submitted",
+        "then": "The response contains a distinct receipt identifier, and the stock list reports both receipt quantities without merging their receipt records",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.3",
+        "given": "A receipt has an expiry date before the current date, or a Quality Officer attempts release when the expiry date is within 30 days of receipt",
+        "when": "The receipt or release action is submitted",
+        "then": "The response status is 400 or 409 as defined by the operation and the receipt or release status value is not changed to Released",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.4",
+        "given": "A valid supplier-format logger file or separate evidence file is available for an existing receipt",
+        "when": "The file is uploaded through its contracted receipt operation",
+        "then": "The response contains the receipt record or action result and a subsequent receipt response contains the stored file-related record or processed readings",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.5",
+        "given": "A handling unit has a positive available quantity at a warehouse location",
+        "when": "A permitted move or opening-stock operation is submitted",
+        "then": "The response record contains the resulting quantity and location, and a movement record contains actor, time, source, destination, and moved quantity",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "The Meridian API shall persist searchable products and immutable versioned temperature profiles, requiring a profile for each product and validating profile tiers, effective dates, reasons, and governance history.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "A System Administrator creates or searches for a product",
+        "when": "The product is submitted, listed, retrieved, or deactivated through the contracted operations",
+        "then": "The response record contains the submitted product specification and active state, and searches return matching product records",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "A product has no temperature profile, or a profile submission has overlapping or discontinuous tier boundaries",
+        "when": "The product or profile is submitted",
+        "then": "The response status is 400 and the response error identifies the invalid profile or tier values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.3",
+        "given": "A valid profile change includes an effective date, label, limits, tiers, and reason",
+        "when": "A System Administrator creates the profile version",
+        "then": "The response record and profile list contain the new version, its reason, effective date, and actor, while the previous version remains returned unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.4",
+        "given": "A product has an earlier profile version",
+        "when": "A caller attempts to alter that earlier version rather than create a new version",
+        "then": "The response status is 409 and the earlier profile record remains unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "The Meridian API shall persist customer orders and dispatch allocations using the serving warehouse's configured cut-off, working-day, holiday, time-zone, and customer shelf-life rules, and enforce idempotency, pre-packing customer changes, and the specified suitable-stock allocation and back-order rules.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-4",
+       "ASM-6",
+       "ASM-11"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "An authenticated customer submits an order with at least one line, positive pack quantities, an organisation-owned address, and an idempotency key",
+        "when": "The order is submitted twice with the same key and payload",
+        "then": "Both response bodies return the same order identifier and the order list contains one order",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "A customer submits a date before the serving warehouse's next eligible date or a product inactive for ordering",
+        "when": "The customer places the order",
+        "then": "The response status is 400 or 409 and no order row is created",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.3",
+        "given": "Released stock is available for an order from its serving warehouse",
+        "when": "The order is allocated",
+        "then": "The response record shows earliest-expiry eligible lots first, applies minimum remaining shelf life, uses the greater stability-budget usage first for tied expiry dates, and exposes each allocation and outstanding quantity",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.4",
+        "given": "Suitable stock is insufficient for a partial order or any line of a complete-only order",
+        "when": "Allocation is attempted",
+        "then": "The partial order response shows allocated and outstanding quantities without over-allocating stock, while the complete-only order holds no stock until every line can be fully allocated",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.5",
+        "given": "Multiple orders are submitted concurrently against the same available handling units",
+        "when": "The allocations are committed",
+        "then": "The response records and stock list show no unit allocated to more than one order and total allocated quantity does not exceed physical available quantity",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.6",
+        "given": "A dispatcher submits an allocation override with a reason, or without a reason, or to stock that violates Released status or customer shelf life",
+        "when": "The override operation is called",
+        "then": "The valid response record includes the reason and changed allocation, while each invalid response status is 400 or 409 and the original allocation remains unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.7",
+        "given": "Suitable stock is released for waiting back orders or allocated stock becomes On Hold, Rejected, Recalled, or Expired",
+        "when": "The allocation service updates affected orders",
+        "then": "The order response records show oldest-first back-order allocation or removed allocations and replacements, and an alert email call records the resulting dispatcher notification",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.8",
+        "given": "A customer order is not yet Packed, or has already reached Packed",
+        "when": "The customer attempts to change or cancel it, or a permitted dispatcher cancels it",
+        "then": "The response status and order status value reflect the applicable lifecycle rule, and successful cancellation returns the allocated quantity to available stock",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "The Meridian API shall persist compatible box packing and route plans, enforce box and route qualification, and record driver loading, departure, synchronization, handover, refusal, and delivery-evidence operations.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-1",
+       "ASM-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "A Warehouse Operator submits a pack request for available allocated stock",
+        "when": "The requested box contains one logger, products with the same storage band, and a compatible box type",
+        "then": "The response record contains the box, logger, lot quantities, operator, and seal time; a reused logger or incompatible packing response status is 409",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.2",
+        "given": "A dispatcher submits a route with a date, vehicle, driver, ordered stops, and planned arrival times",
+        "when": "The route is created, updated, or confirmed",
+        "then": "The response record contains the requested route values, and confirmation is refused with a 409 response containing the box and qualification shortfall when a box exceeds qualified duration less the configured safety margin",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.3",
+        "given": "A driver calls route listing, route detail, scan, or departure operations for the authenticated driver",
+        "when": "The driver supplies the contracted date or route data",
+        "then": "The response list or record contains only that driver's authorized route, ordered stops, expected boxes, scans, and departure state",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.4",
+        "given": "A driver synchronizes queued actions with distinct action identifiers or submits the same action identifier more than once",
+        "when": "The synchronization operation is called",
+        "then": "The response record contains accepted and conflicting actions, and the resulting route history contains each accepted action only once",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.5",
+        "given": "A driver submits a handover with receiver, acknowledgement, signature, photo, completion time, location availability, and box delivery or refusal quantities",
+        "when": "The handover operation is called",
+        "then": "The response record and subsequent delivery-evidence response contain the persisted evidence and quantities, and refused quantities retain the refusal reason",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.6",
+        "given": "A confirmed route is changed before its driver has left for the affected stop",
+        "when": "A dispatcher updates the route",
+        "then": "The response record contains the changed schedule or stop order and an email call records notification to the driver",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The Meridian API shall expose temperature histories for contracted entity types and persist available logger readings, gaps, excursions, tier-by-tier handling-unit budgets, related holds, and corrected history when readings arrive late or out of order.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-3",
+       "ASM-4",
+       "ASM-8",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "A contracted receipt logger upload contains repeated, late, out-of-order, future-dated, or pre-sealing readings",
+        "when": "The file is processed and temperature history is requested for its entity and date range",
+        "then": "The response record places readings at their occurred times, stores a duplicate once, flags future and pre-sealing readings as excluded from calculations, and shows unavailable-reading gaps",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "Three consecutive in-band readings follow an out-of-band reading in a persisted history",
+        "when": "The related temperature history and handling-unit record are requested",
+        "then": "The response records show the excursion open from the first out-of-band reading until the third consecutive in-band reading and show time charged to each applicable tier",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.3",
+        "given": "A handling unit has excursion history, or a late reading changes that history",
+        "when": "The handling-unit or temperature-history operation is called after recalculation",
+        "then": "The response record shows separate budgets for portions with different histories, updated remaining tier allowances, excursion links, holds, and an audit event for the correction",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.4",
+        "given": "An excursion begins, a tier allowance falls below 25 percent, a tier is exhausted, or a not-permitted range is reached",
+        "when": "The triggering reading is received and processed",
+        "then": "An email call is recorded for the required driver when on-route, dispatcher, and warehouse Quality Officers, and affected stock response records have On Hold status pending a decision",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.5",
+        "given": "A logger has sent no reading for 15 minutes and its box is out for delivery",
+        "when": "The silent-device check is run and temperature history is requested",
+        "then": "The response record marks the device silent, shows the gap, and an alert email call is recorded",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.6",
+        "given": "A cold room or its temperature records are available",
+        "when": "A caller lists cold rooms, retrieves one cold room, or requests temperature history for the room, box, lot, handling unit, or device",
+        "then": "The response list or record contains the latest reading, status, gaps, alerts, history timestamps, and applicable band and excursion markers",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "The Meridian API shall persist quality cases, signed proposals and decisions, superseding decisions, destruction records, and recalls, applying the required two-person quality approval and recall-accounting rules.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-3",
+       "Q-5",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "A Quality Officer submits a disposition proposal with disposition, reason, and identity confirmation",
+        "when": "The proposal is retrieved or a decision is submitted by the proposing officer or an eligible different Quality Manager",
+        "then": "The response record contains the proposal and actor, the same officer cannot approve it, and a decision by a different eligible manager records the approval or return without replacing the proposal",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "A quality decision exists and an authorized caller submits a separately signed superseding decision",
+        "when": "The supersede operation is called",
+        "then": "The response record contains the new decision and the earlier decision remains available in the returned decision history",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.3",
+        "given": "Rejected stock has a positive quantity to destroy",
+        "when": "An authorized caller submits a destruction date, quantity, and witness",
+        "then": "The response record contains those values and the destroyed quantity is removed from available stock",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.4",
+        "given": "An eligible Quality Manager starts a signed recall for selected product lots",
+        "when": "The recall is started and its record and trace are requested",
+        "then": "The response records identify affected stock, warehouse locations, boxes, routes, deliveries, and customer response progress, and recalled held stock is unavailable for allocation",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.5",
+        "given": "A customer submits or updates a recall response for an authorized delivery",
+        "when": "The recall response operation is called",
+        "then": "The response record contains on-hand, used, destroyed, and stated-disposition values and the recall progress reflects the submitted quantities",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.6",
+        "given": "A recall has unaccounted quantity or all quantity is accounted for",
+        "when": "A Quality Manager submits closure or a signed write-off",
+        "then": "The response status is 409 for closure with unaccounted quantity and no valid write-off, or the response record contains the signed closure or write-off when its preconditions are met",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The Meridian API shall implement customer organisation account, address, team, delivery, certificate, recall-notice, order, and language-preference operations with all returned records and mutations scoped to the authenticated organisation.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-2",
+       "ASM-1",
+       "ASM-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "An authenticated customer requests orders, deliveries, delivery details, certificates, certificate files, or recall notices",
+        "when": "The corresponding customer operation is called",
+        "then": "The response list, record, or PDF file contains only records belonging to that customer's organisation",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "A Customer Administrator submits a valid saved address or invitation, changes an address, or removes an address or team member within their organisation",
+        "when": "The contracted customer-administration operation is called",
+        "then": "The response record or action result identifies the change and subsequent lists contain the updated organisation-scoped address or team record",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.3",
+        "given": "A Customer Administrator attempts to edit or remove an address or member belonging to another organisation",
+        "when": "The contracted customer-administration operation is called",
+        "then": "The response status is 403 or the contract-defined not-found status and no other-organisation row is changed",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.4",
+        "given": "An authenticated customer account has a saved language preference",
+        "when": "The account is retrieved and patched with `en` or `ar`",
+        "then": "The response record contains the saved language value, and a value outside the contract enum returns status 400",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "The Meridian API shall implement contracted administration, operational-report, and lot-history operations, persisting organization shelf-life settings, account role and warehouse assignments, and chronological business records.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "A System Administrator requests organizations, organization details, accounts, or account details",
+        "when": "The corresponding list or retrieval operation is called",
+        "then": "The response list or record contains the persisted organization, member, address, shelf-life, role, and access-assignment values within the caller's authorization scope",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "A System Administrator creates, updates, deactivates an account, or updates an organization's minimum remaining shelf life",
+        "when": "The contracted administration operation is called",
+        "then": "The response status and record or action result reflect the new account state, roles, assignments, or minimum shelf-life value",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.3",
+        "given": "An authorized caller requests an operational report for a permitted date range and warehouse or requests a lot history",
+        "when": "The report or lot-history operation is called",
+        "then": "The response record or list contains only authorized report values and chronologically ordered receipt, movement, delivery, and destruction events for the requested lot",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "The Meridian API shall store the actor and timestamp for each consequential contracted change and decision in read-only audit events and retain those events without automatic expiry.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-5",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "A consequential contracted change or decision is successfully recorded",
+        "when": "An authorized caller queries audit events using supported search, date, action-type, or user filters",
+        "then": "The response list contains the event's actor, timestamp, action type, and affected record and applies the supplied filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-13.2",
+        "given": "An audit event has been recorded",
+        "when": "Time passes and the event is queried again",
+        "then": "The response list still contains the event and a write attempt against the audit event returns status 403",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "If persistent storage configuration is invalid, then the Meridian API shall fail startup, and if a contracted operation fails because persistent storage is unavailable, then the API shall return the contract-defined server-error response without reporting the business operation as successful.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "The database configuration is invalid",
+        "when": "The API process starts",
+        "then": "The process exits before serving contracted operations and the startup output contains an error",
+        "level": "manual"
+       },
+       {
+        "id": "AC-REQ-14.2",
+        "given": "The API is running and its configured database becomes unavailable during a contracted operation",
+        "when": "The operation is called",
+        "then": "The response status is 500 with the contract-defined `server_error` code and no success response or success record is returned",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "The Meridian API shall start without importing legacy spreadsheet or paper-process business records and shall persist business data through contracted operations only.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "A new configured database contains no API-entered business records and legacy spreadsheet or paper data exists outside the API",
+        "when": "The API starts",
+        "then": "The database contains no imported legacy business row",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "When a handling unit reaches the end of its expiry date, the Meridian API shall automatically mark it Expired, remove it from allocations, record the change, and alert the dispatcher.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-3",
+       "ASM-5",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "A handling unit is allocated and reaches the end of its expiry date",
+        "when": "The scheduled expiry check runs",
+        "then": "The database row has Expired status, the order response no longer lists that allocation, an audit event records the change, and an alert email call is recorded for the dispatcher",
+        "level": "job"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Excursion alerts are delivered to the driver when applicable, dispatcher, and warehouse Quality Officers after the triggering reading is received.",
+      "metric": "No later than 120 seconds after reading receipt."
+     },
+     {
+      "id": "NFR-2",
+      "text": "The temperature-data processing capability supports logger and cold-room readings from devices reporting concurrently.",
+      "metric": "5,000 devices reporting at once."
+     }
+    ],
+    "outOfScope": [
+     "Portal, customer-portal, and mobile-application screens; this run implements the API side only.",
+     "Uncontracted API operations and broader product workflows (Q-1).",
+     "Legacy spreadsheet or paper-process data migration (Q-7).",
+     "SMS and push notification delivery (ASM-3, ASM-10).",
+     "A vendor-specific logger client; readings and file processing use contracted operations and deployment-provided gateway configuration (ASM-8)."
+    ],
+    "assumptions": [
+     "Customer authentication uses email and password followed by an email-delivered one-time code, and password reset uses an email link (ASM-1, ASM-9).",
+     "Operational alert delivery uses email and fixed templates; SMS and push are excluded (ASM-3, ASM-10).",
+     "Warehouse date calculations use its configured local time zone and configured working-day and holiday calendar (ASM-11).",
+     "Expiry processing runs as an application-side scheduled check and records dispatcher alerts (ASM-5).",
+     "The root health response, OpenAPI document, and Swagger UI remain available (ASM-7).",
+     "No legacy data is imported; configured setup seed data may be present as assumed in ASM-2, but business records are entered through contracted operations."
+    ],
+    "suggestions": [
+     "Add a locked-contract operation for authenticated batch ingestion of live logger and cold-room readings, with an explicit gateway authentication and duplicate-reading contract; the current contract exposes temperature-history retrieval and receipt logger-file upload but no general telemetry-ingestion operation.",
+     "If product codes and warehouse cut-off, time-zone, holiday, and working-day settings are required to be managed through the API, add their fields and contracted configuration operations before requiring clients to maintain them.",
+     "Specify the exact customer password-reset token expiry and one-time-code expiry/attempt limits in the contract or authentication policy."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

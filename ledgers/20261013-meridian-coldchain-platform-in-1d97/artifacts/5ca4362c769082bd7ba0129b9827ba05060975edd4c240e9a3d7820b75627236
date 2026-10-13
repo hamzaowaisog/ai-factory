@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 380,
+    "end": 450
+   },
+   "ms": 1,
+   "resultChars": 2774,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:380,&quot;end&quot;:450}\">\ncontracts/openapi.yaml lines 380-450\n380\t      responses:\n381\t        \"200\":\n382\t          $ref: \"#/components/responses/RecordResult\"\n383\t        \"400\":\n384\t          $ref: \"#/components/responses/BadRequest\"\n385\t        \"401\":\n386\t          $ref: \"#/components/responses/Unauthorized\"\n387\t        \"403\":\n388\t          $ref: \"#/components/responses/Forbidden\"\n389\t        \"404\":\n390\t          $ref: \"#/components/responses/NotFound\"\n391\t        \"409\":\n392\t          $ref: \"#/components/responses/Conflict\"\n393\t        \"500\":\n394\t          $ref: \"#/components/responses/ServerError\"\n395\t  /warehouse/cold-rooms:\n396\t    get:\n397\t      operationId: listColdRooms\n398\t      summary: \"List cold rooms, latest readings and alerts.\"\n399\t      responses:\n400\t        \"200\":\n401\t          $ref: \"#/components/responses/Collection\"\n402\t        \"401\":\n403\t          $ref: \"#/components/responses/Unauthorized\"\n404\t        \"403\":\n405\t          $ref: \"#/components/responses/Forbidden\"\n406\t        \"500\":\n407\t          $ref: \"#/components/responses/ServerError\"\n408\t  /warehouse/cold-rooms/{roomId}:\n409\t    get:\n410\t      operationId: getColdRoom\n411\t      summary: \"Get cold-room history, gaps, alerts and status.\"\n412\t      parameters:\n413\t        - $ref: \"#/components/parameters/RoomId\"\n414\t      responses:\n415\t        \"200\":\n416\t          $ref: \"#/components/responses/RecordResult\"\n417\t        \"401\":\n418\t          $ref: \"#/components/responses/Unauthorized\"\n419\t        \"403\":\n420\t          $ref: \"#/components/responses/Forbidden\"\n421\t        \"404\":\n422\t          $ref: \"#/components/responses/NotFound\"\n423\t        \"500\":\n424\t          $ref: \"#/components/responses/ServerError\"\n425\t  /temperature-history:\n426\t    get:\n427\t      operationId: getTemperatureHistory\n428\t      summary: \"Get temperature history for a box, lot, handling unit or device.\"\n429\t      parameters:\n430\t        - name: entityType\n431\t          in: query\n432\t          required: true\n433\t          schema:\n434\t            type: string\n435\t        - name: entityId\n436\t          in: query\n437\t          required: true\n438\t          schema:\n439\t            type: integer\n440\t        - $ref: \"#/components/parameters/DateFrom\"\n441\t        - $ref: \"#/components/parameters/DateTo\"\n442\t      responses:\n443\t        \"200\":\n444\t          $ref: \"#/components/responses/RecordResult\"\n445\t        \"401\":\n446\t          $ref: \"#/components/responses/Unauthorized\"\n447\t        \"403\":\n448\t          $ref: \"#/components/responses/Forbidden\"\n449\t        \"404\":\n450\t          $ref: \"#/components/responses/NotFound\"\n… (2684 lines total; ask for start=451)\n</untrusted_document>"
+  }
+ ]
+}

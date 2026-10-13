@@ -1,0 +1,1093 @@
+{
+  "schemaVersion": 1,
+  "engine": "stitch",
+  "flow": "Sign-in with Folio3 Google Workspace (S-1). If the directory lookup fails, the user lands on the access error page (S-2). Non-dedicated employees with no plate go to vehicle registration (S-3) and then to the claim dashboard (S-4). Dedicated holders land on the holder dashboard (S-5), where they can release today's space, and can schedule future releases (S-6). Every employee can view their own profile and vehicles (S-7). Security guards use only the entry verification console (S-8). Administrators manage parking spaces (S-9), employees and vehicles (S-10, S-11), roles (S-12), the Daily Parking Release Time (S-13), report recipients (S-14), weekly utilization reports (S-15) and the claim and entry audit log (S-16).",
+  "mapping": {
+    "orphanScreens": [],
+    "unmappedReqs": []
+  },
+  "noScreen": [],
+  "screens": [
+    {
+      "facts": {
+        "buttons": [
+          "Default View",
+          "Loading Flow",
+          "Access Error",
+          "Sign in with Google",
+          "Try another account"
+        ],
+        "columns": [],
+        "fields": [],
+        "headings": [],
+        "title": "Folio3 Parking System",
+        "ui": []
+      },
+      "file": "src/pages/SignIn.tsx",
+      "frames": [
+        "ST-1",
+        "ST-2"
+      ],
+      "id": "S-1",
+      "reqs": [
+        "REQ-1",
+        "REQ-26"
+      ],
+      "route": "/sign-in",
+      "size": "new",
+      "states": [
+        "loading",
+        "error"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Try again",
+          "Sign out",
+          "Copy ref"
+        ],
+        "columns": [],
+        "fields": [],
+        "headings": [
+          "We couldn't load your employee profile"
+        ],
+        "title": "We couldn't load your employee profile",
+        "ui": []
+      },
+      "file": "src/pages/AccessError.tsx",
+      "frames": [
+        "ST-3"
+      ],
+      "id": "S-2",
+      "reqs": [
+        "REQ-4"
+      ],
+      "route": "/access-error",
+      "size": "new",
+      "states": [
+        "loading"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Toggle Error Preview",
+          "Edit",
+          "Remove",
+          "Add another vehicle",
+          "Save and continue to dashboard",
+          "Demo \"Saving...\" State"
+        ],
+        "columns": [],
+        "fields": [
+          "License plate *",
+          "Make (optional)",
+          "Model (optional)",
+          "Color (optional)"
+        ],
+        "headings": [
+          "Register your vehicle to continue"
+        ],
+        "title": "Register your vehicle to continue",
+        "ui": [
+          [
+            4,
+            "form of 4 fields (field validation)"
+          ]
+        ]
+      },
+      "file": "src/pages/onboarding/RegisterVehicle.tsx",
+      "frames": [
+        "ST-4"
+      ],
+      "id": "S-3",
+      "reqs": [
+        "REQ-3",
+        "REQ-2"
+      ],
+      "route": "/onboarding/vehicle",
+      "size": "new",
+      "states": [
+        "validation",
+        "loading"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Claiming...",
+          "Success (Claimed)",
+          "Conflict Error",
+          "Claim a space for today",
+          "Claiming…",
+          "View general pool rules",
+          "Refresh feed",
+          "Join waitlist queue"
+        ],
+        "columns": [],
+        "fields": [],
+        "headings": [
+          "Good morning, Bilal",
+          "Reserving spot...",
+          "My vehicles"
+        ],
+        "title": "Good morning, Bilal",
+        "ui": [
+          [
+            3,
+            "form of 1 field (multi-choice)"
+          ]
+        ]
+      },
+      "file": "src/pages/dashboard/ClaimDashboard.tsx",
+      "frames": [
+        "ST-5",
+        "ST-6",
+        "ST-7"
+      ],
+      "id": "S-4",
+      "reqs": [
+        "REQ-14",
+        "REQ-15",
+        "REQ-16",
+        "REQ-5"
+      ],
+      "route": "/dashboard",
+      "size": "new",
+      "states": [
+        "empty",
+        "success",
+        "error",
+        "loading"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Dismiss",
+          "Reset to Normal",
+          "Release today's space",
+          "Schedule releases",
+          "Cancel",
+          "Update vehicle"
+        ],
+        "columns": [],
+        "fields": [],
+        "headings": [
+          "Hello, Ayesha Siddiqui",
+          "Upcoming Scheduled Releases",
+          "Parking Status Lifecycle & Badges"
+        ],
+        "title": "Hello, Ayesha Siddiqui",
+        "ui": []
+      },
+      "file": "src/pages/dashboard/HolderDashboard.tsx",
+      "frames": [
+        "ST-8",
+        "ST-9"
+      ],
+      "id": "S-5",
+      "reqs": [
+        "REQ-10",
+        "REQ-12",
+        "REQ-5"
+      ],
+      "route": "/dashboard/holder",
+      "size": "new",
+      "states": [
+        "success",
+        "error",
+        "loading"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Dismiss banner",
+          "Back to Bay",
+          "Deselect all",
+          "Cancel and return to dashboard"
+        ],
+        "columns": [],
+        "fields": [],
+        "headings": [
+          "Releases Successfully Scheduled",
+          "Select Release Dates"
+        ],
+        "title": "Schedule releases for Space B1-03",
+        "ui": []
+      },
+      "file": "src/pages/releases/ScheduleReleases.tsx",
+      "frames": [
+        "ST-10"
+      ],
+      "id": "S-6",
+      "reqs": [
+        "REQ-11",
+        "REQ-12",
+        "REQ-10"
+      ],
+      "route": "/releases/schedule",
+      "size": "new",
+      "states": [
+        "success",
+        "validation",
+        "loading"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Toggle Required Error",
+          "Trigger Removal Toast",
+          "Edit",
+          "Remove",
+          "Cancel",
+          "Save vehicle"
+        ],
+        "columns": [
+          "Plate",
+          "Make",
+          "Model",
+          "Color",
+          "Status / Actions"
+        ],
+        "fields": [
+          "License Plate *",
+          "Make (Optional)",
+          "Model (Optional)",
+          "Color (Optional)"
+        ],
+        "headings": [
+          "My Profile & Vehicles",
+          "Corporate Directory Identity",
+          "Bilal Ahmed",
+          "Registered Vehicles",
+          "Add New Vehicle",
+          "Parking Details",
+          "Campus ANPR Guidelines"
+        ],
+        "title": "My Profile & Vehicles",
+        "ui": [
+          [
+            4,
+            "form of 4 fields (field validation)"
+          ],
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/profile/MyProfile.tsx",
+      "frames": [
+        "ST-11"
+      ],
+      "id": "S-7",
+      "reqs": [
+        "REQ-2",
+        "REQ-3",
+        "REQ-5"
+      ],
+      "route": "/profile",
+      "size": "new",
+      "states": [
+        "validation"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Dismiss Demo",
+          "Vehicle entered",
+          "Did not enter",
+          "Export Log"
+        ],
+        "columns": [
+          "Time",
+          "Detected plate",
+          "Type",
+          "Result",
+          "Actual entry"
+        ],
+        "fields": [],
+        "headings": [
+          "CRITICAL HARDWARE ALERT",
+          "Latest Optical Plate Detection",
+          "No car detections yet today.",
+          "Attempt Log"
+        ],
+        "title": "CRITICAL HARDWARE ALERT",
+        "ui": [
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/guard/VerificationConsole.tsx",
+      "frames": [
+        "ST-12",
+        "ST-13",
+        "ST-14"
+      ],
+      "id": "S-8",
+      "reqs": [
+        "REQ-18",
+        "REQ-19",
+        "REQ-20",
+        "REQ-21",
+        "REQ-22",
+        "REQ-5"
+      ],
+      "route": "/guard/verifications",
+      "size": "new",
+      "states": [
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Import launch records (CSV)",
+          "Add space",
+          "All Floors",
+          "All",
+          "Assigned",
+          "Unassigned",
+          "Edit",
+          "Previous",
+          "Next",
+          "Set as Pool",
+          "Save changes",
+          "Cancel"
+        ],
+        "columns": [
+          "Space",
+          "Floor",
+          "Dedicated holder",
+          "Actions"
+        ],
+        "fields": [
+          "Space code",
+          "Floor",
+          "Dedicated holder",
+          "Zone / Pillar proximity notes"
+        ],
+        "headings": [
+          "Parking spaces",
+          "No spaces yet"
+        ],
+        "title": "Parking spaces",
+        "ui": [
+          [
+            5,
+            "form of 5 fields (dropdown)"
+          ],
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/Spaces.tsx",
+      "frames": [
+        "ST-15",
+        "ST-16"
+      ],
+      "id": "S-9",
+      "reqs": [
+        "REQ-6",
+        "REQ-5"
+      ],
+      "route": "/admin/spaces",
+      "size": "new",
+      "states": [
+        "empty",
+        "validation"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Export roster",
+          "Import launch records",
+          "Add employee",
+          "All Employees",
+          "Dedicated",
+          "Non-dedicated",
+          "Reset filters",
+          "Previous",
+          "Next",
+          "Add plate",
+          "Edit vehicle roster",
+          "Assign bay"
+        ],
+        "columns": [
+          "Name",
+          "Employee ID",
+          "Email",
+          "Dedicated",
+          "Floor",
+          "Plates",
+          "Actions"
+        ],
+        "fields": [],
+        "headings": [
+          "Employees",
+          "No employees match your filters.",
+          "Ayesha Siddiqui"
+        ],
+        "title": "Employees",
+        "ui": [
+          [
+            3,
+            "form of 1 field (dropdown)"
+          ],
+          [
+            1,
+            "search and filters"
+          ],
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/Employees.tsx",
+      "frames": [
+        "ST-17",
+        "ST-18"
+      ],
+      "id": "S-10",
+      "reqs": [
+        "REQ-6",
+        "REQ-2",
+        "REQ-3"
+      ],
+      "route": "/admin/employees",
+      "size": "new",
+      "states": [
+        "empty"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Discard Changes",
+          "Save changes",
+          "Register Spare Vehicle",
+          "Edit",
+          "Remove",
+          "Reset",
+          "Cancel",
+          "Update Plate"
+        ],
+        "columns": [
+          "License Plate",
+          "Make",
+          "Model",
+          "Color",
+          "Tier / Role",
+          "ANPR Status",
+          "Actions"
+        ],
+        "fields": [
+          "Dedicated parking",
+          "Assigned Floor *",
+          "Space Code *",
+          "License Plate Number *",
+          "Make",
+          "Model",
+          "Color",
+          "Allocation Role"
+        ],
+        "headings": [
+          "Employee Parking & Vehicle Maintenance",
+          "Edit Registered Vehicle & Plate"
+        ],
+        "title": "Employee Parking & Vehicle Maintenance",
+        "ui": [
+          [
+            8,
+            "form of 8 fields (multi-choice, dropdown, field validation)"
+          ],
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/EmployeeDetail.tsx",
+      "frames": [
+        "ST-19"
+      ],
+      "id": "S-11",
+      "reqs": [
+        "REQ-6",
+        "REQ-2"
+      ],
+      "route": "/admin/employees/:id",
+      "size": "new",
+      "states": [
+        "success",
+        "validation"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Cancel",
+          "Assign role",
+          "Filter",
+          "Edit role",
+          "Force re-sync"
+        ],
+        "columns": [
+          "User",
+          "Email",
+          "Role",
+          "Assigned by",
+          "Date",
+          "Actions"
+        ],
+        "fields": [
+          "Role Selection & Permissions Scope"
+        ],
+        "headings": [
+          "Roles and access",
+          "Assign new role",
+          "Authorized Accounts"
+        ],
+        "title": "Roles and access",
+        "ui": [
+          [
+            4,
+            "form of 3 fields (field validation)"
+          ],
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/Roles.tsx",
+      "frames": [
+        "ST-20"
+      ],
+      "id": "S-12",
+      "reqs": [
+        "REQ-26",
+        "REQ-5",
+        "REQ-1"
+      ],
+      "route": "/admin/roles",
+      "size": "new",
+      "states": [
+        "validation",
+        "success"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Default State",
+          "Success Confirmation",
+          "Validation Error State",
+          "Discard changes",
+          "Save"
+        ],
+        "columns": [],
+        "fields": [
+          "Daily Parking Release Time"
+        ],
+        "headings": [
+          "Parking release settings",
+          "Daily Release Policy Schedule",
+          "Audit trail & Impact summary"
+        ],
+        "title": "Parking release settings",
+        "ui": [
+          [
+            2,
+            "form of 1 field"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/Settings.tsx",
+      "frames": [
+        "ST-21"
+      ],
+      "id": "S-13",
+      "reqs": [
+        "REQ-12"
+      ],
+      "route": "/admin/settings",
+      "size": "new",
+      "states": [
+        "success",
+        "validation"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Validation Error State",
+          "Empty State",
+          "Toast",
+          "Add recipient",
+          "Edit",
+          "Remove",
+          "Add first recipient",
+          "Undo"
+        ],
+        "columns": [
+          "Recipient Email",
+          "Classification",
+          "Date Added",
+          "Delivery Status",
+          "Actions"
+        ],
+        "fields": [
+          "Email address"
+        ],
+        "headings": [
+          "Weekly report recipients",
+          "Add recipient",
+          "Recipient list"
+        ],
+        "title": "Weekly report recipients",
+        "ui": [
+          [
+            2,
+            "form of 1 field"
+          ],
+          [
+            2,
+            "1 table"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/ReportRecipients.tsx",
+      "frames": [
+        "ST-22",
+        "ST-23"
+      ],
+      "id": "S-14",
+      "reqs": [
+        "REQ-24"
+      ],
+      "route": "/admin/reports/recipients",
+      "size": "new",
+      "states": [
+        "empty",
+        "validation",
+        "success"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Empty State Preview",
+          "Resend Report Email",
+          "Download PDF",
+          "Filter",
+          "Export CSV",
+          "Notify employee",
+          "Search Claimants",
+          "Return to Active Report"
+        ],
+        "columns": [
+          "Employee Name",
+          "Space Bay ID",
+          "Date & Day",
+          "Department",
+          "Status Flag",
+          "Action",
+          "Claimed Bay",
+          "Claim Date",
+          "Vehicle Plate",
+          "Guard Verification Status"
+        ],
+        "fields": [],
+        "headings": [
+          "Weekly Utilization Report",
+          "Daily Utilization (Mon – Fri)"
+        ],
+        "title": "Weekly Utilization Report",
+        "ui": [
+          [
+            4,
+            "2 tables"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/Reports.tsx",
+      "frames": [
+        "ST-24",
+        "ST-25"
+      ],
+      "id": "S-15",
+      "reqs": [
+        "REQ-23",
+        "REQ-22",
+        "REQ-5"
+      ],
+      "route": "/admin/reports",
+      "size": "new",
+      "states": [
+        "empty"
+      ]
+    },
+    {
+      "facts": {
+        "buttons": [
+          "Print logs",
+          "Export CSV",
+          "All",
+          "Claim",
+          "Verification",
+          "Unreadable",
+          "Unverifiable",
+          "Outage",
+          "Preview zero-state condition",
+          "Reset filters"
+        ],
+        "columns": [
+          "Date",
+          "Time",
+          "Employee",
+          "Space",
+          "Floor",
+          "Plate on record",
+          "Detected plate",
+          "Result",
+          "Guard-recorded entry"
+        ],
+        "fields": [],
+        "headings": [
+          "Audit log",
+          "Temporary Claims Log",
+          "Gate & ANPR Verification Events",
+          "No events for the selected filters."
+        ],
+        "title": "Audit log",
+        "ui": [
+          [
+            1,
+            "search and filters"
+          ],
+          [
+            4,
+            "2 tables"
+          ]
+        ]
+      },
+      "file": "src/pages/admin/AuditLog.tsx",
+      "frames": [
+        "ST-26",
+        "ST-27"
+      ],
+      "id": "S-16",
+      "reqs": [
+        "REQ-16",
+        "REQ-21",
+        "REQ-20",
+        "REQ-15"
+      ],
+      "route": "/admin/audit",
+      "size": "new",
+      "states": [
+        "empty"
+      ]
+    }
+  ],
+  "stitch": {
+    "a11y": [
+      {
+        "rules": [
+          "label"
+        ],
+        "screen": "S-4"
+      },
+      {
+        "rules": [
+          "aria-required-children"
+        ],
+        "screen": "S-9"
+      }
+    ],
+    "designMd": "3f034b42aafbc756361f2b821a13a420f27f7fe654a79c9e1d2de5d6ed5d5e9e",
+    "frames": {
+      "ST-1": {
+        "html": "f1aa1cf002446ad2a4b5278d88bbb7dc0cb733f1d59b846a0e24c29f31e93c65",
+        "image": "ca23b6e15d1ba4879319a3178800d28e9602613e541a97fd5ec55cb07f28b560",
+        "name": "stitch-S-1-normal-ca23b6e1.png",
+        "screen": "S-1",
+        "screenId": "a809400f49e94f79988ac3dc5621717c",
+        "state": "normal"
+      },
+      "ST-10": {
+        "html": "36b4fb24687ee4fdf68b914af08e566449f7ef26bf9bfc892fad5e1dac969c03",
+        "image": "5127d27c9e408bd252b8ac30e9c2656a601ee91d2455bc388c5a3648236256d4",
+        "name": "stitch-S-6-normal-5127d27c.png",
+        "screen": "S-6",
+        "screenId": "20c9fb980eed455bb0e386267dd7a59b",
+        "state": "normal"
+      },
+      "ST-11": {
+        "html": "b31f64eb3e51797398ce14324e387c02974bf6bf461a25deddfe827ae177d644",
+        "image": "f771f96388229b0215c178b1c2c5541c283fe2178cf06af7ea23133e5d04a8f6",
+        "name": "stitch-S-7-normal-f771f963.png",
+        "screen": "S-7",
+        "screenId": "f40b89c3811a44799b3370a9395cc6a7",
+        "state": "normal"
+      },
+      "ST-12": {
+        "html": "aa4e769e682380828fc752f269c1ae24eec0ca41409cdc4892083b9a7f64d841",
+        "image": "db2baa83bd9148aff36013009cafb5f36ba2741042ef7f4733fe3b10a74e66c1",
+        "name": "stitch-S-8-normal-db2baa83.png",
+        "screen": "S-8",
+        "screenId": "600f561344254da897b1abae30042626",
+        "state": "normal"
+      },
+      "ST-13": {
+        "html": "7820f4b1d24bf860beab3dd53ed96dd974c4a5ed28d90560d3399cd7d9b28c72",
+        "image": "4bfa54fa9dff3a927b50d7c7f0382dcab495137f2806a7c973a3d0806abe8e83",
+        "name": "stitch-S-8-empty-4bfa54fa.png",
+        "screen": "S-8",
+        "screenId": "7bbfc477db9045b69428e7a2a9712df3",
+        "state": "empty"
+      },
+      "ST-14": {
+        "html": "3e4f65ecabde86114a594a2747200af3075eb45d4fb9a62717e70cb1199f02b7",
+        "image": "0fc8fc83dd8bb9024e5281c4a182ddef869e0fcf7d06adc3f1bc9abb911cf269",
+        "name": "stitch-S-8-error-0fc8fc83.png",
+        "screen": "S-8",
+        "screenId": "0711bd64d0e0430f8457f2643a060ae4",
+        "state": "error"
+      },
+      "ST-15": {
+        "html": "62fdfc4ebe9c91475f004936254a80b91455154eb2bbe0721d33582fe5b27edc",
+        "image": "c384282d69759bb675da3322dc4709d91307b0b6b51689e36032cfe425884610",
+        "name": "stitch-S-9-normal-c384282d.png",
+        "screen": "S-9",
+        "screenId": "2459bb63277f4254950899d7662f0a10",
+        "state": "normal"
+      },
+      "ST-16": {
+        "html": "4dd9c3c8f2d3e36e1af4b489f2d4ff14e78afd14f3cfe5a356f5a0224c25ff1b",
+        "image": "ec54e7ca992b71b4c3fcd5641d50030cee11238f21031fa105390d35061b9410",
+        "name": "stitch-S-9-empty-ec54e7ca.png",
+        "screen": "S-9",
+        "screenId": "4252191e51e2474e92a19180eedee6ed",
+        "state": "empty"
+      },
+      "ST-17": {
+        "html": "47eb2474ab1fd6bed8b00660481f926bf44e38d72187bf2502323aa02bd5fbb7",
+        "image": "b89b657686c017942bbf45fee9920754cc8ef2c4572b00afff69dd809fc33dfd",
+        "name": "stitch-S-10-normal-b89b6576.png",
+        "screen": "S-10",
+        "screenId": "c7f5b1cd446847ada42ebc4314e4e9f9",
+        "state": "normal"
+      },
+      "ST-18": {
+        "html": "f8d45c6f04dcdf02e59e3a359cb63f932256258d4c94a421418713765f15056e",
+        "image": "e33d58006a2b817db4b75d971701da8fbe615661edc7d7959bff26e53bca5782",
+        "name": "stitch-S-10-empty-e33d5800.png",
+        "screen": "S-10",
+        "screenId": "fd5db33cb5c74abb9d6cd9a63418a7ee",
+        "state": "empty"
+      },
+      "ST-19": {
+        "html": "8962cf8c1808a505299522ac38187c5dc9cbae0d604d3d27948e4e3a84aef4a0",
+        "image": "f8dd0cd8d21dff750e531b0515c994b7d985b5951df39d2913e1d21e91917f7b",
+        "name": "stitch-S-11-normal-f8dd0cd8.png",
+        "screen": "S-11",
+        "screenId": "e4b8723c33b245498a32f8de5fa740cb",
+        "state": "normal"
+      },
+      "ST-2": {
+        "html": "910b77af21c3f9796244e1ba1ade34ef3750131c0e60976dfb2f9d17cbc5dfdd",
+        "image": "acb780a295d51cf828808bd1048016ec5e0afaa2698325dfcb9ad3eeed5b9cd0",
+        "name": "stitch-S-1-error-acb780a2.png",
+        "screen": "S-1",
+        "screenId": "aae14c253ac6418a8b517499eaec5ba9",
+        "state": "error"
+      },
+      "ST-20": {
+        "html": "68ad57d4d4917c2bd0d5de1f2ef5ff67be6a065cb6f9b0a7c49facbdfc435809",
+        "image": "264f96dc90fcb9369945a48a276cd5b78acbcc34bdf996dc669f21d3a8804a19",
+        "name": "stitch-S-12-normal-264f96dc.png",
+        "screen": "S-12",
+        "screenId": "fca35cc9ad7648f59d0856c18a462e20",
+        "state": "normal"
+      },
+      "ST-21": {
+        "html": "7f3679c654ea1c69ed2b7887bbefc75592e7a5f529c880744b929c11eef735cb",
+        "image": "9dcaa2b71620c8d5e76dfdf722255e7067f7346c0d3cb62d24fd53f19aae172c",
+        "name": "stitch-S-13-normal-9dcaa2b7.png",
+        "screen": "S-13",
+        "screenId": "d94ac0d2763e4aafbc57537cf075c5d8",
+        "state": "normal"
+      },
+      "ST-22": {
+        "html": "f00b537985269e6bc97953640de339429c4d7ba73ad07953c30e1cffd5b9daad",
+        "image": "ed3336f03196266ecb3b694bef50aede5b4537054bf0410175d7365aa758168c",
+        "name": "stitch-S-14-normal-ed3336f0.png",
+        "screen": "S-14",
+        "screenId": "fc7c0ce37eb743ccad7aac1fbff66ef2",
+        "state": "normal"
+      },
+      "ST-23": {
+        "html": "d4daa3ff8b7226d2c156c98752bf2ec8f33bb0ef0e1987cb6f39172bad12ec5b",
+        "image": "d75e07e4bf965b1f8655ef68d01c5807701628abd3d4b81cf2ec071ccb512d3a",
+        "name": "stitch-S-14-empty-d75e07e4.png",
+        "screen": "S-14",
+        "screenId": "07ae4c1d52da4df4aaef1fb7affdbb7d",
+        "state": "empty"
+      },
+      "ST-24": {
+        "html": "11989f53a35734bf6ae59f4e59ccf9b37f714eb5b062fa67f246ea94ac1a12ca",
+        "image": "dba1799856589bd7d2252afc51433f48e4e60993a5d69e03be3c1391508ef865",
+        "name": "stitch-S-15-normal-dba17998.png",
+        "screen": "S-15",
+        "screenId": "07f0fe1230114da3abfd0bdff998816b",
+        "state": "normal"
+      },
+      "ST-25": {
+        "html": "d2b9f88133e1ac2b621f391e807e4bdf0897675571d5669725188d0c948d6485",
+        "image": "ea2a38b88880010f406ee0c2d6dddc6cfad3b1c9f5e33c18e7de81030e0e45fd",
+        "name": "stitch-S-15-empty-ea2a38b8.png",
+        "screen": "S-15",
+        "screenId": "fc3306189d5e44d984bc8624ee1ba51c",
+        "state": "empty"
+      },
+      "ST-26": {
+        "html": "75b93f6bb66b4a2a99494150db4fbe0f214a6201c0cb9fc58d2bfd1eca98cf35",
+        "image": "c26a329cbac2b4966c6bd5571f805fc7e0e403e10855558814bba2e4107e10ec",
+        "name": "stitch-S-16-normal-c26a329c.png",
+        "screen": "S-16",
+        "screenId": "2486d86f258a459981cae6e676c2afeb",
+        "state": "normal"
+      },
+      "ST-27": {
+        "html": "d4c5f5d470c49580f85a9c3f93f495cc9a831788f2546b3f0d4805e5d48b332e",
+        "image": "e72addf6ea8d75d6fa34548bcf9a1d5fc7a486394b0f803a37d267f31ea4595b",
+        "name": "stitch-S-16-empty-e72addf6.png",
+        "screen": "S-16",
+        "screenId": "a9ae0a4eb0734bf98a6e400f47c9931d",
+        "state": "empty"
+      },
+      "ST-3": {
+        "html": "1182f387c8755d47eeecd4e49f0045f29f1b5becf3a2209841efe292f31958e9",
+        "image": "adc398cec8f95f6c15d1bfb72dc6c3048e52daf310c46b76daae1f94f65a83a6",
+        "name": "stitch-S-2-normal-adc398ce.png",
+        "screen": "S-2",
+        "screenId": "b9f8d7211fef417ebed5e47721918be9",
+        "state": "normal"
+      },
+      "ST-4": {
+        "html": "7588b93b41e1af414c751379795301a852f21a37e943eb33cb136ded18661bf1",
+        "image": "a10277427a9aee321ebb05796f2ce3c684e1701b584e3a52c66f92082989f580",
+        "name": "stitch-S-3-normal-a1027742.png",
+        "screen": "S-3",
+        "screenId": "9715cd40a0dd47a796dd3d8e1561bc0e",
+        "state": "normal"
+      },
+      "ST-5": {
+        "html": "b3c25e363e9f05617bedf2b8a53b7adf22ca487c7a5e70feb96e6176c541ba01",
+        "image": "da7ac9dd303ebdab3f73147d747beece6bb676878211de9d9650bdac643b8726",
+        "name": "stitch-S-4-normal-da7ac9dd.png",
+        "screen": "S-4",
+        "screenId": "07dee3d844254a299cdfc689162b1000",
+        "state": "normal"
+      },
+      "ST-6": {
+        "html": "623ce544deaa420626c4ff5bab431d14dcaaa727ea9776e0d21036a055f28ef0",
+        "image": "b1c5336e5f51617d109a6a44b5a6254ab64028958e3b2b729b0e451ff1999cc8",
+        "name": "stitch-S-4-empty-b1c5336e.png",
+        "screen": "S-4",
+        "screenId": "6d6a69b08af14684a73a85b5e48756d4",
+        "state": "empty"
+      },
+      "ST-7": {
+        "html": "3d894c3e6af1fb363015a2258ad6518f8e89af5397ffc0460aca71ad32859adb",
+        "image": "b556231ec0b8addd8ead125f31ff26564b9573ced4002e7d90933adda831517e",
+        "name": "stitch-S-4-error-b556231e.png",
+        "screen": "S-4",
+        "screenId": "e1c31248f2504412b5564b1d112a37aa",
+        "state": "error"
+      },
+      "ST-8": {
+        "html": "909b0775c06fdcffafc908aac009e68832c0e0cba3a64ce2b547dead35ee735a",
+        "image": "c952acb44e1b0db59967b1f8b0694875e7c6e52d85e8d9d8ee77f558e1aaf5f2",
+        "name": "stitch-S-5-normal-c952acb4.png",
+        "screen": "S-5",
+        "screenId": "c58d398bdeef4e25b314a6763b0bdf6d",
+        "state": "normal"
+      },
+      "ST-9": {
+        "html": "bea1eafaad18053b8dc9535bbe8a4bd265c30bbcb34c2e739509e2af98839d87",
+        "image": "2ac5afae6693bbab789cfd4c8a69561f0f49b4ad0c94e97abeac225b31915c25",
+        "name": "stitch-S-5-error-2ac5afae.png",
+        "screen": "S-5",
+        "screenId": "5b4e5f56bda842b487f2c2dcdffdf80b",
+        "state": "error"
+      }
+    },
+    "model": "stitch-default",
+    "projectId": "5852477149972761619",
+    "prompts": {
+      "S-1": "Sign-in page for the Folio3 Parking System, used by employees, security guards and parking administrators. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Centered card with the product name 'Folio3 Parking System' and the subtitle 'Claim released parking spaces at the Folio3 office'. 2) One primary button 'Sign in with Google' and the helper text 'Use your @folio3.com Google Workspace account'. 3) Small footer note: 'Access is limited to authorized Folio3 accounts. Roles are assigned by your parking administrator.' Loading state: the button shows a spinner and the label 'Verifying your Folio3 account…'. Error state: an inline red alert reading 'ahmed.raza@gmail.com is not a Folio3 Workspace account. Personal Gmail and other providers are not accepted.' with a 'Try another account' button.",
+      "S-10": "Admin list of employees with their parking assignments and vehicles. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Employees' with a search box 'Search name, email or employee ID' and a button 'Import launch records'. 2) Filters: Dedicated / Non-dedicated, and 'Missing plate'. 3) Table with columns Name, Employee ID, Email, Dedicated, Floor, Plates. Rows: 'Ayesha Siddiqui · F3-0921 · ayesha.siddiqui@folio3.com · Yes · B1 · LEC-18-3320'; 'Bilal Ahmed · F3-1187 · bilal.ahmed@folio3.com · No · — · BKX-482, LEA-19-7731'; 'Hamza Qureshi · F3-1302 · hamza.qureshi@folio3.com · No · — · Missing plate (red tag)'. Clicking a row opens the employee detail. Empty state: 'No employees match your filters.'",
+      "S-11": "Admin page for maintaining one employee's parking assignment and vehicles. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Directory identity (read-only): 'Ayesha Siddiqui · F3-0921 · ayesha.siddiqui@folio3.com'. 2) Parking assignment form: Dedicated parking toggle (on), Assigned floor 'B1', Space 'B1-03'. 3) Registered vehicles table with Edit and Remove actions: 'LEC-18-3320 · Suzuki · Swift · Red'. 4) An edit-plate dialog with the notice 'Plate changes apply from 11 Jun 2025 onward. Existing claims keep the plate recorded at claim time (e.g. 10 Jun 2025 claim keeps LEC-18-3320).' 5) A 'Save changes' button. Success state: toast 'Employee record updated'. Validation state: 'Space B1-03 is already held by another employee.'",
+      "S-12": "Admin page for assigning roles to authorized Folio3 accounts. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Roles and access' with an info note 'First administrator provisioned from deployment config: it-admin@folio3.com'. 2) Assign role form: Folio3 email field 'kamran.ali@folio3.com', a role selector (Employee, Security guard, Administrator), and a button 'Assign role'. 3) Table with columns User, Email, Role, Assigned by, Date. Rows: 'Kamran Ali · kamran.ali@folio3.com · Security guard · it-admin@folio3.com · 02 Jun 2025'; 'Nadia Hussain · nadia.hussain@folio3.com · Administrator · it-admin@folio3.com · 28 May 2025'; 'Bilal Ahmed · bilal.ahmed@folio3.com · Employee · — · 01 Jun 2025'. Validation state: 'Only @folio3.com Workspace accounts can be assigned roles.' Success state: toast 'Kamran Ali is now a Security guard'.",
+      "S-13": "Admin settings page for the Daily Parking Release Time. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Parking release settings'. 2) Time field 'Daily Parking Release Time' with value '08:00', the label 'Office-local time (PKT, Asia/Karachi)', and the note 'Default 08:00'. 3) An explanation card: 'Pre-scheduled releases and same-day releases made before this time become claimable at this time. Same-day releases made at or after this time are claimable immediately.' 4) A 'Save' button. Success state: 'Release time updated to 07:45 PKT.' Validation state: 'Enter a valid time in HH:MM format.'",
+      "S-14": "Admin page for managing who receives the weekly utilization report email. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Weekly report recipients' and the note 'Sent every Monday morning (PKT). Any email address can be added.' 2) Add form: email field 'facilities@folio3.com' and an 'Add recipient' button. 3) Recipient list with Edit and Remove actions: 'facilities@folio3.com', 'hr.ops@folio3.com', 'omar.farooq@folio3.com', 'buildingmgmt@dolmen.pk'. Empty state: 'No recipients — the weekly report won't be sent until you add one.' Validation state: 'Enter a valid email address.' Success state: toast 'Recipient removed'.",
+      "S-15": "Admin page for viewing the weekly utilization reports emailed every Monday. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Week selector 'Week of 2–8 Jun 2025', with 'Emailed Mon 9 Jun 2025, 09:00 PKT to 4 recipients'. 2) KPI cards: 'Overall utilization 87%', 'Released spaces 38', 'Temporary claims 35', 'Dedicated entries 162'. 3) A daily utilization bar chart for Mon–Fri with values 91%, 88%, 85%, 84%, 87%. 4) Table 'Unused dedicated parking (not released, no entry)': 'Usman Tariq · B3-07 · Wed 4 Jun'; 'Ayesha Siddiqui · B1-03 · Fri 6 Jun'. 5) Table 'Unused temporary claims (claimed, no recorded entry)': 'Hamza Qureshi · B2-14 · Tue 3 Jun'. Footnote: 'Temporary entries are based on guard-recorded outcomes; sticker vehicles are based on LPR entries.' Empty state: 'No report yet — the first report is sent next Monday.'",
+      "S-16": "Admin audit log of temporary claims and verification events. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Audit log' with filters for Date range (10 Jun 2025), Event type (Claim, Verification, Unreadable, Unverifiable, Outage) and Employee. 2) Claims table with columns Date, Time, Employee, Space, Floor, Plate on record. Rows: '10 Jun 2025 · 08:02:41 · Bilal Ahmed · B2-14 · B2 · BKX-482'; '10 Jun 2025 · 08:02:43 · Sara Malik · B1-03 · B1 · LED-20-6612'. 3) Verification events table with columns Time, Detected plate, Result, Guard-recorded entry. Rows: '08:21:05 · BKX-482 · Authorized · Entered'; '08:15:12 · Unreadable · No authorization · Did not enter'; '08:25:00 · — · Outage: camera offline · —'. Empty state: 'No events for the selected filters.'",
+      "S-2": "Error page shown when Google sign-in worked but the employee profile could not be found in, or loaded from, the Folio3 corporate directory. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Warning icon and the heading 'We couldn't load your employee profile'. 2) Explanation: 'You signed in as sana.khalid@folio3.com, but your employee ID and name could not be retrieved from the corporate directory. You can't use the parking app until this is fixed.' 3) Primary button 'Try again' and secondary button 'Sign out'. 4) Contact box: 'Still not working? Contact Parking Administration at parking-admin@folio3.com or IT Helpdesk ext. 2210.' with reference code 'DIR-404 · 10 Jun 2025 08:12 PKT'. Loading state: 'Try again' shows a spinner and the text 'Checking directory…'.",
+      "S-3": "Required vehicle registration step for an employee without dedicated parking who has no saved plate. The dashboard stays locked until at least one plate is saved. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Register your vehicle to continue' and a read-only identity strip from the directory: 'Bilal Ahmed · Employee ID F3-1187 · bilal.ahmed@folio3.com'. 2) Info banner for a returning user with an incomplete profile: 'Your profile has no registered plate. Add one to access parking.' 3) Form: License plate (required, example 'BKX-482'), Make (optional, 'Toyota'), Model (optional, 'Corolla'), Color (optional, 'White'). 4) A link 'Add another vehicle', showing a second filled row: 'LEA-19-7731 · Honda City · Grey'. 5) Primary button 'Save and continue to dashboard'. Validation state: the plate field is outlined in red with 'Enter at least one license plate to continue.' Loading state: the button reads 'Saving…'.",
+      "S-4": "Dashboard for an employee without dedicated parking, showing only their own data. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Header 'Good morning, Bilal' with the date 'Tuesday, 10 June 2025'. 2) Large availability card: '3 spaces available now', the note 'Updated 08:02 PKT', and a primary button 'Claim a space for today'. Below it: 'One claim per day. Claims can't be cancelled.' 3) Notification permission tile: 'Push notifications on — we'll alert you when spaces are released.' 4) 'My vehicles' summary: 'BKX-482 · Toyota Corolla · White' with a link to the profile. Success state: the card changes to 'You're parked for today — Space B2-14, Floor B2', 'Claimed 08:02:41 PKT', 'Plate on record: BKX-482'. Error state: an alert reading 'Someone claimed the last space first. 0 spaces available now.' with the refreshed count. Empty state: '0 spaces available — we'll notify you if a space is released.' with the claim button disabled. Loading state: the button reads 'Claiming…'.",
+      "S-5": "Dashboard for an employee with a dedicated parking space. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Header 'Hello, Ayesha Siddiqui' with 'Your space: B1-03 · Floor B1'. 2) Today's card for 'Tuesday, 10 June 2025' with a status badge. Normal state: badge 'Not released' and a primary button 'Release today's space', plus the note 'Releases made before 08:00 PKT become claimable at 08:00. Releases at or after 08:00 are claimable immediately.' 3) Upcoming releases list: 'Thu 12 Jun 2025 — Reserved', 'Mon 16 Jun 2025 — Reserved', and a link 'Schedule releases'. Success state: a toast 'Released'; today's badge shows 'Reserved' with 'Claimable at 08:00 PKT' (if released at 07:15), and the release button is replaced by 'Released for today'. Show status badge variants: 'Reserved', 'Claimable', 'Claimed — by an employee at 08:03 PKT'. Error state: 'You've already released 10 Jun 2025.' Loading state: the button reads 'Releasing…'.",
+      "S-6": "Page where a dedicated holder picks one or more future dates to release their space, up to 30 calendar days ahead. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Schedule releases for Space B1-03' and the note 'Scheduled releases become claimable at 08:00 PKT on each date.' 2) A multi-select calendar from 11 Jun 2025 to 10 Jul 2025, with dates after 10 Jul greyed out. Selected: 12 Jun, 16 Jun, 17 Jun, 24 Jun. Already-released dates are marked and can't be selected again. 3) Summary panel 'Selected: 4 dates' listing each date. 4) Primary button 'Release 4 dates'. Success state: 'Released' confirmation, with the dates added to the 'Scheduled releases' list showing status 'Reserved'. Validation state: 'Dates can be at most 30 days ahead (until 10 Jul 2025).' Loading state: 'Saving releases…'.",
+      "S-7": "Employee's own profile page. It shows only that employee's records. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Identity card from the corporate directory (read-only): 'Bilal Ahmed', 'Employee ID F3-1187', 'bilal.ahmed@folio3.com'. 2) Parking details: 'Dedicated parking: No', 'Assigned floor: —'. 3) Registered vehicles table with columns Plate, Make, Model, Color. Rows: 'BKX-482 · Toyota · Corolla · White', 'LEA-19-7731 · Honda · City · Grey'. 4) An 'Add vehicle' form: plate required; make, model and color optional. Validation state: 'License plate is required.' under the plate field, and 'You must keep at least one plate' when the user tries to remove the last vehicle.",
+      "S-8": "Security guard console at the gate. It shows only what is needed to verify an entry. Use off-black (#18181B) for text, not pure black. Sections in order: 1) System health bar: 'Camera: Online · Authorization service: Online · Gate indicator: Online' and the date 'Tue 10 Jun 2025, office time 08:21 PKT'. 2) Latest detection card: plate 'BKX-482', result 'Authorized — temporary claim for 10 Jun 2025', green indicator 'Activated', and two buttons 'Vehicle entered' and 'Did not enter'. 3) Attempt log table with columns Time, Detected plate, Type, Result, Actual entry. Rows: '08:21:05 · BKX-482 · Temporary · Authorized · Entered'; '08:18:40 · LEB-22-1904 · Permanent sticker · Bypassed — recorded as utilized · —'; '08:15:12 · Unreadable · Temporary · No automated authorization · Did not enter'; '08:12:30 · KHI-5531 · Temporary · Not verified — no claim today · Pending'. 4) Note: 'Motorcycles and pedestrians are ignored.' Error state: a red outage banner 'Camera offline since 08:25 — no automated authorization, green indicator disabled. Outage event recorded.' Empty state: 'No car detections yet today.'",
+      "S-9": "Admin page for entering and maintaining the parking-space inventory. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Parking spaces' with the count '42 spaces · 3 floors' and buttons 'Add space' and 'Import launch records (CSV)'. 2) Filters: Floor (B1, B2, B3) and Holder (Assigned / Unassigned). 3) Table with columns Space, Floor, Dedicated holder, Actions. Rows: 'B1-03 · B1 · Ayesha Siddiqui (F3-0921) · Edit'; 'B2-14 · B2 · — (pool) · Edit'; 'B3-07 · B3 · Usman Tariq (F3-0455) · Edit'. 4) Side panel form 'Edit space B1-03' with fields Space code, Floor, Dedicated holder (employee search). Validation state: 'Space code B1-03 already exists.' Empty state: 'No spaces yet — add your first space or import launch records.'"
+    },
+    "theme": {
+      "bodyFont": "PUBLIC_SANS",
+      "colorMode": "LIGHT",
+      "customColor": "#1F6F5C",
+      "headlineFont": "HANKEN_GROTESK",
+      "roundness": "ROUND_EIGHT"
+    }
+  },
+  "theme": {
+    "brand": "#1F6F5C",
+    "charts": "soft",
+    "chrome": "plain",
+    "density": "comfortable",
+    "families": {
+      "body": "Public Sans",
+      "heading": "Hanken Grotesk"
+    },
+    "font": "sans",
+    "fx": "modern",
+    "heading": "match",
+    "hero": "none",
+    "imagery": "mixed",
+    "mark": "glyph",
+    "mode": "light",
+    "mood": "Sign-in with Folio3 Google Workspace (S-",
+    "motion": "lively",
+    "neutral": "cool",
+    "radius": "soft",
+    "shell": "auto",
+    "surface": "flat"
+  },
+  "themeSource": "new"
+}

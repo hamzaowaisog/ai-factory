@@ -1,0 +1,896 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box temperature</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #F7F7F7;
+    --bg-surface: #FFFFFF;
+    --text-primary: #202020;
+    --text-quieter: #626262;
+    --border-color: #D5D5D5;
+    --brand-accent: #A94B1D;
+    --status-good: #24704B;
+    --status-waiting: #805800;
+    --status-failed: #AE2C2C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: 'Public Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .heading-font {
+    font-family: 'Hanken Grotesk', sans-serif;
+  }
+
+  .mono-font {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Header */
+  header {
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-primary);
+  }
+
+  .brand-icon {
+    width: 24px;
+    height: 24px;
+    background-color: #202020;
+    color: #FFFFFF;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+  }
+
+  .brand-name {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  nav.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 56px;
+  }
+
+  nav.header-nav a {
+    color: var(--text-quieter);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  nav.header-nav a:hover {
+    color: var(--text-primary);
+  }
+
+  nav.header-nav a.active {
+    color: var(--brand-accent);
+    border-bottom-color: var(--brand-accent);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-size: 14px;
+  }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+  }
+
+  .user-initials {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-color);
+    background-color: #F7F7F7;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .lang-switch {
+    color: var(--text-quieter);
+  }
+
+  /* Main Container */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  /* Title row */
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  .btn {
+    height: 48px;
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Public Sans', sans-serif;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .btn-secondary {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .btn-secondary:hover {
+    background-color: #F0F0F0;
+    border-color: #C0C0C0;
+  }
+
+  .btn-secondary:focus-visible {
+    outline: none;
+    border-color: var(--brand-accent);
+    box-shadow: 0 0 0 2px var(--brand-accent);
+  }
+
+  /* Panel */
+  .panel {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    margin-bottom: 32px;
+  }
+
+  /* Section Top Info */
+  .hero-panel {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .hero-image-wrap {
+    border-right: 1px solid var(--border-color);
+    background-color: #FAFAFA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .hero-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 2px;
+    border: 1px solid var(--border-color);
+    display: block;
+  }
+
+  .hero-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .hero-precedence {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .box-id {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .box-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .status-good {
+    color: var(--status-good);
+  }
+  .status-good .status-dot {
+    background-color: var(--status-good);
+  }
+
+  .status-waiting {
+    color: var(--status-waiting);
+  }
+  .status-waiting .status-dot {
+    background-color: var(--status-waiting);
+  }
+
+  .status-failed {
+    color: var(--status-failed);
+  }
+  .status-failed .status-dot {
+    background-color: var(--status-failed);
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding-top: 16px;
+  }
+
+  .metric-block {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .metric-label {
+    font-size: 13px;
+    color: var(--text-quieter);
+    margin-bottom: 4px;
+  }
+
+  .metric-value {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .metric-value-lg {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  /* Telemetry Chart Panel */
+  .chart-panel {
+    padding: 24px;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .panel-title {
+    font-size: 20px;
+    font-weight: 650;
+    color: var(--text-primary);
+  }
+
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-quieter);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-band {
+    width: 14px;
+    height: 10px;
+    background-color: rgba(36, 112, 75, 0.12);
+    border: 1px dashed #24704B;
+  }
+
+  .legend-line {
+    width: 16px;
+    height: 2px;
+    background-color: #24704B;
+  }
+
+  .legend-gap {
+    width: 14px;
+    height: 10px;
+    background-color: #F0F0F0;
+    border: 1px dotted #A0A0A0;
+  }
+
+  .svg-chart-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  /* Table styling */
+  .table-panel {
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .table-header-block {
+    padding: 20px 24px 12px 24px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    text-align: left;
+  }
+
+  table.data-table th {
+    height: 48px;
+    padding: 0 20px;
+    background-color: #FAFBFB;
+    color: var(--text-quieter);
+    font-weight: 600;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.01em;
+  }
+
+  table.data-table td {
+    height: 48px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  table.data-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  table.data-table tr:hover td {
+    background-color: #FBFBFB;
+  }
+
+  .badge-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 12px;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  .badge-neutral {
+    background-color: #EEEEEE;
+    color: var(--text-primary);
+  }
+
+  .badge-gap {
+    background-color: #F3EFE0;
+    color: var(--status-waiting);
+  }
+
+  /* Footer notes / audit line */
+  .metadata-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-quieter);
+    margin-top: 16px;
+    padding-top: 8px;
+  }
+
+  /* Motion keyframes */
+  @keyframes fadeInEntrance {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes savedHandoff {
+    0% {
+      opacity: 0.6;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes waitingBreathe {
+    0%, 100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .entrance-load {
+    animation: fadeInEntrance 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .status-sync-handoff {
+    animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .waiting-dot-breathe {
+    animation: waitingBreathe 6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body class="entrance-load">
+
+<!-- Universal Header -->
+<header>
+  <div class="header-left">
+    <a href="#" class="brand-group">
+      <div class="brand-icon">M</div>
+      <span class="brand-name">Meridian</span>
+    </a>
+    <nav class="header-nav">
+      <a href="#">Orders</a>
+      <a href="#" class="active">Routes</a>
+    </nav>
+  </div>
+  <div class="header-right">
+    <div class="user-badge">
+      <div class="user-initials">PN</div>
+      <span>Priya Nair · Dispatcher</span>
+    </div>
+    <div class="lang-switch">EN / العربية</div>
+  </div>
+</header>
+
+<main>
+  <!-- Page Title and Header Controls -->
+  <div class="title-row">
+    <h1 class="page-title">Box temperature</h1>
+    <a href="#" class="btn btn-secondary">Route detail</a>
+  </div>
+
+  <!-- B-701 Primary Precedence Section -->
+  <section class="panel hero-panel">
+    <div class="hero-image-wrap">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1V4h0t2rnoZTM8XR-jl9QvBjl31rwgFZPzcOxf_yt-Wq9mxWRej_7pE37fVRJLDUnVHUQAqDM7-t36uVy49BykPN0h__O87lwNP0f2dIYl-kTeo70ieHzrx3Eur7b67hB0IFDkAw76nloxXhSZlU_aqF2_BwuAmGixW-tk7sgzGCnROZvzNXIxkNbukRv8GcDp6DXOZ6lCCJl00C7GVRcsAK0qVSR2O1LvvvLVZ4eApOrsDs9Sm6fK6bA" alt="Sealed insulated shipper carton box B-701" class="hero-image">
+    </div>
+    <div class="hero-content">
+      <div class="hero-precedence">
+        <div>
+          <div class="metric-label">Shipper consignment box</div>
+          <div class="box-id mono-font">B-701</div>
+        </div>
+        <div>
+          <div class="box-status-pill status-good status-sync-handoff">
+            <span class="status-dot"></span>
+            <span>good</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-grid">
+        <div class="metric-block">
+          <span class="metric-label">Latest returned gateway temp</span>
+          <span class="metric-value-lg mono-font">4.4°C</span>
+          <span class="metric-label mono-font" style="margin-top: 2px;">14 May 2026 14:40 BST</span>
+        </div>
+        <div class="metric-block">
+          <span class="metric-label">Sealing time</span>
+          <span class="metric-value mono-font">14 May 2026 11:45 BST</span>
+          <span class="metric-label" style="margin-top: 2px;">Leila Haddad · Operator</span>
+        </div>
+        <div class="metric-block">
+          <span class="metric-label">Box status</span>
+          <span class="metric-value">Sealed &amp; confirmed</span>
+          <span class="metric-label mono-font" style="margin-top: 2px;">SEC-8841-NQ</span>
+        </div>
+        <div class="metric-block">
+          <span class="metric-label">Active alerts</span>
+          <span class="metric-value status-good" style="font-weight: 600;">None · good</span>
+          <span class="metric-label" style="margin-top: 2px;">Zero excursion</span>
+        </div>
+      </div>
+
+      <div style="padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; font-size: 14px; color: var(--text-quieter);">
+        <span>Assigned order: <strong style="color: var(--text-primary); font-family: 'IBM Plex Mono', monospace;">O-299</strong> (12 packs · Insulin Glargine)</span>
+        <span>Route: <strong style="color: var(--text-primary); font-family: 'IBM Plex Mono', monospace;">R-204</strong> (Cedar Clinic · Tariq Mansour)</span>
+        <span>Datalogger: <strong style="color: var(--text-primary); font-family: 'IBM Plex Mono', monospace;">LOG-9921</strong> (Berlinger Fridge-tag)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Wide Temperature Chart with 2-8°C Band -->
+  <section class="panel chart-panel">
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">In-transit &amp; packing thermal curve</h2>
+        <span style="font-size: 14px; color: var(--text-quieter);">Profile v3 permitted operating range: <strong class="mono-font" style="color: var(--text-primary);">2.0°C – 8.0°C</strong> · Upper tier threshold: <strong class="mono-font" style="color: var(--text-primary);">&gt;8.0°C – 10.0°C</strong></span>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <span class="legend-band"></span>
+          <span>Permitted band (2–8°C)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-line"></span>
+          <span>Gateway returned telemetry</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-gap"></span>
+          <span>Gateway silence gap</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scaled SVG Chart -->
+    <div class="svg-chart-container">
+      <svg viewBox="0 0 1136 240" width="100%" height="240" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 12px; overflow: visible;">
+        <!-- Definitions -->
+        <defs>
+          <pattern id="gapHatch" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#D5D5D5" stroke-width="1.5"></line>
+          </pattern>
+        </defs>
+
+        <!-- Y Axis Grid and Labels: Scale 0°C to 12°C. Height 180px (Y=20 is 12°C, Y=200 is 0°C -> 15px per degree) -->
+        <!-- Y=200: 0°C -->
+        <!-- Y=170: 2°C -->
+        <!-- Y=140: 4°C -->
+        <!-- Y=110: 6°C -->
+        <!-- Y=80:  8°C -->
+        <!-- Y=50: 10°C -->
+        <!-- Y=20: 12°C -->
+
+        <!-- Background grid lines -->
+        <line x1="60" y1="20" x2="1100" y2="20" stroke="#EBEBEB" stroke-width="1"></line>
+        <line x1="60" y1="50" x2="1100" y2="50" stroke="#EBEBEB" stroke-width="1"></line>
+        <line x1="60" y1="80" x2="1100" y2="80" stroke="#D5D5D5" stroke-width="1" stroke-dasharray="3,3"></line>
+        <line x1="60" y1="110" x2="1100" y2="110" stroke="#EBEBEB" stroke-width="1"></line>
+        <line x1="60" y1="140" x2="1100" y2="140" stroke="#EBEBEB" stroke-width="1"></line>
+        <line x1="60" y1="170" x2="1100" y2="170" stroke="#D5D5D5" stroke-width="1" stroke-dasharray="3,3"></line>
+        <line x1="60" y1="200" x2="1100" y2="200" stroke="#D5D5D5" stroke-width="1"></line>
+
+        <!-- Permitted band 2°C - 8°C (Y=80 to Y=170, height=90) -->
+        <rect x="60" y="80" width="1040" height="90" fill="#24704B" fill-opacity="0.08"></rect>
+        <!-- Upper tier band 8°C - 10°C (Y=50 to Y=80, height=30) -->
+        <rect x="60" y="50" width="1040" height="30" fill="#805800" fill-opacity="0.05"></rect>
+
+        <!-- Gateway silence gap shading between 13:20 (X=660) and 13:50 (X=780) -->
+        <rect x="670" y="20" width="120" height="180" fill="url(#gapHatch)" fill-opacity="0.6"></rect>
+        <rect x="670" y="20" width="120" height="180" fill="#F7F7F7" fill-opacity="0.4"></rect>
+        <!-- Gap indicator banner -->
+        <rect x="680" y="28" width="100" height="20" fill="#FFFFFF" stroke="#D5D5D5" rx="2"></rect>
+        <text x="730" y="42" fill="#805800" text-anchor="middle" font-size="10" font-weight="600">Silent gap (30m)</text>
+
+        <!-- Y Axis Text -->
+        <text x="50" y="24" fill="#626262" text-anchor="end">12°C</text>
+        <text x="50" y="54" fill="#805800" text-anchor="end">10°C</text>
+        <text x="50" y="84" fill="#24704B" text-anchor="end" font-weight="600">8°C</text>
+        <text x="50" y="114" fill="#626262" text-anchor="end">6°C</text>
+        <text x="50" y="144" fill="#626262" text-anchor="end">4°C</text>
+        <text x="50" y="174" fill="#24704B" text-anchor="end" font-weight="600">2°C</text>
+        <text x="50" y="204" fill="#626262" text-anchor="end">0°C</text>
+
+        <!-- Telemetry Polyline segment 1: 11:45 (X=100, 4.8°C Y=128), 12:00 (X=200, 4.6°C Y=131), 12:20 (X=310, 4.5°C Y=132.5), 12:40 (X=430, 4.3°C Y=135.5), 13:00 (X=550, 4.2°C Y=137), 13:20 (X=670, 4.3°C Y=135.5) -->
+        <polyline points="100,128 200,131 310,132.5 430,135.5 550,137 670,135.5" fill="none" stroke="#24704B" stroke-width="2.5" stroke-linejoin="round"></polyline>
+
+        <!-- Discontinuous break during gateway silence: line is omitted between X=670 and X=790 to never substitute estimated temperature -->
+        <line x1="670" y1="135.5" x2="685" y2="135.5" stroke="#24704B" stroke-width="2" stroke-dasharray="2,2"></line>
+        <line x1="775" y1="134" x2="790" y2="134" stroke="#24704B" stroke-width="2" stroke-dasharray="2,2"></line>
+
+        <!-- Telemetry Polyline segment 2: 13:50 (X=790, 4.4°C Y=134), 14:15 (X=920, 4.5°C Y=132.5), 14:40 (X=1050, 4.4°C Y=134) -->
+        <polyline points="790,134 920,132.5 1050,134" fill="none" stroke="#24704B" stroke-width="2.5" stroke-linejoin="round"></polyline>
+
+        <!-- Data points -->
+        <circle cx="100" cy="128" r="4.5" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="200" cy="131" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="310" cy="132.5" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="430" cy="135.5" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="550" cy="137" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="670" cy="135.5" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        
+        <!-- Silence boundary markers -->
+        <circle cx="790" cy="134" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="920" cy="132.5" r="4" fill="#24704B" stroke="#FFFFFF" stroke-width="1.5"></circle>
+        <circle cx="1050" cy="134" r="5" fill="#24704B" stroke="#FFFFFF" stroke-width="2"></circle>
+
+        <!-- Current Value Callout at 14:40 -->
+        <rect x="1005" y="98" width="90" height="24" fill="#202020" rx="2"></rect>
+        <text x="1050" y="114" fill="#FFFFFF" text-anchor="middle" font-weight="600" font-size="12">4.4°C (good)</text>
+        <line x1="1050" y1="122" x2="1050" y2="129" stroke="#202020" stroke-width="1.5"></line>
+
+        <!-- X Axis labels -->
+        <text x="100" y="222" fill="#626262" text-anchor="middle">11:45 (Sealed)</text>
+        <text x="200" y="222" fill="#626262" text-anchor="middle">12:00</text>
+        <text x="310" y="222" fill="#626262" text-anchor="middle">12:20</text>
+        <text x="430" y="222" fill="#626262" text-anchor="middle">12:40</text>
+        <text x="550" y="222" fill="#626262" text-anchor="middle">13:00</text>
+        <text x="670" y="222" fill="#626262" text-anchor="middle">13:20</text>
+        <text x="730" y="222" fill="#805800" text-anchor="middle" font-weight="600">Silence gap</text>
+        <text x="790" y="222" fill="#626262" text-anchor="middle">13:50</text>
+        <text x="920" y="222" fill="#626262" text-anchor="middle">14:15</text>
+        <text x="1050" y="222" fill="#626262" text-anchor="middle">14:40 BST</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Telemetry Readings & Ledger Table -->
+  <section class="panel table-panel">
+    <div class="table-header-block">
+      <h2 class="panel-title">Readings &amp; telemetry audit</h2>
+      <p style="font-size: 14px; color: var(--text-quieter); margin-top: 4px;">
+        Excursions, gaps, and gateway verification flags. Stale or silent data is logged explicitly without synthetic estimation.
+      </p>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Timestamp (BST)</th>
+          <th>Sensor / Gateway ID</th>
+          <th>Recorded temperature</th>
+          <th>Permitted target band</th>
+          <th>Excursion duration</th>
+          <th>Reading flag</th>
+          <th>Assurance status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono-font">14 May 2026 14:40</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.4°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Normal probe sync</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 14:15</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.5°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Normal probe sync</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 13:50</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.4°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Handshake resumed</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <!-- Explicit Gateway Silent Data row - NO substitution of estimated temperature -->
+        <tr style="background-color: #FDFCF7;">
+          <td class="mono-font">14 May 2026 13:20–13:50</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="color: var(--status-waiting); font-weight: 600;">[unobserved]</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">30m silence span</td>
+          <td><span class="badge-tag badge-gap">Silent gap · no temperature substituted</span></td>
+          <td>
+            <span class="box-status-pill status-waiting">
+              <span class="status-dot waiting-dot-breathe"></span>
+              <span>waiting</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 13:20</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.3°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Normal probe sync</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 13:00</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.2°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Normal probe sync</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 12:40</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.3°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Normal probe sync</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 12:20</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.5°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Normal probe sync</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 12:00</td>
+          <td class="mono-font">LOG-9921 / GTW-VAN27</td>
+          <td class="mono-font" style="font-weight: 600;">4.6°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (steady)</td>
+          <td><span class="badge-tag badge-neutral">Van staging check</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="mono-font">14 May 2026 11:45</td>
+          <td class="mono-font">LOG-9921 / Internal</td>
+          <td class="mono-font" style="font-weight: 600;">4.8°C</td>
+          <td>2.0°C – 8.0°C</td>
+          <td class="mono-font">0m (intake)</td>
+          <td><span class="badge-tag badge-neutral">Initial seal verification</span></td>
+          <td>
+            <span class="box-status-pill status-good">
+              <span class="status-dot"></span>
+              <span>good</span>
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Spare Footer Metadata -->
+  <div class="metadata-bar">
+    <span>Audit verification: Esha Raman · Prototype date 14 May 2026 (Europe/London BST)</span>
+    <span>Consignment: Order O-299 · 12 packs Insulin Glargine · Cold Room C2 Rack 4 dispatch</span>
+  </div>
+</main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"orders":"S-18","routes":"S-20","route detail":"S-22"},A={"request password reset":"S-3","back to sign in":"S-1","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8","receipts":"S-6","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","route plan":"S-21","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-23";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "export function Segmented|function Segmented",
+    "glob": "components/**/*.tsx"
+   },
+   "ms": 8,
+   "resultChars": 310,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;export function Segmented|function Segmented&quot;,&quot;glob&quot;:&quot;components/**/*.tsx&quot;}\">\ncomponents/ui/segmented.tsx:6: export function Segmented({ items, value, defaultValue, onChange, label, className }: {\n</untrusted_document>"
+  }
+ ]
+}

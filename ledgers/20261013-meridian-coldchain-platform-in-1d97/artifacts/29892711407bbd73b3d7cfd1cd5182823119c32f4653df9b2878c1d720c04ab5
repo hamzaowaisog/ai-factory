@@ -1,0 +1,148 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The API shall implement every operation under `/api` in `contracts/openapi.yaml` exactly according to its defined methods, paths, parameters, request and response schemas, status codes, and security requirements.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "each operation and each response case defined in the locked OpenAPI contract",
+        "when": "a client sends the corresponding HTTP request",
+        "then": "the response status and response body conform to that operation's contract definition",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When `Seed:Demo` is true, the API shall persist two contract-example-derived rows for each contract table through `App.Api/SeedData.cs`, with valid references between related seeded rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/SeedData.cs",
+        "lineStart": 5,
+        "lineEnd": 9,
+        "quote": "public static class SeedData\n{\n    public static void Run(AppDb db)\n    {\n    }"
+       }
+      ],
+      "sources": [
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "a newly created PostgreSQL database and `Seed:Demo` set to true",
+        "when": "the API starts and each collection operation is called",
+        "then": "each contract table has two seeded rows, each response list contains the applicable sample records, and every related-record field value resolves to a seeded record",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "If `Seed:Demo` is false or unset, then the API shall not run the demo seeder or create demo rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 24,
+        "quote": "        using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();\n        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       }
+      ],
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "a newly created PostgreSQL database and `Seed:Demo` false or unset",
+        "when": "the API starts",
+        "then": "the demo-table row count is zero",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When a collection operation has no matching persisted records, the API shall return an empty list rather than unpersisted sample records.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-4",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "a collection operation with no matching database records",
+        "when": "a client calls that operation",
+        "then": "the response status and response list count show a successful empty collection",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When `GET /api/auth/staff/authorization-url` is called, the API shall return the existing staff identity provider's authorization URL supplied through deployment configuration.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "the existing staff identity provider authorization URL is configured for deployment",
+        "when": "a client calls `GET /api/auth/staff/authorization-url`",
+        "then": "the response status is 200 and the response body contains the configured authorization URL",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "If required staff identity-provider authorization URL or token-validation settings are missing or invalid, then the API shall fail startup with a configuration error identifying the setting.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "a required staff identity-provider authorization URL or token-validation setting is missing or invalid",
+        "when": "the API process starts",
+        "then": "the process exit status is nonzero and the startup error identifies the setting",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "I-5 portal screens and web-app implementation (Q-1)"
+    ],
+    "assumptions": [],
+    "suggestions": []
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

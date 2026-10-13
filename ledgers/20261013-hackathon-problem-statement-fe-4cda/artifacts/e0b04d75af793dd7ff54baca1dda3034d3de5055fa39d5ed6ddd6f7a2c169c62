@@ -1,0 +1,36 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Seed__Demo|Seed:Demo|WebApplicationFactory|ConfigureAppConfiguration|ConnectionStrings",
+    "glob": "**/*"
+   },
+   "ms": 3,
+   "resultChars": 1245,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Seed__Demo|Seed:Demo|WebApplicationFactory|ConfigureAppConfiguration|ConnectionStrings&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/Program.cs:6: // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is\nApp.Api/Program.cs:9: ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_1»")));\nApp.Api/Program.cs:23: // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\nApp.Tests/HealthTests.cs:7: public class HealthTests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/HealthTests.cs:9: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/HealthTests.cs:10: public HealthTests(WebApplicationFactory<Program> factory) => _factory = factory;\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Tests/App.Tests.csproj"
+   },
+   "ms": 1,
+   "resultChars": 860,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Tests/App.Tests.csproj&quot;}\">\nApp.Tests/App.Tests.csproj lines 1-18\n1\t<Project Sdk=\"Microsoft.NET.Sdk\">\n2\t  <PropertyGroup>\n3\t    <TargetFramework>net9.0</TargetFramework>\n4\t    <Nullable>enable</Nullable>\n5\t    <ImplicitUsings>enable</ImplicitUsings>\n6\t    <IsPackable>false</IsPackable>\n7\t  </PropertyGroup>\n8\t  <ItemGroup>\n9\t    <PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.1\" />\n10\t    <PackageReference Include=\"xunit\" Version=\"2.9.2\" />\n11\t    <PackageReference Include=\"xunit.runner.visualstudio\" Version=\"2.8.2\" />\n12\t    <PackageReference Include=\"Microsoft.AspNetCore.Mvc.Testing\" Version=\"9.0.0\" />\n13\t  </ItemGroup>\n14\t  <ItemGroup>\n15\t    <ProjectReference Include=\"../App.Api/App.Api.csproj\" />\n16\t  </ItemGroup>\n17\t</Project>\n18\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "Program.cs"
+   },
+   "ms": 0,
+   "resultChars": 140,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;Program.cs&quot;}\">\nERROR: No such file: Program.cs\n</untrusted_document>"
+  }
+ ]
+}

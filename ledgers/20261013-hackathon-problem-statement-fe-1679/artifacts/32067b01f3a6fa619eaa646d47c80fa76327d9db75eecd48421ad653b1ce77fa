@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetDashboardResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 1,
+   "resultChars": 464,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetDashboardResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:57: export const getGetDashboardResponseMock = (): DashboardResponse => ({\"permissions\":[\"yard.view\",\"profitability.view\"],\"yardSummary\":{\"totalHead\":420,\"averageAdg\":3.1,\"averageCostOfGain\":1.42,\"totalFe\nlib/api/client.msw.ts:173: : getGetDashboardResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

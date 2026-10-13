@@ -1,0 +1,60 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-11",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "AC-11.8–11.9 treats matching event fields in a refreshed activity list as proof of whether a timed-out save succeeded, so an older identical event can be mistaken for the new save and a delayed or omitted event can lead to a duplicate feeding and inventory decrement."
+     },
+     {
+      "reqId": "REQ-20",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-20.7 requires sample-free dashboard and yard-summary totals even when the response mixes sample and operational records, while REQ-15 and REQ-21 require displaying returned summary and aggregate values, leaving no consistent client behavior if those returned aggregates include sample data."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-13.2 defines an unavailable state only for the projected ship date, leaving FCR and cost of gain without a display state when a lot has no usable weight gain or feeding history and their denominators are zero or missing."
+     },
+     {
+      "reqId": "REQ-19",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-19.1 requires only whatever profitability values happen to be returned, without naming any required profit, revenue, or margin value, so a list with no profitability analysis can satisfy the criterion."
+     },
+     {
+      "reqId": "REQ-15",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-15.2 checks that the selected ranking measure is shown but not that lots are ordered by it, so an unchanged or incorrectly ordered best-and-worst list can pass when FCR, ADG, and cost-of-gain rankings differ."
+     },
+     {
+      "reqId": "REQ-20",
+      "rubric": 4,
+      "severity": "medium",
+      "finding": "AC-20.8 adds exports of operational inventory and yard-summary views even though REQ-6 and REQ-21 only request viewing those screens and the requested exports concern reports, expanding the export surface without supporting intent."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-6.2 covers only successful inventory edits, receipts, adjustments, and wastage-setting changes, with no screen behavior for a refused or failed submission despite those actions changing stock and future feeding availability."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

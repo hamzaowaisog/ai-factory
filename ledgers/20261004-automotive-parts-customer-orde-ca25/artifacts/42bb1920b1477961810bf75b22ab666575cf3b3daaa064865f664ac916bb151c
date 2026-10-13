@@ -1,0 +1,521 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "errors",
+      "topic": "sign-in",
+      "text": "When a sign-in fails, what should the message say?",
+      "options": [
+       "One general 'email or password is incorrect' message that does not say which one was wrong",
+       "A specific message saying whether the email is unknown or the password is wrong"
+      ],
+      "recommended": "One general 'email or password is incorrect' message that does not say which one was wrong",
+      "reason": "This is the usual secure default and meets the 'no sensitive information' rule in section 52.",
+      "spans": [
+       "52-error-handling",
+       "49-security"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what the sign-in screen shows and how much it tells attackers.",
+      "difference": "D-1.52"
+     },
+     {
+      "id": "Q-7",
+      "category": "errors",
+      "text": "How should the system stop the same order being submitted twice?",
+      "options": [
+       "Disable the submit button and show a loading state while the order is being sent",
+       "Also send a one-time token with each checkout so the server ignores a repeat of the same submission",
+       "No special handling"
+      ],
+      "recommended": "Disable the submit button and show a loading state while the order is being sent",
+      "reason": "This is the smallest change that covers the double-tap case in sections 54 and 71. The server token is there if repeats from two tabs also matter.",
+      "spans": [
+       "54-loading-states",
+       "71-testing-requirements"
+      ],
+      "impact": 3,
+      "impactReason": "A repeat submission creates a duplicate order.",
+      "difference": "D-2.54"
+     },
+     {
+      "id": "Q-8",
+      "category": "scope",
+      "topic": "sign-in",
+      "text": "Is staff sign-in a separate page, or do staff use the same sign-in as customers?",
+      "options": [
+       "One sign-in page for everyone, which sends each user to the customer, staff or admin area based on their role",
+       "A separate staff sign-in page at its own address"
+      ],
+      "recommended": "One sign-in page for everyone, which sends each user to the customer, staff or admin area based on their role",
+      "reason": "One sign-in flow is less to build and still gives staff their own entry point after they sign in.",
+      "spans": [
+       "55-main-customer-screens",
+       "56-main-staff-screens"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the screens and routes for signing in.",
+      "difference": "D-3.56"
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "text": "Is the invoice PDF made once and stored, or made again on every download?",
+      "options": [
+       "Made once after the invoice is created, stored, and the same file served on every download",
+       "Made again from current data on every download"
+      ],
+      "recommended": "Made once after the invoice is created, stored, and the same file served on every download",
+      "reason": "This fits answer Q-4, and the document stays the same even if data changes later.",
+      "spans": [
+       "64-pdf-generation",
+       "63-file-storage"
+      ],
+      "impact": 2,
+      "impactReason": "Decides whether customers can ever see two different versions of the same invoice.",
+      "difference": "D-6.64"
+     },
+     {
+      "id": "Q-10",
+      "category": "terminology",
+      "text": "Section 58 shows 'Invoice Created' as a step after Delivered. Is it an order status?",
+      "options": [
+       "No: the order ends at Delivered, and the invoice is a separate record with its own status",
+       "Yes: the order status changes to 'Invoice Created' once its invoice exists"
+      ],
+      "recommended": "No: the order ends at Delivered, and the invoice is a separate record with its own status",
+      "reason": "Section 59 already gives invoices their own lifecycle. One status per thing avoids duplication.",
+      "spans": [
+       "58-order-lifecycle",
+       "59-invoice-lifecycle"
+      ],
+      "impact": 3,
+      "impactReason": "Sets the stored order statuses and what customers see."
+     },
+     {
+      "id": "Q-11",
+      "category": "data-model",
+      "topic": "reporting",
+      "text": "What counts as revenue and order value in the reports?",
+      "options": [
+       "Total of the order lines at the price stored on each order, excluding tax and excluding cancelled or rejected orders",
+       "The same, but including tax",
+       "Invoiced amounts only (delivered orders)"
+      ],
+      "recommended": "Total of the order lines at the price stored on each order, excluding tax and excluding cancelled or rejected orders",
+      "reason": "Uses data the orders already hold and leaves out orders that never happened.",
+      "spans": [
+       "39-reporting"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the figures staff rely on."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "topic": "reporting",
+      "text": "Which date decides whether an order falls inside the report's date range?",
+      "options": [
+       "The date the order was submitted",
+       "The delivery date",
+       "The invoice date"
+      ],
+      "recommended": "The date the order was submitted",
+      "reason": "Every order has a submission date, and it matches the 'Orders per Day' report.",
+      "spans": [
+       "39-reporting",
+       "40-report-filters"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which orders appear in each report."
+     },
+     {
+      "id": "Q-13",
+      "category": "roles",
+      "topic": "audit",
+      "text": "Who can see the audit history, and how long is it kept?",
+      "options": [
+       "Admins only, on the Audit history screen; kept for 7 years like orders",
+       "Admins only; kept forever",
+       "Admins and staff; kept for 7 years"
+      ],
+      "recommended": "Admins only, on the Audit history screen; kept for 7 years like orders",
+      "reason": "The audit screen is listed only under admin screens, and this reuses the existing 7-year rule.",
+      "spans": [
+       "42-audit-history",
+       "57-main-admin-screens"
+      ],
+      "impact": 3,
+      "impactReason": "Controls who sees sensitive change history and how long data is kept."
+     },
+     {
+      "id": "Q-14",
+      "category": "roles",
+      "topic": "roles",
+      "text": "Can buyers at the same company see each other's orders, invoices and templates?",
+      "options": [
+       "Yes: all users of a company see all of that company's orders and invoices; basket templates stay with the user who saved them",
+       "Each buyer sees only their own orders"
+      ],
+      "recommended": "Yes: all users of a company see all of that company's orders and invoices; basket templates stay with the user who saved them",
+      "reason": "Rule 1 says customers see their own company's data.",
+      "spans": [
+       "50-data-isolation",
+       "67-business-rules-summary"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which records each customer user can see."
+     },
+     {
+      "id": "Q-15",
+      "category": "scope",
+      "text": "Can customers order more than the stock shown, or order out-of-stock products?",
+      "options": [
+       "Yes: stock is shown only as information (stock is only updated nightly), and staff deal with shortfalls at confirmation",
+       "No: the basket blocks quantities above the imported stock"
+      ],
+      "recommended": "Yes: stock is shown only as information (stock is only updated nightly), and staff deal with shortfalls at confirmation",
+      "reason": "Stock is only updated nightly, so blocking orders would turn away orders based on old figures. Staff already review every order.",
+      "spans": [
+       "45-erp-stock-integration",
+       "67-business-rules-summary"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which orders can be placed."
+     },
+     {
+      "id": "Q-16",
+      "category": "identifiers",
+      "text": "What does 'low stock' mean?",
+      "options": [
+       "One configurable threshold quantity for all products",
+       "A threshold set per product",
+       "Low stock is not shown, only in stock or out of stock"
+      ],
+      "recommended": "One configurable threshold quantity for all products",
+      "reason": "Covers the low-stock test without adding a field to every product.",
+      "spans": [
+       "71-testing-requirements"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the stock labels customers see."
+     },
+     {
+      "id": "Q-17",
+      "category": "external",
+      "text": "How does the nightly ERP stock file reach the portal?",
+      "options": [
+       "A scheduled job reads the newest file from a configured location (folder or SFTP) at a configured time",
+       "An admin uploads the file by hand on the System/import status screen",
+       "The ERP sends the file to an API endpoint"
+      ],
+      "recommended": "A scheduled job reads the newest file from a configured location (folder or SFTP) at a configured time",
+      "reason": "Matches 'the portal reads the file nightly' and keeps the location and time as configuration.",
+      "spans": [
+       "45-erp-stock-integration",
+       "62-background-jobs"
+      ],
+      "impact": 3,
+      "impactReason": "Writes stock data and needs an external integration."
+     },
+     {
+      "id": "Q-18",
+      "category": "errors",
+      "text": "If some rows in the stock file are invalid, what happens to the rest of the file?",
+      "options": [
+       "Valid rows are imported, invalid rows are rejected and listed in the import result on the System/import status screen",
+       "The whole file is rejected if any row is invalid",
+       "Same as the first option, and admins are also emailed when an import fails"
+      ],
+      "recommended": "Valid rows are imported, invalid rows are rejected and listed in the import result on the System/import status screen",
+      "reason": "Section 65 asks for processed and rejected counts, which implies partial imports.",
+      "spans": [
+       "65-csv-import-requirements",
+       "45-erp-stock-integration"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which stock values are written."
+     },
+     {
+      "id": "Q-19",
+      "category": "external",
+      "topic": "notifications",
+      "text": "The email provider is not known yet. How should sending be built?",
+      "options": [
+       "Send through standard SMTP, with host, credentials, sender and reply-to addresses all in configuration",
+       "Wait until the provider is known and integrate with its API"
+      ],
+      "recommended": "Send through standard SMTP, with host, credentials, sender and reply-to addresses all in configuration",
+      "reason": "Almost every provider supports SMTP, so work can go ahead before the provider is chosen.",
+      "spans": [
+       "43-notifications",
+       "44-email-provider"
+      ],
+      "impact": 2,
+      "impactReason": "Affects whether any email can be sent."
+     },
+     {
+      "id": "Q-20",
+      "category": "errors",
+      "topic": "notifications",
+      "text": "What happens when an email fails to send?",
+      "options": [
+       "The failure is recorded on the email log and the order or invoice action still succeeds; no automatic retry",
+       "Failed emails are retried automatically a few times",
+       "The business action is rolled back"
+      ],
+      "recommended": "The failure is recorded on the email log and the order or invoice action still succeeds; no automatic retry",
+      "reason": "Smallest option: a failed email never blocks orders, and the failure stays visible.",
+      "spans": [
+       "52-error-handling",
+       "62-background-jobs"
+      ],
+      "impact": 2,
+      "impactReason": "Affects whether customers get notified and what staff can see."
+     },
+     {
+      "id": "Q-21",
+      "category": "identifiers",
+      "text": "How are working days, public holidays and the 14:00 cut-off set?",
+      "options": [
+       "Monday to Friday are working days; the cut-off time and a list of holiday dates are kept in configuration",
+       "Monday to Friday, a fixed 14:00 cut-off, and no holiday handling",
+       "Admins manage the cut-off and holidays on a screen"
+      ],
+      "recommended": "Monday to Friday are working days; the cut-off time and a list of holiday dates are kept in configuration",
+      "reason": "Gives correct delivery dates without building a new admin screen.",
+      "spans": [
+       "72-acceptance-criteria-examples",
+       "67-business-rules-summary"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the delivery dates customers are offered."
+     },
+     {
+      "id": "Q-22",
+      "category": "scope",
+      "text": "Up to what point can staff reject or cancel an order?",
+      "options": [
+       "Only before it is Confirmed, the same as editing",
+       "Any time before Out for Delivery",
+       "Any time before Delivered"
+      ],
+      "recommended": "Only before it is Confirmed, the same as editing",
+      "reason": "Uses the same cut-off as customer cancellation and staff editing.",
+      "spans": [
+       "58-order-lifecycle",
+       "43-notifications"
+      ],
+      "impact": 3,
+      "impactReason": "Changes order states and triggers customer emails."
+     },
+     {
+      "id": "Q-23",
+      "category": "identifiers",
+      "text": "What should the payment term setting default to?",
+      "options": [
+       "30 days",
+       "14 days",
+       "60 days"
+      ],
+      "recommended": "30 days",
+      "reason": "A common B2B payment term. It stays configurable, as answer Q-3 says.",
+      "spans": [
+       "59-invoice-lifecycle"
+      ],
+      "impact": 2,
+      "impactReason": "Decides when invoices show as Overdue."
+     },
+     {
+      "id": "Q-24",
+      "category": "identifiers",
+      "text": "Who gives invoices their numbers?",
+      "options": [
+       "The portal gives each invoice the next number in one sequence",
+       "Numbers come from the ERP or accounting system"
+      ],
+      "recommended": "The portal gives each invoice the next number in one sequence",
+      "reason": "No integration for invoice numbers is described anywhere in the request.",
+      "spans": [
+       "64-pdf-generation"
+      ],
+      "impact": 3,
+      "impactReason": "Sets legal document numbers."
+     },
+     {
+      "id": "Q-25",
+      "category": "data-model",
+      "text": "How is tax (VAT) handled on prices and invoices?",
+      "options": [
+       "Prices are stored without tax, and invoices add VAT at one configurable rate",
+       "Prices include tax, and invoices show no separate tax",
+       "No tax is shown anywhere"
+      ],
+      "recommended": "Prices are stored without tax, and invoices add VAT at one configurable rate",
+      "reason": "Typical for B2B parts sales, and needs only one setting.",
+      "spans": [
+       "64-pdf-generation",
+       "39-reporting"
+      ],
+      "impact": 3,
+      "impactReason": "Changes invoice amounts."
+     },
+     {
+      "id": "Q-26",
+      "category": "existing-data",
+      "text": "Can a 'paid' mark on an invoice be undone if it was made by mistake?",
+      "options": [
+       "Yes: staff can set it back to Unpaid, which clears the payment details, and the change is audited",
+       "No: once marked paid it stays paid"
+      ],
+      "recommended": "Yes: staff can set it back to Unpaid, which clears the payment details, and the change is audited",
+      "reason": "Mistakes will happen, and the audit log keeps a record of the correction.",
+      "spans": [
+       "59-invoice-lifecycle",
+       "42-audit-history"
+      ],
+      "impact": 3,
+      "impactReason": "Changes payment records."
+     },
+     {
+      "id": "Q-27",
+      "category": "identifiers",
+      "topic": "sign-in",
+      "text": "How long do reset links and invitations last, and when are accounts locked?",
+      "options": [
+       "Reset links last 1 hour and invitations 7 days; 5 failed sign-ins lock the account for 15 minutes; all values in configuration",
+       "Same values written as fixed constants in the code",
+       "No lockout"
+      ],
+      "recommended": "Reset links last 1 hour and invitations 7 days; 5 failed sign-ins lock the account for 15 minutes; all values in configuration",
+      "reason": "Common defaults that can be changed without a code change.",
+      "spans": [
+       "49-security",
+       "71-testing-requirements"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what users see when they sign in or reset a password."
+     },
+     {
+      "id": "Q-28",
+      "category": "scope",
+      "topic": "sign-in",
+      "text": "Is multi-factor authentication (MFA) or single sign-on (SSO) for staff needed in phase 1?",
+      "options": [
+       "No: email and password for all users",
+       "MFA for staff and admins",
+       "SSO for staff"
+      ],
+      "recommended": "No: email and password for all users",
+      "reason": "Neither is listed as required; both are only open questions.",
+      "spans": [
+       "49-security"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the sign-in flow."
+     },
+     {
+      "id": "Q-29",
+      "category": "roles",
+      "text": "Can customers add and edit their own delivery addresses?",
+      "options": [
+       "Yes: any customer user can add and edit their company's delivery addresses",
+       "No: only staff or admins manage addresses"
+      ],
+      "recommended": "Yes: any customer user can add and edit their company's delivery addresses",
+      "reason": "There is a customer screen for Delivery addresses, which suggests customers manage them.",
+      "spans": [
+       "55-main-customer-screens"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can write address data."
+     },
+     {
+      "id": "Q-30",
+      "category": "existing-data",
+      "text": "Section 46 says 'deleting a user'. Are users ever actually deleted?",
+      "options": [
+       "No: users are only deactivated, never deleted, so their history stays linked",
+       "Users can be deleted, but their orders and invoices keep the user's name"
+      ],
+      "recommended": "No: users are only deactivated, never deleted, so their history stays linked",
+      "reason": "Rule 15 and the audit events mention only deactivation.",
+      "spans": [
+       "46-data-retention",
+       "67-business-rules-summary"
+      ],
+      "impact": 3,
+      "impactReason": "Affects how stored records are kept and linked."
+     },
+     {
+      "id": "Q-31",
+      "category": "existing-data",
+      "text": "What happens to orders and invoices older than 7 years?",
+      "options": [
+       "Nothing automatic: they are kept, and 7 years is the minimum",
+       "They are deleted automatically after 7 years"
+      ],
+      "recommended": "Nothing automatic: they are kept, and 7 years is the minimum",
+      "reason": "Section 46 asks only that data is retained; no clean-up job is needed.",
+      "spans": [
+       "46-data-retention"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether data gets deleted."
+     },
+     {
+      "id": "Q-32",
+      "category": "scope",
+      "topic": "accessibility",
+      "text": "What accessibility level is required?",
+      "options": [
+       "WCAG 2.1 AA",
+       "Best effort, no formal target"
+      ],
+      "recommended": "WCAG 2.1 AA",
+      "reason": "The practices listed in section 51 match AA.",
+      "spans": [
+       "51-accessibility"
+      ],
+      "impact": 2,
+      "impactReason": "Affects every screen."
+     },
+     {
+      "id": "Q-33",
+      "category": "scope",
+      "topic": "browsers",
+      "text": "Which browsers must be supported?",
+      "options": [
+       "The current and previous versions of Chrome, Safari (including iOS), Edge and Firefox",
+       "Chrome and Safari on mobile only"
+      ],
+      "recommended": "The current and previous versions of Chrome, Safari (including iOS), Edge and Firefox",
+      "reason": "Covers phones, tablets and desktops without supporting old browsers.",
+      "spans": [
+       "47-responsive-design"
+      ],
+      "impact": 1,
+      "impactReason": "Affects testing scope only."
+     }
+    ],
+    "conflicts": [
+     "Section 58 shows 'Invoice Created' as a step in the order lifecycle, but section 59 gives invoices their own lifecycle.",
+     "Section 46 talks about 'deleting a user', but rule 15 and the audit events mention only deactivation.",
+     "Section 62 lists 'invoice overdue status updates' as a background job, but answer Q-2 says Overdue is worked out when the invoice is viewed.",
+     "Section 62 lists invoice generation as a background job, but answer Q-4 and section 72 say the invoice is created in the same save as the Delivered status change."
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

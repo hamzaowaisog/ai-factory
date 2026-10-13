@@ -1,0 +1,35 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "claims": [
+     {
+      "id": "C-1",
+      "text": "GET /orders/{id} indexes the dictionary directly, so a missing id throws and the API answers 500",
+      "spans": [
+       "I-1"
+      ],
+      "anchors": [
+       {
+        "path": "Shop.Api/Program.cs",
+        "lineStart": 7,
+        "lineEnd": 7,
+        "quote": "app.MapGet(\"/orders/{id:int}\", (int id) => Results.Ok(new { id, item = orders[id] }));",
+        "symbol": "MapGet /orders/{id}"
+       }
+      ]
+     }
+    ],
+    "notFound": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

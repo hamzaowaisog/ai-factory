@@ -1,0 +1,30 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2020,
+    "end": 2055
+   },
+   "ms": 2,
+   "resultChars": 1108,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2020,&quot;end&quot;:2055}\">\ncontracts/openapi.yaml lines 2020-2055\n2020\t        message:\n2021\t          type: string\n2022\t    Credentials:\n2023\t      type: object\n2024\t      required:\n2025\t        - email\n2026\t        - password\n2027\t      properties:\n2028\t        email:\n2029\t          type: string\n2030\t          format: email\n2031\t        password:«SECRET_2»          type: string\n2033\t    CodeVerification:\n2034\t      type: object\n2035\t      required:\n2036\t        - challengeId\n2037\t        - code\n2038\t      properties:\n2039\t        challengeId:\n2040\t          type: string\n2041\t        code:\n2042\t          type: string\n2043\t    ChallengeRequest:\n2044\t      type: object\n2045\t      required:\n2046\t        - challengeId\n2047\t      properties:\n2048\t        challengeId:\n2049\t          type: string\n2050\t    EmailRequest:\n2051\t      type: object\n2052\t      required:\n2053\t        - email\n2054\t      properties:\n2055\t        email:\n… (2684 lines total; ask for start=2056)\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2610,
+    "end": 2645
+   },
+   "ms": 0,
+   "resultChars": 1603,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2610,&quot;end&quot;:2645}\">\ncontracts/openapi.yaml lines 2610-2645\n2610\t    ActionResult:\n2611\t      description: \"The action result returned by the service.\"\n2612\t      content:\n2613\t        application/json:\n2614\t          schema:\n2615\t            $ref: \"#/components/schemas/ActionEnvelope\"\n2616\t          example:\n2617\t            id: 3101\n2618\t            status: \"Accepted\"\n2619\t            message: \"The request was recorded\"\n2620\t    AuthResult:\n2621\t      description: \"Authentication challenge or configured staff authorization result.\"\n2622\t      content:\n2623\t        application/json:\n2624\t          schema:\n2625\t            $ref: \"#/components/schemas/ActionEnvelope\"\n2626\t          example:\n2627\t            id: 3101\n2628\t            status: \"Challenge sent\"\n2629\t            message: \"Enter the one-time code sent to the account\"\n2630\t    BadRequest:\n2631\t      description: \"The request is invalid.\"\n2632\t      content:\n2633\t        application/json:\n2634\t          schema:\n2635\t            $ref: \"#/components/schemas/Problem\"\n2636\t          example:\n2637\t            code: \"validation_error\"\n2638\t            message: \"Check the highlighted fields and try again\"\n2639\t    Unauthorized:\n2640\t      description: \"Authentication is required or has expired.\"\n2641\t      content:\n2642\t        application/json:\n2643\t          schema:\n2644\t            $ref: \"#/components/schemas/Problem\"\n2645\t          example:\n… (2684 lines total; ask for start=2646)\n</untrusted_document>"
+  }
+ ]
+}

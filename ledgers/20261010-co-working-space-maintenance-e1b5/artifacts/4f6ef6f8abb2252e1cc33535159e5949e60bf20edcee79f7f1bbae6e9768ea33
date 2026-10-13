@@ -1,0 +1,132 @@
+diff --git a/App.Api/Endpoints/CreateRequestEndpoint.cs b/App.Api/Endpoints/CreateRequestEndpoint.cs
+new file mode 100644
+index 0000000..56b7eee
+--- /dev/null
++++ b/App.Api/Endpoints/CreateRequestEndpoint.cs
+@@ -0,0 +1,126 @@
++using System.Text.Json;
++using System.Text.Json.Serialization;
++
++namespace App.Api.Endpoints;
++
++// POST /api/requests (createRequest): validates the body, then stores an Open request with a database-assigned id and the current UTC time.
++public sealed class CreateRequestEndpoint : IEndpointRegistrar
++{
++    private const string TitleMessage = "Title must be 3 to 80 characters.";
++    private const string DescriptionMessage = "Description must be at most 500 characters.";
++
++    public void Map(RouteGroupBuilder api) =>
++        api.MapPost("/requests", Handle)
++            .WithName("createRequest")
++            .WithSummary("Create a maintenance request")
++            .Accepts<CreateRequest>("application/json")
++            .Produces<MaintenanceRequestResource>(StatusCodes.Status201Created)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
++
++    private static async Task<IResult> Handle(HttpRequest http, AppDb db, CancellationToken ct)
++    {
++        JsonElement body;
++        try
++        {
++            using var doc = await JsonDocument.ParseAsync(http.Body, cancellationToken: ct);
++            body = doc.RootElement.Clone();
++        }
++        catch (JsonException)
++        {
++            return Invalid();
++        }
++
++        if (body.ValueKind != JsonValueKind.Object) return Invalid();
++
++        var errors = new Dictionary<string, string[]>();
++        var unexpected = false;
++        JsonElement title = default, area = default, priority = default, description = default;
++        foreach (var p in body.EnumerateObject())
++        {
++            switch (p.Name)
++            {
++                case "title": title = p.Value; break;
++                case "area": area = p.Value; break;
++                case "priority": priority = p.Value; break;
++                case "description": description = p.Value; break;
++                case "id":
++                    if (p.Value.ValueKind is not JsonValueKind.Null && !(p.Value.ValueKind == JsonValueKind.Number && p.Value.TryGetInt64(out _)))
++                        errors["id"] = ["Id must be an integer."];
++                    break;
++                case "createdAt":
++                    if (p.Value.ValueKind is not JsonValueKind.Null && !(p.Value.ValueKind == JsonValueKind.String && p.Value.TryGetDateTimeOffset(out _)))
++                        errors["createdAt"] = ["CreatedAt must be a date-time."];
++                    break;
++                case "status":
++                    if (p.Value.ValueKind is not JsonValueKind.Null
++                        && !(p.Value.ValueKind == JsonValueKind.String && ContractName<RequestStatus>.TryParse(p.Value.GetString(), out _)))
++                        errors["status"] = ["Unsupported status value."];
++                    break;
++                default: unexpected = true; break;
++            }
++        }
++
++        var titleText = title.ValueKind == JsonValueKind.String ? title.GetString()!.Trim() : null;
++        if (titleText is null || titleText.Length is < 3 or > 80) errors["title"] = [TitleMessage];
++
++        RequestArea areaValue = default;
++        if (area.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) errors["area"] = ["Area is required."];
++        else if (area.ValueKind != JsonValueKind.String || !ContractName<RequestArea>.TryParse(area.GetString(), out areaValue))
++            errors["area"] = ["Area must be Kitchen, Meeting room, Open desk, Washroom, or Reception."];
++
++        RequestPriority priorityValue = default;
++        if (priority.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) errors["priority"] = ["Priority is required."];
++        else if (priority.ValueKind != JsonValueKind.String || !ContractName<RequestPriority>.TryParse(priority.GetString(), out priorityValue))
++            errors["priority"] = ["Priority must be Low, Normal, or Urgent."];
++
++        string? descriptionText = null;
++        if (description.ValueKind == JsonValueKind.String)
++        {
++            descriptionText = description.GetString()!.Trim();
++            if (descriptionText.Length > 500) errors["description"] = [DescriptionMessage];
++            else if (descriptionText.Length == 0) descriptionText = null;
++        }
++        else if (description.ValueKind is not (JsonValueKind.Undefined or JsonValueKind.Null))
++            errors["description"] = [DescriptionMessage];
++
++        if (errors.Count > 0 || unexpected) return Invalid(errors.Count > 0 ? errors : null);
++
++        var entity = new MaintenanceRequest
++        {
++            CreatedAt = DateTime.UtcNow,
++            Title = titleText!,
++            Area = areaValue,
++            Priority = priorityValue,
++            Status = RequestStatus.Open,
++            Description = descriptionText,
++        };
++
++        try
++        {
++            db.MaintenanceRequests.Add(entity);
++            await db.SaveChangesAsync(ct);
++            return Results.Json(MaintenanceRequestResource.From(entity), statusCode: StatusCodes.Status201Created);
++        }
++        catch (Exception) when (!ct.IsCancellationRequested)
++        {
++            return Results.Json(new ErrorResponse("Could not create the request."), statusCode: StatusCodes.Status500InternalServerError);
++        }
++    }
++
++    private static IResult Invalid(Dictionary<string, string[]>? errors = null) =>
++        Results.BadRequest(new ErrorResponse("Request validation failed.", errors));
++}
++
++// The CreateRequest of contracts/openapi.yaml, used only to describe the body in the OpenAPI document; Handle reads the JSON itself.
++public sealed record CreateRequest
++{
++    public required string Title { get; init; }
++    public required RequestArea Area { get; init; }
++    public required RequestPriority Priority { get; init; }
++    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
++    public string? Description { get; init; }
++    public long Id { get; init; }
++    public DateTime CreatedAt { get; init; }
++    public RequestStatus Status { get; init; }
++}

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start recall</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, .h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    h2, .h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      line-height: 1.3;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    h3, .h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quiet {
+      color: #626262;
+    }
+
+    /* Status indicators */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused, .status-failed {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot, .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Header */
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 100%;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    nav {
+      display: flex;
+      height: 100%;
+      gap: 24px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link.active {
+      color: #202020;
+      border-bottom-color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .avatar-badge {
+      width: 30px;
+      height: 30px;
+      background: #EEEEEE;
+      color: #202020;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+    }
+
+    .lang-switch {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 20px;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    /* Panel Card */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .panel-header {
+      padding: 16px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    /* Forms & Fields */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .field-input, .field-select, .field-textarea {
+      height: 48px;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 14px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: #202020;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+      width: 100%;
+    }
+
+    .field-input.mono, .field-select.mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .field-textarea {
+      height: 96px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+
+    .field-input:focus, .field-select:focus, .field-textarea:focus {
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    /* Product Showcase with genuine photo */
+    .product-hero-card {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 20px;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .product-photo-wrap {
+      width: 200px;
+      height: 150px; /* 4:3 aspect ratio */
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      background: #FFFFFF;
+    }
+
+    .product-photo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .product-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .product-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px solid #D5D5D5;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    /* Quantities Preview Grid */
+    .quantities-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background: #FFFFFF;
+      margin-top: 16px;
+    }
+
+    .quantity-tile {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border-right: 1px solid #D5D5D5;
+    }
+
+    .quantity-tile:last-child {
+      border-right: none;
+    }
+
+    .qty-number {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1.1;
+      color: #202020;
+    }
+
+    .qty-desc {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid #D5D5D5;
+      background: #FAFAFA;
+    }
+
+    td {
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 15px;
+      color: #202020;
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: #FBFBFB;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      height: 48px;
+      padding: 0 24px;
+      background: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      background: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      height: 48px;
+      padding: 0 24px;
+      background: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn-secondary:hover {
+      background: #F2F2F2;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    /* Irreversible Action Banner */
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #D5D5D5;
+      margin-top: 16px;
+    }
+
+    .warning-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .warning-bullet {
+      width: 6px;
+      height: 6px;
+      background: #805800;
+      border-radius: 50%;
+    }
+
+    /* Motion tokens & keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes syncDotBreath {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1.0;
+      }
+    }
+
+    @keyframes savedHandoffRise {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1.0;
+        transform: translateY(0);
+      }
+    }
+
+    .entrance-animate {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .breathe-dot {
+      animation: syncDotBreath 6s ease-in-out infinite;
+    }
+
+    .handoff-synced {
+      animation: savedHandoffRise 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Application Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-group">
+        <div class="brand-mark">M</div>
+        <div class="brand-name">Meridian</div>
+      </a>
+      <nav>
+        <a href="#" class="nav-link">Waiting decisions</a>
+        <a href="#" class="nav-link active">Recalls</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-badge">NF</div>
+        <span>Nadia Farouk · Quality Manager</span>
+      </div>
+      <div class="lang-switch">
+        EN / العربية
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="entrance-animate">
+    <div class="page-title-row">
+      <h1>Start recall</h1>
+      <div class="quiet mono" style="font-size: 14px;">Prototype date: 14 May 2026 · Europe/London (BST)</div>
+    </div>
+
+    <!-- Product Card with Genuine Photo -->
+    <div class="product-hero-card">
+      <div class="product-photo-wrap">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine carton packaging with pen injectors">
+      </div>
+      <div class="product-details">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h2>Insulin Glargine 100 units/mL</h2>
+            <div class="quiet" style="font-size: 15px; margin-top: 2px;">Pack of 10 pens · Thermal profile v3 (2.0°C–8.0°C)</div>
+          </div>
+          <span class="status-refused" style="font-weight: 600; font-size: 14px;">
+            <span class="status-dot"></span>refused
+          </span>
+        </div>
+        <div class="product-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Primary storage location</span>
+            <span class="meta-value">Cold Room C2, Rack 4</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Minimum remaining shelf life</span>
+            <span class="meta-value"><span class="mono">90</span> days minimum</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned warehouse</span>
+            <span class="meta-value">North Quay Warehouse</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Focused Recall Form -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Recall parameters & lot selection</h2>
+        <span class="quiet" style="font-size: 14px;">Lot traceability & immediate containment</span>
+      </div>
+      <div class="panel-body">
+        <form onsubmit="return false;">
+          <div class="form-grid">
+            <div class="field-group">
+              <label for="lot-select">Selected lot(s)</label>
+              <select id="lot-select" class="field-select mono">
+                <option selected>IG-2509 (Expiry 30 Nov 2026 · 24 packs traced)</option>
+                <option>IG-2511 (Expiry 31 Mar 2027 · 120 packs received)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="severity-select">Recall severity classification</label>
+              <select id="severity-select" class="field-select">
+                <option selected>Class I — Critical / Immediate distribution quarantine</option>
+                <option>Class II — Potential risk / Standard withdrawal</option>
+                <option>Class III — Quality defect / Non-critical recovery</option>
+              </select>
+            </div>
+
+            <div class="field-group full-width">
+              <label for="reason-input">Recall reason & manufacturer defect notice</label>
+              <input id="reason-input" type="text" class="field-input" value="Manufacturer notice: active manufacturer recall RC-12 on Lot IG-2509. Mandatory quarantine and customer reconciliation.">
+            </div>
+
+            <div class="field-group full-width">
+              <label for="clinical-rationale">Operational instructions & courier isolation protocol</label>
+              <textarea id="clinical-rationale" class="field-textarea">Immediate containment: 4 packs on hand in Cold Room C2 Rack 4 marked Recalled and physically segregated. Consignee Cedar Clinic notified for 20 delivered packs pending physical reconciliation.</textarea>
+            </div>
+          </div>
+
+          <!-- Preview of Selected Quantities -->
+          <div style="margin-top: 24px;">
+            <h3>Preview of selected quantities for Lot <span class="mono">IG-2509</span></h3>
+            <div class="quantities-summary">
+              <div class="quantity-tile">
+                <div class="qty-number mono">24</div>
+                <div class="qty-desc">Total traced packs</div>
+              </div>
+              <div class="quantity-tile">
+                <div class="qty-number mono" style="color: #AE2C2C;">4</div>
+                <div class="qty-desc">On hand in cold room (blocked)</div>
+              </div>
+              <div class="quantity-tile">
+                <div class="qty-number mono" style="color: #805800;">20</div>
+                <div class="qty-desc">Delivered to Cedar Clinic</div>
+              </div>
+              <div class="quantity-tile">
+                <div class="qty-number mono" style="color: #24704B;">16.7%</div>
+                <div class="qty-desc">Initial physical custody accounted</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nadia's Sign-in Verification Method -->
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #D5D5D5;">
+            <div class="form-grid">
+              <div class="field-group">
+                <label for="auth-method">Sign-in verification method</label>
+                <select id="auth-method" class="field-select">
+                  <option selected>Nadia Farouk · Meridian Microsoft account authentication</option>
+                  <option>Nadia Farouk · Quality Manager security passcode + TOTP</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="passcode-input">Account password or security token</label>
+                <input id="passcode-input" type="password" class="field-input mono" value="••••••••••••••••">
+              </div>
+            </div>
+          </div>
+
+          <!-- Action & Irreversible Warning -->
+          <div class="action-row">
+            <div class="warning-notice">
+              <span class="warning-bullet"></span>
+              <span>Irreversible action: Once signed, recall record RC-12 is sealed and physical inventory is blocked immediately.</span>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <a href="#" class="btn-secondary">Recall detail</a>
+              <button type="button" class="btn-primary">
+                Sign and start recall
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Returned Recall Result & Blocked-Stock Status -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Returned recall result & blocked-stock status</h2>
+        <span class="status-refused" style="font-weight: 600; font-size: 14px;">
+          <span class="status-dot"></span>refused
+        </span>
+      </div>
+      <div class="panel-body" style="padding: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Lot number</th>
+              <th>Recall reference</th>
+              <th>Warehouse location</th>
+              <th>Traced distribution scope</th>
+              <th>Blocked-stock status</th>
+              <th>Consignee reconciliation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">IG-2509</td>
+              <td class="mono">RC-12</td>
+              <td>North Quay · Cold Room C2, Rack 4</td>
+              <td><span class="mono">24</span> packs traced (<span class="mono">4</span> on hand, <span class="mono">20</span> delivered)</td>
+              <td>
+                <span class="status-refused" style="font-weight: 600;">
+                  <span class="status-dot"></span>refused (4 packs blocked)
+                </span>
+              </td>
+              <td>
+                <span class="status-waiting" style="font-weight: 500;">
+                  <span class="status-dot breathe-dot"></span>waiting response (Cedar Clinic)
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-body" style="border-top: 1px solid #D5D5D5; background: #FAFAFA; display: flex; justify-content: space-between; align-items: center;">
+        <div class="quiet" style="font-size: 14px;">
+          Customer destination: Cedar Clinic, 42 River Road, London · Contact: Hana Youssef · Order <span class="mono">O-290</span>
+        </div>
+        <div>
+          <a href="#" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 14px;">Recall detail</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

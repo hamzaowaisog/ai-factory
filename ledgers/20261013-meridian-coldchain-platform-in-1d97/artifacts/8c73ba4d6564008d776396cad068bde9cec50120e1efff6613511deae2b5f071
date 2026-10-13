@@ -1,0 +1,98 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every operation and its methods, paths, parameters, headers, request and response schemas, media types, and statuses exactly as defined in `contracts/openapi.yaml`, without adding uncontracted business operations."
+     },
+     {
+      "n": 2,
+      "text": "Implement the locked API contract under the `/api` prefix while preserving the existing root health response, OpenAPI document, and Swagger UI."
+     },
+     {
+      "n": 3,
+      "text": "Persist contracted records, relationships, state changes, and file artifacts in the configured shared database; retain successful mutations across restarts and do not import legacy spreadsheet or paper-process business data."
+     },
+     {
+      "n": 4,
+      "text": "Implement contracted staff authorization-URL lookup, customer email-and-password sign-in with one-time-code verification and resend, and password-reset request, token-inspection, and completion flows, delivering customer codes and reset links by email."
+     },
+     {
+      "n": 5,
+      "text": "Enforce contracted customer-organisation, staff-role, warehouse-scope, Auditor read-only, and account-status restrictions on every operation, including denial of access to deactivated accounts."
+     },
+     {
+      "n": 6,
+      "text": "Persist searchable products and immutable versioned temperature profiles, require a profile for each product, and validate profile tiers and governance history."
+     },
+     {
+      "n": 7,
+      "text": "Persist separate contracted receipt, receipt-logger, receipt-evidence, stock, movement, and opening-stock records, and enforce receipt traceability, quarantine, expiry validation, and Quality Officer release."
+     },
+     {
+      "n": 8,
+      "text": "Automatically mark expired handling units Expired, remove them from allocations, record the change, and alert the dispatcher through the contracted scheduled check."
+     },
+     {
+      "n": 9,
+      "text": "Persist customer orders and dispatch allocations using the serving warehouse’s configured cut-off, working-day, holiday, time-zone, and customer shelf-life rules, and enforce idempotency, order validation, pre-packing customer changes, and cancellation rules."
+     },
+     {
+      "n": 10,
+      "text": "Allocate only released, physically available stock meeting customer minimum remaining shelf life; select earliest expiry first with the specified stability-budget tie-break; and apply complete-order, partial-order, back-order, and override rules."
+     },
+     {
+      "n": 11,
+      "text": "Persist compatible box packing and route plans, enforce box and route qualification, and record driver loading, departure, synchronization, handover, refusal, and delivery-evidence operations."
+     },
+     {
+      "n": 12,
+      "text": "Expose temperature histories for contracted entity types and persist available logger readings, gaps, excursions, tier-by-tier handling-unit budgets, related holds, and corrected history when readings arrive late or out of order."
+     },
+     {
+      "n": 13,
+      "text": "Persist quality cases, signed proposals and decisions, superseding decisions, and destruction records, applying the required two-person quality approval and decision-history rules."
+     },
+     {
+      "n": 14,
+      "text": "Persist signed recalls, trace selected lots through affected stock and delivery records, block affected stock still held, and record customer responses and signed closure or write-off decisions until quantities are accounted for."
+     },
+     {
+      "n": 15,
+      "text": "Implement customer organisation account, address, team, delivery, certificate, recall-notice, order, and language-preference operations with returned records and mutations scoped to the authenticated organisation."
+     },
+     {
+      "n": 16,
+      "text": "Implement contracted administration, operational-report, and lot-history operations, persisting organisation shelf-life settings, account role and warehouse assignments, and chronological business records."
+     },
+     {
+      "n": 17,
+      "text": "Record the actor and timestamp for consequential contracted changes and decisions in read-only audit events, and retain those events without automatic expiry."
+     },
+     {
+      "n": 18,
+      "text": "Fail startup if persistent-storage configuration is invalid; if storage is unavailable during a contracted operation, return the contract-defined server-error response without reporting the operation as successful."
+     },
+     {
+      "n": 19,
+      "text": "Send excursion alerts through the configured email channel to the driver when applicable, dispatcher, and warehouse Quality Officers after the triggering reading is received."
+     },
+     {
+      "n": 20,
+      "text": "Support logger and cold-room readings from concurrently reporting devices."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

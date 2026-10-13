@@ -1,0 +1,254 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-8",
+      "ears": "The feedlot web app shall let authorized ration managers create, revise, optimize, and approve ration definitions, display ingredient proportions, nutrition and cost values, and present the lowest-cost candidate mix meeting user-selected nutritional requirements without saving it until the user chooses to do so.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-5",
+       "ASM-6",
+       "ASM-20",
+       "ASM-29",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "An authorized ration manager creates or revises a ration",
+        "when": "The manager enters ration details and ingredient proportions",
+        "then": "The screen displays fields for ration name and type, ingredients, proportions, intended animal type or weight range, dry matter, energy, and cost per unit",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "The ration service returns nutrition values and calculated ingredient-mix cost",
+        "when": "The ration screen renders the response",
+        "then": "The screen displays the returned nutrition values and calculated cost per pound",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "An authorized ration manager has selected nutrition requirements and candidate mixes",
+        "when": "The manager runs optimization",
+        "then": "The screen identifies the returned lowest-cost mix that meets the selected requirements and displays its nutrition and cost values with a separate save action",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "An optimized candidate is displayed and the user has not selected a save action, or a user without ration-management access opens the ration screen",
+        "when": "The screen renders",
+        "then": "The candidate is displayed without being shown as a saved ration, and the unauthorized user's screen displays existing rations without create, revise, optimize, or approve actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.5",
+        "given": "The optimization response indicates that no candidate mix meets the selected nutrition requirements",
+        "when": "The manager views the optimization result",
+        "then": "The screen displays that no mix qualifies and does not show an enabled save action for a qualifying mix",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The feedlot web app shall let operational users record feeding activity by pen and lot, including per-lot allocations when a pen contains multiple lots, display the returned variance, cost, energy, inventory consumption, feeding status, and lot-level consumption and cost totals, display a returned stock error when insufficient stock prevents saving, provide permission-controlled correction and void actions for saved feeding events, and prevent duplicate resubmission while an uncertain save outcome is reconciled.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-5",
+       "I-6",
+       "ASM-4",
+       "ASM-9",
+       "ASM-10",
+       "ASM-11",
+       "ASM-20",
+       "ASM-28",
+       "ASM-31",
+       "ASM-32",
+       "ASM-34",
+       "Q-5",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "An operational user enters feeding date, pen, ration, planned quantity, actual delivered quantity, and status for a pen containing one or more lots",
+        "when": "The user submits the feeding event",
+        "then": "The feeding request contains the entered fields and a delivered-quantity allocation for each affected lot, and the screen displays the response status and returned event fields including the lot allocations",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "A successful feeding response contains calculated values",
+        "when": "The event screen renders the response",
+        "then": "The screen displays actual-minus-planned variance, feed cost, energy value, inventory consumed by ingredient, and cumulative lot feed consumption and cost",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "A successful feeding response contains planned quantity of 100 pounds, actual delivered quantity of 115 pounds, and a returned variance value of 15 pounds",
+        "when": "The event screen renders the response",
+        "then": "The screen displays the returned variance value of 15 pounds",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.4",
+        "given": "A feeding response includes actual delivered quantity and an inventory movement",
+        "when": "The event screen renders the response",
+        "then": "The screen displays stock consumption for the delivered quantity and known wastage as a separate movement rather than added delivered feed",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.5",
+        "given": "The service refuses a feeding event because available stock is insufficient",
+        "when": "The user submits the event",
+        "then": "The screen displays the returned stock error and does not display the event as saved",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.6",
+        "given": "A user without operational access opens feeding activity",
+        "when": "The screen renders",
+        "then": "The screen displays existing activity without an action to record a feeding event",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.7",
+        "given": "A feeding-event save request times out without a definitive response",
+        "when": "The web app handles the timeout",
+        "then": "The screen displays that the save outcome is unknown, retains the submitted event fields, and disables resubmission until the user refreshes the activity list",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.8",
+        "given": "A save timed out and the user refreshes the activity list, which returns an event matching the submitted feeding date, pen, lot allocations, ration, planned quantity, delivered quantity, and status",
+        "when": "The refreshed list is displayed",
+        "then": "The screen displays the returned matching event and sends no duplicate save request",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.9",
+        "given": "A save timed out and the user refreshes the activity list, which returns no event matching the submitted feeding date, pen, lot allocations, ration, planned quantity, delivered quantity, and status",
+        "when": "The refreshed list is displayed",
+        "then": "The screen displays that no matching saved event was returned and enables the user to submit the retained event",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.10",
+        "given": "A user has returned permission to correct or void saved feeding events",
+        "when": "The user opens a saved feeding event",
+        "then": "The screen shows correction and void actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.11",
+        "given": "A user lacks returned permission to correct or void saved feeding events",
+        "when": "The user opens a saved feeding event",
+        "then": "The screen displays the event without enabled correction or void actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.12",
+        "given": "An authorized user submits a correction and the service returns the corrected event with updated inventory movement and lot totals",
+        "when": "The correction response is displayed",
+        "then": "The screen displays the returned corrected event, inventory movement, and lot consumption and cost totals",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.13",
+        "given": "An authorized user submits a void and the service returns the voided event with updated inventory movement and lot totals",
+        "when": "The void response is displayed",
+        "then": "The screen displays the returned void status, inventory movement, and lot consumption and cost totals",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-20",
+      "ears": "The feedlot web app shall let an authorized user load visibly distinct sample data, prevent duplicate sample loading while displaying the returned result, require confirmation before sample-data reset or replacement, and distinguish sample records from operational records while excluding sample records from operational dashboard, report, inventory-total, yard-summary, and export results.",
+      "op": "ADDED",
+      "sources": [
+       "I-11",
+       "I-12",
+       "ASM-15",
+       "ASM-37"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "Sample data is available and has not been loaded",
+        "when": "An authorized user loads the sample data",
+        "then": "The screen shows the returned sample records with a visible sample-data designation distinguishing them from operational records",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.2",
+        "given": "Sample data is already loaded or a duplicate load is refused",
+        "when": "A user attempts to load sample data",
+        "then": "The screen displays the returned duplicate-load result and the returned record list contains no duplicate sample records",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.3",
+        "given": "A user starts a sample-data reset or replacement but has not confirmed",
+        "when": "The confirmation dialog is displayed and the user cancels",
+        "then": "The screen shows the existing sample records unchanged and the reset or replacement request is not sent",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.4",
+        "given": "A user confirms a sample-data reset or replacement",
+        "when": "The service returns the operation result",
+        "then": "The screen displays the returned operation status and resulting sample-data list or record count when supplied",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.5",
+        "given": "A user lacks sample-data management permission and opens the sample-data controls",
+        "when": "The screen renders using the user's returned permissions",
+        "then": "The screen displays sample records and does not show enabled load, reset, or replacement actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.6",
+        "given": "The service refuses a sample-data load, reset, or replacement because the user lacks permission",
+        "when": "The user submits the operation",
+        "then": "The screen displays the returned error and the existing sample-data list remains displayed",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.7",
+        "given": "The service response contains both sample and operational records for dashboards, reports, inventory, or a yard summary",
+        "when": "A user opens one of those operational views",
+        "then": "The screen displays operational values based only on operational records and labels any sample records shown as sample data",
+        "level": "ui"
+       },
+       {
+        "id": "AC-20.8",
+        "given": "A user exports an operational dashboard, report, inventory, or yard-summary view when the service response contains sample and operational records",
+        "when": "The user generates the export",
+        "then": "The downloaded file contains operational records only and excludes sample records",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

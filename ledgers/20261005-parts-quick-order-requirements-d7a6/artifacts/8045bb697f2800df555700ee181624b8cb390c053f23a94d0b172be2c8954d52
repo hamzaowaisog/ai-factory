@@ -1,0 +1,296 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Find parts",
+     "subtitle": "Search by name or part number · sorted by name A–Z · 20 per page",
+     "blocks": [
+      {
+       "type": "results",
+       "query": "bearing",
+       "count": "86 parts · page 1 of 5",
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Fasteners",
+          "Seals & O-rings"
+         ],
+         "picked": [
+          "All"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "FAG",
+          "NSK",
+          "Timken",
+          "Gates"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angular contact bearing 7206 BEP",
+         "meta": "SKF · Part no. 7206 BEP · 18 in stock",
+         "badge": "In stock",
+         "price": "£48.60"
+        },
+        {
+         "title": "Ball bearing 6204-2RSH",
+         "meta": "SKF · Part no. 6204-2RSH · 3 in stock",
+         "badge": "Low stock (3 left)",
+         "price": "£7.85"
+        },
+        {
+         "title": "Ball bearing 6305ZZ",
+         "meta": "NSK · Part no. 6305ZZ · Add to cart unavailable",
+         "badge": "Out of stock",
+         "price": "£12.40"
+        },
+        {
+         "title": "Cylindrical roller bearing NU208-E",
+         "meta": "FAG · Part no. NU208-E-XL-TVP2 · 9 in stock",
+         "badge": "In stock",
+         "price": "£64.20"
+        },
+        {
+         "title": "Flanged bearing unit UCF205",
+         "meta": "NSK · Part no. UCF205 · 1 in stock",
+         "badge": "Low stock (1 left)",
+         "price": "£23.95"
+        },
+        {
+         "title": "Pillow block bearing SY 25 TF",
+         "meta": "SKF · Part no. SY 25 TF · 27 in stock",
+         "badge": "In stock",
+         "price": "£39.10"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous page",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "You are on page 1"
+        },
+        {
+         "label": "Next page",
+         "variant": "secondary"
+        },
+        {
+         "label": "Clear search and filters",
+         "variant": "ghost",
+         "icon": "filter"
+        },
+        {
+         "label": "View cart (3)",
+         "variant": "link",
+         "icon": "cart"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View cart (3)",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Add to cart",
+       "text": "Ball bearing 6204-2RSH added · cart now 4",
+       "tone": "ok"
+      },
+      {
+       "after": "Clear search and filters",
+       "text": "Search and filters cleared · showing all parts",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Try another name or part number, or clear the search and filters to see every part.",
+      "error": "Parts couldn't load. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is updated.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    },
+    "mockFull": {
+     "title": "Find parts",
+     "subtitle": "Search by name or part number · sorted by name A–Z · 20 per page",
+     "blocks": [
+      {
+       "type": "results",
+       "query": "bearing",
+       "count": "86 parts · page 1 of 5",
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Fasteners",
+          "Seals & O-rings"
+         ],
+         "picked": [
+          "All"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "FAG",
+          "NSK",
+          "Timken",
+          "Gates"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angular contact bearing 7206 BEP",
+         "meta": "SKF · Part no. 7206 BEP · 18 in stock",
+         "badge": "In stock",
+         "price": "£48.60"
+        },
+        {
+         "title": "Ball bearing 6002-2Z",
+         "meta": "FAG · Part no. 6002-2Z-C3 · 140 in stock",
+         "badge": "In stock",
+         "price": "£3.20"
+        },
+        {
+         "title": "Ball bearing 6204-2RSH",
+         "meta": "SKF · Part no. 6204-2RSH · 3 in stock",
+         "badge": "Low stock (3 left)",
+         "price": "£7.85"
+        },
+        {
+         "title": "Ball bearing 6305ZZ",
+         "meta": "NSK · Part no. 6305ZZ · Add to cart unavailable",
+         "badge": "Out of stock",
+         "price": "£12.40"
+        },
+        {
+         "title": "Bearing grease LGMT 2, 420 ml",
+         "meta": "SKF · Part no. LGMT 2/0.4 · 36 in stock",
+         "badge": "In stock",
+         "price": "£14.75"
+        },
+        {
+         "title": "Cylindrical roller bearing NU208-E",
+         "meta": "FAG · Part no. NU208-E-XL-TVP2 · 9 in stock",
+         "badge": "In stock",
+         "price": "£64.20"
+        },
+        {
+         "title": "Flanged bearing unit UCF205",
+         "meta": "NSK · Part no. UCF205 · 1 in stock",
+         "badge": "Low stock (1 left)",
+         "price": "£23.95"
+        },
+        {
+         "title": "Needle roller bearing HK 2016",
+         "meta": "FAG · Part no. HK2016 · Add to cart unavailable",
+         "badge": "Out of stock",
+         "price": "£5.60"
+        },
+        {
+         "title": "Pillow block bearing SY 25 TF",
+         "meta": "SKF · Part no. SY 25 TF · 27 in stock",
+         "badge": "In stock",
+         "price": "£39.10"
+        },
+        {
+         "title": "Spherical roller bearing 22212 EK",
+         "meta": "SKF · Part no. 22212 EK · 4 in stock",
+         "badge": "Low stock (4 left)",
+         "price": "£118.00"
+        },
+        {
+         "title": "Tapered roller bearing set LM11949/10",
+         "meta": "Timken · Part no. SET2 · 52 in stock",
+         "badge": "In stock",
+         "price": "£9.95"
+        },
+        {
+         "title": "Thrust ball bearing 51106",
+         "meta": "NSK · Part no. 51106 · 12 in stock",
+         "badge": "In stock",
+         "price": "£6.30"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous page",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "You are on page 1"
+        },
+        {
+         "label": "Next page",
+         "variant": "secondary"
+        },
+        {
+         "label": "Clear search and filters",
+         "variant": "ghost",
+         "icon": "filter"
+        },
+        {
+         "label": "View cart (3)",
+         "variant": "link",
+         "icon": "cart"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Try another name or part number, or clear the search and filters to see every part.",
+      "error": "Parts couldn't load. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is updated.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    }
+   },
+   "ms": 9,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

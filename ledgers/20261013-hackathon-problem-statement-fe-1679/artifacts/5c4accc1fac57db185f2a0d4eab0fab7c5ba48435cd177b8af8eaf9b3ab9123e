@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 14,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 123,
+    "end": 137
+   },
+   "ms": 0,
+   "resultChars": 3186,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:123,&quot;end&quot;:137}\">\nlib/api/client.msw.ts lines 123-137\n123\texport const getGetOperationalReportResponseMock = (): OperationalReportResponse => ({\"permissions\":[\"reports.view\",\"reports.export\"],\"feedingRows\":[{\"id\":4501,\"dateTime\":\"2026-08-20T06:10:00-06:00\",\"pen\":\"P-12\",\"lotsFed\":\"L-2407\",\"ration\":\"Grower 90\",\"planned\":1680,\"delivered\":1700,\"variance\":20,\"grossCost\":323,\"netEnergy\":2924,\"costOfGain\":1.38,\"deliveryStatus\":\"Completed\",\"sampleData\":false}],\"performanceRows\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\",\"activeHead\":140,\"daysOnFeed\":92,\"currentWeight\":711,\"adg\":3.4,\"fcr\":7.1,\"feedCost\":9450,\"energy\":18.6,\"sampleData\":false}],\"inventoryRows\":[{\"id\":501,\"name\":\"Rolled Corn\",\"remainingInventory\":8200,\"sampleData\":false}],\"summary\":{\"penWithMostFeed\":\"P-12\",\"bestFcrLot\":\"L-2407\",\"highestAdgLot\":\"L-2407\",\"mostUsedRation\":\"Grower 90\",\"feedCostPerWeightGain\":1.38}})\n124\t\n125\texport const getExportOperationalReportResponseMock = (): ExportResponse => ({\"fileName\":\"operational-report.csv\",\"contentType\":\"text/csv\",\"contentBase64\":\"cGVuLGRlbGl2ZXJlZCx2YXJpYW5jZQ==\"})\n126\t\n127\texport const getGetFeedToGainReportResponseMock = (): FeedToGainResponse => ({\"permissions\":[\"reports.view\",\"reports.export\"],\"rows\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\",\"sex\":\"Steer\",\"pen\":\"P-12\",\"activeHead\":140,\"daysOnFeed\":30,\"currentWeight\":711,\"adg\":3.4,\"feedDelivered\":2800,\"fcr\":7.1,\"costOfGain\":1.38,\"feedCost\":9450,\"energy\":18.6,\"sampleData\":false}]})\n128\t\n129\texport const getExportFeedToGainReportResponseMock = (): ExportResponse => ({\"fileName\":\"feed-to-gain.csv\",\"contentType\":\"text/csv\",\"contentBase64\":\"bG90LGFkZyxmY3I=\"})\n130\t\n131\texport const getGetProfitabilityResponseMock = (): ProfitabilityResponse => ({\"permissions\":[\"profitability.view\",\"profitability.export\"],\"canViewProfitability\":true,\"rows\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\",\"pen\":\"P-12\",\"head\":140,\"daysOnFeed\":92,\"currentWeight\":711,\"returnedInvestment\":24500,\"totalGainValue\":28450,\"netReturn\":3950,\"roiPercent\":16.12,\"sampleData\":false}]})\n132\t\n133\texport const getExportProfitabilityResponseMock = (): ExportResponse => ({\"fileName\":\"profitability.csv\",\"contentType\":\"text/csv\",\"contentBase64\":\"bG90LHJldHVybixyb2k=\"})\n134\t\n135\texport const getGetSampleDataResponseMock = (): SampleDataResponse => ({\"permissions\":[\"sample-data.view\",\"sample-data.manage\"],\"loaded\":true,\"recordCount\":12,\"records\":[{\"id\":9901,\"entity\":\"Lot\",\"recordType\":\"Sample\",\"status\":\"Loaded\",\"isolationScope\":\"Sample records excluded from operational reports.\",\"sampleData\":true}]})\n136\t\n137\texport const getLoadSampleDataResponseMock = (): SampleOperationResponse => ({\"permissions\":[\"sample-data.manage\"],\"status\":\"already_loaded\",\"message\":\"Sample data was already loaded.\",\"recordCount\":12,\"records\":[{\"id\":9901,\"entity\":\"Lot\",\"recordType\":\"Sample\",\"status\":\"Loaded\",\"isolationScope\":\"Sample records excluded from operational reports.\",\"sampleData\":true}]})\n… (730 lines total; ask for start=138)\n</untrusted_document>"
+  }
+ ]
+}

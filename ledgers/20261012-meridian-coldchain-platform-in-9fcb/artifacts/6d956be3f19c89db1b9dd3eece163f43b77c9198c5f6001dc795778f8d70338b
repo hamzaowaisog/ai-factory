@@ -1,0 +1,172 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-3",
+      "topic": "Customer order editing and cancellation authority after packing",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Customer change/cancel is refused after packing begins, and customer sees the order is no longer editable."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Customer change/cancel is refused after packing begins."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "Dispatcher—but not customer—can cancel an order after packing begins."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-4",
+      "topic": "Offline driver actions after account disablement",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Offline queued actions are not treated as authorized once the system can verify a disabled or removed account."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Offline access does not make a disabled account usable indefinitely beyond its working-day session."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Offline actions are retained and synchronized when connectivity returns, without specifying rejection based on later account disablement."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-9",
+      "topic": "Inbound logger budget review before release",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Inbound logger file upload makes resulting inbound budget usage visible to quality staff before release decision."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Receipt can include an inbound logger file, while review of inbound budget use is not specified as a required pre-release step."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Uploaded inbound logger file is used to calculate and display budget use for quality review."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-11",
+      "topic": "Quantity reconciliation includes physically on-hand category",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 7,
+        "summary": "Users view available, allocated, quarantined, and on-hand quantities, reconciling categories to on-hand."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 6,
+        "summary": "Users view available, allocated, and quarantined quantities, reconciling them to quantity on hand; no separate on-hand category is specified."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 7,
+        "summary": "Users view available, allocated, and quarantined quantities, reconciling those categories to quantity on hand."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-12",
+      "topic": "Box packing limited to a single delivery stop",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "A box may contain multiple products and lots for one delivery stop only when storage bands match and box type is qualified."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "A box packs a stop's stock and applies storage-band and box-type compatibility, without explicitly stating a one-stop-only constraint."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "A box packs a stop's stock with logger and traceability requirements; no explicit cross-stop restriction is stated."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-14",
+      "topic": "Timing of quality holds versus excursion alerts",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Route excursion alerts are sent within two minutes of the reading being received."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Within two minutes of receiving an excursion-opening reading, relevant staff are alerted and affected stock is put On Hold."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Alerts are sent within two minutes, while hold behavior is stated separately for affected stock."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-15",
+      "topic": "Evidence required for delivery handover",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Handover is recorded against stop, boxes, and stock for traceability, without requiring recipient acknowledgment or signature."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Handover includes recipient acknowledgment or signature where required, and behavior 3 records that acknowledgment."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Handover evidence includes the customer's sign-off."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

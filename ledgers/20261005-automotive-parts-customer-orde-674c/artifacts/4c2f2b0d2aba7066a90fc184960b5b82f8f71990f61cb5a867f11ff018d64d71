@@ -1,0 +1,817 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Customer",
+     "subtitle": "Hartley Motors Ltd · Account HM-10442 · Leeds",
+     "crumbs": [
+      "Customers"
+     ],
+     "badge": "Inactive",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Account inactive since 3 Mar 2026",
+       "text": "Buyers at Hartley Motors can't sign in or place new orders. You can still progress, cancel and invoice their 3 open orders."
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Edit customer",
+         "variant": "secondary",
+         "icon": "edit"
+        },
+        {
+         "label": "Reactivate",
+         "variant": "primary"
+        },
+        {
+         "label": "Add delivery address",
+         "variant": "secondary",
+         "icon": "plus"
+        },
+        {
+         "label": "Remove address",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Remove the ticked delivery address"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Company details",
+       "rows": [
+        {
+         "label": "Account number",
+         "value": "HM-10442"
+        },
+        {
+         "label": "Status",
+         "value": "Inactive",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade B – Independent garages"
+        },
+        {
+         "label": "Payment terms",
+         "value": "30 days end of month"
+        },
+        {
+         "label": "Credit limit",
+         "value": "£8,000.00"
+        },
+        {
+         "label": "VAT number",
+         "value": "GB 284 6619 05"
+        },
+        {
+         "label": "Main phone",
+         "value": "+44 113 496 0821"
+        },
+        {
+         "label": "Accounts email",
+         "value": "accounts@hartleymotors.co.uk"
+        }
+       ],
+       "people": [
+        "Dan Hartley",
+        "Priya Shah",
+        "Tom Ellis"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Label",
+        "Address",
+        "City",
+        "Postcode",
+        "Contact",
+        "Phone"
+       ],
+       "rows": [
+        [
+         "Main workshop",
+         "14 Canal Street, Unit 3",
+         "Leeds",
+         "LS11 5QR",
+         "Dan Hartley",
+         "+44 113 496 0821"
+        ],
+        [
+         "Body shop",
+         "Whitehall Road Trade Park, Bay 7",
+         "Leeds",
+         "LS12 6BD",
+         "Tom Ellis",
+         "+44 113 496 0377"
+        ],
+        [
+         "MOT bay",
+         "2 Kirkstall Lane",
+         "Leeds",
+         "LS5 3BE",
+         "Priya Shah",
+         "+44 7700 900412"
+        ],
+        [
+         "Bradford branch",
+         "88 Thornton Road",
+         "Bradford",
+         "BD1 2DX",
+         "Kieran Doyle",
+         "+44 1274 496 015"
+        ]
+       ],
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove address",
+         "variant": "danger"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Delivery",
+        "Lines",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24822",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "4",
+         "£186.20",
+         "Submitted"
+        ],
+        [
+         "ORD-24817",
+         "11 Mar 2026",
+         "12 Mar 2026",
+         "9",
+         "£412.60",
+         "Confirmed"
+        ],
+        [
+         "ORD-24790",
+         "10 Mar 2026",
+         "11 Mar 2026",
+         "2",
+         "£58.90",
+         "Out for delivery"
+        ],
+        [
+         "ORD-24751",
+         "4 Mar 2026",
+         "5 Mar 2026",
+         "12",
+         "£1,074.35",
+         "Delivered"
+        ],
+        [
+         "ORD-24702",
+         "27 Feb 2026",
+         "28 Feb 2026",
+         "3",
+         "£96.00",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Invoice",
+        "Order",
+        "Issued",
+        "Due",
+        "Amount",
+        "Status"
+       ],
+       "rows": [
+        [
+         "INV-30915",
+         "ORD-24751",
+         "5 Mar 2026",
+         "30 Apr 2026",
+         "£1,074.35",
+         "Unpaid"
+        ],
+        [
+         "INV-30877",
+         "ORD-24688",
+         "26 Feb 2026",
+         "31 Mar 2026",
+         "£318.40",
+         "Unpaid"
+        ],
+        [
+         "INV-30840",
+         "ORD-24655",
+         "18 Jan 2026",
+         "28 Feb 2026",
+         "£642.10",
+         "Overdue"
+        ],
+        [
+         "INV-30802",
+         "ORD-24610",
+         "9 Jan 2026",
+         "28 Feb 2026",
+         "£227.85",
+         "Paid"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 2,
+       "sortDir": "desc"
+      }
+     ],
+     "links": [
+      {
+       "from": "Edit customer",
+       "to": "S-22"
+      },
+      {
+       "from": "ORD-24822",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24817",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24790",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24751",
+       "to": "S-17"
+      },
+      {
+       "from": "INV-30915",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-30877",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-30840",
+       "to": "S-24"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "Add delivery address",
+       "title": "Add delivery address",
+       "text": "Buyers at Hartley Motors will see this address at checkout.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Label",
+           "kind": "text",
+           "value": "Body shop",
+           "required": true,
+           "help": "Shown to buyers at checkout, e.g. Main workshop"
+          },
+          {
+           "label": "Address line 1",
+           "kind": "text",
+           "placeholder": "Building and street",
+           "required": true,
+           "error": "Enter the first line of the address"
+          },
+          {
+           "label": "Address line 2",
+           "kind": "text",
+           "value": "Bay 7"
+          },
+          {
+           "label": "City",
+           "kind": "text",
+           "value": "Leeds",
+           "required": true
+          },
+          {
+           "label": "Region",
+           "kind": "text",
+           "value": "West Yorkshire"
+          },
+          {
+           "label": "Postal code",
+           "kind": "text",
+           "value": "LS12 6B",
+           "required": true,
+           "error": "Enter a valid postcode, e.g. LS12 6BD"
+          }
+         ],
+         "submit": "Next: contact"
+        },
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Country",
+           "kind": "select",
+           "value": "United Kingdom",
+           "options": [
+            "United Kingdom",
+            "Ireland"
+           ],
+           "required": true
+          },
+          {
+           "label": "Contact person",
+           "kind": "text",
+           "value": "Tom Ellis",
+           "required": true
+          },
+          {
+           "label": "Contact phone",
+           "kind": "phone",
+           "placeholder": "+44 113 496 0377",
+           "required": true,
+           "error": "Enter a contact phone number for the driver"
+          }
+         ],
+         "submit": "Save address"
+        }
+       ],
+       "actions": [
+        "Save address",
+        "Cancel"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Remove address",
+       "title": "Remove “Body shop”?",
+       "text": "Buyers can no longer choose Whitehall Road Trade Park, Bay 7 for new orders. Orders already placed keep this address.",
+       "actions": [
+        {
+         "label": "Remove address",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep address",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Address actions",
+       "items": [
+        "Edit address",
+        "Remove address"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save address",
+       "text": "Delivery address “Body shop” added",
+       "tone": "ok"
+      },
+      {
+       "after": "Remove address",
+       "text": "“Body shop” address removed",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Reactivate",
+       "text": "Hartley Motors reactivated – buyers can order again",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No delivery addresses yet",
+      "emptyHint": "Add the garage's delivery address so its buyers can submit orders.",
+      "validation": "Fill in the marked address fields before saving.",
+      "error": "We couldn't load this customer. Showing the last saved details."
+     }
+    },
+    "mockFull": {
+     "title": "Customer",
+     "subtitle": "Hartley Motors Ltd · Account HM-10442 · Leeds",
+     "crumbs": [
+      "Customers"
+     ],
+     "badge": "Inactive",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Account inactive since 3 Mar 2026",
+       "text": "Buyers at Hartley Motors can't sign in or place new orders. You can still progress, cancel and invoice their 4 open orders."
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Edit customer",
+         "variant": "secondary",
+         "icon": "edit"
+        },
+        {
+         "label": "Reactivate",
+         "variant": "primary"
+        },
+        {
+         "label": "Add delivery address",
+         "variant": "secondary",
+         "icon": "plus"
+        },
+        {
+         "label": "Remove address",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Remove the ticked delivery address"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Company details",
+       "rows": [
+        {
+         "label": "Account number",
+         "value": "HM-10442"
+        },
+        {
+         "label": "Status",
+         "value": "Inactive",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade B – Independent garages"
+        },
+        {
+         "label": "Payment terms",
+         "value": "30 days end of month"
+        },
+        {
+         "label": "Credit limit",
+         "value": "£8,000.00"
+        },
+        {
+         "label": "VAT number",
+         "value": "GB 284 6619 05"
+        },
+        {
+         "label": "Main phone",
+         "value": "+44 113 496 0821"
+        },
+        {
+         "label": "Accounts email",
+         "value": "accounts@hartleymotors.co.uk"
+        }
+       ],
+       "people": [
+        "Dan Hartley",
+        "Priya Shah",
+        "Tom Ellis",
+        "Kieran Doyle",
+        "Megan Price",
+        "Ali Rahman"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Label",
+        "Address",
+        "City",
+        "Postcode",
+        "Contact",
+        "Phone"
+       ],
+       "rows": [
+        [
+         "Main workshop",
+         "14 Canal Street, Unit 3",
+         "Leeds",
+         "LS11 5QR",
+         "Dan Hartley",
+         "+44 113 496 0821"
+        ],
+        [
+         "Body shop",
+         "Whitehall Road Trade Park, Bay 7",
+         "Leeds",
+         "LS12 6BD",
+         "Tom Ellis",
+         "+44 113 496 0377"
+        ],
+        [
+         "MOT bay",
+         "2 Kirkstall Lane",
+         "Leeds",
+         "LS5 3BE",
+         "Priya Shah",
+         "+44 7700 900412"
+        ],
+        [
+         "Bradford branch",
+         "88 Thornton Road",
+         "Bradford",
+         "BD1 2DX",
+         "Kieran Doyle",
+         "+44 1274 496 015"
+        ],
+        [
+         "Tyre centre",
+         "Units 9–10, Wakefield Road",
+         "Leeds",
+         "LS10 1DU",
+         "Ali Rahman",
+         "+44 113 496 0590"
+        ],
+        [
+         "Wakefield depot",
+         "31 Calder Vale Road",
+         "Wakefield",
+         "WF1 5PH",
+         "Megan Price",
+         "+44 1924 496 228"
+        ],
+        [
+         "Fleet yard",
+         "Cross Green Industrial Estate, Gate B",
+         "Leeds",
+         "LS9 0SG",
+         "Dan Hartley",
+         "+44 7700 900877"
+        ],
+        [
+         "Harrogate satellite",
+         "5 Skipton Road",
+         "Harrogate",
+         "HG1 4LA",
+         "Priya Shah",
+         "+44 1423 496 104"
+        ]
+       ],
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove address",
+         "variant": "danger"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Delivery",
+        "Lines",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24822",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "4",
+         "£186.20",
+         "Submitted"
+        ],
+        [
+         "ORD-24819",
+         "11 Mar 2026",
+         "12 Mar 2026",
+         "6",
+         "£274.80",
+         "Picking"
+        ],
+        [
+         "ORD-24817",
+         "11 Mar 2026",
+         "12 Mar 2026",
+         "9",
+         "£412.60",
+         "Confirmed"
+        ],
+        [
+         "ORD-24790",
+         "10 Mar 2026",
+         "11 Mar 2026",
+         "2",
+         "£58.90",
+         "Out for delivery"
+        ],
+        [
+         "ORD-24751",
+         "4 Mar 2026",
+         "5 Mar 2026",
+         "12",
+         "£1,074.35",
+         "Delivered"
+        ],
+        [
+         "ORD-24702",
+         "27 Feb 2026",
+         "28 Feb 2026",
+         "3",
+         "£96.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-24688",
+         "25 Feb 2026",
+         "26 Feb 2026",
+         "5",
+         "£318.40",
+         "Delivered"
+        ],
+        [
+         "ORD-24671",
+         "20 Feb 2026",
+         "21 Feb 2026",
+         "1",
+         "£42.15",
+         "Delivered"
+        ],
+        [
+         "ORD-24655",
+         "16 Jan 2026",
+         "17 Jan 2026",
+         "8",
+         "£642.10",
+         "Delivered"
+        ],
+        [
+         "ORD-24640",
+         "13 Jan 2026",
+         "14 Jan 2026",
+         "2",
+         "£71.60",
+         "Cancelled"
+        ],
+        [
+         "ORD-24610",
+         "8 Jan 2026",
+         "9 Jan 2026",
+         "4",
+         "£227.85",
+         "Delivered"
+        ],
+        [
+         "ORD-24583",
+         "19 Dec 2025",
+         "22 Dec 2025",
+         "15",
+         "£1,486.90",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 4,
+       "page": 1
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Invoice",
+        "Order",
+        "Issued",
+        "Due",
+        "Amount",
+        "Status"
+       ],
+       "rows": [
+        [
+         "INV-30915",
+         "ORD-24751",
+         "5 Mar 2026",
+         "30 Apr 2026",
+         "£1,074.35",
+         "Unpaid"
+        ],
+        [
+         "INV-30877",
+         "ORD-24688",
+         "26 Feb 2026",
+         "31 Mar 2026",
+         "£318.40",
+         "Unpaid"
+        ],
+        [
+         "INV-30869",
+         "ORD-24671",
+         "21 Feb 2026",
+         "31 Mar 2026",
+         "£42.15",
+         "Unpaid"
+        ],
+        [
+         "INV-30840",
+         "ORD-24655",
+         "18 Jan 2026",
+         "28 Feb 2026",
+         "£642.10",
+         "Overdue"
+        ],
+        [
+         "INV-30802",
+         "ORD-24610",
+         "9 Jan 2026",
+         "28 Feb 2026",
+         "£227.85",
+         "Paid"
+        ],
+        [
+         "INV-30761",
+         "ORD-24583",
+         "22 Dec 2025",
+         "31 Jan 2026",
+         "£1,486.90",
+         "Paid"
+        ],
+        [
+         "INV-30744",
+         "ORD-24561",
+         "15 Dec 2025",
+         "31 Jan 2026",
+         "£389.20",
+         "Paid"
+        ],
+        [
+         "INV-30712",
+         "ORD-24530",
+         "4 Dec 2025",
+         "31 Jan 2026",
+         "£155.75",
+         "Paid"
+        ],
+        [
+         "INV-30688",
+         "ORD-24498",
+         "26 Nov 2025",
+         "31 Dec 2025",
+         "£903.40",
+         "Paid"
+        ],
+        [
+         "INV-30651",
+         "ORD-24467",
+         "14 Nov 2025",
+         "31 Dec 2025",
+         "£64.30",
+         "Paid"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 2,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No delivery addresses yet",
+      "emptyHint": "Add the garage's delivery address so its buyers can submit orders.",
+      "validation": "Fill in the marked address fields before saving.",
+      "error": "We couldn't load this customer. Showing the last saved details."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-5",
+      "category": "errors",
+      "text": "The staff identity-provider URL and token-validation settings will come from deployment configuration. What should happen if required settings are missing or invalid?",
+      "options": [
+       "Fail application startup with a clear configuration error.",
+       "Keep the API running and return the contract-defined error from the affected authentication operation.",
+       "Fall back to a built-in provider or default settings."
+      ],
+      "recommended": "Fail application startup with a clear configuration error.",
+      "reason": "Failing fast avoids running an API whose configured staff sign-in cannot work, without adding a fallback provider.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "This determines whether a configuration problem prevents the whole API from starting or only affects authentication requests.",
+      "topic": "sign-in"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

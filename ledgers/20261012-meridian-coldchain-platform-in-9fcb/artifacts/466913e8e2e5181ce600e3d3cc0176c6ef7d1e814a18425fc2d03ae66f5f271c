@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Meridian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@650&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design System strict tokens & rules */
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --accent: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingDotBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance-animate {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    /* Branding above panel: Meridian's square M and name, no other furniture */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background-color: var(--text);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-logo-m {
+      color: var(--surface);
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 20px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    /* Sign-in panel: no wider than 440px, 2px corners, 1px solid rule, no shadow */
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    h1.heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    p.supporting-text {
+      color: var(--text-quiet);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Form and field specifications */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      height: 48px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+      width: 100%;
+    }
+
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    /* Button styles */
+    .btn-primary {
+      height: 48px;
+      background-color: var(--accent);
+      color: var(--surface);
+      border: none;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 150ms ease, transform 100ms ease;
+      width: 100%;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.94;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+      opacity: 0.9;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 4px 0;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background-color: var(--border);
+    }
+
+    .divider-text {
+      color: var(--text-quiet);
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Continue with Meridian Microsoft account control: secondary button style */
+    .btn-secondary {
+      height: 48px;
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+      width: 100%;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #FBFBFB;
+      border-color: #BFBFBF;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.99);
+      background-color: #F4F4F4;
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Microsoft symbol */
+    .ms-icon {
+      display: grid;
+      grid-template-columns: repeat(2, 7px);
+      gap: 2px;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .ms-icon span:nth-child(1) { background-color: #F25022; }
+    .ms-icon span:nth-child(2) { background-color: #7FBA00; }
+    .ms-icon span:nth-child(3) { background-color: #00A4EF; }
+    .ms-icon span:nth-child(4) { background-color: #FFB900; }
+
+    /* Footer text link: Request password reset */
+    .panel-footer {
+      display: flex;
+      justify-content: center;
+      padding-top: 4px;
+    }
+
+    .reset-link {
+      color: var(--text);
+      font-size: 14px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 150ms ease;
+      cursor: pointer;
+    }
+
+    .reset-link:hover {
+      color: var(--text-quiet);
+    }
+
+    .reset-link:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Accessibility: prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      .entrance-animate {
+        animation: none;
+      }
+      .btn-primary,
+      .btn-secondary,
+      .reset-link,
+      input {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container entrance-animate">
+    <!-- Meridian's square M and name above panel, no other furniture -->
+    <header class="brand-header">
+      <div class="brand-logo" aria-hidden="true">
+        <span class="brand-logo-m">M</span>
+      </div>
+      <span class="brand-name">Meridian</span>
+    </header>
+
+    <!-- Centred Sign in panel -->
+    <section class="panel">
+      <div class="panel-header">
+        <h1 class="heading">Sign in</h1>
+        <p class="supporting-text">Staff can use a Meridian Microsoft account or individual credentials.</p>
+      </div>
+
+      <form action="#" method="POST" onsubmit="return false;">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn-primary">Sign in</button>
+      </form>
+
+      <div class="divider" aria-hidden="true">
+        <span class="divider-line"></span>
+        <span class="divider-text">or</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <button type="button" class="btn-secondary">
+        <span class="ms-icon" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </span>
+        <span>Continue with Meridian Microsoft account</span>
+      </button>
+
+      <div class="panel-footer">
+        <a href="#reset" class="reset-link">Request password reset</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

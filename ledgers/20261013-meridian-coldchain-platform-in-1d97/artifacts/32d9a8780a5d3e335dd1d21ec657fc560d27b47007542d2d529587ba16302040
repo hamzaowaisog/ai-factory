@@ -1,0 +1,149 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Meridian API shall expose every operation in contracts/openapi.yaml under /api with the request, response, authorization, status-code, and error behavior defined by that contract, and shall persist contract-defined application data in the configured PostgreSQL database.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The contract's OpenAPI operation and response definitions are the test oracle,",
+        "when": "a client sends valid and invalid HTTP requests for every documented path and method,",
+        "then": "the response status, content type, and returned body fields match the operation's declared parameters, request schema, success responses, and error responses.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A request is made without credentials, with an authenticated identity lacking the required role or scope, or with an identity authorized for the target resource,",
+        "when": "the client calls protected contract operations,",
+        "then": "the response status and returned body match the contract's declared authorization outcomes, and successful list responses contain only records within that identity's permitted scope.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "A caller is authorized and supplies a valid request to a contract-defined create, update, delete, transition, or synchronization operation,",
+        "when": "the caller submits the request and then reads the affected resource through its documented operation,",
+        "then": "the response status and returned fields reflect the contract-defined result, and the corresponding database row or record reflects the persisted change.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.4",
+        "given": "The existing staff identity provider is configured with a valid authorization URL and token-validation settings,",
+        "when": "an authorized client calls GET /api/auth/staff/authorization-url,",
+        "then": "the response status is 200 and the returned authorization URL is the configured provider URL.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When demo seeding runs, the Meridian API shall insert a few believable example rows for every contract-backed table using contract examples and compatible references between related rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/SeedData.cs",
+        "lineStart": 5,
+        "lineEnd": 9,
+        "quote": "public static class SeedData\n{\n    public static void Run(AppDb db)\n    {\n    }"
+       }
+      ],
+      "sources": [
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A database with the contract-backed tables created and without seeded records,",
+        "when": "a test calls the public SeedData.Run method,",
+        "then": "the row count for each contract-backed table is greater than zero and each seeded reference resolves to a compatible seeded row.",
+        "level": "unit"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "The database contains seeded rows,",
+        "when": "a test reads the persisted values for each contract-backed table,",
+        "then": "the returned row values include believable data drawn from the contract's examples and related row identifiers refer to existing compatible rows.",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "If Seed:Demo is false, then the Meridian API shall not insert demo rows and shall return an empty list when a list operation has no matching database records.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 24,
+        "quote": "        using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();\n        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       }
+      ],
+      "sources": [
+       "I-4",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A newly created empty database and Seed:Demo set to false,",
+        "when": "the API starts and a client calls a contract list operation without matching records,",
+        "then": "the response status is 200, the returned list count is 0, and the database contains no demo rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "A newly created empty database and Seed:Demo set to true,",
+        "when": "the API starts and a client calls a contract list operation with matching seeded records,",
+        "then": "the response status is 200 and the returned list contains persisted demo rows.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "If required staff identity-provider authorization URL or token-validation settings are missing or invalid, then the Meridian API shall fail application startup with a clear configuration error.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "Required staff identity-provider authorization URL or token-validation settings are absent or invalid,",
+        "when": "the application starts,",
+        "then": "startup fails and the configuration error identifies the missing or invalid staff identity-provider setting.",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "Web application screens and portal UI (I-5; Q-1).",
+     "Product-story behavior not defined by an operation or behavior in the locked OpenAPI contract (Q-1)."
+    ],
+    "assumptions": [],
+    "suggestions": []
+   },
+   "ms": 6,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

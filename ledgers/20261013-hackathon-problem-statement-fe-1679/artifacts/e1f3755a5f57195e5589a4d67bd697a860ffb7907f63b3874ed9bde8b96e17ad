@@ -1,0 +1,47 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-17",
+      "title": "Yard dashboard and aggregate summary",
+      "reqs": [
+       "REQ-1",
+       "REQ-15",
+       "REQ-17",
+       "REQ-20",
+       "REQ-21"
+      ],
+      "fileScope": [
+       "components/screens/s-2/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-5/container.tsx",
+       "components/screens/s-12/container.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client and display dashboard and yard-summary calculations exactly as returned; do not recalculate aggregates in the browser.",
+       "Apply returned permissions to displayed records and controls, and clear data removed by permission changes or HTTP 401."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 110,
+      "complexity": "standard",
+      "approach": "Wire the existing Yard screen container to the generated dashboard operation, including the selected FCR, ADG, or cost-of-gain ranking measure. Render returned yard summary aggregates, dashboard metrics, lot rankings, inventory balance, and recent activity, showing an explicit unavailable state for missing values. Display returned aggregate values as provided, including any values that may include sample data; use only authorized and permitted returned records and fields, and clear protected data and session on HTTP 401. Do not modify the generated page or add route files."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

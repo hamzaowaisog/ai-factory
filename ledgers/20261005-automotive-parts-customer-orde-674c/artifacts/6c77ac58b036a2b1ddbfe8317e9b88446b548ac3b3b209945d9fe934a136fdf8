@@ -1,0 +1,108 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-7",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "ASM-9 asks what happens to the business action if the audit write fails, and REQ-7 never says whether that action rolls back or still completes, even though risk is high (auth, payments)."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "ASM-7 asks what happens when a report has no date range, and REQ-4 doesn't define the result for a missing start/end, a malformed date, or start after end."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "The import reads the ERP CSV from 'the configured location', but nothing covers the file being missing, unreadable, or the same night's file being picked up twice."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "'Reject rows with duplicate product codes' doesn't say whether every duplicate is rejected or only the later ones, so AC-13.1's counts can't be predicted when duplicates are present."
+     },
+     {
+      "reqId": "REQ-25",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-26 calculates Overdue from 'invoice date', but REQ-25 never sets how the invoice date or invoice number is assigned when the invoice is created."
+     },
+     {
+      "reqId": "REQ-27",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "Mark-paid accepts a caller-supplied payment date with no validation rule (future date, date before the invoice date, missing date) and no matching error response."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "Customer names go into CSV exports, but the spec covers neither an empty result set (header-only file?) nor formula/CSV-injection escaping, despite the pii risk tag."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "The 7-year retention clause has no observable acceptance check, since AC-9.1 only tests deactivation, and nothing says what happens to records after 7 years."
+     },
+     {
+      "reqId": "REQ-36",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "The requirement and AC-36.1 refer to 'the listed customer, staff and admin screens', but no list appears in the spec, so the AC can't be checked."
+     },
+     {
+      "reqId": "REQ-28",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-28.1 never checks that the PDF has tax-exclusive prices and no tax lines, which is the requirement's main claim."
+     },
+     {
+      "reqId": "REQ-20",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "The invitation expiry (default 7 days) has no acceptance criterion; only the 1-hour reset-link expiry is tested."
+     },
+     {
+      "reqId": "REQ-31",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "Q-6 says staff resolve any stock shortfall at confirmation, but no requirement says how staff see or resolve it, and REQ-34 only lets staff edit orders in Received, with no shortfall flag."
+     },
+     {
+      "reqId": "REQ-23",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "Q-8 lets all users of a company see each other's orders, but the spec doesn't say whether any company user may cancel an order a colleague placed, or what error is returned if not."
+     },
+     {
+      "reqId": "REQ-35",
+      "rubric": 8,
+      "severity": "low",
+      "finding": "The 10 MB upload limit and the allowed file types are hard-coded in the requirement, while similar limits (link lifetimes, cut-off, payment term) are configurable."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 8,
+      "severity": "low",
+      "finding": "Email template names and audit event strings (e.g. 'Order out for delivery', 'ERP import failed') are fixed literals in the ACs instead of configurable template or event identifiers."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getImportSelectedRecordsResponseMock|completed_with_matches|createdCount|updatedCount",
+    "glob": "**/*"
+   },
+   "ms": 22,
+   "resultChars": 1852,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getImportSelectedRecordsResponseMock|completed_with_matches|createdCount|updatedCount&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\ncontracts/openapi.yaml:215: status: \"completed_with_matches\"\ncontracts/openapi.yaml:216: createdCount: 0\ncontracts/openapi.yaml:217: updatedCount: 1\ncontracts/openapi.yaml:2613: - createdCount\ncontracts/openapi.yaml:2614: - updatedCount\ncontracts/openapi.yaml:2624: createdCount:\ncontracts/openapi.yaml:2626: updatedCount:\nlib/api/client.msw.ts:61: export const getImportSelectedRecordsResponseMock = (): ImportResult => ({\"permissions\":[\"imports.manage\"],\"status\":\"completed_with_matches\",\"createdCount\":0,\"updatedCount\":1,\"records\":[{\"id\":701,\"ven\nlib/api/client.msw.ts:197: : getImportSelectedRecordsResponseMock()),\nlib/api/client.schemas.ts:167: createdCount: number;\nlib/api/client.schemas.ts:168: updatedCount: number;\ntests/acceptance.test.tsx:14: getImportSelectedRecordsResponseMock,\ntests/acceptance.test.tsx:195: return getImportSelectedRecordsResponseMock();\ntests/acceptance.test.tsx:204: [\"completed_with_matches\", \"Matched\", \"PO-8831-L1\", 0, 1].map((value) =>\ntests/acceptance.test.tsx:218: return getImportSelectedRecordsResponseMock();\ntests/acceptance.test.tsx:295: server.use((await import(\"@/lib/api/client.msw\")).getImportSelectedRecordsMockHandler(getImportSelectedRecordsResponseMock()));\ntests/acceptance.test.tsx:299: await expectValues(\"completed_with_matches\", \"PO-8831-L1\", \"Matched\", 0, 1);\ntests/acceptance.test.tsx:305: server.use((await import(\"@/lib/api/client.msw\")).getImportSelectedRecordsMockHandler(getImportSelectedRecordsResponseMock()));\ntests/acceptance.test.tsx:309: await expectValues(\"completed_with_matches\", \"PO-8831-L1\", 46, 48, \"Mapped allocation exceeds updated source head count.\");\n</untrusted_document>"
+  }
+ ]
+}

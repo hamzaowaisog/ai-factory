@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2280,
+    "end": 2325
+   },
+   "ms": 1,
+   "resultChars": 1524,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2280,&quot;end&quot;:2325}\">\ncontracts/openapi.yaml lines 2280-2325\n2280\t            required:\n2281\t              - boxId\n2282\t              - deliveredQuantity\n2283\t              - refused\n2284\t            properties:\n2285\t              boxId:\n2286\t                type: integer\n2287\t              deliveredQuantity:\n2288\t                type: integer\n2289\t              refused:\n2290\t                type: boolean\n2291\t              refusalReason:\n2292\t                type: string\n2293\t    DispositionInput:\n2294\t      type: object\n2295\t      required:\n2296\t        - disposition\n2297\t        - reason\n2298\t        - identityConfirmation\n2299\t      properties:\n2300\t        disposition:\n2301\t          type: string\n2302\t        reason:\n2303\t          type: string\n2304\t        justification:\n2305\t          type: string\n2306\t        identityConfirmation:\n2307\t          type: string\n2308\t    ApprovalInput:\n2309\t      type: object\n2310\t      required:\n2311\t        - decision\n2312\t        - identityConfirmation\n2313\t        - reason\n2314\t      properties:\n2315\t        decision:\n2316\t          type: string\n2317\t          enum:\n2318\t            - approve\n2319\t            - return\n2320\t        identityConfirmation:\n2321\t          type: string\n2322\t        reason:\n2323\t          type: string\n2324\t    DestructionInput:\n2325\t      type: object\n… (2684 lines total; ask for start=2326)\n</untrusted_document>"
+  }
+ ]
+}

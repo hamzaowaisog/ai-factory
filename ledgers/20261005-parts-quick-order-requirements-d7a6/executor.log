@@ -1,0 +1,14 @@
+executor started (pid 72484)
+waiting for you: cap card 3c72d615
+executor stopped
+
+waiting: design used 6 attempts. Decide with: factory show-card 20261005-parts-quick-order-requirements-d7a6
+executor started (pid 94857)
+▶ design-export (attempt 5, rung 1)
+  error: Design 20261005-parts-quick-order-requirements-d7a6 v1 already holds another approved design (690b3d07); a package never changes.
+attempt failed (other) → park at rung 1: Every retry option is used up
+✗ design-export: Design 20261005-parts-quick-order-requirements-d7a6 v1 already holds another approved design (690b3d07); a package never changes. → park
+PARKED: design-export: Every retry option is used up
+executor stopped
+
+parked: design-export: Every retry option is used up. Last failure: Design 20261005-parts-quick-order-requirements-d7a6 v1 already holds another approved design (690b3d07); a package never changes.

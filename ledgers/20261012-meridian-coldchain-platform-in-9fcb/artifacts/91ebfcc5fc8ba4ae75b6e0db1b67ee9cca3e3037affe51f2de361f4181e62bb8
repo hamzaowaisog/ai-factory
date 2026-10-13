@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography specifics */
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Status Dot & Pill Indicators */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    [dir="rtl"] .status-dot {
+      margin-right: 0;
+      margin-left: 6px;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Header */
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-logo-m {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    nav a {
+      color: #202020;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    nav a:hover {
+      color: #A94B1D;
+    }
+
+    nav a:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    nav a.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    nav a.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      background: #EFEFEF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .user-name {
+      font-size: 15px;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .lang-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      color: #626262;
+      padding: 4px 6px;
+      border-radius: 2px;
+      transition: color 150ms ease;
+    }
+
+    .lang-btn:hover {
+      color: #202020;
+    }
+
+    .lang-btn:focus-visible {
+      outline: 2px solid #A94B1D;
+    }
+
+    .lang-btn.active {
+      color: #202020;
+      font-weight: 600;
+    }
+
+    /* Layout Container */
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 32px 64px;
+    }
+
+    /* Page Header Section */
+    .page-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+      letter-spacing: -0.02em;
+    }
+
+    .page-lead {
+      color: #626262;
+      font-size: 16px;
+      margin-top: 4px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      height: 48px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 2px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #933E15;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 20px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 150ms ease, background-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary-sm {
+      height: 36px;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    /* Panel and Filtering Controls */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .filter-panel {
+      padding: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 500;
+    }
+
+    .input-field {
+      height: 48px;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: #202020;
+      transition: border-color 150ms ease;
+    }
+
+    .input-field:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: -1px;
+      border-color: #A94B1D;
+    }
+
+    select.input-field {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23202020' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+
+    [dir="rtl"] select.input-field {
+      background-position: left 14px center;
+      padding-right: 16px;
+      padding-left: 40px;
+    }
+
+    /* Dense Orders Table */
+    .orders-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.orders-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    [dir="rtl"] table.orders-table {
+      text-align: right;
+    }
+
+    table.orders-table th {
+      background: #FFFFFF;
+      padding: 12px 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      white-space: nowrap;
+    }
+
+    table.orders-table td {
+      padding: 0 16px;
+      height: 48px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    table.orders-table tbody tr {
+      transition: background-color 120ms ease;
+    }
+
+    table.orders-table tbody tr:hover {
+      background-color: #FAFAFA;
+    }
+
+    table.orders-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .order-code {
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .table-footer {
+      padding: 12px 16px;
+      background: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* RTL specific adjustments */
+    [dir="rtl"] body {
+      direction: rtl;
+      text-align: right;
+    }
+
+    [dir="rtl"] header {
+      flex-direction: row-reverse;
+    }
+
+    [dir="rtl"] .header-left {
+      flex-direction: row-reverse;
+    }
+
+    [dir="rtl"] nav {
+      flex-direction: row-reverse;
+    }
+
+    [dir="rtl"] .header-right {
+      flex-direction: row-reverse;
+    }
+
+    [dir="rtl"] .user-profile {
+      flex-direction: row-reverse;
+    }
+
+    [dir="rtl"] .page-title-row {
+      flex-direction: row-reverse;
+    }
+
+    [dir="rtl"] .table-footer {
+      flex-direction: row-reverse;
+    }
+
+    /* Motion Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Persistent App Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <span class="brand-logo-m">M</span>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav>
+        <a href="#" class="active">Orders</a>
+        <a href="#">Deliveries</a>
+        <a href="#">Recall notices</a>
+        <a href="#">Account</a>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <div class="user-profile">
+        <span class="user-avatar">HY</span>
+        <span class="user-name">Hana Youssef · Cedar Health</span>
+      </div>
+      <div class="lang-switcher">
+        <button type="button" class="lang-btn active" id="lang-en" onclick="setLang('en')">EN</button>
+        <span>/</span>
+        <button type="button" class="lang-btn" id="lang-ar" onclick="setLang('ar')">العربية</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View -->
+  <main class="animate-entrance">
+    <!-- Title & Action -->
+    <div class="page-title-row">
+      <div>
+        <h1 id="page-heading">Orders</h1>
+        <p class="page-lead" id="page-lead-text">Cedar Health orders</p>
+      </div>
+      <div>
+        <button type="button" class="btn-primary" id="btn-place-order">Place order</button>
+      </div>
+    </div>
+
+    <!-- Instant Filter Control Panel -->
+    <div class="panel filter-panel">
+      <div class="field-group" style="flex: 2; min-width: 240px;">
+        <label class="field-label" for="search-input" id="lbl-search">Search orders</label>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="input-field" 
+          placeholder="Filter by order number, product, lot or destination..." 
+          oninput="filterOrders()"
+        >
+      </div>
+
+      <div class="field-group" style="flex: 1; min-width: 180px;">
+        <label class="field-label" for="status-filter" id="lbl-status">Status</label>
+        <select id="status-filter" class="input-field" onchange="filterOrders()">
+          <option value="all">All statuses</option>
+          <option value="ordered">Ordered</option>
+          <option value="packed">Packed</option>
+          <option value="delivered">Delivered</option>
+        </select>
+      </div>
+
+      <div class="field-group" style="flex: 1; min-width: 180px;">
+        <label class="field-label" for="destination-filter" id="lbl-dest">Destination</label>
+        <select id="destination-filter" class="input-field" onchange="filterOrders()">
+          <option value="all">All destinations</option>
+          <option value="Cedar Clinic">Cedar Clinic</option>
+          <option value="Cedar Day Unit">Cedar Day Unit</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Dense Orders Table -->
+    <div class="panel">
+      <div class="orders-table-wrapper">
+        <table class="orders-table" id="orders-table">
+          <thead>
+            <tr>
+              <th id="th-order">Order</th>
+              <th id="th-date">Date & time</th>
+              <th id="th-product">Product & lot</th>
+              <th id="th-quantities">Ordered / allocated / outstanding</th>
+              <th id="th-destination">Destination</th>
+              <th id="th-status">Status</th>
+              <th id="th-action" style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <!-- Row O-301 -->
+            <tr data-order="O-301" data-status="ordered" data-dest="Cedar Clinic" data-text="O-301 Insulin Glargine IG-2511 Cedar Clinic">
+              <td class="font-mono order-code">O-301</td>
+              <td class="font-mono text-quiet">14 May 2026 09:00</td>
+              <td>
+                <div>Insulin Glargine 100 units/mL</div>
+                <div class="font-mono text-quiet" style="font-size: 14px;">Lot IG-2511 · Exp 31 Mar 2027</div>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600;">30</span> ordered / 
+                <span class="font-mono" style="font-weight: 600;">20</span> allocated / 
+                <span class="font-mono" style="color: #805800; font-weight: 600;">10</span> outstanding
+              </td>
+              <td>Cedar Clinic, 42 River Road</td>
+              <td>
+                <span class="status-waiting">
+                  <span class="status-dot"></span>waiting (not packed)
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <button type="button" class="btn-secondary btn-secondary-sm">Order detail</button>
+              </td>
+            </tr>
+
+            <!-- Row O-299 -->
+            <tr data-order="O-299" data-status="packed" data-dest="Cedar Clinic" data-text="O-299 Insulin Glargine IG-2511 B-701 B-702 Cedar Clinic R-204">
+              <td class="font-mono order-code">O-299</td>
+              <td class="font-mono text-quiet">14 May 2026 08:20</td>
+              <td>
+                <div>Insulin Glargine 100 units/mL</div>
+                <div class="font-mono text-quiet" style="font-size: 14px;">Lot IG-2511 · B-701 (12) + B-702 (8)</div>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600;">20</span> packed
+              </td>
+              <td>Cedar Clinic (Route R-204)</td>
+              <td>
+                <span class="status-good">
+                  <span class="status-dot"></span>good (packed)
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <button type="button" class="btn-secondary btn-secondary-sm">Order detail</button>
+              </td>
+            </tr>
+
+            <!-- Row O-290 -->
+            <tr data-order="O-290" data-status="delivered" data-dest="Cedar Clinic" data-text="O-290 Insulin Glargine IG-2509 Cedar Clinic R-201 Rania Karim">
+              <td class="font-mono order-code">O-290</td>
+              <td class="font-mono text-quiet">13 May 2026 10:14</td>
+              <td>
+                <div>Insulin Glargine 100 units/mL</div>
+                <div class="font-mono text-quiet" style="font-size: 14px;">Lot IG-2509 · Delivered to Rania Karim</div>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600;">20</span> delivered
+              </td>
+              <td>Cedar Clinic, 42 River Road</td>
+              <td>
+                <span class="status-good">
+                  <span class="status-dot"></span>good (delivered)
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <button type="button" class="btn-secondary btn-secondary-sm">Order detail</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Flush Table Footer -->
+      <div class="table-footer">
+        <span id="footer-count">Showing 3 orders for Cedar Health</span>
+        <span class="font-mono">Prototype date: 14 May 2026 · Europe/London (BST)</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Language translations & RTL handling
+    const i18n = {
+      en: {
+        dir: 'ltr',
+        pageHeading: 'Orders',
+        pageLead: 'Cedar Health orders',
+        placeOrder: 'Place order',
+        searchLabel: 'Search orders',
+        searchPlaceholder: 'Filter by order number, product, lot or destination...',
+        statusLabel: 'Status',
+        statusAll: 'All statuses',
+        statusOrdered: 'Ordered',
+        statusPacked: 'Packed',
+        statusDelivered: 'Delivered',
+        destLabel: 'Destination',
+        destAll: 'All destinations',
+        thOrder: 'Order',
+        thDate: 'Date & time',
+        thProduct: 'Product & lot',
+        thQuantities: 'Ordered / allocated / outstanding',
+        thDestination: 'Destination',
+        thStatus: 'Status',
+        thAction: 'Action',
+        orderDetail: 'Order detail',
+        showingText: (count) => `Showing ${count} order${count === 1 ? '' : 's'} for Cedar Health`
+      },
+      ar: {
+        dir: 'rtl',
+        pageHeading: 'الطلبات',
+        pageLead: 'طلبات سيدار هيلث',
+        placeOrder: 'إنشاء طلب',
+        searchLabel: 'البحث في الطلبات',
+        searchPlaceholder: 'تصفية حسب رقم الطلب، المنتج، التشغيلة أو الوجهة...',
+        statusLabel: 'الحالة',
+        statusAll: 'جميع الحالات',
+        statusOrdered: 'تم الطلب',
+        statusPacked: 'تم التجهيز',
+        statusDelivered: 'تم التسليم',
+        destLabel: 'الوجهة',
+        destAll: 'جميع الوجهات',
+        thOrder: 'الطلب',
+        thDate: 'التاريخ والوقت',
+        thProduct: 'المنتج والتشغيلة',
+        thQuantities: 'المطلوب / المخصص / المتبقي',
+        thDestination: 'الوجهة',
+        thStatus: 'الحالة',
+        thAction: 'الإجراء',
+        orderDetail: 'تفاصيل الطلب',
+        showingText: (count) => `عرض ${count} من طلبات سيدار هيلث`
+      }
+    };
+
+    function setLang(lang) {
+      const doc = document.documentElement;
+      const dict = i18n[lang];
+      if (!dict) return;
+
+      doc.setAttribute('dir', dict.dir);
+      doc.setAttribute('lang', lang);
+
+      // Buttons active state
+      document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+      document.getElementById('lang-ar').classList.toggle('active', lang === 'ar');
+
+      // Update text
+      document.getElementById('page-heading').textContent = dict.pageHeading;
+      document.getElementById('page-lead-text').textContent = dict.pageLead;
+      document.getElementById('btn-place-order').textContent = dict.placeOrder;
+      document.getElementById('lbl-search').textContent = dict.searchLabel;
+      document.getElementById('search-input').placeholder = dict.searchPlaceholder;
+      document.getElementById('lbl-status').textContent = dict.statusLabel;
+      document.getElementById('lbl-dest').textContent = dict.destLabel;
+
+      document.getElementById('th-order').textContent = dict.thOrder;
+      document.getElementById('th-date').textContent = dict.thDate;
+      document.getElementById('th-product').textContent = dict.thProduct;
+      document.getElementById('th-quantities').textContent = dict.thQuantities;
+      document.getElementById('th-destination').textContent = dict.thDestination;
+      document.getElementById('th-status').textContent = dict.thStatus;
+      document.getElementById('th-action').textContent = dict.thAction;
+
+      const detailBtns = document.querySelectorAll('.orders-table .btn-secondary');
+      detailBtns.forEach(btn => btn.textContent = dict.orderDetail);
+
+      // Status dropdown options
+      const statusSelect = document.getElementById('status-filter');
+      statusSelect.options[0].text = dict.statusAll;
+      statusSelect.options[1].text = dict.statusOrdered;
+      statusSelect.options[2].text = dict.statusPacked;
+      statusSelect.options[3].text = dict.statusDelivered;
+
+      // Dest dropdown options
+      const destSelect = document.getElementById('destination-filter');
+      destSelect.options[0].text = dict.destAll;
+
+      filterOrders();
+    }
+
+    // Instant Filter function
+    function filterOrders() {
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
+      const status = document.getElementById('status-filter').value;
+      const dest = document.getElementById('destination-filter').value;
+      const rows = document.querySelectorAll('#orders-tbody tr');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = (row.getAttribute('data-text') || '').toLowerCase();
+        const rowStatus = row.getAttribute('data-status');
+        const rowDest = row.getAttribute('data-dest');
+
+        const matchesQuery = !query || text.includes(query);
+        const matchesStatus = (status === 'all') || (rowStatus === status);
+        const matchesDest = (dest === 'all') || (rowDest === dest);
+
+        if (matchesQuery && matchesStatus && matchesDest) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      const currentLang = document.documentElement.getAttribute('lang') || 'en';
+      document.getElementById('footer-count').textContent = i18n[currentLang].showingText(visibleCount);
+    }
+  </script>
+</body>
+</html>

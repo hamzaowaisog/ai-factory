@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pack box</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+    /* Design system motion tokens */
+    :root {
+      --motion-duration-instant: 90ms;
+      --motion-duration-short: 140ms;
+      --motion-duration-standard: 220ms;
+      --motion-duration-enter: 280ms;
+      --motion-duration-complex: 360ms;
+      --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      --motion-ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+      --motion-ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+      --motion-ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
+
+    /* Reset & baseline */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography tokens */
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quieter {
+      color: #626262;
+    }
+
+    /* Keyframes for page entrance sequence */
+    @keyframes motionEnter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Staggered entrance animation applied to sections/cards down the page */
+    .site-header {
+      animation: motionEnter var(--motion-duration-enter) var(--motion-ease-decelerate) both;
+      animation-delay: 0ms;
+    }
+
+    .page-title {
+      animation: motionEnter var(--motion-duration-enter) var(--motion-ease-decelerate) both;
+      animation-delay: 40ms;
+    }
+
+    .panel-stagger-1 {
+      animation: motionEnter var(--motion-duration-enter) var(--motion-ease-decelerate) both;
+      animation-delay: 80ms;
+    }
+
+    .panel-stagger-2 {
+      animation: motionEnter var(--motion-duration-enter) var(--motion-ease-decelerate) both;
+      animation-delay: 130ms;
+    }
+
+    .panel-stagger-3 {
+      animation: motionEnter var(--motion-duration-enter) var(--motion-ease-decelerate) both;
+      animation-delay: 180ms;
+    }
+
+    .panel-stagger-4 {
+      animation: motionEnter var(--motion-duration-enter) var(--motion-ease-decelerate) both;
+      animation-delay: 230ms;
+    }
+
+    /* Interactive control states */
+    /* Links & navigation items */
+    a, .nav-link, .brand-mark, .lang-switch {
+      transition: color var(--motion-duration-short) var(--motion-ease-standard),
+                  background-color var(--motion-duration-short) var(--motion-ease-standard),
+                  border-color var(--motion-duration-short) var(--motion-ease-standard),
+                  transform var(--motion-duration-instant) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-short) var(--motion-ease-standard);
+    }
+
+    a:focus-visible, .nav-link:focus-visible, .lang-switch:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    a:active:not([disabled]), .nav-link:active {
+      transform: scale(0.98);
+    }
+
+    /* Buttons */
+    button, .btn-primary, .btn-secondary {
+      transition: all var(--motion-duration-short) var(--motion-ease-standard);
+    }
+
+    button:focus-visible, .btn-primary:focus-visible, .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    button:active:not(:disabled), .btn-primary:active:not(:disabled), .btn-secondary:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    /* Disabled/read-only buttons */
+    button:disabled, .btn-primary:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+      transform: none !important;
+    }
+
+    button:disabled:hover, .btn-primary:disabled:hover {
+      transform: none !important;
+    }
+
+    /* Text inputs, select inputs, readonly input boxes */
+    input, select, .field-input {
+      transition: border-color var(--motion-duration-short) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-short) var(--motion-ease-standard);
+    }
+
+    input:hover, select:hover, .field-input:hover {
+      border-color: #A94B1D;
+    }
+
+    input:focus, select:focus, .field-input:focus, input:focus-visible, select:focus-visible, .field-input:focus-visible {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 3px rgba(169, 75, 29, 0.15);
+    }
+
+    .field-input.read-only:hover, .field-input:read-only:hover, .field-input:disabled:hover {
+      border-color: #C0C0C0;
+    }
+
+    .field-input.read-only:focus, .field-input:read-only:focus, .field-input:disabled:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 3px rgba(169, 75, 29, 0.15);
+    }
+
+    /* Accessibility: Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header styling */
+    .site-header {
+      background: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark:hover .brand-title {
+      color: #A94B1D;
+    }
+
+    .brand-box {
+      width: 28px;
+      height: 28px;
+      background: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      border-radius: 2px;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      transition: color var(--motion-duration-short) var(--motion-ease-standard);
+    }
+
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-link {
+      font-size: 15px;
+      color: #626262;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      display: inline-block;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link.active {
+      color: #202020;
+      font-weight: 600;
+      border-bottom: 2px solid #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+    }
+
+    .operator-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #202020;
+    }
+
+    .avatar-initials {
+      width: 28px;
+      height: 28px;
+      background: #EAEAEA;
+      color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .lang-switch {
+      color: #626262;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .lang-switch:hover {
+      color: #202020;
+    }
+
+    /* Main layout container */
+    .main-content {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 32px 48px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    /* Panels & rules */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .panel-header {
+      margin-bottom: 20px;
+    }
+
+    .panel-heading {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+
+    /* Grid layout for form and photograph */
+    .form-photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    .form-fields-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+    }
+
+    .field-input {
+      height: 48px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background: #FFFFFF;
+      padding: 0 16px;
+      font-size: 16px;
+      color: #202020;
+      width: 100%;
+    }
+
+    .field-input.read-only,
+    .field-input:read-only,
+    .field-input:disabled {
+      background: #F7F7F7;
+      color: #202020;
+      cursor: default;
+    }
+
+    .two-col-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Status indicators */
+    .status-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status-text.good {
+      color: #24704B;
+    }
+
+    .status-text.waiting {
+      color: #805800;
+    }
+
+    .status-text.failed {
+      color: #AE2C2C;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.good {
+      background-color: #24704B;
+    }
+
+    .status-dot.waiting {
+      background-color: #805800;
+    }
+
+    .status-dot.failed {
+      background-color: #AE2C2C;
+    }
+
+    /* Photo column styling */
+    .photo-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .shipper-image-wrapper {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      background: #FFFFFF;
+    }
+
+    .shipper-image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-caption {
+      font-size: 14px;
+      color: #626262;
+      line-height: 1.4;
+    }
+
+    /* Action bar with irreversible primary seal */
+    .seal-action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid #D5D5D5;
+      margin-top: 8px;
+    }
+
+    .seal-button-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn-primary {
+      height: 48px;
+      padding: 0 24px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #933E15;
+    }
+
+    .btn-primary:disabled {
+      background-color: #E0E0E0;
+      color: #888888;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      padding: 0 24px;
+      background-color: #FFFFFF;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+    }
+
+    .irreversible-notice {
+      font-size: 14px;
+      color: #626262;
+      font-style: normal;
+    }
+
+    /* Structured data table */
+    .records-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .records-table th {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+      padding: 12px 16px;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+    }
+
+    .records-table td {
+      font-size: 15px;
+      color: #202020;
+      padding: 12px 16px;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+      vertical-align: middle;
+    }
+
+    .records-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Key-value details grid */
+    .details-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      padding: 16px 0;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .detail-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .detail-value {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202020;
+    }
+  </style>
+</head>
+<body>
+<!-- Standard Header -->
+<header class="site-header">
+<div class="header-left">
+<a class="brand-mark" href="#">
+<div class="brand-box">M</div>
+<span class="brand-title">Meridian</span>
+</a>
+<nav class="main-nav">
+<a class="nav-link" href="#">Receipts</a>
+<a class="nav-link" href="#">Stock</a>
+<a class="nav-link" href="#">Moves</a>
+<a class="nav-link active" href="#">Boxes</a>
+<a class="nav-link" href="#">Cold rooms</a>
+</nav>
+</div>
+<div class="header-right">
+<div class="operator-profile">
+<div class="avatar-initials">LH</div>
+<span>Leila Haddad · Warehouse Operator</span>
+</div>
+<div class="lang-switch" tabindex="0">EN / العربية</div>
+</div>
+</header>
+<!-- Page Content -->
+<main class="main-content">
+<h1 class="page-title">Pack box</h1>
+<!-- Form & Photographic Verification Panel -->
+<section class="panel panel-stagger-1">
+<div class="panel-header">
+<h2 class="panel-heading">Order <span class="font-mono">O-299</span>: Box packing &amp; seal verification</h2>
+</div>
+<div class="form-photo-grid">
+<!-- Pack Form (Read-only for sealed B-701) -->
+<div class="form-fields-col">
+<div class="two-col-fields">
+<div class="field-group">
+<label class="field-label" for="shipper-box-type">Shipper box type</label>
+<input class="field-input read-only" id="shipper-box-type" readonly="" type="text" value="BioTherm Insulated Shipper 12L"/>
+</div>
+<div class="field-group">
+<label class="field-label" for="box-id">Box identifier</label>
+<input class="field-input font-mono read-only" id="box-id" readonly="" type="text" value="B-701"/>
+</div>
+</div>
+<div class="two-col-fields">
+<div class="field-group">
+<label class="field-label" for="scanned-lot">Scanned lot</label>
+<input class="field-input font-mono read-only" id="scanned-lot" readonly="" type="text" value="IG-2511"/>
+</div>
+<div class="field-group">
+<label class="field-label" for="packed-qty">Quantity packed</label>
+<input class="field-input font-mono read-only" id="packed-qty" readonly="" type="text" value="12 packs"/>
+</div>
+</div>
+<div class="two-col-fields">
+<div class="field-group">
+<label class="field-label" for="logger-id">Assigned datalogger (exactly one)</label>
+<input class="field-input font-mono read-only" id="logger-id" readonly="" type="text" value="LOG-9921 (Berlinger Fridge-tag)"/>
+</div>
+<div class="field-group">
+<label class="field-label">Returned compatibility</label>
+<div class="field-input read-only" style="display: flex; align-items: center;">
+<span class="status-text good">
+<span class="status-dot good"></span>
+                  good
+                </span>
+<span class="text-quieter" style="font-size: 14px; margin-left: 8px;">(profile v3 · 2–8°C validated)</span>
+</div>
+</div>
+</div>
+<!-- Seal Box Action with irreversible notice -->
+<div class="seal-action-row">
+<div class="irreversible-notice">
+              Primary Seal box is marked irreversible beside the button; when viewing sealed <span class="font-mono">B-701</span> make the form read-only.
+            </div>
+<div class="seal-button-group">
+<button class="btn-primary" disabled="" type="button">
+                Sealed
+              </button>
+</div>
+</div>
+</div>
+<!-- Real Photograph of Physical Sealed Shipper -->
+<div class="photo-col">
+<div class="shipper-image-wrapper">
+<img alt="Sealed medical insulated shipper carton box with tamper-evident security tape and barcode label" src="https://lh3.googleusercontent.com/aida/AEtjO1V4h0t2rnoZTM8XR-jl9QvBjl31rwgFZPzcOxf_yt-Wq9mxWRej_7pE37fVRJLDUnVHUQAqDM7-t36uVy49BykPN0h__O87lwNP0f2dIYl-kTeo70ieHzrx3Eur7b67hB0IFDkAw76nloxXhSZlU_aqF2_BwuAmGixW-tk7sgzGCnROZvzNXIxkNbukRv8GcDp6DXOZ6lCCJl00C7GVRcsAK0qVSR2O1LvvvLVZ4eApOrsDs9Sm6fK6bA"/>
+</div>
+<div class="photo-caption">
+            Photographic proof: Sealed insulated shipper <span class="font-mono">B-701</span> with tamper-evident tape and cold chain label applied at North Quay.
+          </div>
+</div>
+</div>
+</section>
+<!-- Box Contents Specification Panel -->
+<section class="panel panel-stagger-2">
+<div class="panel-header">
+<h2 class="panel-heading">Contents &amp; allocation breakdown</h2>
+</div>
+<table class="records-table">
+<thead>
+<tr>
+<th>Product</th>
+<th>Lot number</th>
+<th>Expiry date</th>
+<th>Handling unit</th>
+<th>Source location</th>
+<th>Quantity</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<div style="font-weight: 500;">Insulin Glargine 100 units/mL</div>
+<div class="text-quieter" style="font-size: 14px;">pack of 10 pens · profile v3 (2–8°C)</div>
+</td>
+<td class="font-mono">IG-2511</td>
+<td class="font-mono">31 March 2027</td>
+<td class="font-mono">HU-81</td>
+<td>Cold Room C2, Rack 4</td>
+<td class="font-mono">12 packs</td>
+<td>
+<span class="status-text good">
+<span class="status-dot good"></span>
+                good
+              </span>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<!-- Sealing Details & Audit Metadata Panel -->
+<section class="panel panel-stagger-3">
+<div class="panel-header">
+<h2 class="panel-heading">Sealing details &amp; assurance log</h2>
+</div>
+<div class="details-summary-grid">
+<div class="detail-item">
+<span class="detail-label">Sealing operator</span>
+<span class="detail-value">Leila Haddad</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Warehouse location</span>
+<span class="detail-value">North Quay Warehouse</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Sealing timestamp</span>
+<span class="detail-value font-mono">14 May 2026 11:45</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Security tamper tape reference</span>
+<span class="detail-value font-mono">SEC-8841-NQ</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Coolant pack configuration</span>
+<span class="detail-value">4 × Pre-conditioned gel packs (4°C)</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Thermal hold duration</span>
+<span class="detail-value font-mono">48 hours</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Assigned datalogger</span>
+<span class="detail-value font-mono">LOG-9921</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Assurance seal state</span>
+<span class="detail-value">
+<span class="status-text good">
+<span class="status-dot good"></span>
+              good
+            </span>
+</span>
+</div>
+</div>
+</section>
+<!-- Returned Stock & Order Status Panel -->
+<section class="panel panel-stagger-4">
+<div class="panel-header">
+<h2 class="panel-heading">Returned stock &amp; order status</h2>
+</div>
+<div class="details-summary-grid">
+<div class="detail-item">
+<span class="detail-label">Order reference</span>
+<span class="detail-value font-mono">O-299</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Consignee address</span>
+<span class="detail-value">Cedar Clinic, 42 River Road, London</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Planned departure</span>
+<span class="detail-value font-mono">14 May 2026 15:00</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Assigned dispatch &amp; transport</span>
+<span class="detail-value">Tariq Mansour · VAN-27 (<span class="font-mono">MTR-482</span>)</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Order total allocation</span>
+<span class="detail-value font-mono">20 packs (B-701: 12 packs · B-702: 8 packs)</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Route reference</span>
+<span class="detail-value font-mono">R-204 (Stop: Cedar Clinic)</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Order consignment status</span>
+<span class="detail-value">
+<span class="status-text good">
+<span class="status-dot good"></span>
+              good
+            </span>
+</span>
+</div>
+<div class="detail-item">
+<span class="detail-label">Stock eligibility</span>
+<span class="detail-value">
+<span class="status-text good">
+<span class="status-dot good"></span>
+              good
+            </span>
+</span>
+</div>
+</div>
+</section>
+</main>
+</body></html>

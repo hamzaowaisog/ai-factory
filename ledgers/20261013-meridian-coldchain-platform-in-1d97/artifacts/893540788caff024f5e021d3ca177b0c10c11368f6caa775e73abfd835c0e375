@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement only the Meridian API operations and behavior defined in the OpenAPI contract, retain the root health, OpenAPI-document, and Swagger UI routes, and conform to the contract’s request, response, authentication, authorization, filtering, and scope requirements."
+     },
+     {
+      "n": 2,
+      "text": "Persist business-data changes in the configured PostgreSQL database and enforce lifecycle constraints, including creating receipts with Quarantined status and rejecting changes to packed customer orders."
+     },
+     {
+      "n": 3,
+      "text": "Run the demo seeder at startup only when `Seed:Demo` is true; when invoked, seed only empty contract-backed tables with two to five contract-example-based rows per table, preserve existing rows, and ensure references resolve."
+     },
+     {
+      "n": 4,
+      "text": "When `Seed:Demo` is false or unset, do not run the demo seeder or create demo rows; return empty lists for collection operations with no matching persisted records."
+     },
+     {
+      "n": 5,
+      "text": "Use the existing staff identity provider with authorization URL and token-validation settings from deployment configuration, return the configured URL from the contracted authorization-URL operation, and validate staff tokens using those settings."
+     },
+     {
+      "n": 6,
+      "text": "Fail application startup with an error identifying the affected setting if a required staff identity-provider authorization URL or token-validation setting is missing or invalid."
+     },
+     {
+      "n": 7,
+      "text": "Authenticate customer accounts through the contract’s email-and-password and one-time-code flow, associate callers with their declared roles and resource scopes, and authorize operations only for assigned roles and scopes."
+     },
+     {
+      "n": 8,
+      "text": "Create or migrate the PostgreSQL schema to the current contract-backed model at startup, including when the database already exists."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,106 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The Folio3 parking web app shall authenticate employees only through Folio3 Google Workspace accounts, reject personal Gmail and other non-Folio3 identities, and show the dashboard to returning employees after successful authentication."
+     },
+     {
+      "n": 2,
+      "text": "The app shall retrieve employee profiles by corporate email from the corporate directory and parking assignments and vehicle details from the administrator-maintained roster, including initial loading of existing records; it shall require the corporate email to match the signed-in identity, restrict employees to their own data, and permit administrators their authorized access."
+     },
+     {
+      "n": 3,
+      "text": "For employees without dedicated parking and without a registered vehicle, the app shall require at least one license plate registration before claims are enabled; it shall support one or more plates with optional make, model, and color and activate each new plate immediately."
+     },
+     {
+      "n": 4,
+      "text": "The app shall treat Monday through Friday as working days, including holidays, and Saturday and Sunday as non-working days when applying default dedicated-parking availability and utilization scenarios."
+     },
+     {
+      "n": 5,
+      "text": "A dedicated parking holder shall be able to release today's assigned space in one action; duplicate releases for that date and releases by ineligible employees or for claimed spaces shall be rejected, and the space status shall be exposed as Reserved, Released, or Claimed."
+     },
+     {
+      "n": 6,
+      "text": "Dedicated parking holders shall be able to schedule one or more releases up to 30 calendar days ahead, view saved releases on a calendar, and cancel a scheduled release only while its space remains unclaimed; scheduling and cancellation events shall be recorded."
+     },
+     {
+      "n": 7,
+      "text": "The daily parking release time shall default to 8:00 AM in the office's local timezone and be configurable by an administrator."
+     },
+     {
+      "n": 8,
+      "text": "The app shall evaluate today, the 30-day scheduling window, daily release cutoffs, and weekly report scheduling using the configured office-local timezone."
+     },
+     {
+      "n": 9,
+      "text": "Scheduled releases and same-day releases made before the daily release time shall become claimable at that time; same-day releases made after it shall become claimable immediately."
+     },
+     {
+      "n": 10,
+      "text": "The app shall show available-space counts and allocate each available space to the first eligible non-dedicated employee whose claim is accepted, allowing each space to be claimed only once and rejecting claims by dedicated parking holders."
+     },
+     {
+      "n": 11,
+      "text": "Temporary parking claimants shall select one registered vehicle; only that vehicle's plate shall be authorized for the allocation, and the app shall assign a floor with the most remaining capacity using a consistent tie-break."
+     },
+     {
+      "n": 12,
+      "text": "When one or more spaces become available, the app shall email eligible employees without dedicated parking using a fixed-template message."
+     },
+     {
+      "n": 13,
+      "text": "The app shall reject employee cancellation of temporary parking claims in Phase 1."
+     },
+     {
+      "n": 14,
+      "text": "For entrance checks, the app shall verify detected car plates only against active temporary allocations for the office-local date, activate the green indicator only for valid authorization, and record each attempt's date, time, plate, result, and entry status. An allocation cancelled after a permanent-holder entry shall not authorize the temporary claimant."
+     },
+     {
+      "n": 15,
+      "text": "The app shall record permanent-sticker vehicle detections for utilization, bypass temporary authorization and entry blocking for those detections, and, when a permanent holder enters a released space temporarily claimed by another employee, record the space as used and cancel that allocation. The guard-facing surface shall show only the indicator result and no parking records or product screen."
+     },
+     {
+      "n": 16,
+      "text": "If the camera, plate recognition, network, or indicator fails, or a plate cannot be read, the app shall deny entry until service is restored, keep automatic green authorization off, record an unsuccessful verification, and provide no manual-verification path."
+     },
+     {
+      "n": 17,
+      "text": "The app shall record an Unused Dedicated Parking event for each working day when a dedicated holder neither released the space nor had a registered vehicle entry detected, and an Unused Temporary Parking event when a claimant's selected vehicle was not detected entering on the claim date."
+     },
+     {
+      "n": 18,
+      "text": "The app shall generate a weekly utilization report every Monday morning in the office timezone, including dedicated employees who neither released nor used their parking, temporary claimants who did not use their parking, daily and weekly statistics, total released spaces, total temporary claims, and an overall utilization percentage."
+     },
+     {
+      "n": 19,
+      "text": "The app shall email each weekly report to designated stakeholders using the configured recipient list and allow only authenticated parking administrators to update that list."
+     },
+     {
+      "n": 20,
+      "text": "In Phase 1, the app shall not create automated warnings, suspensions, or penalties based on parking utilization."
+     },
+     {
+      "n": 21,
+      "text": "The app shall retain release, claim, LPR verification, and utilization history according to Folio3's existing records-retention policy."
+     },
+     {
+      "n": 22,
+      "text": "The product shall be one responsive web app with layouts for phone, tablet, and desktop; pages shall avoid horizontal overflow at representative widths, and narrow layouts shall use touch-sized controls."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

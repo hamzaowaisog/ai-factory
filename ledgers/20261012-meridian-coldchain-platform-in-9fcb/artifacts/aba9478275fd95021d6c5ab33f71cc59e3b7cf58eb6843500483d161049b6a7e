@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meridian - Request password reset</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Reset & Base Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #F7F7F7;
+      --bg-surface: #FFFFFF;
+      --text-main: #202020;
+      --text-quiet: #626262;
+      --border-color: #D5D5D5;
+      --primary-color: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-failed: #AE2C2C;
+      --radius: 2px;
+      --ease-signature: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion Tokens & Entrance Sequence */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingSyncPulse {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance-sequence {
+      animation: entranceFadeUp 340ms var(--ease-signature) forwards;
+    }
+
+    /* Layout Container */
+    .reset-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Meridian Brand Lockup */
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      user-select: none;
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      background-color: var(--text-main);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 19px;
+      border-radius: var(--radius);
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+      line-height: 1;
+    }
+
+    /* Panel Card */
+    .panel-card {
+      width: 100%;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      box-shadow: none;
+      padding: 32px 32px 24px 32px;
+    }
+
+    /* Headings & Text */
+    h1.panel-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: var(--text-main);
+      letter-spacing: -0.015em;
+      margin-bottom: 8px;
+    }
+
+    .instruction-text {
+      color: var(--text-quiet);
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    /* Form & Controls */
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 48px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text-main);
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .form-input:hover {
+      border-color: #A0A0A0;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    /* Actions */
+    .actions-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .btn-primary {
+      width: 100%;
+      height: 48px;
+      background-color: var(--primary-color);
+      color: #FFFFFF;
+      border: 1px solid var(--primary-color);
+      border-radius: var(--radius);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 80ms ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #923F16;
+      border-color: #923F16;
+    }
+
+    .btn-primary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--primary-color);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .nav-link {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      transition: color 140ms ease;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+
+    .nav-link:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-color);
+      color: var(--text-main);
+    }
+
+    .nav-link:active {
+      transform: translateY(1px);
+    }
+
+    /* Accessibility: Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="reset-container entrance-sequence" role="main">
+    
+    <!-- Meridian Square M and Name -->
+    <div class="brand-lockup" aria-label="Meridian">
+      <div class="brand-mark" aria-hidden="true">M</div>
+      <div class="brand-name">Meridian</div>
+    </div>
+
+    <!-- Centered Single Panel Card (no wider than 440px) -->
+    <section class="panel-card" aria-labelledby="reset-heading">
+      <h1 id="reset-heading" class="panel-title">Request password reset</h1>
+      <p class="instruction-text">Enter your account email to receive a password reset link.</p>
+
+      <form onsubmit="event.preventDefault();" novalidate>
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            class="form-input" 
+            value="hana.youssef@cedarhealth.example"
+            autocomplete="email"
+            spellcheck="false"
+            required
+          >
+        </div>
+
+        <div class="actions-stack">
+          <button type="submit" class="btn-primary">
+            Send reset link
+          </button>
+          
+          <a href="#" class="nav-link">Back to sign in</a>
+        </div>
+      </form>
+    </section>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat the locked OpenAPI document as the complete source of API scope and behavior; implement its declared operations and do not add requirements from the broader problem statement unless the contract declares them.",
+      "behaviours": [
+       {
+        "text": "For each method and path declared in contracts/openapi.yaml, accept the request inputs and produce the response body, status, and headers specified by that contract; this includes the documented sign-in and sample-data operations.",
+        "kind": "happy"
+       },
+       {
+        "text": "For contract operations that create, update, or delete data, persist the corresponding changes; for read operations, return the data in the documented shape.",
+        "kind": "data"
+       },
+       {
+        "text": "Requests with invalid or incomplete inputs receive the error response documented for that operation rather than succeeding with an undocumented result.",
+        "kind": "error"
+       },
+       {
+        "text": "Where an operation declares authentication or authorization requirements, unauthenticated or unauthorized callers are denied as specified by the contract; operations without such requirements are not given invented restrictions.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "API data that the contract requires to be stored is read from and written to the project's PostgreSQL database using the configured connection string named App; successful writes remain available to later requests and after an application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "If the configured database cannot be reached or a required database operation fails, the request does not report a successful persisted change.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding runs, insert a small set of believable sample rows for every application table, using the contract's example data where available, so list operations have sample records to return.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "With Seed:Demo true, startup runs the demo seed file; with it false or unset, startup does not populate demo rows.",
+        "kind": "data"
+       },
+       {
+        "text": "Tests pass when the database contains no demo rows and do not use seeded records as required fixtures or expected results.",
+        "kind": "happy"
+       },
+       {
+        "text": "An empty database therefore remains a valid starting state for tests and API requests; list operations must not require demo rows to exist.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "Deliver the API behavior in this repository without adding product screens or a web-app UI; users interact with this run through its API and existing documentation/Swagger surfaces.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

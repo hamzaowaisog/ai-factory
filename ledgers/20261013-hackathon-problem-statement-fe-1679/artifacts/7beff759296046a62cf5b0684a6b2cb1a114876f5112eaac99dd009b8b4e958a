@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery brief — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F5F5F5;
+      --panel: #FFFFFF;
+      --text: #262626;
+      --text-muted: #626262;
+      --border: #D8D8D8;
+      --primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-refused: #A13D36;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 26px;
+    }
+
+    /* Motion */
+    @keyframes live-breathe {
+      0%, 100% { opacity: 0.82; }
+      50% { opacity: 0.86; }
+    }
+
+    @keyframes entranceFade {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-status-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance, .live-status-dot {
+        animation: none !important;
+      }
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 120ms ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      height: 44px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 120ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #EBEBEB;
+    }
+
+    .btn-secondary:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .nav-item {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 14px 0;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      transition: color 120ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Shared Plain Header -->
+  <header class="bg-white border-b border-[#D8D8D8] sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-[52px] flex items-center justify-between">
+      <!-- Brand & Left Navigation -->
+      <div class="flex items-center space-x-6 overflow-x-auto no-scrollbar">
+        <a href="#" class="flex items-center space-x-2 text-[#262626] font-bold text-lg heading-font shrink-0">
+          <div class="w-6 h-6 bg-[#262626] text-white flex items-center justify-center rounded-[4px] text-xs font-bold leading-none">R</div>
+          <span class="tracking-tight">Range Ledger</span>
+        </a>
+        <nav class="flex items-center space-x-5 text-sm">
+          <a href="#" class="nav-item">Yard</a>
+          <a href="#" class="nav-item">Imports</a>
+          <a href="#" class="nav-item">Allocations</a>
+          <a href="#" class="nav-item">Lots</a>
+          <a href="#" class="nav-item">Inventory</a>
+          <a href="#" class="nav-item">Feed outlook</a>
+          <a href="#" class="nav-item">Rations</a>
+          <a href="#" class="nav-item">Feed plans</a>
+          <a href="#" class="nav-item">Feeding</a>
+          <a href="#" class="nav-item">Reports</a>
+          <a href="#" class="nav-item">Feed-to-gain</a>
+          <a href="#" class="nav-item">Profitability</a>
+          <a href="#" class="nav-item">Sample data</a>
+          <a href="#" class="nav-item active">Delivery brief</a>
+        </nav>
+      </div>
+
+      <!-- Signed-in User: Maya Chen -->
+      <div class="flex items-center space-x-3 shrink-0 pl-4">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="w-8 h-8 rounded-[4px] object-cover aspect-square border border-[#D8D8D8]" />
+        <div class="text-xs leading-tight text-left">
+          <div class="font-semibold text-[#262626]">Maya Chen</div>
+          <div class="text-[#626262]">Yard manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <main class="max-w-[1200px] mx-auto px-6 py-8 animate-entrance">
+    <!-- Title & Operational Subtitle -->
+    <div class="mb-8">
+      <div class="flex items-baseline justify-between flex-wrap gap-4 mb-2">
+        <h1>Delivery brief</h1>
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="w-2 h-2 rounded-full bg-[#286143] inline-block live-status-dot"></span>
+          <span class="text-[#626262]">Signed-in operational scope: Red Mesa Yard (Mountain Time)</span>
+        </div>
+      </div>
+      <div class="text-sm text-[#626262] font-mono">
+        Red Mesa Yard • America/Denver (Mountain Time) • Feedlot operations delivery overview & architectural documentation
+      </div>
+    </div>
+
+    <!-- Proposed Solution & Product Description Section -->
+    <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-8">
+          <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Proposed Solution</div>
+          <h2 class="text-[#262626] mb-3">Operating ledger for high-fidelity feedlot execution</h2>
+          <p class="text-[#262626] mb-4">
+            Range Ledger replaces fragmented dry-erase boards, paper bunk sheets, and opaque spreadsheets with a single, permission-governed operations workspace for commercial cattle feedyards. Designed for Red Mesa Yard, the application unifies procurement intake, pen allocations, daily bunk deliveries, ration formulation, commodity balances, and cohort profitability into staff worklists grounded in continuous operational validation.
+          </p>
+          <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-2">Real Product Description</div>
+          <p class="text-[#626262] text-sm leading-relaxed mb-6">
+            Range Ledger is a desk-first and bunk-side feedlot management application engineered to handle the real-world friction of cattle operations: partial deliveries, allocation discrepancies, sensor telemetry interruptions, and strict ledger separation between physical bunk cleanout wastage and delivered ration consumption. It enforces transparent staff role governance so bunk drivers, feed planners, receiving coordinators, and yard managers execute synchronized tasks without silent data mutation.
+          </p>
+        </div>
+
+        <!-- Prominent Demo Entry Action -->
+        <div class="lg:col-span-4 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px] p-5 flex flex-col justify-between h-full">
+          <div>
+            <div class="flex items-center space-x-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+              <span class="text-xs font-semibold text-[#286143]">Operational baseline active</span>
+            </div>
+            <h3 class="text-[#262626] text-base font-semibold mb-2">Interactive Yard Workspace</h3>
+            <p class="text-xs text-[#626262] leading-relaxed mb-5">
+              Launch directly into the live operational overview displaying 360 active head across pens P-04, P-07, and P-12, lot conversion metrics, on-hand commodity stockpiles, and real-time staff event audit trails.
+            </p>
+          </div>
+          <div>
+            <a href="#" class="btn-primary w-full text-center text-sm shadow-none">
+              Open yard demo
+            </a>
+            <div class="text-center mt-2">
+              <span class="text-[11px] text-[#626262] font-mono">Red Mesa Yard • Capacity 490 head</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Section: Labelled Architecture Diagram -->
+    <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 mb-8">
+      <div class="mb-4">
+        <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Systems Architecture</div>
+        <h2>Service topology & data flow</h2>
+        <p class="text-sm text-[#626262]">Labelled integration pipeline illustrating role-gated client communication, yard operational domains, and underlying adapters.</p>
+      </div>
+
+      <!-- Labelled Architecture Diagram Container -->
+      <div class="border border-[#D8D8D8] bg-[#F5F5F5] rounded-[4px] p-6 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
+          <!-- Node 1: Responsive UI -->
+          <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-[#626262] font-mono">TIER 1</span>
+                <span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+              </div>
+              <h3 class="text-sm font-semibold text-[#262626] mb-1">Responsive Browser UI</h3>
+              <p class="text-xs text-[#626262] leading-relaxed">
+                4px radius design system, high-density desktop & mobile bunk worklists, instant feedback forms, and role-conditioned views.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#D8D8D8] text-[11px] font-mono text-[#626262]">
+              HTML5 / CSS / IBM Plex Mono
+            </div>
+          </div>
+
+          <!-- Node 2: Sign-in & Permissions -->
+          <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-[#626262] font-mono">TIER 2</span>
+                <span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+              </div>
+              <h3 class="text-sm font-semibold text-[#262626] mb-1">Sign-in & Permission Service</h3>
+              <p class="text-xs text-[#626262] leading-relaxed">
+                Token-governed authenticated identities (Maya Chen, Eli Navarro, Tomas Reed, Samira Patel) with granular role gatekeepers.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#D8D8D8] text-[11px] font-mono text-[#626262]">
+              RBAC / Auth Session Guard
+            </div>
+          </div>
+
+          <!-- Node 3: Yard Operations Services -->
+          <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-[#626262] font-mono">TIER 3</span>
+                <span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+              </div>
+              <h3 class="text-sm font-semibold text-[#262626] mb-1">Yard Operations Services</h3>
+              <p class="text-xs text-[#626262] leading-relaxed">
+                Pen capacity rules, allocation conflict managers, ration mixers, daily quota generators, and multi-lot delivery calculators.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#D8D8D8] text-[11px] font-mono text-[#626262]">
+              Pen, Lot & Feed Controllers
+            </div>
+          </div>
+
+          <!-- Node 4: Mock Procurement & Core Adapters -->
+          <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col justify-between shadow-sm">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-[#626262] font-mono">TIER 4</span>
+                <span class="w-2 h-2 rounded-full bg-[#805600]"></span>
+              </div>
+              <h3 class="text-sm font-semibold text-[#262626] mb-1">Mock Adapters & Telemetry</h3>
+              <p class="text-xs text-[#626262] leading-relaxed">
+                Documented mock procurement PO adapter, bunk tare scale telemetry, commodity inventory ledger, and analytical report aggregators.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#D8D8D8] text-[11px] font-mono text-[#626262]">
+              PO-8841 / Feed / Report API
+            </div>
+          </div>
+        </div>
+
+        <!-- Flow Summary Bar -->
+        <div class="mt-4 p-3 bg-white border border-[#D8D8D8] rounded-[4px] flex items-center justify-between flex-wrap text-xs font-mono text-[#626262]">
+          <div class="flex items-center space-x-2">
+            <span class="font-semibold text-[#262626]">Integration sequence:</span>
+            <span>Responsive browser UI</span>
+            <span class="text-[#B3473D]">→</span>
+            <span>Sign-in & permission service</span>
+            <span class="text-[#B3473D]">→</span>
+            <span>Yard operations services</span>
+            <span class="text-[#B3473D]">→</span>
+            <span>Documented mock procurement/receiving adapter & feed/inventory/report services</span>
+          </div>
+          <div class="text-[#286143] font-semibold flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+            <span>Service-returned contract</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Prompts Used & Prompt Engineering Principles -->
+    <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 mb-8">
+      <div class="mb-4">
+        <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Specification & Directives</div>
+        <h2>Prompts used</h2>
+        <p class="text-sm text-[#626262]">The foundational directives that guided system generation and component rendering.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="border border-[#D8D8D8] rounded-[4px] p-4 bg-[#F5F5F5]">
+          <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-2">Project Brief Prompt</div>
+          <div class="p-3 bg-white border border-[#D8D8D8] rounded-[4px] text-xs font-mono text-[#262626] leading-relaxed">
+            “Build a responsive feedlot operations web app with permission-aware procurement imports, lot-to-pen traceability, feeding, inventory, ration planning, forecasts and authorized reporting”
+          </div>
+          <p class="text-xs text-[#626262] mt-3">
+            Defines the multi-domain operational boundary: procurement intake, cattle allocation, ration chemistry, pen deliveries, stock reserves, forward outlooks, and closeout profitability.
+          </p>
+        </div>
+
+        <div class="border border-[#D8D8D8] rounded-[4px] p-4 bg-[#F5F5F5]">
+          <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-2">UI Design & Rendering Principle</div>
+          <div class="p-3 bg-white border border-[#D8D8D8] rounded-[4px] text-xs font-mono text-[#262626] leading-relaxed">
+            “Draw each page as a finished responsive staff worklist with returned-service data and role-gated actions”
+          </div>
+          <p class="text-xs text-[#626262] mt-3">
+            Guarantees desk-first efficiency: actionable worklists, 48px standard table rows, explicit status badges with sentence-case text, and non-destructive conflict handling.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dense Checklist: Testing and Validation Overview -->
+    <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 mb-8">
+      <div class="mb-4">
+        <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Quality Assurance Matrix</div>
+        <h2>Testing and validation overview</h2>
+        <p class="text-sm text-[#626262]">Validation outcomes verified against core operational workflows and edge cases.</p>
+      </div>
+
+      <div class="border border-[#D8D8D8] rounded-[4px] overflow-hidden">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-[#F5F5F5] border-b border-[#D8D8D8] text-xs font-semibold text-[#626262]">
+              <th class="py-3 px-4 font-mono">FLOW / TEST HARNESS</th>
+              <th class="py-3 px-4 font-mono">SCENARIO & TEST CONDITION</th>
+              <th class="py-3 px-4 font-mono">SYSTEM BEHAVIOR & VERIFICATION</th>
+              <th class="py-3 px-4 font-mono">STATUS</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D8D8D8]">
+            <tr class="h-[48px] hover:bg-[#FAFAFA]">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Sign-in / 401 clearing</td>
+              <td class="py-3 px-4 text-xs text-[#626262]">Expired or invalid token on authentication challenge</td>
+              <td class="py-3 px-4 text-xs text-[#262626]">
+                Redirects cleanly to Sign In; displays service error banner; clears credentials without crashing persistent yard state.
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center text-xs font-semibold text-[#286143]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143] mr-1.5"></span>
+                  Verified
+                </span>
+              </td>
+            </tr>
+            <tr class="h-[48px] hover:bg-[#FAFAFA]">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Permissions and exports</td>
+              <td class="py-3 px-4 text-xs text-[#626262]">Role-gated actions for unauthorized operators</td>
+              <td class="py-3 px-4 text-xs text-[#262626]">
+                Only Maya Chen (Yard manager) can export CSVs; feed drivers cannot trigger unverified ration overrides; non-managers blocked from sign-offs.
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center text-xs font-semibold text-[#286143]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143] mr-1.5"></span>
+                  Verified
+                </span>
+              </td>
+            </tr>
+            <tr class="h-[48px] hover:bg-[#FAFAFA]">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Repeated-import conflicts</td>
+              <td class="py-3 px-4 text-xs text-[#626262]">Re-importing PO-8841 with line 1 head count discrepancy (80 vs 82)</td>
+              <td class="py-3 px-4 text-xs text-[#262626]">
+                Idempotent adapter matches line rather than duplicating; retains mapped allocation of 82; raises prominent conflict flag.
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center text-xs font-semibold text-[#805600]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#805600] mr-1.5"></span>
+                  Waiting review
+                </span>
+              </td>
+            </tr>
+            <tr class="h-[48px] hover:bg-[#FAFAFA]">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Multi-lot feed validation</td>
+              <td class="py-3 px-4 text-xs text-[#626262]">Splitting 3,337 lb delivery across P-04 lots (L-2407 & L-2411)</td>
+              <td class="py-3 px-4 text-xs text-[#262626]">
+                Guarantees sub-lot sums exactly match measured bunk drop (1,927 lb + 1,410 lb = 3,337 lb); blocks submission on imbalance.
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center text-xs font-semibold text-[#286143]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143] mr-1.5"></span>
+                  Verified
+                </span>
+              </td>
+            </tr>
+            <tr class="h-[48px] hover:bg-[#FAFAFA]">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Stock errors & shortage</td>
+              <td class="py-3 px-4 text-xs text-[#626262]">Bunker reserves breaching 21-day operating threshold</td>
+              <td class="py-3 px-4 text-xs text-[#262626]">
+                Alfalfa hay reserve drops below safety buffer; triggers banner warning; updates projection horizon with reorder requirement.
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center text-xs font-semibold text-[#A13D36]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#A13D36] mr-1.5"></span>
+                  Warning active
+                </span>
+              </td>
+            </tr>
+            <tr class="h-[48px] hover:bg-[#FAFAFA]">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Timed-out saves</td>
+              <td class="py-3 px-4 text-xs text-[#626262]">Scale terminal uplink disconnect during drop registration</td>
+              <td class="py-3 px-4 text-xs text-[#262626]">
+                Retains bunk delivery draft in local worklist; informs operator of unknown status; preserves batch data for manual reconciliation.
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center text-xs font-semibold text-[#805600]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#805600] mr-1.5"></span>
+                  Handled safely
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Operational Challenges Section: Narrow Text Column Rhythm -->
+    <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 mb-8">
+      <div class="max-w-[760px]">
+        <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Field Reality & Edge Cases</div>
+        <h2 class="mb-4">Operational challenges in feedlot operations</h2>
+        <div class="space-y-6 text-sm text-[#262626]">
+          <div class="border-l-2 border-[#805600] pl-4">
+            <h3 class="text-base font-semibold mb-1">1. Stale head counts across pen shifts</h3>
+            <p class="text-[#626262] leading-relaxed">
+              Feed bunk deliveries are computed from head counts. When livestock move between pens or morbidity pulls occur without instant ledger sync, bunk plans risk overfeeding or underfeeding. Range Ledger decouples saved plans from uncommitted muster changes, highlighting discrepancies (e.g. Pen P-04's 142 saved vs 140 live count) until an authorized planner confirms regeneration.
+            </p>
+          </div>
+
+          <div class="border-l-2 border-[#805600] pl-4">
+            <h3 class="text-base font-semibold mb-1">2. Traceability conflicts in repeat procurement imports</h3>
+            <p class="text-[#626262] leading-relaxed">
+              When procurement documents like PO-8841 are updated after cattle have already been received into pens, naive software either duplicates records or overwrites physical reality. The Range Ledger adapter flags the 80 head source update against 82 mapped head, preventing silent alteration of animal ledger balances.
+            </p>
+          </div>
+
+          <div class="border-l-2 border-[#805600] pl-4">
+            <h3 class="text-base font-semibold mb-1">3. Strict separation of actual wastage from delivered feed</h3>
+            <p class="text-[#626262] leading-relaxed">
+              A cardinal failure in feed conversion accounting is conflating bunk cleanout spoil with consumed ration. Range Ledger isolates the 112 lb recorded physical bunk wastage from the 8,384 lb/day delivered feed ledger. Wastage informs procurement margin projections without corrupting true nutritional conversion ratios (FCR).
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Production-Readiness Assessment & Go-to-Market Analysis -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <!-- Candid Production-Readiness Assessment -->
+      <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6">
+        <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Audit & Evaluation</div>
+        <h2 class="mb-3">Production-readiness assessment</h2>
+        <p class="text-sm text-[#626262] mb-4">
+          A candid evaluation of current implementation status prior to live yard pilot deployment.
+        </p>
+
+        <div class="space-y-4">
+          <div class="p-3 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-[#262626]">Mock Adapter & Service Contracts</span>
+              <span class="text-[11px] font-mono text-[#805600] font-semibold">Integration Required</span>
+            </div>
+            <p class="text-xs text-[#626262] leading-relaxed">
+              Current procurement ingestion relies on a structured mock adapter simulating PO-8841. Live production deployment requires direct EDI/REST connectors with feedlot ERPs and livestock sales barn systems.
+            </p>
+          </div>
+
+          <div class="p-3 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-[#262626]">Security & Identity Governance</span>
+              <span class="text-[11px] font-mono text-[#805600] font-semibold">Audit Pending</span>
+            </div>
+            <p class="text-xs text-[#626262] leading-relaxed">
+              Role permissions are defined for Maya Chen, Eli Navarro, Tomas Reed, and Samira Patel. Production deployment mandates hardware-level MFA for scale terminals, audit logs for export activity, and session revocation policies.
+            </p>
+          </div>
+
+          <div class="p-3 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-[#262626]">Operational Scale & Bunk Sensor Validation</span>
+              <span class="text-[11px] font-mono text-[#805600] font-semibold">Field Validation</span>
+            </div>
+            <p class="text-xs text-[#626262] leading-relaxed">
+              Bunk tare measurements and feed delivery receipts must undergo physical calibration tests against truck scale headweights in varied temperature and humidity conditions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Go-to-Market Analysis -->
+      <section class="bg-white border border-[#D8D8D8] rounded-[4px] p-6">
+        <div class="text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1">Commercial Strategy</div>
+        <h2 class="mb-3">Go-to-market analysis</h2>
+        <p class="text-sm text-[#626262] mb-4">
+          Strategic rollout framework targeting North American commercial and custom feedlot operators.
+        </p>
+
+        <div class="space-y-4">
+          <div class="p-3 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-[#262626]">Target Operator Segment</span>
+              <span class="text-[11px] font-mono text-[#286143] font-semibold">500 to 10,000 Head</span>
+            </div>
+            <p class="text-xs text-[#626262] leading-relaxed">
+              Mid-sized commercial yards that lack dedicated enterprise software engineering teams but face stringent margin pressure and packer traceability compliance demands.
+            </p>
+          </div>
+
+          <div class="p-3 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-[#262626]">Phased Onboarding Methodology</span>
+              <span class="text-[11px] font-mono text-[#286143] font-semibold">3-Stage Onramp</span>
+            </div>
+            <p class="text-xs text-[#626262] leading-relaxed">
+              Stage 1: Yard layout & initial lot baseline ingestion. Stage 2: Parallel run with existing paper bunk logs for 14 days. Stage 3: Full digital delivery sign-off and live commodity deductions.
+            </p>
+          </div>
+
+          <div class="p-3 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-[#262626]">Measurable Pilot Outcomes</span>
+              <span class="text-[11px] font-mono text-[#286143] font-semibold">ROI & Metrics</span>
+            </div>
+            <p class="text-xs text-[#626262] leading-relaxed">
+              Targeting 15% reduction in bunk call variance, 100% elimination of unflagged allocation duplicates, and precise lot closeout accounting with verifiable cost-of-gain.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Red Mesa Yard Shared Summary Footer Strip -->
+    <div class="border-t-2 border-[#D8D8D8] pt-4 flex items-center justify-between flex-wrap gap-4 text-xs font-mono text-[#626262]">
+      <div class="flex items-center space-x-3">
+        <span>RED MESA YARD LEDGER</span>
+        <span>•</span>
+        <span>PENS: P-04 (140), P-07 (126), P-12 (94)</span>
+        <span>•</span>
+        <span>TOTAL HEAD: 360 ACTIVE</span>
+      </div>
+      <div>
+        <span>AUTHORIZED VIEW: MAYA CHEN (YARD MANAGER)</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

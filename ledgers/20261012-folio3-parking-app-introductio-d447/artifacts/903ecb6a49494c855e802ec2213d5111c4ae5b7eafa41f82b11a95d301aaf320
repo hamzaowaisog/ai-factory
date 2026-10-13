@@ -1,0 +1,789 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Every user signs in with Google using their Folio3 corporate account (S-1). If the corporate directory profile cannot be found or loaded, they see a recoverable error with retry and support guidance (S-2). Employees without dedicated parking who sign in for the first time with no vehicle register a licence plate first (S-3). Employees then share one menu: My space (S-4) is the home for dedicated holders, with a one-tap release for today and a link to Schedule releases (S-6) for the next 30 days, where they can cancel unclaimed releases. Employees without dedicated parking use Available spaces (S-5), which shows the live count of free spaces. From there they open Claim a space (S-7), pick one of their active vehicles and receive a floor. The claim then shows as a pass in My claims (S-8) and cannot be cancelled. My vehicles (S-9) lets employees add, edit or deactivate their own cars. Profile (S-10) shows the directory details. Security Guards work on Entrance (S-11), the live plate check with the green-light status and fail-closed alerts, and on Entry log (S-12), the record of every attempt. Parking Administrators manage Employees (S-13) and each View employee record (S-14) with its vehicles and assignment, as well as Parking spaces (S-15), Releases & claims (S-16), where they reverse a claimed release, Operating calendar (S-17), Reports (S-19) with filters and CSV export, and Settings (S-18) for the release time, the Monday report time and stakeholder emails.",
+    "screens": [
+     {
+      "id": "S-1",
+      "title": "Sign in",
+      "route": "/sign-in",
+      "file": "src/pages/SignIn.tsx",
+      "reqs": [
+       "REQ-1"
+      ],
+      "states": [
+       "error"
+      ],
+      "links": [],
+      "prompt": "Sign-in page for the Folio3 office parking app, used by employees, security guards and parking administrators. On a wide screen it splits into two halves. The left 55% is a full-bleed real photograph of the Folio3 office car park: a covered concrete parking level with marked bays, a few parked sedans and the boom-barrier entrance in soft morning light. No people face the camera. The right half is a calm white panel with a lot of empty space above and below a narrow centred column. What the eye meets first is the heading 'Park at Folio3', set about three times body size. Under it, one line reads 'Sign in with your Folio3 Google account to see today's parking.' Then comes a single wide primary button, 'Continue with Google', with the Google G mark. That is the only coloured action on the page. Below it, a small muted note reads 'Only active employees with a verified @folio3.com email can sign in.' At the bottom of the column, a small footer reads 'Folio3 Karachi office · Parking help: parking@folio3.com'. There is no menu and there are no other links. The error state, drawn separately, puts an inline alert above the button: 'This account isn't linked to an active Folio3 employee record. Use your @folio3.com account or contact parking@folio3.com.'"
+     },
+     {
+      "id": "S-2",
+      "title": "Profile could not be loaded",
+      "route": "/sign-in/profile-error",
+      "file": "src/pages/ProfileError.tsx",
+      "reqs": [
+       "REQ-3"
+      ],
+      "states": [],
+      "links": [
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "A recoverable error page shown after Google sign-in succeeds but the employee's corporate profile cannot be found or retrieved, so the parking dashboard stays locked. The page is a centred card about 520px wide on a pale neutral background, with generous empty space around it and no app menu. What the eye meets first is a large outlined warning symbol, then the heading 'We couldn't load your employee profile', set large. The body reads: 'Signed in as hamza.qureshi@folio3.com. The corporate directory didn't return your record at 08:42 AM, Tue 14 Oct 2025, so parking actions are unavailable for now.' Below that is a short list titled 'What you can do': '1. Try again in a minute; the directory may be busy.' '2. If this keeps happening, email parking@folio3.com or call extension 2140 and quote reference PRF-20251014-0842.' The actions sit in a row: a primary button 'Try again', which retries on this page; a secondary button 'Contact parking support', which opens an email; and a quiet text link 'Sign out'."
+     },
+     {
+      "id": "S-3",
+      "title": "Register your first vehicle",
+      "route": "/onboarding/vehicle",
+      "file": "src/pages/OnboardingVehicle.tsx",
+      "reqs": [
+       "REQ-5"
+      ],
+      "states": [
+       "validation"
+      ],
+      "links": [
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "A first-time setup page for an employee without dedicated parking who has no registered vehicle. They must register at least one licence plate before they can claim spaces. Single column, about 560px wide and centred, with a simple top strip showing the Folio3 Parking wordmark on the left and a 'Sign out' text link on the right. No main menu yet. What the eye meets first is the heading 'Add your car to start claiming spaces', set large, with a one-line explanation: 'The entrance camera only opens for the plate you choose when you claim, so we need at least one car on file.' Then a form card. The first field is 'Licence plate' (required), drawn as a wide field in large uppercase tabular letters with the sample value 'BKR-417' and the help text 'Letters and numbers as on the plate; spacing and case don't matter.' Then three optional fields side by side: 'Make' (Toyota), 'Model' (Corolla) and 'Colour' (White). Below the form, a quiet note reads 'You can add more cars later in My vehicles.' The primary button 'Save and continue' sits full width at the bottom. The validation state, drawn separately, outlines the plate field in red with the message 'Enter a licence plate to continue.'"
+     },
+     {
+      "id": "S-4",
+      "title": "My space (dedicated holder home)",
+      "route": "/home/my-space",
+      "file": "src/pages/MySpace.tsx",
+      "reqs": [
+       "REQ-9",
+       "REQ-10",
+       "REQ-12"
+      ],
+      "states": [
+       "success",
+       "vehicle-registration prompt",
+       "release pending before release time"
+      ],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Home page for an employee with dedicated parking, Ayesha Siddiqui (F3-1042). A plain top bar holds the Folio3 Parking wordmark and the menu: 'My space', 'Schedule releases', 'Available spaces', 'My claims', 'My vehicles', 'Profile', with 'Sign out' at the right and 'My space' marked active. What the eye meets first is a wide pass-style card across the top, about twice the height of anything else, shaped like a ticket strip. On the left it reads 'Tuesday, 14 October 2025' with the status chip 'Reserved for you'. In the centre, set very large in tabular figures, are 'Floor B1' and 'Space B1-07'. On the right is the plate 'LEA-2291' with the line 'White Honda Civic'. Next to the plate sits a small real photograph of a white Honda Civic sedan, front three-quarter view. Under the card is the single release action: one primary button 'Release today's space', with the helper text 'Colleagues can claim it from 9:30 AM. You can cancel until someone claims it.' Below, two columns on a wide screen. On the left, 'Upcoming releases' lists Thu 16 Oct (Scheduled, claimable 9:30 AM), Mon 20 Oct (Scheduled) and Wed 22 Oct (Claimed by a colleague), with a text link 'Schedule releases'. On the right, 'This week' shows a five-day strip Mon 13 to Fri 17 Oct, each day marked Reserved or Released. The rest of the page stays empty on purpose. The success state, drawn separately, replaces the button with the confirmation 'Released for 14 Oct · Claimable at 9:30 AM' (or 'Claimable now' after 9:30) and a 'Cancel release' button. The vehicle-prompt state, drawn separately, shows a banner above the card, 'Add a licence plate to use parking actions', with a link 'My vehicles', and the release button is disabled."
+     },
+     {
+      "id": "S-5",
+      "title": "Available spaces (home without dedicated parking)",
+      "route": "/home/available",
+      "file": "src/pages/AvailableSpaces.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-14",
+       "REQ-15",
+       "REQ-17"
+      ],
+      "states": [
+       "empty",
+       "notifications disabled",
+       "vehicle-registration prompt"
+      ],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Home page for an employee without dedicated parking, Hamza Qureshi (F3-1187). It uses the same top menu: 'My space', 'Schedule releases', 'Available spaces', 'My claims', 'My vehicles', 'Profile', 'Sign out', with 'Available spaces' active. What the eye meets first is the live count of spaces free right now: a huge tabular figure '3', about five times body size, labelled 'spaces available today, Tue 14 Oct 2025'. Under it, small text reads 'Updated 09:31 AM · First confirmed claim gets the space · One claim per person per day'. Next to the count is the single primary button 'Claim a space'. Below, a short list titled 'Released today' shows anonymised rows: 'Floor B1 · claimable since 9:30 AM', 'Floor B2 · claimable since 9:30 AM', 'Floor B2 · claimable since 10:05 AM'. On a wide screen a narrow right column holds a 'Notifications' card: 'Push alerts are on. We'll notify you when a space opens. Spaces always appear here too, even if a notification doesn't arrive.' Beneath that card is the default plate 'BKR-417 · White Toyota Corolla' with a small real photograph of a white Toyota Corolla. Leave the lower area open. The empty state, drawn separately, shows '0' with the line 'No spaces released yet. Releases open at 9:30 AM.' The notifications-disabled state shows a soft banner: 'Notifications are off on this device. You can still claim spaces here.' The vehicle-prompt state shows a banner, 'Register a licence plate to claim spaces', with a link 'My vehicles', and the claim button is disabled."
+     },
+     {
+      "id": "S-6",
+      "title": "Schedule releases",
+      "route": "/releases",
+      "file": "src/pages/ScheduleReleases.tsx",
+      "reqs": [
+       "REQ-11",
+       "REQ-12",
+       "REQ-13"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Page where a dedicated holder, Ayesha Siddiqui, chooses future days to release space B1-07. Same top menu, with 'Schedule releases' active. The page title 'Schedule releases' is followed by the subline 'Pick operating days in the next 30 days (Karachi time). Each released space becomes claimable at 9:30 AM.' What the eye meets first is a large month calendar spanning 14 October to 12 November 2025, taking about two-thirds of the width. Operating days are selectable. Weekends and the office holiday Fri 24 Oct are greyed out with the label 'Office closed'. Days after 12 Nov are disabled. Selected days 16, 20, 22, 28 and 30 Oct and 4 Nov are filled. To the right sits a summary column: 'Selected: 6 days', the list of dates, and the primary button 'Release selected days'. Below the calendar is a table, 'Your scheduled releases', with columns Date, Claimable from, Status and Action. Rows: Thu 16 Oct, 9:30 AM, Unclaimed, 'Cancel'; Mon 20 Oct, 9:30 AM, Unclaimed, 'Cancel'; Wed 22 Oct, 9:30 AM, Claimed, with the note 'Claimed: only an administrator can reverse this' and no action; Tue 28 Oct, 9:30 AM, Unclaimed, 'Cancel'. The 'Cancel' buttons act on this page. The validation state, drawn separately, reads 'Choose operating days between 14 Oct and 12 Nov 2025.' The success state shows a toast: '6 releases scheduled.'"
+     },
+     {
+      "id": "S-7",
+      "title": "Claim a space",
+      "route": "/claim",
+      "file": "src/pages/ClaimSpace.tsx",
+      "reqs": [
+       "REQ-16",
+       "REQ-18",
+       "REQ-19",
+       "REQ-20"
+      ],
+      "states": [
+       "success",
+       "error: space already taken",
+       "error: already claimed today"
+      ],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Claim page where Hamza Qureshi picks which of his active cars the entrance camera will let in today. Same top menu. A single centred column about 640px wide, with empty margins on either side. The heading 'Claim a space for Tue 14 Oct 2025' sits beside a small count chip, '3 available'. What the eye meets first is a stack of large selectable vehicle cards, each with a real photograph of the car on the left, the plate in large uppercase tabular letters, and make, model and colour beneath. Card 1, selected: 'BKR-417', White Toyota Corolla, with a photograph of a white Toyota Corolla sedan. Card 2: 'KHI-8820', Silver Suzuki Cultus, with a photograph of a silver Suzuki Cultus hatchback. A deactivated third car does not appear. Below the cards is a clear notice box: 'Once claimed, the space is yours for the day and can't be cancelled. Only plate BKR-417 will be let in.' The primary button 'Confirm claim' spans the column width, with a text link 'Available spaces' to go back. The success state, drawn separately, shows a pass with 'Floor B2' set very large, the plate BKR-417 and the date, plus a link 'My claims'. Error states: 'Someone confirmed this space first. 2 spaces are still available. Try again.' and 'You already have a claim for 14 Oct.'"
+     },
+     {
+      "id": "S-8",
+      "title": "My claims",
+      "route": "/claims",
+      "file": "src/pages/MyClaims.tsx",
+      "reqs": [
+       "REQ-19",
+       "REQ-20"
+      ],
+      "states": [
+       "empty"
+      ],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Page showing an employee's temporary parking claims. Same top menu, with 'My claims' active. What the eye meets first is today's claim as a wide ticket-style pass, about twice the height of the rows below. On the left: 'Tue 14 Oct 2025 · Claimed 09:32 AM'. In the centre: 'Floor B2' in very large tabular figures. On the right: the authorised plate 'BKR-417' in large uppercase with 'White Toyota Corolla', next to a small real photograph of a white Toyota Corolla. A thin footer line on the pass reads 'Drive up to the entrance camera; the green light means you're in. This claim can't be cancelled.' There is no cancel or release button anywhere. Below is a table, 'Past claims', with columns Date, Floor, Plate and Entry. Rows: Thu 9 Oct, B1, BKR-417, Entered 09:58 AM; Tue 7 Oct, B2, KHI-8820, Entered 10:12 AM; Thu 2 Oct, B2, BKR-417, Not used; Mon 29 Sep, B1, BKR-417, Entered 09:41 AM; Wed 24 Sep, B2, BKR-417, Entered 09:47 AM. On a wide screen the table takes about 70% of the width and the right side stays empty. The empty state, drawn separately, reads 'No claims yet. When spaces are released, claim one from Available spaces.' with a link 'Available spaces'."
+     },
+     {
+      "id": "S-9",
+      "title": "My vehicles",
+      "route": "/vehicles",
+      "file": "src/pages/MyVehicles.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-7"
+      ],
+      "states": [
+       "empty",
+       "validation"
+      ],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Page where an employee manages only their own cars. Same top menu, with 'My vehicles' active. The title 'My vehicles' has a primary button 'Add vehicle' on the right, which opens an inline form on this page. What the eye meets first is a two-column grid of large vehicle cards. Each card has a real photograph of the car across its top, the plate in large uppercase tabular letters, make, model and colour, a status chip, and the actions 'Edit' and 'Deactivate'. Card 1: photograph of a white Toyota Corolla sedan, 'BKR-417', Toyota Corolla, White, Active. Card 2: photograph of a silver Suzuki Cultus hatchback, 'KHI-8820', Suzuki Cultus, Silver, Active. Card 3, muted: photograph of a red Honda City sedan, 'LEB-5531', Honda City, Red, Deactivated, with the action 'Reactivate'. Below the grid, a quiet note reads 'Only active vehicles can be picked when you claim a space. You need at least one active plate for parking actions.' The empty state, drawn separately, reads 'No vehicles yet. Add a licence plate to unlock parking actions.' with 'Add vehicle'. The validation state shows the inline form with the error 'Licence plate is required.'"
+     },
+     {
+      "id": "S-10",
+      "title": "Profile",
+      "route": "/profile",
+      "file": "src/pages/Profile.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-4"
+      ],
+      "states": [],
+      "links": [
+       {
+        "label": "My space",
+        "to": "S-4"
+       },
+       {
+        "label": "Schedule releases",
+        "to": "S-6"
+       },
+       {
+        "label": "Available spaces",
+        "to": "S-5"
+       },
+       {
+        "label": "My claims",
+        "to": "S-8"
+       },
+       {
+        "label": "My vehicles",
+        "to": "S-9"
+       },
+       {
+        "label": "Profile",
+        "to": "S-10"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Read-only profile page showing what the corporate directory and parking records hold for the signed-in employee. Same top menu, with 'Profile' active. A centred column about 720px wide. What the eye meets first is a header block: a real portrait photograph of Ayesha Siddiqui (head and shoulders, office background), her name set large, and 'Employee ID F3-1042 · ayesha.siddiqui@folio3.com'. Below is a two-column details list: 'Dedicated parking: Yes', 'Assigned floor: B1', 'Assigned space: B1-07', 'Department: Engineering'. Next is a section, 'Registered vehicles', with compact rows: 'LEA-2291 · Honda Civic · White · Active' and 'LEC-1190 · Toyota Yaris · Grey · Active', and a link 'My vehicles'. At the bottom, a muted line reads 'Refreshed from the Folio3 directory and parking records at sign-in, 08:41 AM, Tue 14 Oct 2025. Ask parking@folio3.com to correct these details.' The page has no edit fields and leaves white space below."
+     },
+     {
+      "id": "S-11",
+      "title": "Entrance verification",
+      "route": "/security/entrance",
+      "file": "src/pages/security/Entrance.tsx",
+      "reqs": [
+       "REQ-23",
+       "REQ-24",
+       "REQ-25",
+       "REQ-26",
+       "REQ-27"
+      ],
+      "states": [
+       "error: service failure (fail closed)",
+       "unreadable plate",
+       "no match"
+      ],
+      "links": [
+       {
+        "label": "Entrance",
+        "to": "S-11"
+       },
+       {
+        "label": "Entry log",
+        "to": "S-12"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Live console for a Security Guard (signed in as Imran Baig, Security) at the Folio3 car park entrance. A plain top bar holds the menu 'Entrance' and 'Entry log', with 'Sign out' at the right and 'Entrance' active. It is designed for a desk monitor and stays dense but calm. What the eye meets first is the current vehicle panel, about 60% of the width. It shows a large real photograph from the entrance camera of a white Toyota Corolla at the boom barrier, front view, plate visible. Beside the photo, the read plate 'BKR-417' is set very large in tabular letters, with the result chip 'Match: temporary authorisation for 14 Oct' and the green-indicator status 'Green light ON'. Under it are details: claimant Hamza Qureshi, Floor B2, read at 09:57:42 AM. Two buttons record the outcome on this page: 'Mark entered' (primary) and 'Mark not entered'. The right 40% is a 'System health' card with four rows: Camera Online, Indicator Online, Connection Online, Authorisation service Online. Below it is 'Recent attempts': 09:55 LEA-2291, Permanent sticker, Entry recorded; 09:52 KHI-4410, No match, Green light off, Not entered; 09:49 Plate unreadable, Green light off; 09:46 KHI-8820, Match, Entered. A link 'Entry log' sits under the list. The service-failure state, drawn separately, puts a full-width alert at the top: 'Authorisation service unavailable since 10:03 AM. Entrance is fail-closed and the green light is off. Admit manually only per security procedure.' The unreadable state shows 'Plate unreadable · Green light off'. The no-match state shows 'No authorisation for KHI-4410 today · Green light off'."
+     },
+     {
+      "id": "S-12",
+      "title": "Entry log",
+      "route": "/security/log",
+      "file": "src/pages/security/EntryLog.tsx",
+      "reqs": [
+       "REQ-23",
+       "REQ-26",
+       "REQ-27"
+      ],
+      "states": [
+       "empty"
+      ],
+      "links": [
+       {
+        "label": "Entrance",
+        "to": "S-11"
+       },
+       {
+        "label": "Entry log",
+        "to": "S-12"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Record of every entrance verification attempt, for Security Guards. Same top bar with 'Entrance' and 'Entry log', with 'Entry log' active. What the eye meets first is a row of four count tiles in large tabular figures for Tue 14 Oct 2025: 'Attempts 38', 'Matches 9', 'Permanent stickers 24', 'Failed / unreadable 5'. Under the tiles is a filter row: a date picker set to 14 Oct 2025, a result filter (All, Match, No match, Sticker, Unreadable, Service failure) and a plate search box. Then a full-width table with columns Time, Plate, Verification result and Entry status. Rows: 10:14:05, LEB-7712, Permanent sticker, Entry recorded; 10:09:51, —, Service failure (recorded after restore), Not entered; 10:03:12, KHI-4410, No match, Not entered; 09:57:42, BKR-417, Match, Entered; 09:55:30, LEA-2291, Permanent sticker, Entry recorded; 09:52:18, KHI-4410, No match, Not entered; 09:49:03, —, Plate unreadable, Not entered; 09:46:27, KHI-8820, Match, Entered; 09:40:11, LEC-1190, Permanent sticker, Entry recorded; 09:38:44, LED-3302, Match, Entered. Plates are in tabular letters. The empty state, drawn separately, reads 'No attempts recorded for this date.'"
+     },
+     {
+      "id": "S-13",
+      "title": "Employees",
+      "route": "/admin/employees",
+      "file": "src/pages/admin/Employees.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-21"
+      ],
+      "states": [
+       "empty"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "View employee",
+        "to": "S-14"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Employee records list for a Parking Administrator (Sana Rizvi). A plain top bar holds the menu 'Employees', 'Parking spaces', 'Releases & claims', 'Operating calendar', 'Reports', 'Settings', with 'Sign out' at the right and 'Employees' active. Under the title 'Employees', a row of count tiles in large tabular figures comes first: 'Active employees 214', 'Dedicated holders 46', 'Without dedicated parking 168', 'Missing vehicle 12'. Then come a search box, filters for Parking type and Vehicle status, and a button 'Sync from directory' that acts on this page. The table has columns Employee ID, Name, Dedicated, Floor / space, Vehicles and Last refreshed, and each row has a 'View employee' link. Rows: F3-1042, Ayesha Siddiqui, Yes, B1-07, 2, 14 Oct 08:41; F3-1187, Hamza Qureshi, No, —, 2, 14 Oct 09:02; F3-0915, Bilal Ahmed, Yes, B2-03, 1, 13 Oct 17:20; F3-1301, Fatima Noor, No, —, 0 (Missing vehicle), 14 Oct 08:55; F3-0778, Usman Tariq, Yes, B1-12, 1, 14 Oct 08:30; F3-1244, Zainab Khalid, No, —, 1, 12 Oct 10:15; F3-0652, Omar Farooq, Yes, B2-09, 2, 14 Oct 08:47. A footer shows 'Showing 7 of 214' with pagination. The empty state, drawn separately, reads 'No employees match these filters.'"
+     },
+     {
+      "id": "S-14",
+      "title": "Employee record",
+      "route": "/admin/employees/:id",
+      "file": "src/pages/admin/EmployeeDetail.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-7",
+       "REQ-21"
+      ],
+      "states": [
+       "success",
+       "validation"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Detail page where a Parking Administrator edits one employee's parking record and vehicles. It has the same admin top menu, with 'Employees' active, and a breadcrumb back via 'Employees'. What the eye meets first is a header with a real head-and-shoulders portrait photograph of Bilal Ahmed in an office setting, his name set large, and 'F3-0915 · bilal.ahmed@folio3.com · Active in directory'. On a wide screen there are two columns below. The left column is a card, 'Parking assignment', with the fields Dedicated parking (toggle on), Assigned floor (B2) and Assigned space (B2-03), plus the primary button 'Save assignment'. Under it a muted note reads 'Saving refreshes this employee's profile and current assignment.' The right column is the card 'Vehicles', listing each car with a small real photograph, the plate in tabular letters, details and status, and the actions 'Edit' and 'Deactivate'. Rows: photograph of a grey Kia Sportage SUV, 'LEF-6624', Kia Sportage, Grey, Active; photograph of a blue Suzuki Swift hatchback, 'KHI-2098', Suzuki Swift, Blue, Deactivated, with 'Reactivate'. A button 'Add vehicle' opens a form on this page. The success state, drawn separately, shows the toast 'Record saved and profile refreshed.' The validation state reads 'Choose a space on floor B2.'"
+     },
+     {
+      "id": "S-15",
+      "title": "Parking spaces",
+      "route": "/admin/spaces",
+      "file": "src/pages/admin/ParkingSpaces.tsx",
+      "reqs": [
+       "REQ-9",
+       "REQ-21"
+      ],
+      "states": [
+       "empty"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "View employee",
+        "to": "S-14"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Parking records page for administrators, showing every space and today's state. Same admin menu, with 'Parking spaces' active. What the eye meets first is a set of three floor summary tiles in large tabular figures for Tue 14 Oct 2025: 'Floor B1: 24 spaces · 20 reserved · 4 released', 'Floor B2: 22 spaces · 19 reserved · 3 released', 'Level 1: 10 spaces · 7 reserved · 3 released'. A button 'Add space' sits at the right of the title and acts on this page. Below, a floor filter and a full-width table with columns Space, Floor, Type, Holder, Today and Action. Rows: B1-07, B1, Dedicated, Ayesha Siddiqui, Released (claimable 9:30), with a 'View employee' link on the holder; B1-12, B1, Dedicated, Usman Tariq, Reserved; B2-03, B2, Dedicated, Bilal Ahmed, Reserved; B2-09, B2, Dedicated, Omar Farooq, Released · Claimed by Hamza Qureshi; L1-04, Level 1, Dedicated, Mariam Shah, Reserved; B2-15, B2, Dedicated, Unassigned, Not allocated. Each row has 'Edit'. The empty state, drawn separately, reads 'No spaces on this floor yet.'"
+     },
+     {
+      "id": "S-16",
+      "title": "Releases & claims",
+      "route": "/admin/releases",
+      "file": "src/pages/admin/ReleasesClaims.tsx",
+      "reqs": [
+       "REQ-13",
+       "REQ-16"
+      ],
+      "states": [
+       "success"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Administrator page tracking releases and claims, where a claimed release can be reversed. Same admin menu, with 'Releases & claims' active. What the eye meets first is a row of count tiles in large tabular figures for Tue 14 Oct 2025: 'Released 10', 'Claimed 7', 'Unclaimed 3', 'Interventions 1'. Below are a date picker and a status filter, then a table with columns Date, Space / floor, Holder, Status, Claimant, Plate and Action. Rows: 14 Oct, B1-07 / B1, Ayesha Siddiqui, Claimed 09:32, Hamza Qureshi, BKR-417, 'Reverse release'; 14 Oct, B2-09 / B2, Omar Farooq, Claimed 09:30, Zainab Khalid, LED-3302, 'Reverse release'; 14 Oct, L1-04 / Level 1, Mariam Shah, Unclaimed, —, —; 14 Oct, B2-11 / B2, Kamran Ali, Reversed by Sana Rizvi 08:15, Ali Raza, KHI-8820, with the note 'Claimant keeps space'. Clicking 'Reverse release' opens an inline confirmation on this page: 'The holder gets their release record reversed. Hamza Qureshi keeps space B1-07 and plate BKR-417 stays authorised for today. Neither the holder nor anyone else can take this space.' It has a required 'Reason' field and a button 'Confirm reversal'. The success state, drawn separately, shows the toast 'Intervention recorded.'"
+     },
+     {
+      "id": "S-17",
+      "title": "Operating calendar",
+      "route": "/admin/calendar",
+      "file": "src/pages/admin/OperatingCalendar.tsx",
+      "reqs": [
+       "REQ-21"
+      ],
+      "states": [
+       "success"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Administrator page that sets which dates the car park operates. Same admin menu, with 'Operating calendar' active. What the eye meets first is a large month view of October 2025 taking about 70% of the width, with month arrows. Weekdays are marked 'Operating'. Saturdays and Sundays are 'Closed'. Fri 24 Oct is marked 'Closed · Office holiday'. Clicking a day toggles it on this page. A right column lists 'Upcoming closures': Fri 24 Oct (Office holiday), Mon 10 Nov (Iqbal Day), Thu 25 Dec (Quaid-e-Azam Day), each with 'Remove'. Below the list is a button 'Add closure' with date and reason fields. A note reads 'Holders can only schedule releases on operating days; times are Karachi (PKT).' The primary button 'Save calendar' sits at the bottom right. The success state, drawn separately, shows the toast 'Calendar saved.'"
+     },
+     {
+      "id": "S-18",
+      "title": "Settings",
+      "route": "/admin/settings",
+      "file": "src/pages/admin/Settings.tsx",
+      "reqs": [
+       "REQ-21",
+       "REQ-30"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "Administrator settings for release timing and the weekly report. Same admin menu, with 'Settings' active. A single column about 760px wide with clear section cards and white space between them. First comes the card 'Daily release time'. A large time field showing '09:30 AM' (Asia/Karachi) is what the eye meets first, with the help text 'Spaces released before this time become claimable at 9:30 AM; later releases are claimable immediately.' Second is the card 'Weekly utilization report', with 'Send every Monday at' 08:00 AM (Asia/Karachi), 'Reporting period' Mon to Fri, and the toggle 'Include floor breakdown'. Third is the card 'Stakeholder emails', showing removable chips: facilities@folio3.com, ops.director@folio3.com, hr.admin@folio3.com, finance.karachi@folio3.com, with an add field and a button 'Add email'. A muted line under it reads 'Next report: Mon 20 Oct 2025, 08:00 AM to 4 recipients.' The primary button 'Save settings' sits at the bottom. The validation state, drawn separately, reads 'Enter a valid email address.' The success state shows the toast 'Settings saved.'"
+     },
+     {
+      "id": "S-19",
+      "title": "Reports",
+      "route": "/admin/reports",
+      "file": "src/pages/admin/Reports.tsx",
+      "reqs": [
+       "REQ-28",
+       "REQ-29",
+       "REQ-31"
+      ],
+      "states": [
+       "empty",
+       "loading"
+      ],
+      "links": [
+       {
+        "label": "Employees",
+        "to": "S-13"
+       },
+       {
+        "label": "Parking spaces",
+        "to": "S-15"
+       },
+       {
+        "label": "Releases & claims",
+        "to": "S-16"
+       },
+       {
+        "label": "Operating calendar",
+        "to": "S-17"
+       },
+       {
+        "label": "Reports",
+        "to": "S-19"
+       },
+       {
+        "label": "Settings",
+        "to": "S-18"
+       },
+       {
+        "label": "Sign out",
+        "to": "S-1"
+       }
+      ],
+      "prompt": "On-screen parking reports for administrators. Same admin menu, with 'Reports' active. A filter bar sits across the top: Period (Week of 6 to 10 Oct 2025), Floor (All floors), Parking type (All), Employee search, and a button 'Export CSV' that downloads from this page. What the eye meets first is the utilization figure '82.4%' in very large tabular numerals, labelled 'Utilization = occupied ÷ total available spaces (released-but-unclaimed excluded from occupied)'. Next to it are smaller tiles: 'Released 31', 'Claimed 26', 'Unused dedicated 9', 'Unused temporary 3'. Below is a simple bar chart of daily utilization Mon to Fri: 78%, 85%, 81%, 88%, 80%. Then a table, 'Unused parking', with columns Date, Employee, Type, Space / floor and Reason. Rows: Mon 6 Oct, Usman Tariq, Dedicated, B1-12, Not released and not used; Tue 7 Oct, Ali Raza, Temporary, B2, Vehicle KHI-8820 did not enter; Wed 8 Oct, Mariam Shah, Dedicated, L1-04, Not released and not used; Thu 9 Oct, Zainab Khalid, Temporary, B1, Vehicle LED-3302 did not enter; Fri 10 Oct, Omar Farooq, Dedicated, B2-09, Not released and not used. A muted footnote reads 'For information only.' The empty state, drawn separately, reads 'No parking data for this period.' The loading state shows skeleton tiles."
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-22",
+      "reason": "Ignoring pedestrians, motorcycles and other non-car objects happens in the LPR integration. Those detections never reach any page, so there is nothing to draw."
+     },
+     {
+      "req": "REQ-32",
+      "reason": "This is a rule against automation: no warnings, suspensions or penalties are ever triggered, so no page exists for it. Reports only show the data."
+     },
+     {
+      "req": "REQ-33",
+      "reason": "The server enforces this access rule on every admin action. Only Parking Administrators ever see the admin pages and menu, so there is no separate page for it."
+     }
+    ],
+    "brand": {
+     "colours": [],
+     "fonts": []
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

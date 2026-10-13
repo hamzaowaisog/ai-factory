@@ -1,0 +1,37 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "testTimeout|timeout:|vi.setConfig|findByText|expectValues\\(",
+    "glob": "vitest.config.*"
+   },
+   "ms": 0,
+   "resultChars": 214,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;testTimeout|timeout:|vi.setConfig|findByText|expectValues\\\\(&quot;,&quot;glob&quot;:&quot;vitest.config.*&quot;}\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "imports/source-records|/imports|selectedRecordIds",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 541,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;imports/source-records|/imports|selectedRecordIds&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:154: /imports/source-records:\ncontracts/openapi.yaml:195: /imports:\ncontracts/openapi.yaml:2582: $ref: '#/components/schemas/ImportSourceRecord'\ncontracts/openapi.yaml:2586: - selectedRecordIds\ncontracts/openapi.yaml:2588: selectedRecordIds:\ncontracts/openapi.yaml:2631: $ref: '#/components/schemas/ImportSourceRecord'\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "vitest.config.ts"
+   },
+   "ms": 0,
+   "resultChars": 586,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;vitest.config.ts&quot;}\">\nvitest.config.ts lines 1-9\n1\timport { fileURLToPath, URL } from \"node:url\";\n2\timport { defineConfig } from \"vitest/config\";\n3\t\n4\texport default defineConfig({\n5\t  resolve: { alias: { \"@\": fileURLToPath(new URL(\"./\", import.meta.url)) } },\n6\t  oxc: { jsx: { runtime: \"automatic\" } },\n7\t  test: { include: [\"tests/**/*.test.ts\", \"tests/**/*.test.tsx\"], exclude: [\"node_modules/**\", \"e2e/design/**\"], setupFiles: [\"tests/support/setup.ts\"], passWithNoTests: true },\n8\t});\n9\t\n</untrusted_document>"
+  }
+ ]
+}

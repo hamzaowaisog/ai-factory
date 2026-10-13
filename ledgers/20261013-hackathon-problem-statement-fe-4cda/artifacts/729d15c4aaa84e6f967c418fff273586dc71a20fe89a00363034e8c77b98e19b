@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2938,
+    "end": 2970
+   },
+   "ms": 0,
+   "resultChars": 1145,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2938,&quot;end&quot;:2970}\">\ncontracts/openapi.yaml lines 2938-2970\n2938\t        adg:\n2939\t          type: number\n2940\t          format: double\n2941\t          nullable: true\n2942\t        totalFeedConsumedPounds:\n2943\t          type: number\n2944\t          format: double\n2945\t          nullable: true\n2946\t        feedConversionRatio:\n2947\t          type: number\n2948\t          format: double\n2949\t          nullable: true\n2950\t        costOfGain:\n2951\t          type: number\n2952\t          format: double\n2953\t          nullable: true\n2954\t        projectedShipDate:\n2955\t          type: string\n2956\t          format: date\n2957\t          nullable: true\n2958\t        feedCost:\n2959\t          type: number\n2960\t          format: double\n2961\t          nullable: true\n2962\t    Insight:\n2963\t      type: object\n2964\t      required:\n2965\t        - id\n2966\t        - type\n2967\t        - message\n2968\t        - explanation\n2969\t        - suggestedSaleDate\n2970\t        - basis\n… (4376 lines total; ask for start=2971)\n</untrusted_document>"
+  }
+ ]
+}

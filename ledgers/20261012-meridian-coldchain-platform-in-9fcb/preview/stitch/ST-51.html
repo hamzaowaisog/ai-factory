@@ -1,0 +1,344 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Quality cases — Empty State — Meridian</title>
+<!-- Typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-tertiary-container": "#cdeaff",
+            "on-secondary": "#ffffff",
+            "surface-dim": "#dadada",
+            "inverse-primary": "#ffb597",
+            "on-secondary-fixed": "#331103",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f3f3f3",
+            "on-primary": "#ffffff",
+            "surface-tint": "#9e4315",
+            "on-secondary-container": "#7a4a35",
+            "primary": "#893405",
+            "on-primary-container": "#ffe0d4",
+            "secondary": "#84523d",
+            "on-background": "#1a1c1c",
+            "error": "#ba1a1a",
+            "outline-variant": "#ddc1b6",
+            "inverse-surface": "#2f3131",
+            "error-container": "#ffdad6",
+            "primary-fixed-dim": "#ffb597",
+            "tertiary-container": "#006e99",
+            "tertiary": "#005577",
+            "inverse-on-surface": "#f1f1f1",
+            "on-primary-fixed-variant": "#7d2d00",
+            "surface-container-high": "#e8e8e8",
+            "on-tertiary-fixed": "#001e2d",
+            "surface-bright": "#f9f9f9",
+            "on-error-container": "#93000a",
+            "on-surface-variant": "#56423b",
+            "on-secondary-fixed-variant": "#683b27",
+            "surface-container": "#eeeeee",
+            "on-surface": "#1a1c1c",
+            "primary-fixed": "#ffdbcd",
+            "surface": "#f9f9f9",
+            "secondary-fixed-dim": "#f9b89d",
+            "outline": "#897269",
+            "on-tertiary": "#ffffff",
+            "surface-variant": "#e2e2e2",
+            "secondary-container": "#ffbda2",
+            "on-error": "#ffffff",
+            "primary-container": "#a94b1d",
+            "tertiary-fixed-dim": "#82cfff",
+            "surface-container-highest": "#e2e2e2",
+            "tertiary-fixed": "#c6e7ff",
+            "on-tertiary-fixed-variant": "#004c6b",
+            "on-primary-fixed": "#360f00",
+            "background": "#f9f9f9",
+            "secondary-fixed": "#ffdbcd"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-entrance-1 {
+      animation: entranceFadeUp var(--dur-slow) var(--ease-out) both;
+    }
+    
+    .animate-entrance-2 {
+      animation: entranceFadeUp var(--dur-slow) var(--ease-out) 60ms both;
+    }
+    
+    .animate-entrance-3 {
+      animation: entranceFadeUp var(--dur-slow) var(--ease-out) 120ms both;
+    }
+
+    /* Interactive button styles complying with tokens */
+    .btn-action-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      transition: transform var(--dur-instant), background-color var(--dur-instant);
+    }
+    .btn-action-primary:hover {
+      background-color: #8f3e17;
+    }
+    .btn-action-primary:active {
+      transform: scale(0.97);
+    }
+    .btn-action-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-action-secondary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      transition: transform var(--dur-instant), background-color var(--dur-instant);
+    }
+    .btn-action-secondary:hover {
+      background-color: #F7F7F7;
+    }
+    .btn-action-secondary:active {
+      transform: scale(0.97);
+    }
+    .btn-action-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Standard inputs */
+    .work-input {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      border-radius: 2px;
+      height: 48px;
+      transition: border-color var(--dur-instant), outline var(--dur-instant);
+    }
+    .work-input:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+      border-color: #A94B1D;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-property: opacity !important;
+        transition-duration: 120ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#F7F7F7] text-[#202020] font-body flex flex-col antialiased selection:bg-[#ffdbcd] selection:text-[#360f00]">
+<!-- Top Bar -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D5D5D5] sticky top-0 z-40">
+<div class="max-w-[1280px] h-14 mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+<!-- Left side: Brand + Nav Menu Item -->
+<div class="flex items-center h-full space-x-6">
+<div class="flex items-center space-x-2">
+<div class="w-6 h-6 bg-[#202020] rounded-[2px] flex items-center justify-center">
+<span class="text-[#FFFFFF] font-headline font-bold text-xs tracking-wider">M</span>
+</div>
+<span class="font-headline font-bold text-base text-[#202020] tracking-tight">Meridian</span>
+</div>
+<nav class="flex items-center h-full">
+<div class="h-14 flex items-center border-b-2 border-[#A94B1D] px-2">
+<span class="font-body text-sm font-semibold text-[#A94B1D]">Quality cases</span>
+</div>
+</nav>
+</div>
+<!-- Right side: User Profile + Language -->
+<div class="flex items-center space-x-4 text-sm">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 bg-[#E8E8E8] text-[#202020] border border-[#D5D5D5] rounded-[2px] flex items-center justify-center font-mono font-medium text-xs">
+            OS
+          </div>
+<span class="text-[#202020] font-medium">Omar Saleh</span>
+<span class="text-[#626262]">· Quality Officer</span>
+</div>
+<span aria-hidden="true" class="text-[#D5D5D5]">|</span>
+<div class="text-xs font-mono text-[#626262] tracking-wide" lang="ar">
+          EN / العربية
+        </div>
+</div>
+</div>
+</header>
+<!-- Main Work Surface -->
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
+<!-- Page Heading -->
+<div class="mb-6 animate-entrance-1">
+<h1 class="font-headline text-[28px] leading-[1.2] font-[650] tracking-[-0.025em] text-[#202020]">
+        Quality cases
+      </h1>
+</div>
+<!-- Filter Bar / Search Section -->
+<section aria-label="Filters" class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 mb-6 animate-entrance-2">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+<!-- Search Field -->
+<div class="md:col-span-5 flex flex-col space-y-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#626262]" for="case-search">
+            Search case, lot, entity, or consignee
+          </label>
+<div class="relative">
+<input class="work-input w-full px-3 text-sm placeholder-[#626262]" id="case-search" placeholder="e.g. Q-88, HU-82, IG-2511, Cedar Health" type="text">
+</div>
+</div>
+<!-- Review status select dropdown -->
+<div class="md:col-span-3 flex flex-col space-y-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#626262]" for="review-status-select">
+            Review status
+          </label>
+<div class="relative">
+<select class="work-input w-full px-3 text-sm appearance-none bg-none cursor-pointer pr-8" id="review-status-select">
+<option value="all">All statuses</option>
+<option value="under_review">Under review</option>
+<option value="held">Held</option>
+<option value="resolved">Resolved</option>
+<option value="closed">Closed</option>
+</select>
+<span aria-hidden="true" class="material-symbols-outlined pointer-events-none absolute right-2.5 top-3.5 text-[#626262] text-[20px]">
+              expand_more
+            </span>
+</div>
+</div>
+<!-- Case classification select dropdown -->
+<div class="md:col-span-3 flex flex-col space-y-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#626262]" for="case-class-select">
+            Case classification
+          </label>
+<div class="relative">
+<select class="work-input w-full px-3 text-sm appearance-none bg-none cursor-pointer pr-8" id="case-class-select">
+<option value="all">All categories</option>
+<option value="temp_excursion">Temperature excursion</option>
+<option value="label_mismatch">Seal &amp; serial discrepancy</option>
+<option value="sensor_telemetry">Sensor telemetry gap</option>
+<option value="chain_custody">Chain of custody break</option>
+</select>
+<span aria-hidden="true" class="material-symbols-outlined pointer-events-none absolute right-2.5 top-3.5 text-[#626262] text-[20px]">
+              expand_more
+            </span>
+</div>
+</div>
+<!-- CSV Export Secondary Button -->
+<div class="md:col-span-1">
+<button class="btn-action-secondary h-12 w-full px-3 rounded-[2px] text-sm font-medium flex items-center justify-center space-x-1.5" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px] text-[#626262]">file_download</span>
+<span>CSV</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Empty State Table Container -->
+<section aria-label="Quality cases log" class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] flex-1 flex flex-col animate-entrance-3">
+<!-- Table Header Row -->
+<div class="w-full overflow-x-auto border-b border-[#D5D5D5]">
+<div class="min-w-[980px] grid grid-cols-12 h-12 items-center px-4 text-xs font-semibold tracking-[0.08em] uppercase text-[#626262] select-none bg-[#FFFFFF]">
+<div class="col-span-1">Case</div>
+<div class="col-span-1">Opened (BST)</div>
+<div class="col-span-2">Lot number</div>
+<div class="col-span-2">Target entity</div>
+<div class="col-span-3">Scope, customer &amp; telemetry summary</div>
+<div class="col-span-1">Telemetry</div>
+<div class="col-span-1">Status</div>
+<div class="col-span-1 text-right">Action</div>
+</div>
+</div>
+<!-- Empty State Content Canvas -->
+<div class="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">
+<!-- Clean minimalist line icon box (48px with 1px border #D5D5D5) -->
+<div class="w-12 h-12 rounded-[2px] border border-[#D5D5D5] flex items-center justify-center bg-[#F7F7F7] mb-4">
+<span aria-hidden="true" class="material-symbols-outlined text-[#626262] text-[24px]">
+            fact_check
+          </span>
+</div>
+<!-- Title -->
+<h2 class="font-headline text-[20px] leading-[1.3] font-[650] text-[#202020] mb-2">
+          No quality cases recorded
+        </h2>
+<!-- Explanatory message -->
+<p class="font-body text-sm leading-[1.5] text-[#626262] max-w-[540px] mb-6">
+          No quality review cases have been opened for North Quay Warehouse inventory or outbound shipments. Cases are logged when temperature excursions or reading discrepancies require investigation.
+        </p>
+<!-- Primary Action Button -->
+<div>
+<button class="btn-action-primary h-12 px-6 rounded-[2px] text-sm font-semibold flex items-center justify-center space-x-2" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px]">add</span>
+<span>Quality review</span>
+</button>
+</div>
+</div>
+<!-- Bottom Summary Bar Inside Container -->
+<div class="h-12 border-t border-[#D5D5D5] px-4 flex items-center justify-between text-xs text-[#626262] font-mono bg-[#FFFFFF]">
+<div class="flex items-center space-x-2">
+<span class="font-semibold text-[#202020]">0</span>
+<span>records</span>
+<span class="text-[#D5D5D5]">·</span>
+<span>0 quality cases under review</span>
+</div>
+<div class="flex items-center space-x-1.5">
+<span aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+<span>North Quay Warehouse scope</span>
+</div>
+</div>
+</section>
+</main>
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"quality review":"S-33"},A={"request password reset":"S-3","back to sign in":"S-1","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8","receipts":"S-6","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-32";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

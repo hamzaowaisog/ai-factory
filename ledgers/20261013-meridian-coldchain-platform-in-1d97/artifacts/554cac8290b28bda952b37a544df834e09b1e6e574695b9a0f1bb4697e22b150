@@ -1,0 +1,672 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "AC_1_1_SuccessResponsesMatchDeclaredShapes",
+      "verdict": "weak",
+      "why": "The matrix checks generic JSON record shapes but not each operation's declared media type and complete operation-specific response fields."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_DeclaredFailureResponsesUseProblemEnvelope",
+      "verdict": "weak",
+      "why": "The test samples generic error envelopes and statuses but does not exercise each operation's declared conflict case or compare its full declared error body."
+     },
+     {
+      "acId": "AC-1.3",
+      "testId": "AC_1_3_UndeclaredOperationCreatesNoRecord",
+      "verdict": "weak",
+      "why": "The test checks only one unsupported method and one unknown path, and checks only the Receipts table for newly created records."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts all three statuses, the root value, and every contracted operation's method and path in OpenAPI."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "AC_3_1_PersistedMutationSurvivesHostRestart",
+      "verdict": "weak",
+      "why": "The test compares create and restart-read fields but directly checks only some fields against the persisted row, leaving other returned fields unverified against storage."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "AC_3_2_UploadedEvidenceSurvivesHostRestart",
+      "verdict": "weak",
+      "why": "The test covers evidence only and does not cover a logger upload or assert logger content and metadata after restart."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "AC_3_3_UnsubmittedLegacyRowsAreAbsent",
+      "verdict": "weak",
+      "why": "The test checks only five collections and five tables rather than all contracted collections and legacy business rows."
+     },
+     {
+      "acId": "AC-3.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies bootstrap configuration and directly verifies the configured administrator, warehouse, and organisation rows after startup."
+     },
+     {
+      "acId": "AC-3.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies configured demo rows are absent with Seed:Demo false and present with it true."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the challenge identifier, emailed one-time code, absence of a token, and absence of a customer session before verification."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_CodeVerificationRejectsReuseAndResends",
+      "verdict": "weak",
+      "why": "The test checks statuses and generic response field types but does not assert the contract-defined challenge values returned by resend and verification."
+     },
+     {
+      "acId": "AC-4.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the emailed reset link, token usability, successful completion, and rejection of both reused and invalid tokens."
+     },
+     {
+      "acId": "AC-4.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test calls the operation without authentication and asserts status 200 and the configured URL value."
+     },
+     {
+      "acId": "AC-4.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test compares both status and complete error bodies and asserts neither case returns a challenge or authenticated result."
+     },
+     {
+      "acId": "AC-4.6",
+      "testId": "AC_4_6_DeactivatedAccountCannotSignIn",
+      "verdict": "weak",
+      "why": "The test does not assert that expired or reused-code failures contain no token, nor that the unconfigured URL response omits an unusable URL."
+     },
+     {
+      "acId": "AC-4.7",
+      "testId": "AC_4_7_ExceededResendLimitSendsNoMoreEmail",
+      "verdict": "weak",
+      "why": "The test hard-codes an attempt count instead of configuring the deployment limit and accepts any listed client-failure status rather than asserting a declared failure status."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test creates records for another organisation and checks denied details, absent cross-organisation list entries, and no record identifier in denied responses."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test places stock, receipts, orders, routes, and a quality case outside the assignment and verifies list exclusion and record-free inaccessible responses."
+     },
+     {
+      "acId": "AC-5.3",
+      "testId": "AC_5_3_AuditorCanReadButCannotMutate",
+      "verdict": "weak",
+      "why": "The test checks one create, one update, and one delete but not each prohibited contracted write operation."
+     },
+     {
+      "acId": "AC-5.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both disabled and removed accounts receive 401 or 403 with no protected record."
+     },
+     {
+      "acId": "AC-5.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies both a Quality Manager and an Auditor can read a stock record outside their warehouse assignment."
+     },
+     {
+      "acId": "AC-5.6",
+      "testId": "AC_5_6_IdentityProviderTokenMapsToPersistedPermissions",
+      "verdict": "weak",
+      "why": "The test uses a fake trusted-token provider rather than a valid token issued by the configured Meridian provider."
+     },
+     {
+      "acId": "AC-6.1",
+      "testId": "AC_6_1_ProductUpdateSearchAndDeactivateReflectState",
+      "verdict": "weak",
+      "why": "The test does not assert the full submitted product specification or returned/listed/retrieved active state across the contracted product operations."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "AC_6_2_OverlappingProfileTiersAreRejected",
+      "verdict": "weak",
+      "why": "The test covers overlapping tiers only and does not submit a missing/invalid profile or discontinuous tier boundaries."
+     },
+     {
+      "acId": "AC-6.3",
+      "testId": "AC_6_3_ProfileChangeRetainsEarlierVersion",
+      "verdict": "weak",
+      "why": "The test omits the new profile's reason and actor and does not compare the previous version's values before and after."
+     },
+     {
+      "acId": "AC-6.4",
+      "testId": "AC_6_4_EarlierProfileVersionCannotBeOverwritten",
+      "verdict": "weak",
+      "why": "The test attempts to create a profile with an earlier effective date rather than altering the existing earlier version."
+     },
+     {
+      "acId": "AC-6.5",
+      "testId": "AC_6_5_InactiveProductCannotBeOrdered",
+      "verdict": "weak",
+      "why": "The test does not assert that the rejected order attempt leaves the Orders table unchanged."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "AC_7_1_ReceiptStartsQuarantinedWithSubmittedFields",
+      "verdict": "weak",
+      "why": "The test does not compare all submitted receipt fields, including product, expiry date, supplier, and location, in the created or fetched record."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_RepeatLotCreatesSeparateReceipt",
+      "verdict": "weak",
+      "why": "The test verifies separate receipt IDs and rows but does not assert that the stock list reports both quantities separately."
+     },
+     {
+      "acId": "AC-7.3",
+      "testId": "AC_7_3_ExpiredReceiptCannotBeReleased",
+      "verdict": "weak",
+      "why": "The test covers an already-expired receipt submission but not a release attempt within 30 days of receipt or the resulting receipt's unchanged status."
+     },
+     {
+      "acId": "AC-7.4",
+      "testId": "AC_7_4_LoggerAndEvidenceUploadsAppearOnReceipt",
+      "verdict": "weak",
+      "why": "The test does not assert the uploaded file content and metadata or the processed logger readings in the subsequent receipt response."
+     },
+     {
+      "acId": "AC-7.5",
+      "testId": "AC_7_5_MoveCreatesTraceWithActorAndLocations",
+      "verdict": "weak",
+      "why": "The test omits the resulting quantity and does not assert movement time or source location."
+     },
+     {
+      "acId": "AC-7.6",
+      "testId": "AC_7_6_QualityOfficerCanReleaseOrdinaryReceipt",
+      "verdict": "weak",
+      "why": "The test checks an audit actor and receipt status but not the response decision actor, stock-read status, or preservation of a separately required two-person decision."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "AC_8_1_ExpiryRemovesAllocationAndAlertsDispatcher",
+      "verdict": "weak",
+      "why": "The test omits local-calendar scheduling, order replacement/status changes, and an audit-event assertion."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "AC_8_2_ExpiredReleasedStockIsUnallocated",
+      "verdict": "weak",
+      "why": "The test does not assert order status or outstanding quantity and does not verify a dispatcher alert row."
+     },
+     {
+      "acId": "AC-8.3",
+      "testId": "AC_8_3_ExpiryLeavesCompleteOrderUnallocated",
+      "verdict": "weak",
+      "why": "The test checks only the complete-only order and omits partial-order outcome, expired stock status, and dispatcher alert."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_ReusedIdempotencyKeyReturnsOneOrder",
+      "verdict": "weak",
+      "why": "The test checks matching response IDs and one idempotency row but does not assert that the order list contains exactly one order."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "AC_9_2_InvalidOrderDoesNotCreateRow",
+      "verdict": "weak",
+      "why": "The test covers only a zero-quantity line, not an invalid address, impermissible date, or inactive product."
+     },
+     {
+      "acId": "AC-9.3",
+      "testId": "AC_9_3_DeliveryDateRespectsCutoffAndWorkingCalendar",
+      "verdict": "weak",
+      "why": "The test does not configure or exercise the warehouse time zone and holidays, or verify the cutoff rule against a controlled local submission time."
+     },
+     {
+      "acId": "AC-9.4",
+      "testId": "AC_9_4_OrderCanChangeBeforePackingButNotAfter",
+      "verdict": "weak",
+      "why": "The test covers editing only and does not test cancellation, returned lifecycle status, or stock restored after successful cancellation."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_AllocationUsesExpiryThenBudgetTieBreak",
+      "verdict": "weak",
+      "why": "The test checks only a budget tie-break in allocation rows and does not assert response ordering, minimum shelf life, or outstanding quantity."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "AC_10_2_CompleteOnlyOrderDoesNotHoldPartialStock",
+      "verdict": "weak",
+      "why": "The test covers complete-only allocation but not the partial-order allocated and outstanding quantities or the no-over-allocation condition."
+     },
+     {
+      "acId": "AC-10.3",
+      "testId": "AC_10_3_ConcurrentOrdersNeverOverallocateUnit",
+      "verdict": "weak",
+      "why": "The test checks aggregate quantity but not whether a handling unit is allocated to more than one order or what the stock list reports."
+     },
+     {
+      "acId": "AC-10.4",
+      "testId": "AC_10_4_OverrideRequiresReasonAndEligibleStock",
+      "verdict": "weak",
+      "why": "The test omits stock-status and shelf-life violations and does not assert that a valid override changes the allocation."
+     },
+     {
+      "acId": "AC-10.5",
+      "testId": "AC_10_5_BackOrdersAreAllocatedOldestFirst",
+      "verdict": "weak",
+      "why": "The test does not directly assert that the older order received the available allocation or compare allocation quantities in the response records."
+     },
+     {
+      "acId": "AC-10.6",
+      "testId": "AC_10_6_CompleteOnlyBackOrderDoesNotBlockEligiblePartialOrder",
+      "verdict": "weak",
+      "why": "The test proves an incomplete complete-only order does not block one partial order, but has no multiple eligible back orders to prove submission order."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_PackedBoxHasLoggerAndRejectsReuse",
+      "verdict": "weak",
+      "why": "The test asserts only the logger value and a reused-pack conflict, not box, lot quantities, operator, seal time, or incompatible packing."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "AC_11_2_RouteCreationPersistsOrderedStopsAndRejectsConflict",
+      "verdict": "weak",
+      "why": "The test does not compare the returned route values and its conflict case repeats the same assignment rather than demonstrating a conflicting driver or vehicle."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "AC_11_3_OverlongRouteConfirmationIdentifiesBox",
+      "verdict": "weak",
+      "why": "The test asserts the box identifier in the message but not the qualification shortfall or duration-overrun explanation."
+     },
+     {
+      "acId": "AC-11.4",
+      "testId": "AC_11_4_DriverOnlySeesAssignedRouteAndOrderedStops",
+      "verdict": "weak",
+      "why": "The test checks one route's presence but not exclusion of another driver's route or the stops, boxes, scans, and departure state."
+     },
+     {
+      "acId": "AC-11.5",
+      "testId": "AC_11_5_DriverSyncIsIdempotentByActionIdentifier",
+      "verdict": "weak",
+      "why": "The test covers a repeated action identifier only and does not assert accepted/conflicting response actions or distinct actions in route history."
+     },
+     {
+      "acId": "AC-11.6",
+      "testId": "AC_11_6_HandoverPersistsEvidenceAndRefusalReason",
+      "verdict": "weak",
+      "why": "The test checks the receiver row and a refusal reason but not the response's acknowledgement, signature, photo, completion time, or delivery/refusal quantities."
+     },
+     {
+      "acId": "AC-11.7",
+      "testId": "AC_11_7_RouteScheduleChangeAlertsDriver",
+      "verdict": "weak",
+      "why": "The test does not assert the changed schedule in the response and accepts any route audit event instead of a driver-change event."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_LoggerUploadDeduplicatesAndOrdersReadings",
+      "verdict": "weak",
+      "why": "The test does not cover late, future-dated, or pre-sealing readings, exclusion flags, or unavailable-reading gaps."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "AC_12_2_ExcursionEndsAtThirdInBandReading",
+      "verdict": "weak",
+      "why": "The test checks only that an excursion is mentioned and a later timestamp appears, not its exact opening and closing readings or tier-charged time."
+     },
+     {
+      "acId": "AC-12.3",
+      "testId": "AC_12_3_LateReadingRecalculatesBudgetsAndAuditsCorrection",
+      "verdict": "weak",
+      "why": "The test checks for a remaining-budget field and any audit event but not separate historical budgets, updated allowances, excursion links, or holds."
+     },
+     {
+      "acId": "AC-12.4",
+      "testId": "AC_12_4_ExcursionHoldTriggersRecordedAlert",
+      "verdict": "weak",
+      "why": "The test checks one excursion trigger and any matching email but not the other stated triggers, required recipients, or the 120-second limit."
+     },
+     {
+      "acId": "AC-12.5",
+      "testId": "AC_12_5_SilentDeviceProducesGapAndAlert",
+      "verdict": "weak",
+      "why": "The test checks a gap and an email but does not assert that the response marks the device silent."
+     },
+     {
+      "acId": "AC-12.6",
+      "testId": "AC_12_6_ColdRoomListAndDetailShowReadingsAndBand",
+      "verdict": "weak",
+      "why": "The test checks cold-room presence and one band limit but not the required latest reading, status, gaps, alerts, history timestamps, and excursion markers."
+     },
+     {
+      "acId": "AC-12.7",
+      "testId": "AC_12_7_TemperatureHistoryShowsOrderedReadingsAndGap",
+      "verdict": "weak",
+      "why": "The test does not assert reading order or temperature-band and excursion fields, and tests only the handling-unit history path."
+     },
+     {
+      "acId": "AC-12.8",
+      "testId": "AC_12_8_GatewayBatchPersistsOrderedUniqueReadings",
+      "verdict": "weak",
+      "why": "The test checks the persisted count only and does not verify occurred times, history output, calculated history, or equivalent results for different arrival orders."
+     },
+     {
+      "acId": "AC-12.9",
+      "testId": "AC_12_9_UnknownGatewayCredentialsRejectWholeBatch",
+      "verdict": "weak",
+      "why": "The test checks the database count after a missing-credential request but does not query temperature history to verify that it contains no batch reading."
+     },
+     {
+      "acId": "AC-12.10",
+      "testId": "AC_12_10_InvalidGatewayBatchIsAtomic",
+      "verdict": "weak",
+      "why": "The test checks the persisted reading count but does not query subsequent temperature history for rejected-batch readings."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "AC_13_1_ProposerCannotApproveOwnDisposition",
+      "verdict": "weak",
+      "why": "The test does not assert the proposal's returned actor and unchanged proposal values after the different manager's decision."
+     },
+     {
+      "acId": "AC-13.2",
+      "testId": "AC_13_2_SupersedingDecisionRetainsHistoryAndReleasesAllocation",
+      "verdict": "weak",
+      "why": "The test checks decision count and allocation removal but not returned decision history, unchanged prior-decision values, current stock status, replacement allocation outcome, or unchanged stock status after conflict."
+     },
+     {
+      "acId": "AC-13.3",
+      "testId": "AC_13_3_DestructionRemovesRejectedQuantity",
+      "verdict": "weak",
+      "why": "The test allows any resulting quantity at or below 19 rather than asserting the exact available quantity after destroying five units."
+     },
+     {
+      "acId": "AC-13.4",
+      "testId": "AC_13_4_StockAndCaseExposeTierBudgetAndDecision",
+      "verdict": "weak",
+      "why": "The test checks only that responses mention remaining and decision, not used and remaining values for each tier or linked case telemetry and decision fields."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "AC_14_1_RecallHoldsSelectedLotsAndReturnsTrace",
+      "verdict": "weak",
+      "why": "The test checks a selected unit in the trace and that it is not Released but omits locations, boxes, routes, deliveries, customer progress, and allocation availability."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "AC_14_2_RecallResponsePersistsQuantitiesAndProgress",
+      "verdict": "weak",
+      "why": "The test asserts only on-hand quantity and one stored quantity, not all submitted quantities, stated disposition, or recall progress."
+     },
+     {
+      "acId": "AC-14.3",
+      "testId": "AC_14_3_UnaccountedRecallCannotCloseWithoutWriteOff",
+      "verdict": "weak",
+      "why": "The test checks conflict and write-off quantity but does not assert that the successful write-off response contains the signed decision values."
+     },
+     {
+      "acId": "AC-14.4",
+      "testId": "AC_14_4_RecallTraceAndLotHistoryAreChronological",
+      "verdict": "weak",
+      "why": "The test checks for a lot and movement text but not chronological ordering or the required warehouse, box, route, delivery, and destruction events."
+     },
+     {
+      "acId": "AC-15.1",
+      "testId": "AC_15_1_CustomerCollectionsAndCertificateAreOrganizationScoped",
+      "verdict": "weak",
+      "why": "The test omits recall notices and does not establish that each listed customer operation excludes another organisation's records."
+     },
+     {
+      "acId": "AC-15.2",
+      "testId": "AC_15_2_CustomerAdminCanManageOwnAddressesAndTeam",
+      "verdict": "weak",
+      "why": "The test does not assert that the delete response identifies the change or test removal of a team member."
+     },
+     {
+      "acId": "AC-15.3",
+      "testId": "AC_15_3_CustomerAdminCannotEditOtherOrganizationAddress",
+      "verdict": "weak",
+      "why": "The test covers editing an outside address only and does not test removal or an outside team member."
+     },
+     {
+      "acId": "AC-15.4",
+      "testId": "AC_15_4_CustomerLanguageAcceptsEnumAndRejectsOtherValues",
+      "verdict": "weak",
+      "why": "The test patches only ar and does not retrieve the account to verify the saved value or test en."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_AdminReadsPersistedOrganizationsAndAccounts",
+      "verdict": "weak",
+      "why": "The test omits account detail and does not assert member, address, role, or access-assignment values and caller scope."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_AdminChangesAccountAndShelfLife",
+      "verdict": "weak",
+      "why": "The test verifies database changes but does not assert that response records or action results reflect the updated account, role, assignment, deactivation, and shelf-life values."
+     },
+     {
+      "acId": "AC-16.3",
+      "testId": "AC_16_3_ReportsAndLotHistoryRespectRequestedScope",
+      "verdict": "weak",
+      "why": "The test checks only absence of one report string and presence of a lot ID, not authorized report values or chronologically ordered event types."
+     },
+     {
+      "acId": "AC-17.1",
+      "testId": "AC_17_1_AuditSearchFiltersActorAndAction",
+      "verdict": "weak",
+      "why": "The test checks actor and action filters but not event timestamp, affected record, or supported search and date filters."
+     },
+     {
+      "acId": "AC-17.2",
+      "testId": "AC_17_2_AuditEventsCannotBeChangedThroughHttp",
+      "verdict": "weak",
+      "why": "The test permits 404 or 405 instead of requiring 403 and does not query the event again after the write attempt."
+     },
+     {
+      "acId": "AC-17.3",
+      "testId": "AC_17_3_ConsequentialMutationRecordsActorTimeAndAction",
+      "verdict": "weak",
+      "why": "The test checks actor, time, and action in the database but the audit-list response is checked only for the affected record ID."
+     },
+     {
+      "acId": "AC-18.2",
+      "testId": "AC_18_2_DatabaseFailureReturnsContractServerError",
+      "verdict": "weak",
+      "why": "The test asserts status and error code but does not assert that no success response or success record is returned."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "AC_19_1_RuntimeResponsesFollowContractEnvelopes",
+      "verdict": "weak",
+      "why": "The loop sends invalid credentials or empty bodies rather than exercising every valid and invalid response case, and it does not compare operation-specific content types and fields."
+     },
+     {
+      "acId": "AC-19.2",
+      "testId": "AC_19_2_CollectionFiltersDoNotEscapeWarehouseScope",
+      "verdict": "weak",
+      "why": "The test covers one warehouse stock collection filter but no scoped record operation, organisation scope, or other contract filters."
+     },
+     {
+      "acId": "AC-19.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200 for GET /, the OpenAPI document, and Swagger."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "AC_20_1_CreatedRecordMatchesPostgreSqlRow",
+      "verdict": "weak",
+      "why": "The test checks one persisted field and only the read-back identifier, not the requested response values and corresponding persisted row values."
+     },
+     {
+      "acId": "AC-20.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "RecordAsync requires status 200 and the test asserts Quarantined in both the response record and PostgreSQL row."
+     },
+     {
+      "acId": "AC-20.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200 through RecordAsync and compares the requested quantity in both the response and persisted order line."
+     },
+     {
+      "acId": "AC-20.4",
+      "testId": "AC_20_4_ReviewedMigrationPreservesExistingRows",
+      "verdict": "weak",
+      "why": "The test checks one existing value but never asserts that the database table list contains the migrated schema."
+     },
+     {
+      "acId": "AC-20.5",
+      "testId": "AC_20_5_EmptyPostgreSqlGetsContractTablesOnStartup",
+      "verdict": "weak",
+      "why": "The test checks root status and later reads seeded stock but never inspects the startup database table list."
+     },
+     {
+      "acId": "AC-20.6",
+      "testId": "AC_20_6_StartupDoesNotChangeExistingRowValues",
+      "verdict": "weak",
+      "why": "The test checks one account email but does not compare the pre/post table lists or establish that a reviewed migration remains pending."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test starts with Seed:Demo true and asserts the root request returns status 200."
+     },
+     {
+      "acId": "AC-22.1",
+      "testId": "AC_22_1_SeedDataRunPopulatesEveryContractTableWithExampleRows",
+      "verdict": "weak",
+      "why": "The test checks only row counts and does not verify that rows match contract examples or that relationship fields resolve."
+     },
+     {
+      "acId": "AC-22.2",
+      "testId": "AC_22_2_SeedDataRunDoesNotOverwritePopulatedTable",
+      "verdict": "weak",
+      "why": "The test checks row count and one field but does not compare all existing row values, such as the existing organisation name."
+     },
+     {
+      "acId": "AC-23.1",
+      "testId": "AC_23_1_DemoDisabledLeavesProvisionedAccountUntouched",
+      "verdict": "weak",
+      "why": "The test checks only the account email and one demo product example rather than all account values and every contract demo example."
+     },
+     {
+      "acId": "AC-24.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test requires an empty successful receipt collection response and verifies that the Receipts table remains empty with demo seeding disabled."
+     },
+     {
+      "acId": "AC-25.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200 and the configured authorization URL in the message field."
+     },
+     {
+      "acId": "AC-25.2",
+      "testId": "AC_25_2_ValidStaffTokenSucceedsAndInvalidTokenGets401",
+      "verdict": "weak",
+      "why": "The test uses a fake token validator and does not demonstrate a token validated using the configured provider's token-validation settings."
+     },
+     {
+      "acId": "AC-25.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test starts the test host and asserts status 200 and the configured nonproduction authorization URL in its response."
+     },
+     {
+      "acId": "AC-26.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test starts the process with an invalid required Issuer setting and checks nonzero exit and an error naming Issuer."
+     },
+     {
+      "acId": "AC-26.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test starts the host with an invalid authorization URL and checks nonzero exit and an error naming that setting."
+     },
+     {
+      "acId": "AC-26.3",
+      "testId": "AC_26_3_ValidTestProviderConfigurationKeepsHealthRoutesUp",
+      "verdict": "weak",
+      "why": "The test host checks route statuses but does not assert a process exit status of zero."
+     },
+     {
+      "acId": "AC-27.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test has an assigned warehouse and a record in another warehouse, then requires a successful filtered stock response with an empty list."
+     },
+     {
+      "acId": "AC-27.2",
+      "testId": "AC_27_2_CustomerOneTimeCodeSessionIsOrganizationScoped",
+      "verdict": "weak",
+      "why": "The test creates the session through a helper rather than performing the required sign-in and code-verification requests and asserting their statuses."
+     },
+     {
+      "acId": "AC-27.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits the same signed write-off as a Quality Officer and a same-scope Quality Manager and asserts 403 and 200 respectively."
+     },
+     {
+      "acId": "AC-27.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies the stored value differs between salted writes, is not plaintext, and accepts the submitted password at sign-in."
+     },
+     {
+      "acId": "AC-27.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test calls a protected operation with the trusted token associated with the enabled persisted account and asserts the declared success status."
+     },
+     {
+      "acId": "AC-27.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 403 for both an unmatched token email and a token matching a disabled account."
+     },
+     {
+      "acId": "AC-28.1",
+      "testId": "AC_28_1_DeploymentBootstrapProvisionsInitialAccount",
+      "verdict": "weak",
+      "why": "The test does not provide initial deployment account details or verify that the resulting administrator row matches the provisioned identity."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

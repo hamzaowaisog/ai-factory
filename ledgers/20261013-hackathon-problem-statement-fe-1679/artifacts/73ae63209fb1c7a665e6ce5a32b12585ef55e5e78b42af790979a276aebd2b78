@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imports — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F5F5F5;
+      color: #262626;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography */
+    h1, .h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 32px;
+      line-height: 40px;
+      font-weight: 650;
+      color: #262626;
+    }
+
+    h2, .h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    h3, .h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes page-entrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .page-enter {
+      animation: page-entrance 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .anim-breathe {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D8D8D8;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #262626;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      color: #262626;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    nav.header-menu {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-left: 32px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav.header-menu::-webkit-scrollbar {
+      display: none;
+    }
+
+    .menu-item {
+      color: #626262;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: color 150ms ease;
+    }
+
+    .menu-item:hover {
+      color: #262626;
+    }
+
+    .menu-item.active {
+      color: #B3473D;
+      font-weight: 600;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: 24px;
+      flex-shrink: 0;
+    }
+
+    .profile-photo {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1/1;
+      border: 1px solid #D8D8D8;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: #262626;
+    }
+
+    .user-role {
+      font-size: 13px;
+      color: #626262;
+    }
+
+    /* Layout Container */
+    main.container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Panels */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      padding: 24px;
+    }
+
+    /* Buttons & Controls */
+    button, .btn {
+      height: 44px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+      white-space: nowrap;
+    }
+
+    button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #B3473D;
+      color: #FFFFFF;
+      border: 1px solid #B3473D;
+    }
+
+    .btn-primary:hover {
+      background-color: #9d3c33;
+      border-color: #9d3c33;
+    }
+
+    .btn-primary:active {
+      background-color: #88342c;
+      border-color: #88342c;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #262626;
+      border: 1px solid #D8D8D8;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F5F5F5;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:active {
+      background-color: #EBEBEB;
+    }
+
+    /* Error Banner */
+    .error-banner {
+      background-color: #FFFFFF;
+      border: 1px solid #A13D36;
+      border-radius: 4px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .error-banner-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .error-banner-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #A13D36;
+      font-size: 16px;
+    }
+
+    .error-banner-desc {
+      color: #626262;
+      font-size: 15px;
+      line-height: 22px;
+    }
+
+    .indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .dot-failed {
+      background-color: #A13D36;
+    }
+
+    .dot-waiting {
+      background-color: #805600;
+    }
+
+    .dot-good {
+      background-color: #286143;
+    }
+
+    /* Page Header Section */
+    .page-title-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .page-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .adapter-desc {
+      color: #626262;
+      font-size: 16px;
+      line-height: 24px;
+      max-width: 720px;
+    }
+
+    /* Status chips */
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 18px;
+      white-space: nowrap;
+    }
+
+    .status-chip.good {
+      background-color: #F0F6F2;
+      color: #286143;
+      border: 1px solid #D1E3D8;
+    }
+
+    .status-chip.waiting {
+      background-color: #FCF8EE;
+      color: #805600;
+      border: 1px solid #F2E4BF;
+    }
+
+    .status-chip.failed {
+      background-color: #FDF3F2;
+      color: #A13D36;
+      border: 1px solid #F3CECA;
+    }
+
+    /* Worklist Filter Bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      height: 44px;
+      padding: 0 12px;
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      color: #262626;
+      min-width: 170px;
+    }
+
+    .filter-input {
+      height: 44px;
+      padding: 0 12px;
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      color: #262626;
+      min-width: 220px;
+    }
+
+    /* Table Styles */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      background-color: #FFFFFF;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 15px;
+    }
+
+    thead th {
+      background-color: #FAFAFA;
+      color: #626262;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      border-bottom: 1px solid #D8D8D8;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid #D8D8D8;
+      transition: background-color 120ms ease;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: #FAFAFA;
+    }
+
+    td {
+      padding: 10px 16px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    /* Checkbox */
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1px solid #D8D8D8;
+      cursor: pointer;
+      accent-color: #B3473D;
+    }
+
+    /* Section divider */
+    .section-divider {
+      border: none;
+      height: 2px;
+      background-color: #D8D8D8;
+      margin: 8px 0;
+    }
+
+    /* Outcome Summary Grid */
+    .outcome-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .outcome-card {
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      padding: 16px;
+      background-color: #FFFFFF;
+    }
+
+    .outcome-card-header {
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .outcome-card-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #262626;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .outcome-card-note {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 4px;
+      line-height: 20px;
+    }
+
+    /* Activity section */
+    .activity-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid #D8D8D8;
+    }
+
+    .activity-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .activity-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1/1;
+      border: 1px solid #D8D8D8;
+      flex-shrink: 0;
+    }
+
+    .activity-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .activity-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .activity-actor {
+      font-weight: 600;
+      color: #262626;
+      font-size: 15px;
+    }
+
+    .activity-time {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .activity-details {
+      font-size: 15px;
+      color: #262626;
+      line-height: 22px;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 840px) {
+      header {
+        padding: 0 16px;
+      }
+
+      nav.header-menu {
+        display: none;
+      }
+
+      main.container {
+        padding: 20px 16px 48px;
+        gap: 16px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      tbody tr {
+        height: 56px;
+      }
+
+      button, .btn, .filter-select, .filter-input {
+        height: 48px;
+      }
+
+      .error-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared Application Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-mark" aria-label="Range Ledger Logo Mark">R</div>
+      <div class="brand-name">Range Ledger</div>
+      <nav class="header-menu" aria-label="Primary Navigation">
+        <a href="#yard" class="menu-item">Yard</a>
+        <a href="#imports" class="menu-item active">Imports</a>
+        <a href="#allocations" class="menu-item">Allocations</a>
+        <a href="#lots" class="menu-item">Lots</a>
+        <a href="#inventory" class="menu-item">Inventory</a>
+        <a href="#feed-outlook" class="menu-item">Feed outlook</a>
+        <a href="#rations" class="menu-item">Rations</a>
+        <a href="#feed-plans" class="menu-item">Feed plans</a>
+        <a href="#feeding" class="menu-item">Feeding</a>
+        <a href="#reports" class="menu-item">Reports</a>
+        <a href="#feed-to-gain" class="menu-item">Feed-to-gain</a>
+        <a href="#profitability" class="menu-item">Profitability</a>
+        <a href="#sample-data" class="menu-item">Sample data</a>
+      </nav>
+    </div>
+
+    <div class="user-profile">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen portrait" class="profile-photo" width="36" height="36">
+      <div class="user-details">
+        <span class="user-name">Maya Chen</span>
+        <span class="user-role">Yard manager</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container page-enter">
+
+    <!-- Page Title & Primary Actions -->
+    <div class="page-title-row">
+      <div class="page-meta-row">
+        <div>
+          <h1>Imports</h1>
+          <p class="adapter-desc">Mock procurement and receiving adapter for Red Mesa Yard — source document ingestion, lot matching, and head allocation check.</p>
+        </div>
+        <div>
+          <button class="btn btn-primary" id="preview-btn">
+            Preview selected records
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inline Error State Banner -->
+    <section class="error-banner" aria-live="assertive">
+      <div class="error-banner-content">
+        <div class="error-banner-title">
+          <span class="indicator-dot dot-failed anim-breathe"></span>
+          Failed — Procurement and receiving data connection error
+        </div>
+        <div class="error-banner-desc">
+          The mock procurement and receiving adapter service could not return real-time import stream telemetry for Red Mesa Yard. Displaying cached source baseline context while live ingestion is unavailable.
+        </div>
+      </div>
+      <button class="btn btn-primary" id="retry-btn">
+        Retry connection
+      </button>
+    </section>
+
+    <!-- Procurement & Receiving Worklist Panel -->
+    <section class="panel">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="po-filter" class="text-quiet" style="font-size: 14px; font-weight: 500;">Document source:</label>
+          <select id="po-filter" class="filter-select">
+            <option value="PO-8841" selected>Source PO-8841 (Red Mesa Yard)</option>
+            <option value="all">All received purchase orders</option>
+          </select>
+
+          <label for="status-filter" class="text-quiet" style="font-size: 14px; font-weight: 500;">Adapter status:</label>
+          <select id="status-filter" class="filter-select">
+            <option value="all" selected>All line statuses</option>
+            <option value="matched">Matched (retained)</option>
+            <option value="conflict">Allocation conflict</option>
+            <option value="created">Created as lot</option>
+          </select>
+        </div>
+
+        <div style="font-size: 14px; color: #626262;">
+          Showing <span class="mono" style="font-weight: 600; color: #262626;">3</span> source records from <span class="mono" style="font-weight: 600; color: #262626;">PO-8841</span>
+        </div>
+      </div>
+
+      <!-- Formal Worklist Table with Horizontal Overflow on Phone -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 44px; text-align: center;">
+                <input type="checkbox" checked aria-label="Select all source records">
+              </th>
+              <th>Source Line</th>
+              <th>Animal Description</th>
+              <th>Source Head Count</th>
+              <th>Existing Match</th>
+              <th>Received Result</th>
+              <th>Adapter Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Line 1: Angus steers, updated 80 head vs 82 mapped -->
+            <tr>
+              <td style="text-align: center;">
+                <input type="checkbox" checked aria-label="Select Line 1">
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">Line 1</span>
+              </td>
+              <td>Angus steers</td>
+              <td>
+                <span class="mono" style="font-weight: 600;">80</span> head
+                <span class="text-quiet" style="font-size: 13px; margin-left: 4px;">(latest count)</span>
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">L-2407</span>
+                <span class="text-quiet" style="font-size: 13px; margin-left: 4px;">in Pen P-04</span>
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">80</span> head matched to <span class="mono">L-2407</span>
+              </td>
+              <td>
+                <span class="status-chip waiting">
+                  <span class="indicator-dot dot-waiting"></span>
+                  Allocation conflict (80 below 82 mapped)
+                </span>
+              </td>
+            </tr>
+
+            <!-- Line 2: Hereford steers, 126 head matched to L-2409 -->
+            <tr>
+              <td style="text-align: center;">
+                <input type="checkbox" checked aria-label="Select Line 2">
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">Line 2</span>
+              </td>
+              <td>Hereford steers</td>
+              <td>
+                <span class="mono" style="font-weight: 600;">126</span> head
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">L-2409</span>
+                <span class="text-quiet" style="font-size: 13px; margin-left: 4px;">in Pen P-07</span>
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">126</span> head matched to <span class="mono">L-2409</span>
+              </td>
+              <td>
+                <span class="status-chip good">
+                  <span class="indicator-dot dot-good"></span>
+                  Matched, not duplicated
+                </span>
+              </td>
+            </tr>
+
+            <!-- Line 3: Charolais-cross steers, 94 head created as L-2413 -->
+            <tr>
+              <td style="text-align: center;">
+                <input type="checkbox" checked aria-label="Select Line 3">
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">Line 3</span>
+              </td>
+              <td>Charolais-cross steers</td>
+              <td>
+                <span class="mono" style="font-weight: 600;">94</span> head
+              </td>
+              <td>
+                <span class="mono" style="font-weight: 600;">L-2413</span>
+                <span class="text-quiet" style="font-size: 13px; margin-left: 4px;">in Pen P-12</span>
+              </td>
+              <td>
+                Created as <span class="mono" style="font-weight: 600;">L-2413</span> on first import
+              </td>
+              <td>
+                <span class="status-chip good">
+                  <span class="indicator-dot dot-good"></span>
+                  Created on first import
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Adapter Returned Result Summaries -->
+      <div style="margin-top: 24px;">
+        <h3 style="margin-bottom: 12px;">Mock Adapter Ingestion Outcomes</h3>
+        <div class="outcome-summary-grid">
+          <div class="outcome-card">
+            <div class="outcome-card-header">First-Import Execution (2025-06-13)</div>
+            <div class="outcome-card-value">
+              <span class="status-chip good">2 matched, 1 created</span>
+            </div>
+            <p class="outcome-card-note">Initial batch intake successfully associated Lines 1 and 2 to existing lot references and created new lot <span class="mono" style="color: #262626; font-weight: 500;">L-2413</span> for Line 3 Charolais-cross steers.</p>
+          </div>
+
+          <div class="outcome-card">
+            <div class="outcome-card-header">Repeat-Import Execution (2025-06-18)</div>
+            <div class="outcome-card-value">
+              <span class="status-chip waiting">Matched, not duplicated</span>
+            </div>
+            <p class="outcome-card-note">Repeated run matched existing lot records without generating duplicate identifiers; Line 1 returned updated source count of <span class="mono" style="color: #262626; font-weight: 500;">80</span> head against <span class="mono" style="color: #262626; font-weight: 500;">82</span> already mapped.</p>
+          </div>
+
+          <div class="outcome-card">
+            <div class="outcome-card-header">Allocation Status Check</div>
+            <div class="outcome-card-value">
+              <span class="status-chip waiting">Allocation conflict</span>
+            </div>
+            <p class="outcome-card-note">L-2407 in Pen P-04 retains 82 mapped head against source 80. Allocation retained for operational review rather than forcing automatic silent agreement.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2px Full-Width Group Divider -->
+    <hr class="section-divider">
+
+    <!-- Recorded Import Activity Section with Tomas Reed's Photo -->
+    <section class="panel">
+      <h2 style="margin-bottom: 16px;">Recorded Import Activity</h2>
+      
+      <!-- Shared Event 9: 2025-06-18 10:10 MT -->
+      <div class="activity-row">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XP8gXfk1n-6mEAvB7hmXPFaqX_gPgMH54cSWMSTxyGB-OCZwvCeuj3hkhFR-Aufp16OvFyXrd7pTEUCf7DiLGrHqka4-9DZ9xdN1FRzPsgz3PygCpkCjsSMNhqvnDiyKq9JOfDD4rnUul2q2e8Xj1DtgF7EJlZZMMwXeNhuL-zs4_0F1elvqrLoPHUer1wkk4APnnKTWbVR-m1pPEOlm2Eu5W4mykWgOW3kMtWBcIvsYl9ftsZJ-nFLqhF" alt="Tomas Reed portrait" class="activity-avatar" width="44" height="44">
+        <div class="activity-content">
+          <div class="activity-topline">
+            <div>
+              <span class="activity-actor">Tomas Reed</span>
+              <span class="text-quiet" style="font-size: 14px; margin-left: 6px;">Receiving coordinator</span>
+            </div>
+            <span class="activity-time mono">2025-06-18 10:10 MT</span>
+          </div>
+          <p class="activity-details">
+            Repeated PO-8841 import at Red Mesa Yard. Line 1 matched rather than duplicated and returned updated 80 head against 82 already mapped. Allocation conflict flagged; allocation retained for yard review.
+          </p>
+          <div>
+            <span class="status-chip waiting">
+              <span class="indicator-dot dot-waiting"></span>
+              Conflict flagged
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shared Event 3: 2025-06-13 09:05 MT -->
+      <div class="activity-row">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XP8gXfk1n-6mEAvB7hmXPFaqX_gPgMH54cSWMSTxyGB-OCZwvCeuj3hkhFR-Aufp16OvFyXrd7pTEUCf7DiLGrHqka4-9DZ9xdN1FRzPsgz3PygCpkCjsSMNhqvnDiyKq9JOfDD4rnUul2q2e8Xj1DtgF7EJlZZMMwXeNhuL-zs4_0F1elvqrLoPHUer1wkk4APnnKTWbVR-m1pPEOlm2Eu5W4mykWgOW3kMtWBcIvsYl9ftsZJ-nFLqhF" alt="Tomas Reed portrait" class="activity-avatar" width="44" height="44">
+        <div class="activity-content">
+          <div class="activity-topline">
+            <div>
+              <span class="activity-actor">Tomas Reed</span>
+              <span class="text-quiet" style="font-size: 14px; margin-left: 6px;">Receiving coordinator</span>
+            </div>
+            <span class="activity-time mono">2025-06-13 09:05 MT</span>
+          </div>
+          <p class="activity-details">
+            Imported PO-8841 lines at Red Mesa Yard, 2 matched and 1 created as L-2413. Import completed through mock procurement and receiving adapter.
+          </p>
+          <div>
+            <span class="status-chip good">
+              <span class="indicator-dot dot-good"></span>
+              Import completed
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shared Event 1: 2025-03-26 07:30 MT -->
+      <div class="activity-row">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XP8gXfk1n-6mEAvB7hmXPFaqX_gPgMH54cSWMSTxyGB-OCZwvCeuj3hkhFR-Aufp16OvFyXrd7pTEUCf7DiLGrHqka4-9DZ9xdN1FRzPsgz3PygCpkCjsSMNhqvnDiyKq9JOfDD4rnUul2q2e8Xj1DtgF7EJlZZMMwXeNhuL-zs4_0F1elvqrLoPHUer1wkk4APnnKTWbVR-m1pPEOlm2Eu5W4mykWgOW3kMtWBcIvsYl9ftsZJ-nFLqhF" alt="Tomas Reed portrait" class="activity-avatar" width="44" height="44">
+        <div class="activity-content">
+          <div class="activity-topline">
+            <div>
+              <span class="activity-actor">Tomas Reed</span>
+              <span class="text-quiet" style="font-size: 14px; margin-left: 6px;">Receiving coordinator</span>
+            </div>
+            <span class="activity-time mono">2025-03-26 07:30 MT</span>
+          </div>
+          <p class="activity-details">
+            Received 82 Angus steers averaging 884 lb into L-2407, Red Mesa Yard/P-04. Initial physical receipt recorded.
+          </p>
+          <div>
+            <span class="status-chip good">
+              <span class="indicator-dot dot-good"></span>
+              Receipt recorded
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

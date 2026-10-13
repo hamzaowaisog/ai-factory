@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feeding — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-panel: #FFFFFF;
+      --text-main: #262626;
+      --text-muted: #626262;
+      --border-color: #D8D8D8;
+      --primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+      --font-headline: 'Hanken Grotesk', -apple-system, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      padding-bottom: 40px;
+    }
+
+    /* Motion Tokens & CSS Animations */
+    @keyframes page-entrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    @keyframes sequence-fill {
+      from {
+        width: 0%;
+      }
+      to {
+        width: 100%;
+      }
+    }
+
+    .animate-entrance {
+      animation: page-entrance 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    .sequence-track-fill {
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+      animation-duration: 420ms;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    h1 {
+      font-family: var(--font-headline);
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 38px;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-family: var(--font-headline);
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 30px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    h3 {
+      font-family: var(--font-headline);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+      color: var(--text-main);
+    }
+
+    .font-mono {
+      font-family: var(--font-mono);
+    }
+
+    .text-quiet {
+      color: var(--text-muted);
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      height: 56px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: var(--primary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .brand-text {
+      font-family: var(--font-headline);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .menu-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .menu-trigger:hover {
+      background-color: #F0F0F0;
+    }
+
+    .menu-trigger:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .menu-trigger:active {
+      transform: scale(0.98);
+    }
+
+    /* Container & Layout */
+    .content-wrap {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-divider {
+      height: 2px;
+      background: var(--border-color);
+      margin: 8px 0;
+      border: none;
+    }
+
+    /* Cards / Panels */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: none;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: var(--status-good);
+    }
+    .status-good .status-dot {
+      background-color: var(--status-good);
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+    }
+    .status-waiting .status-dot {
+      background-color: var(--status-waiting);
+    }
+
+    .status-failed {
+      color: var(--status-failed);
+    }
+    .status-failed .status-dot {
+      background-color: var(--status-failed);
+    }
+
+    /* Forms & Controls */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .field-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .helper-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 18px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      height: 48px;
+      width: 100%;
+      padding: 0 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      color: var(--text-main);
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input.font-mono,
+    select.font-mono {
+      font-family: var(--font-mono);
+      font-size: 15px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+      width: 100%;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #9c3c33;
+      border-color: #9c3c33;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: #F0F0F0;
+    }
+
+    /* Step indicator */
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .step-number {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Info callouts */
+    .callout {
+      border: 1px solid var(--border-color);
+      border-left: 3px solid var(--primary);
+      border-radius: 4px;
+      padding: 12px;
+      background: #FAFAFA;
+      font-size: 14px;
+      line-height: 20px;
+      margin-top: 10px;
+    }
+
+    .callout-error {
+      border-left-color: var(--status-failed);
+      background: #FFF8F8;
+    }
+
+    .callout-warning {
+      border-left-color: var(--status-waiting);
+      background: #FFFDF5;
+    }
+
+    /* Feed items */
+    .feed-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .feed-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .event-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .staff-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar-32 {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1/1;
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .avatar-40 {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1/1;
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    /* Progress bar */
+    .sequence-meter-bg {
+      width: 100%;
+      height: 4px;
+      background: #ECECEC;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+
+    .sequence-meter-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 100%;
+    }
+
+    .validation-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #F4FBF7;
+      border: 1px solid #C4E2D3;
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--status-good);
+      font-weight: 500;
+    }
+
+    .validation-badge svg {
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Shared Product Header -->
+  <header>
+    <a href="#" class="brand-wrap">
+      <div class="brand-mark">R</div>
+      <span class="brand-text">Range Ledger</span>
+    </a>
+
+    <!-- Signed-in User profile pill & mobile menu trigger -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; padding-right: 4px;">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="avatar-32" />
+        <div style="display: flex; flex-direction: column; line-height: 1.2;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">Maya Chen</span>
+          <span style="font-size: 11px; color: var(--text-muted);">Yard manager</span>
+        </div>
+      </div>
+      <button class="menu-trigger" aria-label="Open menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Wrap -->
+  <main class="content-wrap">
+
+    <!-- Screen Title & Yard Location Context -->
+    <div>
+      <h1>Feeding</h1>
+      <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+        Red Mesa Yard • <span class="font-mono">America/Denver</span> (Mountain Time)
+      </div>
+    </div>
+
+    <!-- Active Step Flow Panel: Record Pen and Lot Feeding -->
+    <section class="panel">
+      <div class="step-header">
+        <div>
+          <h3>Record feeding delivery</h3>
+          <p class="helper-text">Authorized pen-and-lot drop registration</p>
+        </div>
+        <span class="step-number">Step flow</span>
+      </div>
+
+      <!-- Step 1: Date & Pen Selection -->
+      <div class="field-group">
+        <label for="feed-date">Delivery date &amp; time</label>
+        <input type="text" id="feed-date" class="font-mono" value="2025-06-19 11:30 MT" readonly />
+      </div>
+
+      <div class="field-group">
+        <label for="pen-select">Target yard pen</label>
+        <div class="select-wrap">
+          <select id="pen-select" class="font-mono">
+            <option value="P-04" selected>P-04 (140 head across 2 lots)</option>
+            <option value="P-07">P-07 (126 head across 1 lot)</option>
+            <option value="P-12">P-12 (94 head across 1 lot)</option>
+          </select>
+        </div>
+        <div class="helper-text">Current pen capacity: 160 head • Yard occupancy: 140 head</div>
+      </div>
+
+      <!-- Step 2: Assigned Lots and Ration Specification -->
+      <div style="margin: 16px 0; padding: 12px; background: #FAFAFA; border: 1px solid var(--border-color); border-radius: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 14px; font-weight: 600;">Assigned ration</span>
+          <span class="status-badge status-good">
+            <span class="status-dot live-dot"></span>
+            <span>Grower formulation</span>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Ration specs</span>
+          <span class="font-mono" style="font-size: 13px;">13.2% CP • 1.48 Mcal/lb • $0.145/lb</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Ingredients</span>
+          <span style="font-size: 13px;">Corn 64%, Distillers 24%, Hay 10%, Premix 2%</span>
+        </div>
+      </div>
+
+      <!-- Step 3: Enter Pen Delivered Quantity and Lot Amounts -->
+      <div class="field-group">
+        <label for="pen-quantity">Total pen delivered quantity (lb)</label>
+        <input type="text" id="pen-quantity" class="font-mono" value="3,337" style="font-size: 18px; font-weight: 600;" />
+        <div class="helper-text">Saved planned delivery quota: 3,337 lb (23.5 lb/head/day)</div>
+      </div>
+
+      <div style="margin: 16px 0 12px 0;">
+        <label style="display: block; margin-bottom: 8px;">Lot-level distribution breakdown</label>
+
+        <!-- Lot L-2407 Draft Input -->
+        <div style="border: 1px solid var(--border-color); border-radius: 4px; padding: 12px; margin-bottom: 10px; background: #FFFFFF;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <div>
+              <span class="font-mono" style="font-weight: 600;">L-2407</span>
+              <span style="font-size: 13px; color: var(--text-muted); margin-left: 6px;">Angus steers (80 active head)</span>
+            </div>
+            <span class="font-mono" style="font-size: 13px; color: var(--text-muted);">84 DOF</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" class="font-mono" value="1,927" style="height: 44px; font-weight: 600;" />
+            <span class="font-mono text-quiet">lb</span>
+          </div>
+          <!-- Allocation conflict notice retained from shared sample data -->
+          <div style="margin-top: 8px; font-size: 12px; line-height: 16px; color: var(--status-waiting); display: flex; align-items: flex-start; gap: 6px;">
+            <span class="status-dot" style="background-color: var(--status-waiting); margin-top: 4px;"></span>
+            <span>Allocation conflict: 82 mapped against updated source count 80. Allocation retained.</span>
+          </div>
+        </div>
+
+        <!-- Lot L-2411 Draft Input -->
+        <div style="border: 1px solid var(--border-color); border-radius: 4px; padding: 12px; background: #FFFFFF;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <div>
+              <span class="font-mono" style="font-weight: 600;">L-2411</span>
+              <span style="font-size: 13px; color: var(--text-muted); margin-left: 6px;">Angus heifers (60 active head)</span>
+            </div>
+            <span class="font-mono" style="font-size: 13px; color: var(--text-muted);">90 DOF</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" class="font-mono" value="1,410" style="height: 44px; font-weight: 600;" />
+            <span class="font-mono text-quiet">lb</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visible Validation Notice (Lot amounts equal pen amount) -->
+      <div class="validation-badge" style="margin-bottom: 16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <div>
+          <span>Amounts balanced: </span>
+          <span class="font-mono" style="font-weight: 600;">1,927 lb + 1,410 lb = 3,337 lb</span>
+        </div>
+      </div>
+
+      <!-- Step 4 & 5: Review and Single Primary Save Action -->
+      <div>
+        <button class="btn btn-primary" type="button">Save feeding</button>
+      </div>
+
+      <div class="helper-text" style="text-align: center; margin-top: 8px;">
+        Recorded directly under authenticated identity: Maya Chen
+      </div>
+    </section>
+
+    <!-- Operational Exceptions & Service State Notices -->
+    <section>
+      <!-- Stock Shortage Error Notice -->
+      <div class="callout callout-error" style="margin-bottom: 10px;">
+        <div class="status-badge status-failed" style="margin-bottom: 4px;">
+          <span class="status-dot"></span>
+          <span style="font-weight: 600;">Stock shortage returned by service</span>
+        </div>
+        <p style="font-size: 14px; line-height: 20px; color: var(--text-main);">
+          Alfalfa hay inventory reserve at <span class="font-mono">18,400 lb</span> is beneath 21-day buffered threshold for projected Finisher and Grower quotas.
+        </p>
+      </div>
+
+      <!-- Timed-out Save Notice: Save outcome unknown -->
+      <div class="callout callout-warning">
+        <div class="status-badge status-waiting" style="margin-bottom: 4px;">
+          <span class="status-dot"></span>
+          <span style="font-weight: 600;">Save outcome unknown</span>
+        </div>
+        <p style="font-size: 14px; line-height: 20px; color: var(--text-main);">
+          Transaction acknowledgment timed out on scale terminal uplink. Resolution left to existing service/user workflow without automatic retry.
+        </p>
+      </div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- Saved-Event Worklist Section (From shared event list) -->
+    <section>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+        <h2>Saved feeding events</h2>
+        <span class="text-quiet font-mono" style="font-size: 13px;">2 recorded</span>
+      </div>
+
+      <!-- Event 1: Jun 17, 2025 P-07 by Eli Navarro -->
+      <article class="feed-card">
+        <div class="event-meta-row">
+          <div class="staff-badge">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH" alt="Eli Navarro" class="avatar-40" />
+            <div>
+              <div style="font-weight: 600; font-size: 15px;">Eli Navarro</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Pen operator • Yard Operations</div>
+            </div>
+          </div>
+          <span class="status-badge status-good">
+            <span class="status-dot"></span>
+            <span>Delivered</span>
+          </span>
+        </div>
+
+        <div class="stat-row">
+          <span class="text-quiet">Date &amp; time</span>
+          <span class="font-mono">2025-06-17 06:25 MT</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Location &amp; lot</span>
+          <span>Pen <span class="font-mono" style="font-weight: 600;">P-07</span> • Lot <span class="font-mono">L-2409</span> (126 head)</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Delivered quantity</span>
+          <span class="font-mono" style="font-weight: 600;">2,772 lb</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Variance</span>
+          <span class="font-mono" style="color: var(--status-good); font-weight: 500;">−18 lb</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Calculated cost</span>
+          <span class="font-mono" style="font-weight: 600;">$402.00</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Nutritional energy</span>
+          <span class="font-mono">4,100 Mcal</span>
+        </div>
+
+        <!-- Feeding sequence visual meter -->
+        <div style="margin-top: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+            <span>Delivery sequence track</span>
+            <span class="font-mono">100% completed</span>
+          </div>
+          <div class="sequence-meter-bg">
+            <div class="sequence-meter-fill sequence-track-fill"></div>
+          </div>
+        </div>
+
+        <!-- Expanded details: Inventory consumption & Lot-level breakdown -->
+        <div style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 13px; line-height: 19px;">
+          <div style="font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Inventory consumption:</div>
+          <div class="text-quiet" style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Steam-flaked corn (64%)</span>
+              <span class="font-mono">1,774.1 lb</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Distillers grains (24%)</span>
+              <span class="font-mono">665.3 lb</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Alfalfa hay (10%)</span>
+              <span class="font-mono">277.2 lb</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Mineral premix (2%)</span>
+              <span class="font-mono">55.4 lb</span>
+            </div>
+          </div>
+
+          <div style="font-weight: 600; margin-top: 10px; margin-bottom: 6px; color: var(--text-main);">Lot-level consumption &amp; cost:</div>
+          <div style="display: flex; justify-content: space-between; background: #FAFAFA; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
+            <span class="font-mono">L-2409 (Hereford steers)</span>
+            <span class="font-mono" style="font-weight: 600;">2,772 lb • $402.00</span>
+          </div>
+
+          <!-- Permission restricted notice for correction / void -->
+          <div style="margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+            Correction &amp; void actions restricted: Pen operator sign-off required for modification.
+          </div>
+        </div>
+      </article>
+
+      <!-- Event 2: Jun 14, 2025 P-04 by Eli Navarro -->
+      <article class="feed-card">
+        <div class="event-meta-row">
+          <div class="staff-badge">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH" alt="Eli Navarro" class="avatar-40" />
+            <div>
+              <div style="font-weight: 600; font-size: 15px;">Eli Navarro</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Pen operator • Yard Operations</div>
+            </div>
+          </div>
+          <span class="status-badge status-good">
+            <span class="status-dot"></span>
+            <span>Delivered</span>
+          </span>
+        </div>
+
+        <div class="stat-row">
+          <span class="text-quiet">Date &amp; time</span>
+          <span class="font-mono">2025-06-14 06:20 MT</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Location &amp; lots</span>
+          <span>Pen <span class="font-mono" style="font-weight: 600;">P-04</span> • <span class="font-mono">L-2407</span> &amp; <span class="font-mono">L-2411</span></span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Delivered quantity</span>
+          <span class="font-mono" style="font-weight: 600;">3,337 lb</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Variance</span>
+          <span class="font-mono" style="color: var(--status-good); font-weight: 500;">+44 lb</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Calculated cost</span>
+          <span class="font-mono" style="font-weight: 600;">$484.87</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-quiet">Nutritional energy</span>
+          <span class="font-mono">4,941 Mcal</span>
+        </div>
+
+        <!-- Feeding sequence visual meter -->
+        <div style="margin-top: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+            <span>Delivery sequence track</span>
+            <span class="font-mono">100% completed</span>
+          </div>
+          <div class="sequence-meter-bg">
+            <div class="sequence-meter-fill sequence-track-fill"></div>
+          </div>
+        </div>
+
+        <!-- Expanded details: Inventory consumption & Lot-level breakdown -->
+        <div style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 13px; line-height: 19px;">
+          <div style="font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Inventory consumption:</div>
+          <div class="text-quiet" style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Steam-flaked corn (64%)</span>
+              <span class="font-mono">2,135.7 lb</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Distillers grains (24%)</span>
+              <span class="font-mono">800.9 lb</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Alfalfa hay (10%)</span>
+              <span class="font-mono">333.7 lb</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Mineral premix (2%)</span>
+              <span class="font-mono">66.7 lb</span>
+            </div>
+          </div>
+
+          <div style="font-weight: 600; margin-top: 10px; margin-bottom: 6px; color: var(--text-main);">Lot-level consumption &amp; cost:</div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; background: #FAFAFA; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <span class="font-mono">L-2407 (Angus steers)</span>
+              <span class="font-mono" style="font-weight: 600;">1,927 lb • $279.42</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: #FAFAFA; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <span class="font-mono">L-2411 (Angus heifers)</span>
+              <span class="font-mono" style="font-weight: 600;">1,410 lb • $205.45</span>
+            </div>
+          </div>
+
+          <!-- Permission restricted notice for correction / void -->
+          <div style="margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+            Correction &amp; void actions restricted: Pen operator sign-off required for modification.
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+</body>
+</html>

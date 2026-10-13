@@ -1,0 +1,222 @@
+# Questions before the spec (round 2)
+
+Run 20261004-automotive-parts-customer-orde-609c. Your request:
+> # 74. Estimation Checklist
+> 
+> For estimation purposes, estimate each of the following separately rather than estimating only by screen count.
+> 
+> ## Product / UX
+> 
+> - Requirements clarification.
+> - UX flows.
+> - Responsive layouts.
+> - Design system/components.
+> - Customer experience.
+> - Staff experience.
+> - Admin experience.
+> - Error/empty/loading states.
+> 
+> ## Frontend
+> 
+> - Authentication.
+> - Customer catalogue.
+> - Search/filtering.
+> - Vehicle search.
+> - Product detail.
+> - Basket.
+> - Checkout.
+> - Orders.
+> - Order detail.
+> - Templates.
+> - Invoices.
+> - Account/address management.
+> - Staff dashboard.
+> - Staff order management.
+> - Customer management.
+> - Admin product management.
+> - Price lists.
+> - User management.
+> - Reports.
+> - CSV downloads.
+> 
+> ## Backend
+> 
+> - Authentication.
+> - Authorization.
+> - User management.
+> - Customer management.
+> - Product management.
+> - Categories.
+> - Vehicle compatibility.
+> - Pricing.
+> - Stock.
+> - Basket.
+> - Templates.
+> - Orders.
+> - Order state transitions.
+> - Order amendments.
+> - Invoices.
+> - Payments.
+> - Reports.
+> - Audit logs.
+> - Notifications.
+> - File storage.
+> 
+> ## Integrations
+> 
+> - ERP CSV import.
+> - Email provider.
+> - PDF generation.
+> - File storage.
+> - Hosting/deployment.
+> 
+> ## QA
+> 
+> - Unit testing.
+> - API testing.
+> - Frontend testing.
+> - Integration testing.
+> - End-to-end testing.
+> - Permission testing.
+> - Customer data-isolation testing.
+> - Import testing.
+> - Responsive testing.
+> - Browser testing.
+> - UAT support.
+> - Regression testing.
+> 
+> ## DevOps
+> 
+> - Development environment.
+> - Staging environment.
+> - Production environment.
+> - CI/CD.
+> - Database deployment.
+> - Scheduled jobs.
+> - Monitoring.
+> - Logging.
+> - Backups.
+> - Error tracking.
+> 
+> ## Documentation
+> 
+> - Technical documentation.
+> - API documentation.
+> - Deployment documentation.
+> - Admin documentation.
+> - User documentation.
+> - Operational runbook.
+> 
+> ---
+> 
+> # 75. Technology Stack
+> 
+> Not decided.
+> 
+> The implementation team should propose:
+> 
+> - Frontend framework.
+> - Backend framework.
+> - Database.
+> - Authentication approach.
+> - File storage.
+> - Email integration.
+> - PDF generation approach.
+> - Hosting/cloud platform.
+> - CI/CD.
+> - Monitoring/logging.
+> 
+> The chosen technology should support the expected scale and the 7-year data-retention requirement.
+> 
+> ---
+> 
+> # 76. Final Scope Summary
+> 
+> The first release is a responsive B2B automotive-parts ordering portal with:
+> 
+> - Customer authentication.
+> - Role-based access.
+> - Customer/company management.
+> - Product catalogue.
+> - Product search.
+> - Category filtering.
+> - Vehicle compatibility search.
+> - Customer-specific pricing.
+> - ERP stock import.
+> - Basket.
+> - Checkout.
+> - Delivery scheduling rules.
+> - Order placement.
+> - Order history.
+> - Order tracking.
+> - Order cancellation.
+> - Repeat orders.
+> - Saved basket templates.
+> - Staff order management.
+> - Staff-created orders.
+> - Delivery CSV export.
+> - Automated invoice creation.
+> - Invoice PDFs.
+> - Payment status.
+> - Product administration.
+> - Price-list administration.
+> - User administration.
+> - Reporting.
+> - CSV exports.
+> - Email notifications.
+> - Audit history.
+> - Responsive mobile-first buyer experience.
+> - Seven-year order/invoice retention.
+> 
+> The exact effort depends heavily on the unresolved items listed in the Open Questions section. For estimation, those items should either be clarified with the client or explicitly converted into assumptions before producing the final estimate.
+
+**Q-6** Can customers order items that are out of stock, and what stock do they see?
+  A. Show in-stock/low/out-of-stock only; out-of-stock items can still be ordered as back-orders   ← recommended: Simplest approach, because the imported stock is a snapshot and isn't reserved.
+  B. Show in-stock/low/out-of-stock only; out-of-stock items cannot be added to the basket
+  C. Show exact quantities; ordering is limited to the quantity available
+  (why it matters: Controls which orders can be placed.)
+
+**Q-7** What are the delivery scheduling rules?
+  A. A daily order cut-off time: orders before it get next-working-day delivery, orders after it get the day after; cut-off time is configurable   ← recommended: The smallest rule set that still counts as delivery scheduling.
+  B. Customers pick a delivery date from allowed delivery days set for each customer or route
+  C. Fixed delivery days per customer, with no date choice at checkout
+  (why it matters: Sets the delivery dates stored on orders.)
+
+**Q-8** When is an invoice created automatically, and how are invoice numbers assigned?
+  A. One invoice per order when it is marked Dispatched; sequential numbers generated by the portal   ← recommended: Bills only for goods that were sent, and needs no ERP write-back.
+  B. One invoice per order when it is placed; sequential numbers generated by the portal
+  C. Invoices come from the ERP; the portal only stores and displays them
+  (why it matters: Creates financial records.)
+
+Assumed unless you say otherwise:
+- ASM-21 (high risk, confirm on the approval card): How does the ERP CSV import reach the portal, and how often? → assumed: Admin uploads the CSV manually in the portal whenever needed
+- ASM-22 (high risk, confirm on the approval card): What does the ERP CSV contain: stock levels only, or products and prices too? → assumed: Stock levels only (per SKU); products and prices are managed in the portal
+- ASM-23 (high risk, confirm on the approval card): What happens when an import file has bad rows (unknown SKU, invalid quantity)? → assumed: Import the valid rows, skip the bad ones and show a row-level error report
+- ASM-24 (high risk, confirm on the approval card): How does customer-specific pricing work? → assumed: Each customer company is assigned one price list; products not on it use the standard list price
+- ASM-25 (high risk, confirm on the approval card): What order statuses are there, and up to which status can a customer cancel? (Orders can't be amended, so cancelling is the only way to change one.) → assumed: Placed → Confirmed → Picking → Dispatched → Delivered, plus Cancelled; customers can cancel until Picking, staff can cancel any time before Dispatched
+- ASM-26: Does order tracking include courier tracking numbers or links? → assumed: Portal order status only, no courier integration
+- ASM-27 (high risk, confirm on the approval card): Payment status is tracked rather than collected. Is 'overdue' set by hand, or worked out from payment terms? → assumed: Automatically: the invoice becomes overdue once its due date (from the customer's payment terms) passes unpaid; staff mark it paid
+- ASM-28 (high risk, confirm on the approval card): Do prices, invoices and PDFs need to show VAT/tax, and in which currency? → assumed: Single currency; prices shown excluding VAT and invoices show VAT at one standard rate
+- ASM-29 (high risk, confirm on the approval card): With the three roles (customer user, staff, admin), what can admin do that staff can't? → assumed: Two roles: an administrator and a standard user.
+- ASM-30 (high risk, confirm on the approval card): There are no company-level roles. Does every customer user see all of their company's orders, invoices and templates? → assumed: Yes: all users in a company see all of that company's orders, invoices and templates
+- ASM-31 (high risk, confirm on the approval card): When staff create an order for a customer, which prices apply and is the customer told? → assumed: The customer's own prices and delivery rules apply; the customer gets the normal order-confirmation email; the order records which staff member created it
+- ASM-32: What is the Delivery CSV export for, and who uses it? → assumed: Staff download a CSV of orders due for delivery on a chosen date (fixed columns) to give to the warehouse/carrier
+- ASM-33 (high risk, confirm on the approval card): Where does vehicle compatibility (fitment) data come from? → assumed: Admins maintain it in the portal (make/model/year per product), with CSV upload
+- ASM-34: Which events send email notifications? → assumed: Email only, from fixed templates; no SMS or push.
+- ASM-35: For invite sign-in: do invites expire, and can users reset forgotten passwords themselves? → assumed: Email and password, with a reset link by email; no social or single sign-on.
+- ASM-36: Which reports are needed? → assumed: On-screen lists with filters and CSV export; no custom report builder.
+- ASM-37 (high risk, confirm on the approval card): What does the audit history record? → assumed: Who created and last changed each record, and when; no full audit trail.
+- ASM-38 (high risk, confirm on the approval card): Does seven-year retention mean keeping data for at least seven years, or deleting it after seven years? → assumed: Keep for at least seven years; no automatic deletion
+- ASM-39 (high risk, confirm on the approval card): Is there existing data to load at launch (customers, users, products, price lists, past orders)? → assumed: No; the system starts empty, with seed data for set-up.
+- ASM-40: What volumes should we plan for? → assumed: Up to 1,000 users and 100,000 records in the first year.
+- ASM-41: Where will the system be hosted? → assumed: One cloud region, in the client's cloud account.
+- ASM-42: Which browsers and devices must be supported? → assumed: The latest two versions of Chrome, Edge, Safari and Firefox.
+- ASM-43: What accessibility level is required? → assumed: WCAG 2.1 AA on the main flows.
+- ASM-44: Which languages does the portal support? → assumed: English only, left to right.
+- ASM-45: Are basket templates private to the user who saved them, or shared across the company? → assumed: Shared with all users in the same customer company
+
+Answer with letters or your own words:
+  factory answer 20261004-automotive-parts-customer-orde-609c e3efef86 Q-6=A Q-7=A Q-8=A
+  (use quotes for words: Q-6="only for guest checkouts")
+
+Card hash: e3efef86

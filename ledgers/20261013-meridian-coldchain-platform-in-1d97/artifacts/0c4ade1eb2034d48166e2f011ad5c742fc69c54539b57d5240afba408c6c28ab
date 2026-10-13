@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "ActionEnvelope:|name:.*message|ActionEnvelope",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 386,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;ActionEnvelope:|name:.*message|ActionEnvelope&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:1999: ActionEnvelope:\ncontracts/openapi.yaml:2615: $ref: \"#/components/schemas/ActionEnvelope\"\ncontracts/openapi.yaml:2625: $ref: \"#/components/schemas/ActionEnvelope\"\n</untrusted_document>"
+  }
+ ]
+}

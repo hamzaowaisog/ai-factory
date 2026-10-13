@@ -1,0 +1,864 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Lot history</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+    /* Motion tokens */
+    :root {
+      --motion-duration-fast: 150ms;
+      --motion-duration-base: 250ms;
+      --motion-duration-slow: 400ms;
+      --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+      --motion-ease-in: cubic-bezier(0.3, 0, 1, 1);
+    }
+
+    /* Keyframes */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* Staggered entrance sequence */
+    .stagger-0 {
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 0ms backwards;
+    }
+    .stagger-1 {
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 60ms backwards;
+    }
+    .stagger-2 {
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 120ms backwards;
+    }
+    .stagger-3 {
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 180ms backwards;
+    }
+    .stagger-4 {
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 240ms backwards;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Reset & Base Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .main-title {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .sub-title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quieter-text {
+      color: #626262;
+    }
+
+    .dot-breathing {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    /* Header Component */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+      padding: 4px;
+      border-radius: 2px;
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .brand-mark:hover {
+      background-color: #F0F0F0;
+    }
+
+    .brand-mark:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .brand-mark:active {
+      transform: scale(0.98);
+    }
+
+    .brand-square {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-item {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      border-bottom: 2px solid transparent;
+      transition: color var(--motion-duration-fast) var(--motion-ease-standard),
+                  border-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item:active {
+      transform: scale(0.98);
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      border-bottom-color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #202020;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 2px;
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .user-badge:hover {
+      background-color: #F0F0F0;
+    }
+
+    .user-badge:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .user-badge:active {
+      transform: scale(0.98);
+    }
+
+    .avatar-square {
+      width: 28px;
+      height: 28px;
+      background-color: #F0F0F0;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+      background: none;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      cursor: pointer;
+      line-height: inherit;
+      transition: color var(--motion-duration-fast) var(--motion-ease-standard),
+                  background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-fast) var(--motion-ease-standard);
+      padding-top: 4px;
+      padding-bottom: 4px;
+      border-radius: 2px;
+    }
+
+    .lang-switcher:hover {
+      color: #202020;
+    }
+
+    .lang-switcher:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .lang-switcher:active {
+      transform: scale(0.98);
+    }
+
+    /* Layout Container */
+    .page-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Page Header Section */
+    .page-heading-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Panel Styling */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+    }
+
+    /* Product Showcase Card */
+    .product-card {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      align-items: stretch;
+      transition: border-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .product-card:hover {
+      border-color: #BEBEBE;
+    }
+
+    .product-photo-wrap {
+      width: 240px;
+      height: 180px; /* 4:3 aspect ratio */
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      background-color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .product-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .product-details {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .product-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid #D5D5D5;
+      padding-bottom: 16px;
+    }
+
+    .product-name {
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 4px;
+    }
+
+    .product-spec {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .product-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding-top: 16px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .metric-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: default;
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  border-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .metric-card:hover {
+      background-color: #FFFFFF;
+      border-color: #B5B5B5;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .metric-card:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .metric-card:active {
+      transform: scale(0.98);
+    }
+
+    .metric-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .metric-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .metric-number {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1;
+      color: #202020;
+    }
+
+    .metric-unit {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .metric-footer {
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Status Tokens */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Ledger Table Section */
+    .ledger-section {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ledger-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .ledger-table th {
+      background-color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #626262;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 14px 24px;
+      border-bottom: 1px solid #D5D5D5;
+    }
+
+    .ledger-table td {
+      padding: 12px 24px;
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 15px;
+      color: #202020;
+      vertical-align: middle;
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .ledger-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .ledger-row {
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-fast) var(--motion-ease-standard);
+      cursor: pointer;
+    }
+
+    .ledger-row:hover td {
+      background-color: #FAFAFA;
+    }
+
+    .ledger-row:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .ledger-row:active td {
+      background-color: #F0F0F0;
+    }
+
+    .col-timestamp {
+      width: 180px;
+    }
+
+    .col-actor {
+      width: 150px;
+    }
+
+    .col-place {
+      width: 220px;
+    }
+
+    .col-qty {
+      width: 110px;
+      text-align: right;
+    }
+
+    .col-result {
+      width: auto;
+    }
+
+    .col-status {
+      width: 180px;
+    }
+
+    /* Meta bar / Footer info */
+    .table-footer-bar {
+      padding: 12px 24px;
+      background-color: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #626262;
+    }
+  </style>
+</head>
+<body>
+<!-- Header -->
+<header class="app-header stagger-0">
+<div class="header-left">
+<a class="brand-mark" href="#">
+<div class="brand-square">M</div>
+<span class="brand-name">Meridian</span>
+</a>
+<nav class="nav-menu">
+<a class="nav-item" href="#">Audit trail</a>
+<a class="nav-item active" href="#">Lot history</a>
+<a class="nav-item" href="#">Reports</a>
+</nav>
+</div>
+<div class="header-right">
+<button class="user-badge" type="button">
+<div class="avatar-square">ER</div>
+<span>Esha Raman · Auditor</span>
+</button>
+<button class="lang-switcher" type="button">
+<span>EN / العربية</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="page-container">
+<!-- Page Heading -->
+<div class="page-heading-row stagger-1">
+<h1 class="main-title">Lot history</h1>
+</div>
+<!-- Product Card -->
+<section class="panel product-card stagger-2">
+<div class="product-photo-wrap">
+<img alt="Insulin Glargine 100 units/mL packaging" class="product-photo" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA">
+</div>
+<div class="product-details">
+<div class="product-header">
+<div>
+<h2 class="product-name">Insulin Glargine 100 units/mL</h2>
+<div class="product-spec">Pack of 10 pens · Lot <span class="mono">IG-2509</span></div>
+</div>
+<div>
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+              refused active recall
+            </span>
+</div>
+</div>
+<div class="product-meta-grid">
+<div class="meta-item">
+<span class="meta-label">Expiry date</span>
+<span class="meta-value mono">30 November 2026</span>
+</div>
+<div class="meta-item">
+<span class="meta-label">Temperature profile</span>
+<span class="meta-value">profile v3 (<span class="mono">2.0°C–8.0°C</span>)</span>
+</div>
+<div class="meta-item">
+<span class="meta-label">Storage location</span>
+<span class="meta-value">North Quay Cold Room C2, Rack 4</span>
+</div>
+<div class="meta-item">
+<span class="meta-label">Mandated shelf life</span>
+<span class="meta-value"><span class="mono">90</span> days minimum</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Metrics Grid -->
+<section class="metrics-grid stagger-3">
+<div aria-label="Total received intake" class="metric-card" role="region" tabindex="0">
+<span class="metric-label">Total received intake</span>
+<div class="metric-value-row">
+<span class="metric-number mono">24</span>
+<span class="metric-unit">packs</span>
+</div>
+<div class="metric-footer">
+<span>Inbound shipment dock</span>
+</div>
+</div>
+<div aria-label="Delivered packs (consigned)" class="metric-card" role="region" tabindex="0">
+<span class="metric-label">Delivered packs (consigned)</span>
+<div class="metric-value-row">
+<span class="metric-number mono">20</span>
+<span class="metric-unit">packs</span>
+</div>
+<div class="metric-footer">
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+            good delivered
+          </span>
+</div>
+</div>
+<div aria-label="Warehouse on hand" class="metric-card" role="region" tabindex="0">
+<span class="metric-label">Warehouse on hand</span>
+<div class="metric-value-row">
+<span class="metric-number mono">4</span>
+<span class="metric-unit">packs</span>
+</div>
+<div class="metric-footer">
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+            refused 4 recalled on hand
+          </span>
+</div>
+</div>
+<div aria-label="Traced lot scope" class="metric-card" role="region" tabindex="0">
+<span class="metric-label">Traced lot scope</span>
+<div class="metric-value-row">
+<span class="metric-number mono">24 / 24</span>
+<span class="metric-unit">packs</span>
+</div>
+<div class="metric-footer">
+<span><span class="mono">20</span> delivered + <span class="mono">4</span> on hand</span>
+</div>
+</div>
+</section>
+<!-- Ordered Ledger -->
+<section class="ledger-section stagger-4">
+<div class="ledger-header">
+<div>
+<h2 class="section-title">Chronological trace</h2>
+<p class="quieter-text" style="font-size: 14px; margin-top: 2px;">Ordered ledger of custody, movement, and quality governance for Lot <span class="mono">IG-2509</span></p>
+</div>
+<div>
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+            4 recalled on hand
+          </span>
+</div>
+</div>
+<table class="ledger-table">
+<thead>
+<tr>
+<th class="col-timestamp">Date &amp; Time</th>
+<th class="col-actor">Actor</th>
+<th class="col-place">Place</th>
+<th class="col-qty">Quantity</th>
+<th class="col-result">Returned Result</th>
+<th class="col-status">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="ledger-row" tabindex="0">
+<td class="col-timestamp mono">12 May 2026 09:10</td>
+<td class="col-actor">Leila Haddad</td>
+<td class="col-place">North Quay Warehouse</td>
+<td class="col-qty mono">24 packs</td>
+<td class="col-result">Receipt of 24 packs Lot <span class="mono">IG-2509</span>, assigned to quarantine</td>
+<td class="col-status">
+<span class="status-badge status-waiting">
+<span class="status-dot dot-breathing"></span>
+                waiting quarantine
+              </span>
+</td>
+</tr>
+<tr class="ledger-row" tabindex="0">
+<td class="col-timestamp mono">12 May 2026 10:05</td>
+<td class="col-actor">Omar Saleh</td>
+<td class="col-place">North Quay Warehouse</td>
+<td class="col-qty mono">24 packs</td>
+<td class="col-result">Release of 24 packs to available stock in Cold Room C2, Rack 4</td>
+<td class="col-status">
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                good released
+              </span>
+</td>
+</tr>
+<tr class="ledger-row" tabindex="0">
+<td class="col-timestamp mono">13 May 2026 10:14</td>
+<td class="col-actor">Tariq Mansour</td>
+<td class="col-place">Cedar Clinic, 42 River Road</td>
+<td class="col-qty mono">20 packs</td>
+<td class="col-result">Delivery of 20 packs on order <span class="mono">O-290</span> via route <span class="mono">R-201</span> to Rania Karim</td>
+<td class="col-status">
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                good delivered
+              </span>
+</td>
+</tr>
+<tr class="ledger-row" tabindex="0">
+<td class="col-timestamp mono">14 May 2026 10:00</td>
+<td class="col-actor">Nadia Farouk</td>
+<td class="col-place">North Quay Warehouse</td>
+<td class="col-qty mono">4 packs</td>
+<td class="col-result">Manufacturer recall <span class="mono">RC-12</span> started; 4 packs on hand quarantined</td>
+<td class="col-status">
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+                refused active
+              </span>
+</td>
+</tr>
+<tr class="ledger-row" tabindex="0">
+<td class="col-timestamp mono">14 May 2026 10:20</td>
+<td class="col-actor">Omar Saleh</td>
+<td class="col-place">Quality Assurance</td>
+<td class="col-qty mono">20 packs</td>
+<td class="col-result">Quality Case <span class="mono">Q-89</span> opened after corrected readings for delivered order <span class="mono">O-290</span></td>
+<td class="col-status">
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+                waiting review
+              </span>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="table-footer-bar">
+<span>Prototype date: <span class="mono">14 May 2026</span> · Europe/London (BST)</span>
+<span>Showing <span class="mono">5</span> immutable events across lot lifecycle · <span class="mono">4</span> recalled on hand</span>
+</div>
+</section>
+</main>
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"audit trail":"S-64","reports":"S-66"},A={"request password reset":"S-3","back to sign in":"S-1","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8","receipts":"S-6","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-65";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

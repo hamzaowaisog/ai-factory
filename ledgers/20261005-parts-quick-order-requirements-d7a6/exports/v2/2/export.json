@@ -1,0 +1,22 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261005-parts-quick-order-requirements-d7a6",
+  "version": 2,
+  "designSha": "cc67a06ccf9893626fdd185fb676199de86a97c2fa385fb6252ee4e5214e360b",
+  "at": "2026-10-05T21:50:30.581Z",
+  "options": {
+    "formats": [
+      "html"
+    ]
+  },
+  "files": [
+    {
+      "format": "html",
+      "path": "demo.zip",
+      "sha256": "d32ce822be32c0c4145179dcd1b9f2bd3af30c7eee08369cf785c78924cfb93b",
+      "bytes": 52372
+    }
+  ],
+  "notes": [],
+  "checks": []
+}

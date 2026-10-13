@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lot history</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion System */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .ambient-pulse {
+      animation: ambientBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Fonts & Hierarchy */
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .text-quieter {
+      color: #626262;
+    }
+
+    .text-sm-support {
+      font-size: 14px;
+    }
+
+    /* Rules & 2px Corners */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    /* Header component */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .logo-square {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 64px;
+      color: #626262;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      border-bottom-color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .avatar-badge {
+      width: 28px;
+      height: 28px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Content Layout */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Buttons */
+    .btn-secondary {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 20px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #202020;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Product Header Card */
+    .lot-hero {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .product-photo {
+      width: 200px;
+      height: 150px;
+      object-fit: cover;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background-color: #FFFFFF;
+      display: block;
+    }
+
+    .product-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #D5D5D5;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Inventory Status Grid */
+    .reconciliation-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .inventory-stat-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .stat-number {
+      font-size: 24px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    /* Status Pills / Indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Table Styles */
+    .table-container {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+    }
+
+    th {
+      height: 48px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      transition: background-color 120ms ease;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: #F7F7F7;
+    }
+
+    td {
+      padding: 0 16px;
+      font-size: 15px;
+      color: #202020;
+      vertical-align: middle;
+    }
+
+    /* Summary bar */
+    .summary-bar {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #626262;
+    }
+  </style>
+</head>
+<body>
+  <!-- Global Application Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="logo-square">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav>
+        <a href="#" class="nav-item">Products</a>
+        <a href="#" class="nav-item">Organisations</a>
+        <a href="#" class="nav-item">Accounts</a>
+        <a href="#" class="nav-item">Audit trail</a>
+        <a href="#" class="nav-item">Reports</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-badge">MV</div>
+        <span>Marcus Vale · System Administrator</span>
+      </div>
+      <div class="lang-switcher">
+        <span>EN / العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="animate-entrance">
+    <!-- Page Title & Navigation -->
+    <div class="page-title-row">
+      <h1>Lot history</h1>
+      <a href="#" class="btn-secondary">Product detail</a>
+    </div>
+
+    <!-- Product and Lot Header Panel -->
+    <section class="panel lot-hero">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine 100 units/mL pack" class="product-photo">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h2>Insulin Glargine 100 units/mL</h2>
+            <p class="text-quieter" style="margin-top: 4px;">Pack of <span class="font-mono">10</span> pens · Lot <span class="font-mono">IG-2509</span></p>
+          </div>
+          <div class="status-badge status-refused">
+            <span class="status-dot"></span>
+            <span>refused active recall</span>
+          </div>
+        </div>
+
+        <div class="product-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Expiry date</span>
+            <span class="meta-value font-mono">30 November 2026</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Temperature profile</span>
+            <span class="meta-value">profile v3 (<span class="font-mono">2.0°C–8.0°C</span>)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Storage location</span>
+            <span class="meta-value">North Quay Cold Room C2, Rack <span class="font-mono">4</span></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Mandated shelf life</span>
+            <span class="meta-value font-mono">90 days minimum</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reconciliation Scope Overview -->
+    <section class="reconciliation-panel">
+      <div class="inventory-stat-cards">
+        <div class="stat-card">
+          <span class="stat-label">Total received intake</span>
+          <span class="stat-number font-mono">24 <span class="text-quieter text-sm-support font-heading" style="font-size: 14px; font-weight: normal;">packs</span></span>
+          <span class="text-quieter text-sm-support">Inbound shipment dock</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Delivered packs (consigned)</span>
+          <span class="stat-number font-mono">20 <span class="text-quieter text-sm-support font-heading" style="font-size: 14px; font-weight: normal;">packs</span></span>
+          <div class="status-badge status-good" style="margin-top: 2px;">
+            <span class="status-dot"></span>
+            <span>good delivered</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Warehouse on hand</span>
+          <span class="stat-number font-mono">4 <span class="text-quieter text-sm-support font-heading" style="font-size: 14px; font-weight: normal;">packs</span></span>
+          <div class="status-badge status-refused" style="margin-top: 2px;">
+            <span class="status-dot"></span>
+            <span>refused Recalled</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Traced lot scope</span>
+          <span class="stat-number font-mono">24 / 24 <span class="text-quieter text-sm-support font-heading" style="font-size: 14px; font-weight: normal;">packs</span></span>
+          <span class="text-quieter text-sm-support"><span class="font-mono">20</span> delivered + <span class="font-mono">4</span> on hand</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chronological Trace Ledger Section -->
+    <section>
+      <div style="margin-bottom: 16px;">
+        <h2>Chronological trace</h2>
+        <p class="text-quieter text-sm-support" style="margin-top: 4px;">Time-ordered record of custody, movement and quality governance</p>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 170px;">Date &amp; time</th>
+              <th style="width: 200px;">Actor</th>
+              <th style="width: 250px;">Place</th>
+              <th>Result</th>
+              <th style="width: 170px; text-align: right;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-mono">12 May 2026 09:10</td>
+              <td>Leila Haddad</td>
+              <td>North Quay Warehouse</td>
+              <td>Receipt of <span class="font-mono">24</span> packs Lot <span class="font-mono">IG-2509</span>, assigned to quarantine</td>
+              <td style="text-align: right;">
+                <div class="status-badge status-waiting">
+                  <span class="status-dot"></span>
+                  <span>waiting quarantine</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="font-mono">12 May 2026 10:05</td>
+              <td>Omar Saleh</td>
+              <td>North Quay Warehouse</td>
+              <td>Release of <span class="font-mono">24</span> packs to available stock in Cold Room C2 Rack <span class="font-mono">4</span></td>
+              <td style="text-align: right;">
+                <div class="status-badge status-good">
+                  <span class="status-dot"></span>
+                  <span>good released</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="font-mono">13 May 2026 10:14</td>
+              <td>Tariq Mansour</td>
+              <td>Cedar Clinic, 42 River Road</td>
+              <td>Delivery of <span class="font-mono">20</span> packs on order <span class="font-mono">O-290</span> via route <span class="font-mono">R-201</span> to Rania Karim</td>
+              <td style="text-align: right;">
+                <div class="status-badge status-good">
+                  <span class="status-dot"></span>
+                  <span>good delivered</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 10:00</td>
+              <td>Nadia Farouk</td>
+              <td>North Quay Warehouse</td>
+              <td>Manufacturer recall <span class="font-mono">RC-12</span> initiated, <span class="font-mono">4</span> packs on hand quarantined</td>
+              <td style="text-align: right;">
+                <div class="status-badge status-refused">
+                  <span class="status-dot"></span>
+                  <span>refused active</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 10:20</td>
+              <td>Omar Saleh</td>
+              <td>Quality Assurance</td>
+              <td>Corrected history opened Quality Case <span class="font-mono">Q-89</span> for delivered order <span class="font-mono">O-290</span></td>
+              <td style="text-align: right;">
+                <div class="status-badge status-waiting">
+                  <span class="status-dot ambient-pulse"></span>
+                  <span>waiting review</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="summary-bar" style="margin-top: 16px;">
+        <span>Prototype date: <span class="font-mono">14 May 2026</span> · Europe/London (BST)</span>
+        <span>Showing <span class="font-mono">5</span> immutable events across lot lifecycle</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

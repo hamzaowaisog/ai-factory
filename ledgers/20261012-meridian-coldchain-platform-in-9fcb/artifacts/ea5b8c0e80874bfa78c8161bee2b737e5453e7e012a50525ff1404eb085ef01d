@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Decision approval · Meridian Cold Chain Platform</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "secondary-container": "#ffbda2",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#ffb597",
+            "outline-variant": "#ddc1b6",
+            "inverse-surface": "#2f3131",
+            "surface-tint": "#9e4315",
+            "tertiary-container": "#006e99",
+            "surface-container": "#eeeeee",
+            "surface-container-highest": "#e2e2e2",
+            "surface-variant": "#e2e2e2",
+            "secondary-fixed-dim": "#f9b89d",
+            "on-primary-container": "#ffe0d4",
+            "surface-container-high": "#e8e8e8",
+            "on-secondary-container": "#7a4a35",
+            "on-surface": "#1a1c1c",
+            "tertiary-fixed": "#c6e7ff",
+            "secondary": "#84523d",
+            "surface-dim": "#dadada",
+            "surface-container-low": "#f3f3f3",
+            "on-secondary-fixed": "#331103",
+            "tertiary-fixed-dim": "#82cfff",
+            "primary-fixed": "#ffdbcd",
+            "primary": "#893405",
+            "on-tertiary-fixed-variant": "#004c6b",
+            "error": "#ba1a1a",
+            "background": "#f9f9f9",
+            "on-primary-fixed": "#360f00",
+            "on-error-container": "#93000a",
+            "secondary-fixed": "#ffdbcd",
+            "on-background": "#1a1c1c",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed-variant": "#7d2d00",
+            "inverse-on-surface": "#f1f1f1",
+            "surface-bright": "#f9f9f9",
+            "primary-fixed-dim": "#ffb597",
+            "primary-container": "#a94b1d",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed": "#001e2d",
+            "on-tertiary-container": "#cdeaff",
+            "on-primary": "#ffffff",
+            "tertiary": "#005577",
+            "on-surface-variant": "#56423b",
+            "on-secondary-fixed-variant": "#683b27",
+            "outline": "#897269",
+            "on-error": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "surface": "#f9f9f9",
+            /* Core tokens matching spec */
+            "work-canvas": "#F7F7F7",
+            "paper-surface": "#FFFFFF",
+            "charcoal-ink": "#202020",
+            "quiet-graphite": "#626262",
+            "structural-grey": "#D5D5D5",
+            "action-orange": "#A94B1D",
+            "status-good": "#24704B",
+            "status-waiting": "#805800",
+            "status-refused": "#AE2C2C"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+      --travel: 12px;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .border-rule {
+      border: 1px solid #D5D5D5;
+    }
+
+    .border-b-rule {
+      border-bottom: 1px solid #D5D5D5;
+    }
+
+    .border-t-rule {
+      border-top: 1px solid #D5D5D5;
+    }
+
+    .border-r-rule {
+      border-right: 1px solid #D5D5D5;
+    }
+
+    .border-l-rule {
+      border-left: 1px solid #D5D5D5;
+    }
+
+    /* Keyframe animations */
+    @keyframes settle {
+      from { opacity: .6; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes breathe {
+      0%, 100% { opacity: .7; }
+      50% { opacity: 1; }
+    }
+    @keyframes sequence-fill {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .save-status.is-confirmed {
+      animation: settle var(--dur-base) var(--ease-out) both;
+    }
+    .sync-dot.is-syncing {
+      animation: breathe 6s ease-in-out infinite;
+    }
+    .sequence-progress {
+      transform-origin: left;
+      animation: sequence-fill var(--dur-slow) var(--ease-out) both;
+    }
+
+    /* Interactive press */
+    .btn-press:active {
+      transform: scale(0.97);
+      transition: transform var(--dur-instant) ease;
+    }
+
+    /* Focus outline matching token */
+    input:focus, select:focus, textarea:focus, button:focus-visible {
+      outline: 2px solid #A94B1D !important;
+      outline-offset: 2px !important;
+      border-color: #A94B1D !important;
+      box-shadow: none !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-property: opacity !important;
+        transition-duration: 120ms !important;
+        scroll-behavior: auto !important;
+      }
+      .sequence-progress {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col bg-work-canvas text-charcoal-ink">
+<!-- Header (exact specifications) -->
+<header class="w-full bg-paper-surface border-b-rule">
+<div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
+<!-- Left side: Brand + Nav items -->
+<div class="flex items-center gap-6 sm:gap-8 h-full">
+<div class="flex items-center gap-2">
+<!-- Small square with white 'M' beside "Meridian" -->
+<div aria-hidden="true" class="w-5 h-5 bg-charcoal-ink flex items-center justify-center rounded-[2px]">
+<span class="text-paper-surface font-headline font-bold text-xs leading-none">M</span>
+</div>
+<span class="font-headline font-bold text-base tracking-wider text-charcoal-ink">Meridian</span>
+</div>
+<nav class="flex items-center h-full gap-1 sm:gap-2">
+<!-- Active menu item with #A94B1D indicator -->
+<a class="h-full inline-flex items-center px-2 text-sm font-medium text-action-orange border-b-2 border-action-orange transition-colors" href="#">
+            Waiting decisions
+          </a>
+<a class="h-full inline-flex items-center px-2 text-sm font-normal text-quiet-graphite hover:text-charcoal-ink transition-colors" href="#">
+            Recalls
+          </a>
+</nav>
+</div>
+<!-- Right side: Nadia Farouk · Quality Manager with 'NF' initials avatar box to the left, plus 'EN / العربية' -->
+<div class="flex items-center gap-4 text-sm">
+<div class="flex items-center gap-2">
+<div aria-hidden="true" class="w-6 h-6 bg-surface-container-high text-charcoal-ink font-mono text-xs font-semibold flex items-center justify-center rounded-[2px] border-rule">
+            NF
+          </div>
+<span class="text-charcoal-ink font-medium">Nadia Farouk</span>
+<span class="text-structural-grey">·</span>
+<span class="text-quiet-graphite hidden md:inline">Quality Manager</span>
+</div>
+<span aria-hidden="true" class="text-structural-grey">|</span>
+<div class="text-quiet-graphite text-xs font-medium tracking-wide">
+<span class="text-charcoal-ink font-semibold">EN</span> / <span class="hover:text-charcoal-ink cursor-pointer">العربية</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas: max-width 1280px, 8px rhythm, 32px between sections -->
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+<!-- Top Headline Section -->
+<div class="space-y-1">
+<div class="flex items-center gap-2 text-xs text-quiet-graphite font-mono uppercase tracking-wider">
+<span>Cold Chain Governance</span>
+<span>/</span>
+<span>Audit Trail 2026-Q2</span>
+<span>/</span>
+<span class="text-charcoal-ink font-semibold">Case Q-88</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
+<h1 class="font-headline font-[650] text-[clamp(24px,2.2vw,28px)] leading-[1.2] tracking-[-0.025em] text-charcoal-ink">
+          Decision approval
+        </h1>
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-mono font-medium text-status-waiting bg-surface-container border-rule rounded-[2px]">
+<span aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-status-waiting sync-dot is-syncing"></span>
+            waiting sign-off
+          </span>
+<span class="text-xs text-quiet-graphite font-mono">Recorded 14 May 2026 08:32 BST</span>
+</div>
+</div>
+</div>
+<!-- 1. Proposal & Recommendation Block -->
+<section aria-labelledby="section-case-details" class="bg-paper-surface border-rule rounded-[2px]">
+<!-- Panel Header Bar -->
+<div class="p-4 border-b-rule flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-mono text-xs px-1.5 py-0.5 bg-surface-container-high border-rule text-charcoal-ink font-semibold">CASE Q-88</span>
+<h2 class="font-headline font-[650] text-[20px] leading-[1.3] text-charcoal-ink" id="section-case-details">
+              Lot IG-2511 · Insulin Glargine 100 units/mL
+            </h2>
+</div>
+<p class="text-sm text-quiet-graphite mt-1">
+            Storage location: <span class="text-charcoal-ink font-medium">Cold Room C2, Rack 4</span> · Handling Unit: <span class="font-mono text-charcoal-ink">HU-82</span>
+</p>
+</div>
+<div class="flex items-center gap-2 self-start md:self-auto">
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite">Two-person rule:</span>
+<span class="inline-flex items-center gap-1 text-xs px-2 py-1 font-medium text-status-refused border border-status-refused/30 bg-surface-container-low rounded-[2px]">
+<span aria-hidden="true" class="material-symbols-outlined text-[14px]">lock</span>
+            Proposer locked
+          </span>
+</div>
+</div>
+<!-- Content Grid: Proposer vs Recommendation -->
+<div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-structural-grey">
+<!-- Proposer Column -->
+<div class="p-4 space-y-4">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite block">Proposer</span>
+<p class="text-sm font-semibold text-charcoal-ink">Omar Saleh</p>
+<p class="text-xs text-quiet-graphite">Quality Officer, North Quay Facility</p>
+</div>
+<span class="text-xs font-mono text-quiet-graphite">Submitted 08:34 BST</span>
+</div>
+<!-- Enforcement Notice -->
+<div class="p-3 bg-surface-container-low border-rule rounded-[2px] flex items-start gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-status-refused text-[18px] shrink-0 mt-0.5">error</span>
+<div class="text-xs text-charcoal-ink">
+<span class="font-semibold text-status-refused">Proposer cannot approve own submission:</span>
+              two-person rule enforced. Final disposition requires secondary signature by Quality Manager.
+            </div>
+</div>
+<div class="space-y-1">
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite block">Proposed disposition</span>
+<p class="text-sm text-charcoal-ink leading-relaxed">
+              Release <span class="font-semibold text-charcoal-ink">10 quarantined packs</span> to Available stock; retain <span class="font-semibold text-charcoal-ink">5 on hold</span> pending secondary analysis; route <span class="font-semibold text-charcoal-ink">2 rejected packs</span> for destruction.
+            </p>
+</div>
+<div class="pt-2 text-xs text-quiet-graphite border-t-rule flex justify-between">
+<span>Disposal route: Destruction protocol D-12</span>
+<span>Witness required: Yes</span>
+</div>
+</div>
+<!-- System Recommendation Column -->
+<div class="p-4 space-y-4 bg-work-canvas/40">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite block">Algorithmic Assessment</span>
+<p class="text-sm font-semibold text-charcoal-ink">Meridian Assurance Engine v3.2</p>
+<p class="text-xs text-quiet-graphite">Rule profile: Cold Chain Protocol v3 (Biologics Tier 1)</p>
+</div>
+<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 font-medium text-status-waiting bg-paper-surface border-rule rounded-[2px]">
+<span aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-status-waiting"></span>
+              waiting manager sign
+            </span>
+</div>
+<div class="p-3 bg-paper-surface border-rule rounded-[2px] space-y-1">
+<div class="text-xs font-semibold text-charcoal-ink flex items-center gap-1.5">
+<span aria-hidden="true" class="material-symbols-outlined text-status-good text-[16px]">verified</span>
+              System recommendation: Release 10 quarantined packs to Available stock
+            </div>
+<p class="text-xs text-quiet-graphite leading-relaxed">
+              Profile v3 first upper-tier allowance compliant (<span class="font-mono text-charcoal-ink">22m / 30m</span> allowance used, <span class="font-mono text-charcoal-ink font-semibold">8m remaining</span>). Secondary hold and destruction routing aligned with damage inspection criteria.
+            </p>
+</div>
+<div class="grid grid-cols-3 gap-2 pt-1">
+<div class="p-2 bg-paper-surface border-rule rounded-[2px] text-center">
+<span class="block text-[11px] font-mono text-quiet-graphite">Release</span>
+<span class="font-num text-base font-semibold text-status-good">10 pk</span>
+</div>
+<div class="p-2 bg-paper-surface border-rule rounded-[2px] text-center">
+<span class="block text-[11px] font-mono text-quiet-graphite">Hold</span>
+<span class="font-num text-base font-semibold text-status-waiting">5 pk</span>
+</div>
+<div class="p-2 bg-paper-surface border-rule rounded-[2px] text-center">
+<span class="block text-[11px] font-mono text-quiet-graphite">Destroy</span>
+<span class="font-num text-base font-semibold text-status-refused">2 pk</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Excursion Chart & Reading Table -->
+<section aria-labelledby="section-telemetry" class="space-y-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<h2 class="font-headline font-[650] text-[20px] leading-[1.3] text-charcoal-ink" id="section-telemetry">
+          Excursion analysis &amp; telemetry readings
+        </h2>
+<span class="text-xs font-mono text-quiet-graphite">Sensor: LOG-HU82 · Calibrated: 02 Jan 2026 · Tolerance ±0.1°C</span>
+</div>
+<!-- Bento-style telemetry display -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+<!-- SVG Temperature Chart Panel (8 cols) -->
+<div class="lg:col-span-8 bg-paper-surface border-rule rounded-[2px] p-4 flex flex-col justify-between">
+<div>
+<div class="flex items-baseline justify-between mb-2">
+<span class="font-headline font-semibold text-sm text-charcoal-ink">Thermal curve excursion record</span>
+<div class="flex items-center gap-4 text-xs font-mono">
+<span class="inline-flex items-center gap-1.5">
+<span class="w-3 h-0.5 bg-status-good inline-block"></span> 2.0–8.0°C Safe band
+                </span>
+<span class="inline-flex items-center gap-1.5">
+<span class="w-3 h-0.5 bg-status-refused inline-block border-dashed"></span> 8.0°C Threshold
+                </span>
+<span class="inline-flex items-center gap-1.5">
+<span class="w-3 h-0.5 bg-action-orange inline-block"></span> Excursion Peak 9.1°C
+                </span>
+</div>
+</div>
+<!-- SVG Graph visualization -->
+<div class="w-full h-56 relative border-rule bg-work-canvas/30 rounded-[2px] overflow-hidden my-2">
+<svg aria-label="Temperature history graph" class="w-full h-full" preserveaspectratio="none" viewbox="0 0 700 220">
+<!-- Grid background lines -->
+<line stroke="#D5D5D5" stroke-dasharray="2 2" stroke-width="1" x1="40" x2="680" y1="30" y2="30"></line>
+<line stroke="#AE2C2C" stroke-dasharray="4 4" stroke-width="1" x1="40" x2="680" y1="80" y2="80"></line>
+<line stroke="#D5D5D5" stroke-dasharray="2 2" stroke-width="1" x1="40" x2="680" y1="140" y2="140"></line>
+<line stroke="#D5D5D5" stroke-width="1" x1="40" x2="680" y1="190" y2="190"></line>
+<!-- Safe Band (2.0°C to 8.0°C) shaded zone: y 80 to 190 -->
+<rect fill="#24704B" fill-opacity="0.04" height="110" width="640" x="40" y="80"></rect>
+<!-- Upper Tier Band (>8.0°C to 10.0°C) shaded zone: y 30 to 80 -->
+<rect fill="#805800" fill-opacity="0.05" height="50" width="640" x="40" y="30"></rect>
+<!-- Unobserved Reading Gap Shaded Area (06:30 to 07:15) ~ x 250 to 330 -->
+<rect fill="#202020" fill-opacity="0.03" height="160" width="80" x="245" y="30"></rect>
+<line stroke="#D5D5D5" stroke-dasharray="2 2" stroke-width="1" x1="245" x2="245" y1="30" y2="190"></line>
+<line stroke="#D5D5D5" stroke-dasharray="2 2" stroke-width="1" x1="325" x2="325" y1="30" y2="190"></line>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" x="285" y="115">GAP (45m)</text>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" x="285" y="128">No charge</text>
+<!-- Y-axis scale labels -->
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="end" x="32" y="34">10°C</text>
+<text fill="#AE2C2C" font-family="IBM Plex Mono" font-size="10" font-weight="600" text-anchor="end" x="32" y="84">8°C</text>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="end" x="32" y="144">4°C</text>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="end" x="32" y="194">2°C</text>
+<!-- Continuous trace line segments -->
+<!-- 04:00 (4.2°C -> y 136, x 60) -->
+<!-- 06:00 (4.5°C -> y 131, x 210) -->
+<!-- GAP 06:30 to 07:15 (x 245 to 325) -->
+<!-- 08:00 (4.8°C -> y 126, x 380) -->
+<!-- 08:11 (4.6°C -> y 129, x 420) -->
+<!-- 08:19 (4.4°C -> y 133, x 450) -->
+<!-- 08:30 EXCURSION (9.1°C -> y 52, x 490) -->
+<!-- 08:52 Return to safe (7.2°C -> y 95, x 540) -->
+<!-- 09:10 Steady (4.5°C -> y 131, x 620) -->
+<!-- Segment 1: before gap -->
+<polyline fill="none" points="60,136 210,131 245,130" stroke="#24704B" stroke-width="2"></polyline>
+<!-- Discontinuous dashed across gap -->
+<line stroke="#D5D5D5" stroke-dasharray="3 3" stroke-width="1.5" x1="245" x2="325" y1="130" y2="128"></line>
+<!-- Segment 2: post-gap up to excursion -->
+<polyline fill="none" points="325,128 380,126 420,129 450,133" stroke="#24704B" stroke-width="2"></polyline>
+<!-- Excursion branch (orange/red) -->
+<polyline fill="none" points="450,133 490,52 520,58 540,95" stroke="#A94B1D" stroke-width="2.5"></polyline>
+<!-- Recovery to safe band -->
+<polyline fill="none" points="540,95 580,125 640,131" stroke="#24704B" stroke-width="2"></polyline>
+<!-- Highlight dots -->
+<circle cx="60" cy="136" fill="#24704B" r="3"></circle>
+<circle cx="210" cy="131" fill="#24704B" r="3"></circle>
+<circle cx="380" cy="126" fill="#24704B" r="3"></circle>
+<circle cx="420" cy="129" fill="#24704B" r="3"></circle>
+<circle cx="450" cy="133" fill="#24704B" r="3"></circle>
+<!-- Peak 9.1°C Marker -->
+<circle cx="490" cy="52" fill="#A94B1D" r="4.5" stroke="#FFFFFF" stroke-width="2"></circle>
+<rect fill="#A94B1D" height="18" rx="2" width="50" x="465" y="16"></rect>
+<text fill="#FFFFFF" font-family="IBM Plex Mono" font-size="10" font-weight="600" text-anchor="middle" x="490" y="29">9.1°C</text>
+<!-- 22 min excursion bracket annotation -->
+<line stroke="#A94B1D" stroke-width="1" x1="470" x2="535" y1="75" y2="75"></line>
+<line stroke="#A94B1D" stroke-width="1" x1="470" x2="470" y1="71" y2="79"></line>
+<line stroke="#A94B1D" stroke-width="1" x1="535" x2="535" y1="71" y2="79"></line>
+<text fill="#A94B1D" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" x="502" y="70">22 min</text>
+<!-- X Axis time marks -->
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" x="60" y="206">04:00</text>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" x="210" y="206">06:00</text>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" x="380" y="206">08:00</text>
+<text fill="#A94B1D" font-family="IBM Plex Mono" font-size="10" font-weight="600" text-anchor="middle" x="490" y="206">08:30</text>
+<text fill="#626262" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" x="640" y="206">09:15</text>
+</svg>
+</div>
+</div>
+<div class="pt-3 border-t-rule flex flex-col sm:flex-row sm:items-center justify-between text-xs text-quiet-graphite gap-2">
+<div>Excursion window: <span class="font-mono text-charcoal-ink font-semibold">08:30–08:52 BST</span> (Total: 22 minutes cumulative)</div>
+<div>Safe baseline recovery confirmed at <span class="font-mono text-charcoal-ink">08:52 BST (7.2°C)</span></div>
+</div>
+</div>
+<!-- Allowance Gauge / Ledger (4 cols) -->
+<div class="lg:col-span-4 bg-paper-surface border-rule rounded-[2px] p-4 flex flex-col justify-between space-y-4">
+<div>
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite block">Compliance Budget Ledger</span>
+<h3 class="font-headline font-semibold text-base text-charcoal-ink mt-0.5">
+              Upper-tier allowance budget
+            </h3>
+<p class="text-xs text-quiet-graphite mt-1">
+              Threshold &gt;8.0°C to 10.0°C cumulative exposure envelope for Profile v3 Biologics.
+            </p>
+</div>
+<!-- Gauge metrics -->
+<div class="space-y-3 p-3 bg-surface-container-low border-rule rounded-[2px]">
+<div class="flex items-baseline justify-between font-mono">
+<span class="text-xs text-quiet-graphite">Consumed</span>
+<span class="text-xl font-semibold text-action-orange">22 <span class="text-xs text-quiet-graphite font-normal">min</span></span>
+</div>
+<!-- Progress bar -->
+<div class="w-full bg-structural-grey h-2 rounded-[1px] overflow-hidden">
+<div class="bg-action-orange h-full sequence-progress" style="width: 73.33%;"></div>
+</div>
+<div class="flex items-baseline justify-between font-mono text-xs pt-1 border-t-rule border-dashed">
+<span class="text-quiet-graphite">Remaining budget:</span>
+<span class="font-semibold text-status-good">8 minutes remaining</span>
+</div>
+<div class="flex items-baseline justify-between font-mono text-xs">
+<span class="text-quiet-graphite">Total budget ceiling:</span>
+<span class="text-charcoal-ink">30 minutes</span>
+</div>
+</div>
+<!-- Summary list -->
+<div class="space-y-2 text-xs">
+<div class="flex justify-between py-1 border-b-rule">
+<span class="text-quiet-graphite">Cumulative tier charge:</span>
+<span class="font-mono text-charcoal-ink font-semibold">22 minutes</span>
+</div>
+<div class="flex justify-between py-1 border-b-rule">
+<span class="text-quiet-graphite">Reading gap charge:</span>
+<span class="font-mono text-status-good font-semibold">0 minutes (exempt)</span>
+</div>
+<div class="flex justify-between py-1">
+<span class="text-quiet-graphite">Engine status:</span>
+<span class="font-mono text-status-good font-semibold">ALLOWABLE RELEASE</span>
+</div>
+</div>
+<div class="p-2 bg-paper-surface border-rule rounded-[2px] text-[11px] text-quiet-graphite">
+            Notice: Secondary excursion &gt;8 min will trigger immediate batch discard protocol.
+          </div>
+</div>
+</div>
+<!-- Telemetry Readings Table -->
+<div class="bg-paper-surface border-rule rounded-[2px] overflow-x-auto">
+<table class="w-full text-left border-collapse text-sm">
+<thead>
+<tr class="border-b-rule bg-work-canvas/60 text-quiet-graphite text-xs font-mono uppercase tracking-[0.08em]">
+<th class="py-2.5 px-4 font-semibold">Timestamp (BST)</th>
+<th class="py-2.5 px-4 font-semibold">Sensor</th>
+<th class="py-2.5 px-4 font-semibold text-right">Recorded Temp</th>
+<th class="py-2.5 px-4 font-semibold">Classification &amp; Event</th>
+<th class="py-2.5 px-4 font-semibold">Tier Impact</th>
+<th class="py-2.5 px-4 font-semibold text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-structural-grey text-charcoal-ink">
+<!-- 04:00 -->
+<tr class="h-12 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-num font-medium text-xs">14 May 2026 04:00</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num font-semibold text-right text-status-good">4.2°C</td>
+<td class="px-4 text-xs">Cold room baseline steady state</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">None (safe band)</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-medium text-status-good">
+<span class="w-1.5 h-1.5 rounded-full bg-status-good"></span> good
+                </span>
+</td>
+</tr>
+<!-- 06:00 -->
+<tr class="h-12 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-num font-medium text-xs">14 May 2026 06:00</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num font-semibold text-right text-status-good">4.5°C</td>
+<td class="px-4 text-xs">Scheduled pre-shift cycle check</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">None (safe band)</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-medium text-status-good">
+<span class="w-1.5 h-1.5 rounded-full bg-status-good"></span> good
+                </span>
+</td>
+</tr>
+<!-- 06:30–07:15 Gap -->
+<tr class="h-12 bg-surface-container-low/60 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-num font-medium text-xs text-quiet-graphite">14 May 06:30–07:15</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num text-right text-quiet-graphite">—</td>
+<td class="px-4 text-xs text-quiet-graphite">
+<span class="font-medium text-charcoal-ink">[unobserved reading gap]</span> · Transit RF gateway handoff sync pause
+              </td>
+<td class="px-4 font-num text-xs text-quiet-graphite">no tier charge (audit policy §4.1)</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-medium text-status-waiting">
+<span class="w-1.5 h-1.5 rounded-full bg-status-waiting"></span> waiting
+                </span>
+</td>
+</tr>
+<!-- 08:00 -->
+<tr class="h-12 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-num font-medium text-xs">14 May 2026 08:00</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num font-semibold text-right text-status-good">4.8°C</td>
+<td class="px-4 text-xs">Dock intake physical inspection scan</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">None (safe band)</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-medium text-status-waiting">
+<span class="w-1.5 h-1.5 rounded-full bg-status-waiting"></span> dock intake
+                </span>
+</td>
+</tr>
+<!-- 08:11 -->
+<tr class="h-12 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-num font-medium text-xs">14 May 2026 08:11</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num font-semibold text-right text-status-good">4.6°C</td>
+<td class="px-4 text-xs">Logger parsed via dock optical interface</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">None</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-medium text-status-good">
+<span class="w-1.5 h-1.5 rounded-full bg-status-good"></span> logger parsed
+                </span>
+</td>
+</tr>
+<!-- 08:19 -->
+<tr class="h-12 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-num font-medium text-xs">14 May 2026 08:19</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num font-semibold text-right text-status-good">4.4°C</td>
+<td class="px-4 text-xs">Steady state before staging door cycle</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">None</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-medium text-status-good">
+<span class="w-1.5 h-1.5 rounded-full bg-status-good"></span> good
+                </span>
+</td>
+</tr>
+<!-- 08:30 Excursion -->
+<tr class="h-12 bg-surface-container-high/40 hover:bg-surface-container-high transition-colors">
+<td class="px-4 font-num font-semibold text-xs text-action-orange">14 May 2026 08:30</td>
+<td class="px-4 font-num text-xs text-quiet-graphite">LOG-HU82</td>
+<td class="px-4 font-num font-bold text-right text-action-orange">9.1°C</td>
+<td class="px-4 text-xs font-medium text-charcoal-ink">
+                First upper tier &gt;8–10°C, 22 minutes duration, excursion logged
+              </td>
+<td class="px-4 font-num text-xs font-semibold text-action-orange">+22m charge to budget</td>
+<td class="px-4 text-right">
+<span class="inline-flex items-center gap-1 text-xs font-mono font-semibold text-status-waiting">
+<span class="w-1.5 h-1.5 rounded-full bg-status-waiting"></span> waiting
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- 3. Impact Analysis on Stock, Order, and Routes -->
+<section aria-labelledby="section-impact" class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-[650] text-[20px] leading-[1.3] text-charcoal-ink" id="section-impact">
+          Impact analysis on stock, orders &amp; routes
+        </h2>
+<span class="text-xs font-mono text-quiet-graphite">Live dependency evaluation</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Card 1: Stock Scope -->
+<div class="bg-paper-surface border-rule rounded-[2px] p-4 flex flex-col justify-between space-y-3">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite">Stock Scope</span>
+<span class="font-num text-xs bg-surface-container px-1.5 py-0.5 rounded-[2px] font-semibold text-charcoal-ink">HU-82</span>
+</div>
+<h3 class="font-headline font-semibold text-base text-charcoal-ink mt-1">Lot IG-2511 Breakdown</h3>
+<p class="text-xs text-quiet-graphite mt-0.5">20 packs total in affected handling unit</p>
+</div>
+<div class="space-y-2 text-xs font-mono pt-1">
+<div class="flex justify-between items-center py-1 border-b-rule">
+<span class="text-quiet-graphite">Quarantined (candidate release):</span>
+<span class="font-semibold text-charcoal-ink">10 packs</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b-rule">
+<span class="text-quiet-graphite">On hold (secondary lab test):</span>
+<span class="font-semibold text-status-waiting">5 packs</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b-rule">
+<span class="text-quiet-graphite">Rejected (for destruction):</span>
+<span class="font-semibold text-status-refused">2 packs</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-quiet-graphite">Expired prior to event:</span>
+<span class="text-quiet-graphite">3 packs</span>
+</div>
+</div>
+<div class="p-2.5 bg-surface-container-low border-rule rounded-[2px] flex items-center justify-between text-xs">
+<span class="text-quiet-graphite">Total on hand warehouse-wide:</span>
+<span class="font-num font-semibold text-charcoal-ink">124 packs</span>
+</div>
+</div>
+<!-- Card 2: Downstream Orders -->
+<div class="bg-paper-surface border-rule rounded-[2px] p-4 flex flex-col justify-between space-y-3">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite">Downstream Orders</span>
+<span class="font-num text-xs bg-surface-container px-1.5 py-0.5 rounded-[2px] font-semibold text-status-good">ELIGIBLE</span>
+</div>
+<h3 class="font-headline font-semibold text-base text-charcoal-ink mt-1">Orders O-299 &amp; O-301</h3>
+<p class="text-xs text-quiet-graphite mt-0.5">Fulfillment gated by release decision</p>
+</div>
+<div class="space-y-2 text-xs pt-1">
+<div class="p-2 bg-work-canvas border-rule rounded-[2px] space-y-1">
+<div class="flex justify-between font-mono font-semibold">
+<span>Order O-299</span>
+<span class="text-status-good">20 packs allocated</span>
+</div>
+<p class="text-[11px] text-quiet-graphite font-mono">
+                Box B-701: 12 packs · Box B-702: 8 packs
+              </p>
+<p class="text-[11px] text-quiet-graphite">
+                Destination: Cedar Clinic · Depart 15:00 BST
+              </p>
+</div>
+<div class="p-2 bg-work-canvas border-rule rounded-[2px] space-y-1">
+<div class="flex justify-between font-mono font-semibold">
+<span>Order O-301</span>
+<span class="text-action-orange">10 outstanding</span>
+</div>
+<p class="text-[11px] text-quiet-graphite font-mono">
+                30 ordered · 20 allocated · Releasing HU-82 enables fulfillment
+              </p>
+</div>
+</div>
+<div class="text-[11px] text-status-good flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+            Both deliveries achievable without re-allocation delay
+          </div>
+</div>
+<!-- Card 3: Route Impact -->
+<div class="bg-paper-surface border-rule rounded-[2px] p-4 flex flex-col justify-between space-y-3">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite">Route Dispatch</span>
+<span class="font-num text-xs bg-surface-container px-1.5 py-0.5 rounded-[2px] font-semibold text-charcoal-ink">ROUTE R-204</span>
+</div>
+<h3 class="font-headline font-semibold text-base text-charcoal-ink mt-1">Cedar Clinic Run</h3>
+<p class="text-xs text-quiet-graphite mt-0.5">Dedicated refrigerated transit unit</p>
+</div>
+<div class="space-y-2 text-xs font-mono pt-1">
+<div class="flex justify-between py-1 border-b-rule">
+<span class="text-quiet-graphite font-sans">Driver assigned:</span>
+<span class="font-semibold text-charcoal-ink font-sans">Tariq Mansour</span>
+</div>
+<div class="flex justify-between py-1 border-b-rule">
+<span class="text-quiet-graphite font-sans">Vehicle:</span>
+<span class="font-semibold text-charcoal-ink">VAN-27 (Active ActiveChamber)</span>
+</div>
+<div class="flex justify-between py-1 border-b-rule">
+<span class="text-quiet-graphite font-sans">Scheduled departure:</span>
+<span class="font-semibold text-charcoal-ink">15:00 BST</span>
+</div>
+<div class="flex justify-between py-1">
+<span class="text-quiet-graphite font-sans">Loading schedule margin:</span>
+<span class="font-semibold text-status-good font-mono">+38 minutes</span>
+</div>
+</div>
+<div class="p-2.5 bg-surface-container-low border-rule rounded-[2px] flex items-center justify-between text-xs">
+<span class="text-quiet-graphite">Route status:</span>
+<span class="font-semibold text-status-good font-mono">ON SCHEDULE</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Manager Approval Step (Unmistakable separate manager-authorization section) -->
+<section aria-labelledby="section-manager-auth" class="bg-paper-surface border-rule rounded-[2px] p-6 space-y-6">
+<!-- Section Header -->
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between border-b-rule pb-4 gap-2">
+<div>
+<span class="text-xs uppercase font-mono tracking-wider text-action-orange font-semibold block">Section 4 · Governance Enforcement</span>
+<h2 class="font-headline font-[650] text-[20px] leading-[1.3] text-charcoal-ink mt-0.5" id="section-manager-auth">
+            Manager approval &amp; final authorization
+          </h2>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono">
+<span class="w-2 h-2 rounded-full bg-status-waiting"></span>
+<span>Awaiting Nadia Farouk sign-off</span>
+</div>
+</div>
+<!-- Critical Notice -->
+<div class="p-4 bg-surface-container border-rule rounded-[2px] flex items-start gap-3">
+<span aria-hidden="true" class="material-symbols-outlined text-action-orange text-[20px] shrink-0 mt-0.5">policy</span>
+<div class="text-xs text-charcoal-ink space-y-1">
+<p class="font-semibold text-charcoal-ink">
+            Primary Sign decision is irreversible. As proposer Omar Saleh is logged out of final sign-off, Nadia Farouk dual-authorization is mandatory.
+          </p>
+<p class="text-quiet-graphite">
+            This electronic signature commits the disposition to the cold chain audit ledger, notifies warehouse staging teams, and unlocks allocation for dispatch on Route R-204.
+          </p>
+</div>
+</div>
+<!-- Authorization Form -->
+<form class="space-y-6" onsubmit="event.preventDefault(); document.getElementById('success-banner').classList.remove('hidden'); window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Decision Action Dropdown -->
+<div class="space-y-2">
+<label class="block text-sm font-semibold text-charcoal-ink" for="decision-action">
+              Decision action
+            </label>
+<select class="w-full h-12 bg-paper-surface border-rule rounded-[2px] px-3 text-sm text-charcoal-ink" id="decision-action" name="decision_action">
+<option selected="" value="approve">Approve recommendation (Release 10 packs to Available stock)</option>
+<option value="reject">Reject &amp; Quarantine all</option>
+<option value="custom">Custom disposition</option>
+</select>
+<p class="text-xs text-quiet-graphite">Recommendation matches Profile v3 first upper-tier allowance criteria.</p>
+</div>
+<!-- Reason Field -->
+<div class="space-y-2">
+<label class="block text-sm font-semibold text-charcoal-ink" for="decision-reason">
+              Reason code &amp; primary reference
+            </label>
+<input class="w-full h-12 bg-paper-surface border-rule rounded-[2px] px-3 text-sm text-charcoal-ink font-mono" id="decision-reason" name="decision_reason" placeholder="Enter standard operational procedure reference" type="text" value="SOP-CC-204 §6.2 / Cumulative 22m excursion verified allowable"/>
+<p class="text-xs text-quiet-graphite">Standard code will be appended to the regulatory batch docket.</p>
+</div>
+</div>
+<!-- Written Justification Textarea -->
+<div class="space-y-2">
+<label class="block text-sm font-semibold text-charcoal-ink" for="written-justification">
+            Written justification <span class="font-normal text-quiet-graphite">(Required when opposing or modifying recommendation)</span>
+</label>
+<textarea class="w-full bg-paper-surface border-rule rounded-[2px] p-3 text-sm text-charcoal-ink leading-relaxed" id="written-justification" name="written_justification" placeholder="Enter supporting quality assurance commentary, physical thermal packet inspection results, or secondary risk notes..." rows="3">Inspection confirmed dry ice vapor integrity intact during dock transit. 22 min excursion at 9.1°C remains within biological stability safety factor per manufacturer batch release dossier.</textarea>
+<p class="text-xs text-quiet-graphite">Immutable entry. Max 500 characters. Plain language audit-standard formatting required.</p>
+</div>
+<!-- Nadia's Authentication Section -->
+<div class="p-4 bg-work-canvas border-rule rounded-[2px] space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 bg-charcoal-ink text-paper-surface font-mono text-[10px] flex items-center justify-center rounded-[2px]">NF</span>
+<span class="text-sm font-semibold text-charcoal-ink">Meridian account authentication · Nadia Farouk</span>
+</div>
+<span class="text-xs font-mono text-quiet-graphite">Quality Manager Certificate #QM-8802</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-1.5">
+<label class="block text-xs font-medium text-quiet-graphite" for="auth-method">Verification method</label>
+<select class="w-full h-12 bg-paper-surface border-rule rounded-[2px] px-3 text-sm text-charcoal-ink" id="auth-method">
+<option value="fido2">Hardware Security Key (FIDO2 / WebAuthn)</option>
+<option selected="" value="password">Meridian Password + TOTP Authenticator</option>
+<option value="sso">Corporate SSO Duo Push</option>
+</select>
+</div>
+<div class="space-y-1.5">
+<label class="block text-xs font-medium text-quiet-graphite" for="auth-token">Password or Security Passcode</label>
+<input class="w-full h-12 bg-paper-surface border-rule rounded-[2px] px-3 text-sm text-charcoal-ink font-mono" id="auth-token" placeholder="Enter password to confirm identity" type="password" value="••••••••••••••••"/>
+</div>
+</div>
+</div>
+<!-- Form Actions -->
+<div class="pt-4 border-t-rule flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+<button class="h-12 px-6 bg-action-orange text-paper-surface font-medium text-sm rounded-[2px] btn-press inline-flex items-center justify-center gap-2 shadow-none hover:bg-primary transition-colors" type="submit">
+<span class="material-symbols-outlined text-[18px]">draw</span>
+<span>Sign decision</span>
+</button>
+<button class="h-12 px-5 bg-paper-surface text-charcoal-ink border-rule font-medium text-sm rounded-[2px] btn-press inline-flex items-center justify-center hover:bg-surface-container transition-colors" type="button">
+              Return to waiting decisions
+            </button>
+</div>
+<div class="text-xs text-quiet-graphite">
+<span class="font-semibold text-charcoal-ink">Irreversible action</span> — disposition seals audit record permanently.
+          </div>
+</div>
+</form>
+<!-- Signature Confirmation Banner (Hidden by default, triggered on submit) -->
+<div class="hidden p-4 bg-surface-container border-rule border-status-good/50 rounded-[2px] save-status is-confirmed space-y-1" id="success-banner">
+<div class="flex items-center gap-2 text-status-good font-semibold text-sm">
+<span class="material-symbols-outlined text-[18px]">task_alt</span>
+          Decision signed and sealed by Nadia Farouk (14 May 2026, 08:35:12 BST)
+        </div>
+<p class="text-xs text-quiet-graphite">
+          Batch IG-2511 updated. 10 packs allocated to Available stock; Route R-204 picking list dispatched to driver Tariq Mansour.
+        </p>
+</div>
+</section>
+<!-- 5. Read-only Historical / Superseded Comparison Panel -->
+<section aria-labelledby="section-superseded" class="bg-paper-surface border-rule rounded-[2px] p-6 space-y-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between border-b-rule pb-3 gap-2">
+<div>
+<span class="text-xs uppercase font-mono tracking-wider text-quiet-graphite block">Audit Trail &amp; Version History</span>
+<h2 class="font-headline font-[650] text-[16px] leading-[1.35] text-charcoal-ink" id="section-superseded">
+            Superseded disposition comparison ledger
+          </h2>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono text-quiet-graphite">
+<span class="material-symbols-outlined text-[16px]">history</span>
+<span>Immutable Ledger ID: AUD-2026-88219</span>
+</div>
+</div>
+<p class="text-xs text-quiet-graphite leading-relaxed">
+        Showing earlier intake disposition recorded at dock arrival versus the current proposed/signed disposition. In accordance with cold chain assurance standards, earlier entries are never overwritten or deleted.
+      </p>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-xs">
+<thead>
+<tr class="border-b-rule bg-work-canvas/60 text-quiet-graphite font-mono uppercase tracking-[0.08em]">
+<th class="py-2 px-3 font-semibold">Ledger Entry</th>
+<th class="py-2 px-3 font-semibold">Logged by</th>
+<th class="py-2 px-3 font-semibold">Timestamp (BST)</th>
+<th class="py-2 px-3 font-semibold">Total Stock Scope</th>
+<th class="py-2 px-3 font-semibold">Quarantine</th>
+<th class="py-2 px-3 font-semibold">Available</th>
+<th class="py-2 px-3 font-semibold">Secondary Hold</th>
+<th class="py-2 px-3 font-semibold">Destruction</th>
+<th class="py-2 px-3 font-semibold">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-structural-grey font-mono text-charcoal-ink">
+<!-- Earlier entry -->
+<tr class="h-10 hover:bg-surface-container-low transition-colors bg-surface-container-low/40">
+<td class="px-3 font-semibold text-quiet-graphite">REV-01 (Intake)</td>
+<td class="px-3 font-sans text-quiet-graphite">System Auto-Hold</td>
+<td class="px-3 text-quiet-graphite">14 May 08:00</td>
+<td class="px-3 text-quiet-graphite">20 packs</td>
+<td class="px-3 text-quiet-graphite">20 pk</td>
+<td class="px-3 text-quiet-graphite">0 pk</td>
+<td class="px-3 text-quiet-graphite">0 pk</td>
+<td class="px-3 text-quiet-graphite">0 pk</td>
+<td class="px-3">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10px] bg-surface-container text-quiet-graphite border-rule">
+                  Superseded
+                </span>
+</td>
+</tr>
+<!-- Omar's proposal -->
+<tr class="h-10 hover:bg-surface-container-low transition-colors">
+<td class="px-3 font-semibold text-charcoal-ink">REV-02 (Proposed)</td>
+<td class="px-3 font-sans">Omar Saleh</td>
+<td class="px-3">14 May 08:34</td>
+<td class="px-3">20 packs</td>
+<td class="px-3 text-status-waiting">0 pk</td>
+<td class="px-3 text-status-good font-semibold">10 pk</td>
+<td class="px-3 text-status-waiting">5 pk</td>
+<td class="px-3 text-status-refused">2 pk</td>
+<td class="px-3">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10px] bg-surface-container text-status-waiting border-rule font-medium">
+                  Under Sign-off
+                </span>
+</td>
+</tr>
+<!-- Final signed preview -->
+<tr class="h-10 hover:bg-surface-container-low transition-colors bg-work-canvas/70">
+<td class="px-3 font-semibold text-action-orange">REV-03 (Final Sign)</td>
+<td class="px-3 font-sans font-medium">Nadia Farouk</td>
+<td class="px-3">Pending authorization</td>
+<td class="px-3 font-bold">20 packs</td>
+<td class="px-3 text-quiet-graphite">0 pk</td>
+<td class="px-3 text-status-good font-bold">10 pk</td>
+<td class="px-3 text-status-waiting font-bold">5 pk</td>
+<td class="px-3 text-status-refused font-bold">2 pk</td>
+<td class="px-3">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10px] bg-paper-surface text-action-orange border-rule font-semibold">
+                  Awaiting Signature
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="flex items-center justify-between text-[11px] text-quiet-graphite pt-2 border-t-rule">
+<span>Hash check: SHA-256 verified integrity · Node: North-Quay-Primary-01</span>
+<span>Retention policy: GxP 7 Years Immutable</span>
+</div>
+</section>
+</main>
+</body></html>

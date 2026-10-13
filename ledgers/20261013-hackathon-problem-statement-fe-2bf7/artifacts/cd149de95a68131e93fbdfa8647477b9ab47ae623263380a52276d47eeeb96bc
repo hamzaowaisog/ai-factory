@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Authentication|appsettings",
+    "glob": "**/*"
+   },
+   "ms": 4,
+   "resultChars": 240,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Authentication|appsettings&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\ncontracts/openapi.yaml:2160: description: \"Authentication is missing or expired.\"\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetLotForecastResponseMock|function getGetLotForecastResponseMock|getGetProfitabilityResponseMock|getGetDashboardResponseMock",
+    "glob": "tests/**"
+   },
+   "ms": 3,
+   "resultChars": 1569,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetLotForecastResponseMock|function getGetLotForecastResponseMock|getGetProfitabilityResponseMock|getGetD\">\ntests/acceptance.test.tsx:19: getGetLotForecastResponseMock,\ntests/acceptance.test.tsx:36: getGetDashboardResponseMock,\ntests/acceptance.test.tsx:39: getGetProfitabilityResponseMock,\ntests/acceptance.test.tsx:167: ? HttpResponse.json(getGetDashboardResponseMock())\ntests/acceptance.test.tsx:311: server.use((await import(\"@/lib/api/client.msw\")).getGetLotForecastMockHandler(getGetLotForecastResponseMock()));\ntests/acceptance.test.tsx:317: const response = getGetLotForecastResponseMock();\ntests/acceptance.test.tsx:345: const viewOnly = getGetLotForecastResponseMock();\ntests/acceptance.test.tsx:1006: const response = getGetDashboardResponseMock();\ntests/acceptance.test.tsx:1024: const response = getGetDashboardResponseMock();\ntests/acceptance.test.tsx:1048: const response = getGetDashboardResponseMock();\ntests/acceptance.test.tsx:1119: const response = getGetDashboardResponseMock();\ntests/acceptance.test.tsx:1223: server.use((await import(\"@/lib/api/client.msw\")).getGetProfitabilityMockHandler(getGetProfitabilityResponseMock()));\ntests/acceptance.test.tsx:1247: const response = getGetProfitabilityResponseMock();\ntests/acceptance.test.tsx:1257: const response = getGetProfitabilityResponseMock();\ntests/acceptance.test.tsx:1360: const response = getGetDashboardResponseMock();\ntests/acceptance.test.tsx:1374: const response = getGetDashboardResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

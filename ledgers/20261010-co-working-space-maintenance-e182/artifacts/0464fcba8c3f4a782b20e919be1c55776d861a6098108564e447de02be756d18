@@ -1,0 +1,114 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The maintenance request system shall provide a browser-accessible web front end, an HTTP API, and a database storing request records."
+     },
+     {
+      "n": 2,
+      "text": "When an empty database is initialized, the system shall seed exactly eight requests: four Open including exactly one Urgent, two In progress, and two Done, with every supported area represented."
+     },
+     {
+      "n": 3,
+      "text": "The system shall persist requests across browser reloads and application restarts."
+     },
+     {
+      "n": 4,
+      "text": "The API shall expose exactly four request operations—list, create, retrieve an individual request, and change status—and reject edits to fixed fields and request deletion."
+     },
+     {
+      "n": 5,
+      "text": "The API shall list all requests or only those matching one selected status, ordered newest first."
+     },
+     {
+      "n": 6,
+      "text": "For a valid new request, the system shall assign a generated identifier and UTC creation time and set its status to Open."
+     },
+     {
+      "n": 7,
+      "text": "Creation shall require and store a title trimmed to 3 to 80 characters, an area of Kitchen, Meeting room, Open desk, Washroom, or Reception, a priority of Low, Normal, or Urgent, and an optional description of at most 500 characters, rejecting invalid values with an error naming the field."
+     },
+     {
+      "n": 8,
+      "text": "The API shall keep a request's title, area, priority, and description fixed after creation and reject attempts to change those fields or delete the request."
+     },
+     {
+      "n": 9,
+      "text": "The API shall permit only Open to In progress, In progress to Done, and Done to Open status transitions, reject all other transitions, return not found for an unknown request, and reject a missing status-change body or unrecognized status without changing any request."
+     },
+     {
+      "n": 10,
+      "text": "The Requests screen shall show the Hive Works wordmark, the demo user's initials SC, a status filter with All, Open, In progress, and Done choices initially set to All, a New request button, and a newest-first list."
+     },
+     {
+      "n": 11,
+      "text": "The Requests screen shall refresh the list for a selected status filter and retain that filter when returning from request detail, including after a status change."
+     },
+     {
+      "n": 12,
+      "text": "New request shall open a dialog with labeled Title, Area, Priority, and Description fields, Normal selected by default for Priority, and Create and Cancel controls."
+     },
+     {
+      "n": 13,
+      "text": "After successful creation, the Requests screen shall close the dialog, select All, and show the new Open request at the top of the list."
+     },
+     {
+      "n": 14,
+      "text": "On creation validation failure, the Requests screen shall keep the dialog open and show the error under the invalid field, including “Title must be 3 to 80 characters.” for a two-character title."
+     },
+     {
+      "n": 15,
+      "text": "On a non-validation create API failure, the Requests screen shall retain entered values, allow retry through Create, and show “Could not create request.” in the dialog."
+     },
+     {
+      "n": 16,
+      "text": "The Requests screen shall show “Loading requests…” while loading, “No requests here.” when the selected filter has no matches, and “Could not load requests.” with a Retry button when loading fails."
+     },
+     {
+      "n": 17,
+      "text": "The request detail screen shall show a back link, title, area, priority badge, status badge, created date, and description or “No description.” when the description is empty."
+     },
+     {
+      "n": 18,
+      "text": "The request detail screen shall show Start work for Open, Mark done for In progress, and Reopen for Done."
+     },
+     {
+      "n": 19,
+      "text": "The request detail screen shall show the new status badge and corresponding action only after a successful status change, or retain the prior status badge and show “Could not update the request.” on failure."
+     },
+     {
+      "n": 20,
+      "text": "For a nonexistent request, the system shall return not found through the API and display “Request not found.” with a link back to Requests on the detail screen."
+     },
+     {
+      "n": 21,
+      "text": "The screens shall use one light theme, one sans-serif font, a neutral background, near-black text, and text-labeled badges colored blue for Open, amber for In progress, green for Done, red for Urgent, and neutral for Low and Normal."
+     },
+     {
+      "n": 22,
+      "text": "The screens shall use stacked request cards at 375 px and table rows at the fixed 1280 px viewport target, avoid horizontal page scrolling at those widths, label every field, make every control keyboard reachable, and meet WCAG AA text contrast."
+     },
+     {
+      "n": 23,
+      "text": "The list and detail screens shall display stored UTC creation times as date-only values such as “8 Oct 2026” without a time or timezone."
+     },
+     {
+      "n": 24,
+      "text": "The application shall include passing automated business-rule tests for valid Open creation, missing and too-short titles, missing area, oversized description, all three allowed transitions, a disallowed transition, filtered newest-first listing, and unknown-request not-found behavior, plus a passing end-to-end list, create, open, Start work, Mark done, and Done-filter workflow that verifies the new request appears first at the top and then in the Done-filtered list."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

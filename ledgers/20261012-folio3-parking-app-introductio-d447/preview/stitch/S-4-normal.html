@@ -1,0 +1,401 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Employee Dedicated Parking · Pass Cockpit</title>
+<!-- Google Fonts: IBM Plex Sans & IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Public+Sans:wght@500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#cbc6bd",
+            "primary-fixed": "#e4e1e6",
+            "surface-variant": "#353435",
+            "on-secondary-container": "#b7b4b6",
+            "surface-container-lowest": "#0e0e0e",
+            "on-tertiary-container": "#85817a",
+            "tertiary": "#cbc6bd",
+            "surface-container-high": "#2b2a2a",
+            "background": "#141313",
+            "surface": "#141313",
+            "secondary": "#c9c6c7",
+            "on-tertiary-fixed": "#1d1b16",
+            "on-tertiary-fixed-variant": "#494640",
+            "on-primary-fixed-variant": "#47464a",
+            "primary": "#c8c5ca",
+            "tertiary-fixed": "#e8e2d9",
+            "surface-tint": "#c8c5ca",
+            "inverse-surface": "#e5e2e1",
+            "surface-container": "#201f20",
+            "secondary-container": "#474648",
+            "on-primary-fixed": "#1b1b1e",
+            "inverse-on-surface": "#313030",
+            "on-primary": "#303033",
+            "on-secondary": "#313031",
+            "error-container": "#93000a",
+            "surface-dim": "#141313",
+            "on-surface-variant": "#c8c5cb",
+            "on-error-container": "#ffdad6",
+            "outline": "#919095",
+            "on-tertiary": "#33302a",
+            "secondary-fixed-dim": "#c9c6c7",
+            "on-surface": "#e5e2e1",
+            "on-error": "#690005",
+            "secondary-fixed": "#e5e1e3",
+            "outline-variant": "#47464b",
+            "primary-fixed-dim": "#c8c5ca",
+            "on-primary-container": "#828184",
+            "on-secondary-fixed-variant": "#474648",
+            "error": "#ffb4ab",
+            "surface-container-low": "#1c1b1c",
+            "primary-container": "#18181b",
+            "on-background": "#e5e2e1",
+            "surface-bright": "#3a3939",
+            "on-secondary-fixed": "#1c1b1d",
+            "inverse-primary": "#5f5e61",
+            "tertiary-container": "#1a1813",
+            "surface-container-highest": "#353435"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["IBM Plex Sans", "sans-serif"],
+            "display": ["IBM Plex Sans", "sans-serif"],
+            "body": ["IBM Plex Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    :root {
+      --canvas: #18181B;
+      --panel: #1F1F23;
+      --raised: #27272C;
+      --accent: #E6C34A;
+      --accent-press: #CFAE3E;
+      --accent-tint: rgba(230, 195, 74, 0.08);
+      --rule: rgba(244, 244, 245, 0.08);
+      --rule-strong: rgba(244, 244, 245, 0.16);
+      --clear: #45C07F;
+      --stop: #E5534B;
+    }
+
+    body {
+      background-color: var(--canvas);
+      color: #F4F4F5;
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      padding: 0;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums slashed-zero;
+    }
+
+    /* Ambient breathing live-link status dot */
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+      50% {
+        transform: scale(1.75);
+        opacity: 0;
+      }
+    }
+
+    .live-ring {
+      position: absolute;
+      inset: -3px;
+      border: 1px solid var(--clear);
+      border-radius: 50%;
+      animation: breathe 6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      pointer-events: none;
+    }
+
+    /* Staggered entrance animation for container and cards */
+    @keyframes enterRise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .anim-enter {
+      animation: enterRise 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .delay-1 { animation-delay: 40ms; }
+    .delay-2 { animation-delay: 90ms; }
+    .delay-3 { animation-delay: 140ms; }
+    .delay-4 { animation-delay: 190ms; }
+    .delay-5 { animation-delay: 240ms; }
+
+    /* Bay-line marker */
+    .bay-line-marker {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 1px;
+      background-color: var(--rule);
+      margin-bottom: 0.75rem;
+    }
+    .bay-line-marker::before {
+      content: '';
+      width: 24px;
+      height: 2px;
+      background-color: var(--accent);
+      display: block;
+    }
+
+    /* View transition signature for space bay */
+    .bay-code-target {
+      view-transition-name: bay-code;
+    }
+    ::view-transition-group(bay-code) {
+      animation-duration: 420ms;
+      animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* Precision button micro-interactions */
+    .btn-instrument-primary {
+      background-color: var(--accent);
+      color: #18181B;
+      transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 90ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-instrument-primary:hover {
+      background-color: var(--accent-press);
+    }
+    .btn-instrument-primary:active {
+      transform: scale(0.97);
+    }
+    .btn-instrument-primary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .plate-token {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--rule-strong);
+      border-radius: 2px;
+      background-color: var(--canvas);
+    }
+
+    /* Reduced motion override */
+    @media (prefers-reduced-motion: reduce) {
+      .live-ring {
+        animation: none;
+        opacity: 0.3;
+      }
+      .anim-enter {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+      ::view-transition-group(bay-code) {
+        animation: none;
+      }
+      .btn-instrument-primary:active {
+        transform: none;
+      }
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-primary-container text-on-surface antialiased flex flex-col justify-between selection:bg-yellow-500/20 selection:text-white">
+<!-- Mobile Shell Wrapper (max-w-md viewport) -->
+<div class="w-full max-w-md mx-auto min-h-[884px] flex flex-col relative bg-primary-container">
+<!-- 1. Top Bar: Terminal Gate Link & Header Control -->
+<header class="bg-surface-container-low border-b border-outline-variant/20 sticky top-0 z-40 w-full px-4 h-12 flex justify-between items-center max-w-md mx-auto">
+<div class="flex items-center space-x-2.5">
+<!-- Ambient breathing live-link status dot -->
+<div class="relative flex items-center justify-center w-3 h-3">
+<div class="live-ring"></div>
+<span class="w-1.5 h-1.5 rounded-full bg-[#45C07F]"></span>
+</div>
+<span class="font-mono text-[11px] font-medium tracking-[0.08em] uppercase text-on-surface-variant flex items-center gap-1.5">
+<span class="text-on-surface">GATE 01</span>
+<span class="text-outline-variant">·</span>
+<span class="text-[#45C07F]">LINK ONLINE</span>
+</span>
+</div>
+<div class="flex items-center space-x-1">
+<button aria-label="Sensor diagnostics" class="w-8 h-8 flex items-center justify-center rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors active:scale-95 duration-90" type="button">
+<span class="material-symbols-outlined text-[18px]">sensors</span>
+</button>
+<button aria-label="Terminal settings" class="w-8 h-8 flex items-center justify-center rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors active:scale-95 duration-90" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas (Asymmetric grid, Density 7 Cockpit feel) -->
+<main class="flex-1 px-4 pt-4 pb-24 flex flex-col">
+<!-- 2. Greeting Header -->
+<section class="anim-enter delay-1 mb-5">
+<div class="font-mono text-[10px] uppercase tracking-[0.1em] text-on-surface-variant mb-1 font-medium">Assigned Stall Cockpit</div>
+<h1 class="font-headline font-semibold text-[22px] leading-tight tracking-tight text-on-surface">Good morning, Ahmed Raza</h1>
+</section>
+<!-- 3. Space Instrument Card (Owner's Pass) -->
+<section class="anim-enter delay-2 mb-4">
+<div class="relative bg-surface-container-low border border-outline-variant/30 rounded-[4px] p-4 box-border shadow-none overflow-hidden border-l-[3px] border-l-[#E6C34A]">
+<!-- Card Sub-header: Date & Status Pill -->
+<div class="flex items-center justify-between border-b border-outline-variant/20 pb-3 mb-3.5">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-[#A1A1AA]">calendar_today</span>
+<span class="font-mono text-xs text-[#F4F4F5] tracking-tight tabular-nums font-medium">Tue 14 Oct 2025</span>
+</div>
+<!-- Status Pill -->
+<div class="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-container-high border border-outline-variant/40">
+<span class="w-1.5 h-1.5 rounded-full bg-[#45C07F] mr-1.5"></span>
+<span class="font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-on-surface">Reserved for you</span>
+</div>
+</div>
+<!-- Space Readout: Very large tabular figures -->
+<div class="py-1">
+<span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#A1A1AA] block mb-1">Assigned Unit</span>
+<div class="flex items-baseline justify-between flex-wrap gap-2">
+<div class="bay-code-target font-mono font-semibold text-[34px] leading-none tracking-[-0.03em] text-[#F4F4F5] tabular-nums">
+                Space B2-17
+              </div>
+<div class="plate-token px-2 py-0.5 text-xs text-[#A1A1AA]">
+                Floor B2
+              </div>
+</div>
+</div>
+<!-- Divider hairline with parking marker accent -->
+<div class="bay-line-marker my-3.5"></div>
+<!-- Vehicle Detail Well -->
+<div class="bg-primary-container border border-outline-variant/30 rounded-[2px] p-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-2.5 overflow-hidden">
+<span class="material-symbols-outlined text-base text-[#A1A1AA]">directions_car</span>
+<div class="truncate">
+<span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#A1A1AA] block">Active Registration</span>
+<span class="font-mono text-xs text-[#F4F4F5] tracking-tight truncate block">LEA-7731 · Honda Civic · Grey</span>
+</div>
+</div>
+<span class="font-mono text-[10px] text-[#45C07F] uppercase tracking-wider font-medium shrink-0 ml-2">VERIFIED</span>
+</div>
+<!-- Instrument Inset Data Row -->
+<div class="mt-3 grid grid-cols-2 gap-2 pt-2 border-t border-outline-variant/20 font-mono text-[10px] text-[#A1A1AA]">
+<div>
+<span class="uppercase tracking-wider">Permit Class:</span>
+<span class="text-[#F4F4F5] font-medium ml-1">Staff Core</span>
+</div>
+<div class="text-right">
+<span class="uppercase tracking-wider">Access:</span>
+<span class="text-[#F4F4F5] font-medium ml-1">24/7 RFID</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Primary Action Button -->
+<section class="anim-enter delay-3 mb-2">
+<button class="btn-instrument-primary w-full h-11 rounded-[2px] font-body font-medium text-sm flex items-center justify-center tracking-normal" type="button">
+          Release today's space
+        </button>
+</section>
+<!-- 5. Helper Text Under Button -->
+<section class="anim-enter delay-3 mb-6 px-0.5">
+<p class="font-body text-xs leading-relaxed text-[#A1A1AA] max-w-[65ch]">
+          Released before 9:30 AM? It becomes claimable at 9:30 AM. Released after that, colleagues can claim it right away.
+        </p>
+</section>
+<!-- 6. Compact 'Upcoming releases' Section -->
+<section class="anim-enter delay-4">
+<div class="flex items-center justify-between mb-2">
+<div class="font-mono text-[11px] uppercase font-medium tracking-[0.08em] text-[#A1A1AA]">
+            Upcoming releases
+          </div>
+<span class="font-mono text-[10px] text-outline tabular-nums">2 queued</span>
+</div>
+<div class="bg-surface-container-low border border-outline-variant/30 rounded-[4px] divide-y divide-outline-variant/20 overflow-hidden">
+<!-- Row 1 -->
+<div class="px-3.5 py-2.5 flex items-center justify-between text-xs hover:bg-surface-container-high transition-colors">
+<div class="flex items-center space-x-2.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#E6C34A]"></span>
+<div>
+<div class="font-mono text-xs font-medium text-[#F4F4F5] tracking-tight">Thu 16 Oct</div>
+<div class="font-mono text-[10px] text-[#A1A1AA] tracking-wide">claimable 9:30 AM</div>
+</div>
+</div>
+<div class="plate-token px-2 py-0.5 text-[10px] text-[#E6C34A] border-outline-variant/40">
+              Scheduled
+            </div>
+</div>
+<!-- Row 2 -->
+<div class="px-3.5 py-2.5 flex items-center justify-between text-xs hover:bg-surface-container-high transition-colors">
+<div class="flex items-center space-x-2.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#71717A]"></span>
+<div>
+<div class="font-mono text-xs font-medium text-[#F4F4F5] tracking-tight">Mon 20 Oct</div>
+<div class="font-mono text-[10px] text-[#71717A] tracking-wide">Standard release queue</div>
+</div>
+</div>
+<div class="plate-token px-2 py-0.5 text-[10px] text-[#A1A1AA] border-outline-variant/40">
+              Scheduled
+            </div>
+</div>
+</div>
+</section>
+<!-- 7. Generous Empty Whitespace Before Bottom Bar -->
+<div class="flex-1 min-h-[4rem]"></div>
+</main>
+<!-- 8. Bottom Tab Bar (Strict three destinations as mandated) -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-surface-container-low border-t border-outline-variant/20 max-w-md mx-auto h-14 flex items-center justify-around px-2">
+<!-- Destination 1: Today (Active) -->
+<button aria-current="page" class="flex-1 flex flex-col items-center justify-center text-primary-fixed border-t-2 border-tertiary-fixed pt-1 pb-1.5 transition-colors focus-visible:outline-none" type="button">
+<span class="material-symbols-outlined text-[20px] text-[#E6C34A]">calendar_today</span>
+<span class="font-label font-medium uppercase tracking-wider text-[11px] text-[#F4F4F5] mt-0.5">Today</span>
+</button>
+<!-- Destination 2: Releases -->
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant pt-1 pb-1.5 hover:text-primary transition-colors focus-visible:outline-none" type="button">
+<span class="material-symbols-outlined text-[20px] text-[#A1A1AA]">swap_horiz</span>
+<span class="font-label font-medium uppercase tracking-wider text-[11px] text-[#A1A1AA] mt-0.5">Releases</span>
+</button>
+<!-- Destination 3: My profile -->
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant pt-1 pb-1.5 hover:text-primary transition-colors focus-visible:outline-none" type="button">
+<span class="material-symbols-outlined text-[20px] text-[#A1A1AA]">person</span>
+<span class="font-label font-medium uppercase tracking-wider text-[11px] text-[#A1A1AA] mt-0.5">My profile</span>
+</button>
+</nav>
+</div>
+<script>(function(){var T=[{"id":"S-1","names":["sign in","signin"],"words":["signin"]},{"id":"S-4","names":["good morning ahmed raza","today"],"words":["today"]},{"id":"S-5","names":["available space","space"],"words":["space"]},{"id":"S-6","names":["release"],"words":["release"]},{"id":"S-7","names":["claim a space","claim"],"words":["claim"]},{"id":"S-9","names":["my profile dedicated holder","profile"],"words":["profile"]},{"id":"S-10","names":["my vehicle","vehicle"],"words":["vehicle"]},{"id":"S-11","names":["live entrance","security"],"words":["security"]},{"id":"S-2","names":["we couldn t load your employee profile","profile error","signin profile error"],"words":["signin","profile"]},{"id":"S-3","names":["add the car you ll park with","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-8","names":["claim confirmed","confirmed"],"words":["claim","confirmed"]},{"id":"S-12","names":["entry log","log","security log"],"words":["security","log"]},{"id":"S-13","names":["employee","admin employee"],"words":["employee"]},{"id":"S-15","names":["parking space","space","admin space"],"words":["space"]},{"id":"S-16","names":["release claim","release","admin release"],"words":["release"]},{"id":"S-17","names":["calendar setting","setting","admin setting"],"words":["setting"]},{"id":"S-18","names":["report","admin report"],"words":["report"]},{"id":"S-14","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"releases":"S-6","my profile":"S-9"},A={"back to sign in":"S-1","save and continue":"S-5","my vehicles":"S-10","claim a space":"S-7","available spaces":"S-5","confirm claim":"S-8","entry log":"S-12","live entrance":"S-11","parking spaces":"S-15","releases claims":"S-16","calendar settings":"S-17","reports":"S-18","view employee":"S-14","employees":"S-13"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-4";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

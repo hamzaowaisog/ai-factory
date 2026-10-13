@@ -1,0 +1,402 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Orders you've placed, newest first. Open one to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All statuses",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "14 Mar 2026",
+         "9",
+         "£182.46",
+         "Placed"
+        ],
+        [
+         "ORD-24790",
+         "12 Mar 2026",
+         "2",
+         "£64.20",
+         "Packed"
+        ],
+        [
+         "ORD-24733",
+         "9 Mar 2026",
+         "15",
+         "£411.75",
+         "Dispatched"
+        ],
+        [
+         "ORD-24651",
+         "3 Mar 2026",
+         "6",
+         "£97.38",
+         "Delivered"
+        ],
+        [
+         "ORD-24602",
+         "27 Feb 2026",
+         "1",
+         "£23.94",
+         "Cancelled"
+        ],
+        [
+         "ORD-24588",
+         "25 Feb 2026",
+         "24",
+         "£1,206.00",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "View order",
+         "variant": "primary",
+         "icon": "eye",
+         "hint": "Open the highlighted order in the side panel (Enter)"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only while the order is still Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "ghost",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "View order",
+       "title": "Order ORD-24817",
+       "text": "Placed 14 Mar 2026, 09:42 · 9 items · Current status: Placed",
+       "blocks": [
+        {
+         "type": "receipt",
+         "title": "ORD-24817",
+         "status": "Placed",
+         "to": "Hartley Plant Hire, Unit 4 Canal Wharf, Leeds LS11 5PL",
+         "facts": [
+          {
+           "label": "Placed",
+           "value": "14 Mar 2026"
+          },
+          {
+           "label": "Delivery",
+           "value": "Next working day"
+          }
+         ],
+         "lines": [
+          {
+           "item": "6205-2RS · Ball bearing 25×52×15 mm · £8.70 ea",
+           "qty": "4",
+           "amount": "£34.80"
+          },
+          {
+           "item": "SPA1250 · V-belt SPA 1250 mm · £12.45 ea",
+           "qty": "2",
+           "amount": "£24.90"
+          },
+          {
+           "item": "HF-35140 · Hydraulic return filter · £41.60 ea",
+           "qty": "1",
+           "amount": "£41.60"
+          },
+          {
+           "item": "BS214-NBR · Nitrile O-ring, 50 pack · £18.95 ea",
+           "qty": "2",
+           "amount": "£37.90"
+          }
+         ],
+         "totals": [
+          {
+           "label": "Subtotal",
+           "value": "£139.20"
+          },
+          {
+           "label": "Delivery (next working day)",
+           "value": "£12.85"
+          },
+          {
+           "label": "VAT 20%",
+           "value": "£30.41"
+          },
+          {
+           "label": "Total",
+           "value": "£182.46"
+          }
+         ]
+        },
+        {
+         "type": "timeline",
+         "items": [
+          {
+           "time": "14 Mar, 09:42",
+           "title": "Placed — current status",
+           "meta": "Order received; can still be cancelled",
+           "status": "now"
+          },
+          {
+           "time": "Next",
+           "title": "Packed",
+           "meta": "Picked and boxed at the Wakefield depot",
+           "status": "next"
+          },
+          {
+           "time": "Next",
+           "title": "Dispatched",
+           "meta": "Handed to the courier with tracking",
+           "status": "next"
+          },
+          {
+           "time": "Expected 16 Mar",
+           "title": "Delivered",
+           "meta": "To Unit 4 Canal Wharf, Leeds",
+           "status": "next"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Close",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel ORD-24817?",
+       "text": "The order will be marked Cancelled and won't be packed or sent. You can't undo this. Total £182.46, 9 items.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "ORD-24817 cancelled. Status is now Cancelled.",
+       "tone": "ok"
+      },
+      {
+       "after": "Yes, cancel order",
+       "text": "Couldn't cancel: ORD-24817 has already been packed.",
+       "tone": "bad"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will appear here, newest first. Find parts to place your first order.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24817 cancelled. Its status is now Cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Orders you've placed, newest first. Open one to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All statuses",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "14 Mar 2026",
+         "9",
+         "£182.46",
+         "Placed"
+        ],
+        [
+         "ORD-24809",
+         "13 Mar 2026",
+         "3",
+         "£58.74",
+         "Placed"
+        ],
+        [
+         "ORD-24790",
+         "12 Mar 2026",
+         "2",
+         "£64.20",
+         "Packed"
+        ],
+        [
+         "ORD-24776",
+         "11 Mar 2026",
+         "40",
+         "£286.80",
+         "Packed"
+        ],
+        [
+         "ORD-24733",
+         "9 Mar 2026",
+         "15",
+         "£411.75",
+         "Dispatched"
+        ],
+        [
+         "ORD-24718",
+         "7 Mar 2026",
+         "5",
+         "£139.02",
+         "Dispatched"
+        ],
+        [
+         "ORD-24651",
+         "3 Mar 2026",
+         "6",
+         "£97.38",
+         "Delivered"
+        ],
+        [
+         "ORD-24620",
+         "28 Feb 2026",
+         "11",
+         "£322.15",
+         "Delivered"
+        ],
+        [
+         "ORD-24602",
+         "27 Feb 2026",
+         "1",
+         "£23.94",
+         "Cancelled"
+        ],
+        [
+         "ORD-24588",
+         "25 Feb 2026",
+         "24",
+         "£1,206.00",
+         "Delivered"
+        ],
+        [
+         "ORD-24541",
+         "20 Feb 2026",
+         "8",
+         "£74.52",
+         "Delivered"
+        ],
+        [
+         "ORD-24507",
+         "17 Feb 2026",
+         "2",
+         "£418.80",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "View order",
+         "variant": "primary",
+         "icon": "eye",
+         "hint": "Open the highlighted order in the side panel (Enter)"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only while the order is still Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "ghost",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will appear here, newest first. Find parts to place your first order.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24817 cancelled. Its status is now Cancelled."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

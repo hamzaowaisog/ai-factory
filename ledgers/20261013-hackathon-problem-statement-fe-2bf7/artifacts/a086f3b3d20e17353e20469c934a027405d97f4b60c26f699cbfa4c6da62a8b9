@@ -1,0 +1,48 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Seed:Demo|Seed__Demo|ConnectionStrings|EnsureCreated|SeedData.Run|AddDbContext",
+    "glob": "**/*"
+   },
+   "ms": 2,
+   "resultChars": 1116,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Seed:Demo|Seed__Demo|ConnectionStrings|EnsureCreated|SeedData.Run|AddDbContext&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/Program.cs:6: // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is\nApp.Api/Program.cs:8: builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\nApp.Api/Program.cs:9: ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_1»")));\nApp.Api/Program.cs:22: db.Database.EnsureCreated();\nApp.Api/Program.cs:23: // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Map(Get|Post|Put|Delete|Patch)|AddControllers|MapControllers|MapGroup",
+    "glob": "**/*.cs"
+   },
+   "ms": 0,
+   "resultChars": 288,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Map(Get|Post|Put|Delete|Patch)|AddControllers|MapControllers|MapGroup&quot;,&quot;glob&quot;:&quot;**/*.cs&quot;}\">\nApp.Api/Program.cs:28: app.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "<Project|PackageReference|Content Include|ProjectReference",
+    "glob": "**/*.csproj"
+   },
+   "ms": 1,
+   "resultChars": 1298,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;<Project|PackageReference|Content Include|ProjectReference&quot;,&quot;glob&quot;:&quot;**/*.csproj&quot;}\">\nApp.Api/App.Api.csproj:1: <Project Sdk=\"Microsoft.NET.Sdk.Web\">\nApp.Api/App.Api.csproj:11: <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\nApp.Api/App.Api.csproj:12: <PackageReference Include=\"Microsoft.Extensions.ApiDescription.Server\" Version=\"9.0.0\">\nApp.Api/App.Api.csproj:14: </PackageReference>\nApp.Api/App.Api.csproj:15: <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.2\" />\nApp.Api/App.Api.csproj:16: <PackageReference Include=\"Swashbuckle.AspNetCore.SwaggerUI\" Version=\"7.3.2\" />\nApp.Tests/App.Tests.csproj:1: <Project Sdk=\"Microsoft.NET.Sdk\">\nApp.Tests/App.Tests.csproj:9: <PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.1\" />\nApp.Tests/App.Tests.csproj:10: <PackageReference Include=\"xunit\" Version=\"2.9.2\" />\nApp.Tests/App.Tests.csproj:11: <PackageReference Include=\"xunit.runner.visualstudio\" Version=\"2.8.2\" />\nApp.Tests/App.Tests.csproj:12: <PackageReference Include=\"Microsoft.AspNetCore.Mvc.Testing\" Version=\"9.0.0\" />\nApp.Tests/App.Tests.csproj:15: <ProjectReference Include=\"../App.Api/App.Api.csproj\" />\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  /|operationId:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2861,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  /|operationId:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:11: /auth/sign-in:\ncontracts/openapi.yaml:13: operationId: signIn\ncontracts/openapi.yaml:50: /session:\ncontracts/openapi.yaml:52: operationId: getSession\ncontracts/openapi.yaml:77: /dashboard:\ncontracts/openapi.yaml:79: operationId: getDashboard\ncontracts/openapi.yaml:154: /imports/source-records:\ncontracts/openapi.yaml:156: operationId: previewSourceRecords\ncontracts/openapi.yaml:195: /imports:\ncontracts/openapi.yaml:197: operationId: importSelectedRecords\ncontracts/openapi.yaml:254: /allocations:\ncontracts/openapi.yaml:256: operationId: getAllocations\ncontracts/openapi.yaml:297: operationId: saveAllocations\ncontracts/openapi.yaml:347: /lots:\ncontracts/openapi.yaml:349: operationId: getLots\ncontracts/openapi.yaml:404: /lots/{lotId}/forecast:\ncontracts/openapi.yaml:406: operationId: getLotForecast\ncontracts/openapi.yaml:444: /forecast-settings:\ncontracts/openapi.yaml:446: operationId: updateYardForecastSettings\ncontracts/openapi.yaml:474: /lots/{lotId}/forecast-settings:\ncontracts/openapi.yaml:476: operationId: updateLotForecastSettings\ncontracts/openapi.yaml:512: /lots/{lotId}/metrics:\ncontracts/openapi.yaml:514: operationId: getLotMetrics\ncontracts/openapi.yaml:552: /lots/{lotId}/insights:\ncontracts/openapi.yaml:554: operationId: getLotInsights\ncontracts/openapi.yaml:588: /lots/{lotId}/insights/actions:\ncontracts/openapi.yaml:590: operationId: actOnLotInsight\ncontracts/openapi.yaml:630: /lots/{lotId}/weights:\ncontracts/openapi.yaml:632: operationId: getWeightHistory\ncontracts/openapi.yaml:671: operationId: addWeightMeasurement\ncontracts/openapi.yaml:716: /inventory:\ncontracts/openapi.yaml:718: operationId: getInventory\ncontracts/openapi.yaml:770: /inventory/items:\ncontracts/openapi.yaml:772: operationId: createInventoryItem\ncontracts/openapi.yaml:816: /inventory/items/{itemId}:\ncontracts/openapi.yaml:818: operationId: updateInventoryItem\ncontracts/openapi.yaml:870: /inventory/movements:\ncontracts/openapi.yaml:872: operationId: recordInventoryMovement\ncontracts/openapi.yaml:926: /inventory/projections:\ncontracts/openapi.yaml:928: operationId: getInventoryProjections\ncontracts/openapi.yaml:982: /inventory/export:\ncontracts/openapi.yaml:984: operationId: exportInventory\ncontracts/openapi.yaml:1003: /rations:\ncontracts/openapi.yaml:1005: operationId: getRations\ncontracts/openapi.yaml:1040: operationId: createRation\ncontracts/openapi.yaml:1083: /rations/{rationId}:\ncontracts/openapi.yaml:1085: operationId: updateRation\ncontracts/openapi.yaml:1136: /rations/optimization:\ncontracts/openapi.yaml:1138: operationId: optimizeRation\ncontracts/openapi.yaml:1175: /rations/{rationId}/approval:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

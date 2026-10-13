@@ -1,0 +1,234 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-8",
+      "ears": "The feedlot web app shall let authorized ration managers create, revise, and optimize ration definitions, display ingredient proportions, nutrition and cost values, and present the lowest-cost candidate mix meeting user-selected nutritional requirements without saving it until the user chooses to do so.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-5",
+       "ASM-6",
+       "ASM-20",
+       "ASM-29",
+       "Q-6",
+       "Q-13"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "An authorized ration manager creates or revises a ration",
+        "when": "The manager enters ration details and ingredient proportions",
+        "then": "The screen displays fields for ration name and type, ingredients, proportions, intended animal type or weight range, dry matter, energy, and cost per unit",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "The ration service returns nutrition values and calculated ingredient-mix cost",
+        "when": "The ration screen renders the response",
+        "then": "The screen displays the returned nutrition values and calculated cost per pound",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "An authorized ration manager has selected nutrition requirements and candidate mixes",
+        "when": "The manager runs optimization",
+        "then": "The screen identifies the returned lowest-cost mix that meets the selected requirements and displays its nutrition and cost values with a separate save action",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "An optimized candidate is displayed and the user has not selected a save action, or a user without ration-management access opens the ration screen",
+        "when": "The screen renders",
+        "then": "The candidate is displayed without being shown as a saved ration, and the unauthorized user's screen displays existing rations without create, revise, or optimize actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.5",
+        "given": "The optimization response indicates that no candidate mix meets the selected nutrition requirements",
+        "when": "The manager views the optimization result",
+        "then": "The screen displays that no mix qualifies and does not show an enabled save action for a qualifying mix",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The feedlot web app shall let operational users record feeding activity by pen and lot, require delivered quantities entered for each lot in a multi-lot pen to add up to the pen's delivered quantity, display the returned variance, cost, energy, inventory consumption, feeding status, and lot-level consumption and cost totals, display a returned stock error when insufficient stock prevents saving, provide permission-controlled correction and void actions for saved feeding events, and display a timed-out save outcome as unknown while leaving retry resolution to the existing service/user workflow.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-5",
+       "I-6",
+       "ASM-4",
+       "ASM-9",
+       "ASM-10",
+       "ASM-11",
+       "ASM-20",
+       "ASM-28",
+       "ASM-31",
+       "ASM-32",
+       "ASM-34",
+       "Q-5",
+       "Q-7",
+       "Q-10",
+       "Q-12"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "An operational user enters feeding date, pen, ration, planned quantity, actual delivered quantity for the pen, and status for a pen containing one or more lots, and enters a delivered quantity for each lot such that the lot quantities sum to the pen's actual delivered quantity",
+        "when": "The user submits the feeding event",
+        "then": "The feeding request contains the entered fields and a delivered-quantity allocation for each affected lot whose total equals the pen's actual delivered quantity, and the screen displays the response status and returned event fields including the lot allocations",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "A successful feeding response contains calculated values",
+        "when": "The event screen renders the response",
+        "then": "The screen displays actual-minus-planned variance, feed cost, energy value, inventory consumed by ingredient, and cumulative lot feed consumption and cost",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "A successful feeding response contains planned quantity of 100 pounds, actual delivered quantity of 115 pounds, and a returned variance value of 15 pounds",
+        "when": "The event screen renders the response",
+        "then": "The screen displays the returned variance value of 15 pounds",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.4",
+        "given": "A feeding response includes actual delivered quantity and an inventory movement",
+        "when": "The event screen renders the response",
+        "then": "The screen displays stock consumption for the delivered quantity and known wastage as a separate movement rather than added delivered feed",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.5",
+        "given": "The service refuses a feeding event because available stock is insufficient",
+        "when": "The user submits the event",
+        "then": "The screen displays the returned stock error and does not display the event as saved",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.6",
+        "given": "A user without operational access opens feeding activity",
+        "when": "The screen renders",
+        "then": "The screen displays existing activity without an action to record a feeding event",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.7",
+        "given": "A feeding-event save request times out without a definitive response",
+        "when": "The web app handles the timeout",
+        "then": "The screen displays that the save outcome is unknown and retains the submitted event fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.10",
+        "given": "A user has returned permission to correct or void saved feeding events",
+        "when": "The user opens a saved feeding event",
+        "then": "The screen shows correction and void actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.11",
+        "given": "A user lacks returned permission to correct or void saved feeding events",
+        "when": "The user opens a saved feeding event",
+        "then": "The screen displays the event without enabled correction or void actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.12",
+        "given": "An authorized user submits a correction and the service returns the corrected event with updated inventory movement and lot totals",
+        "when": "The correction response is displayed",
+        "then": "The screen displays the returned corrected event, inventory movement, and lot consumption and cost totals",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.13",
+        "given": "An authorized user submits a void and the service returns the voided event with updated inventory movement and lot totals",
+        "when": "The void response is displayed",
+        "then": "The screen displays the returned void status, inventory movement, and lot consumption and cost totals",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.14",
+        "given": "A pen contains multiple lots and the sum of the entered delivered quantities for those lots differs from the pen's actual delivered quantity",
+        "when": "The user submits the feeding event",
+        "then": "The screen displays a validation error and no feeding request is sent",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "The feedlot web app shall provide a filterable on-screen lot profitability list for authorized yards, display service-returned ROI percentages (net return divided by investment) or an unavailable value when ROI is not returned, and display a CSV file containing the filtered authorized results when the user exports the list.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-9",
+       "Q-1",
+       "Q-14",
+       "ASM-17"
+      ],
+      "stability": 0.3333333333333333,
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "The service returns profitability rows for yards authorized to the user, including ROI percentages",
+        "when": "The user opens and filters the lot profitability view",
+        "then": "The screen displays only the returned authorized-yard rows and labels each returned ROI percentage as ROI (net return divided by investment)",
+        "level": "ui"
+       },
+       {
+        "id": "AC-19.2",
+        "given": "The user has applied filters to the authorized lot profitability list",
+        "when": "The user selects CSV export",
+        "then": "The downloaded file contains the filtered authorized rows displayed by the screen",
+        "level": "ui"
+       },
+       {
+        "id": "AC-19.3",
+        "given": "The service indicates that the user cannot view profitability values",
+        "when": "The user opens the lot profitability view",
+        "then": "The screen hides profitability values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-19.4",
+        "given": "The service returns an authorized-yard profitability row without an ROI percentage",
+        "when": "The user opens the lot profitability view",
+        "then": "The screen displays ROI as unavailable for that row",
+        "level": "ui"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Every page shall render responsively at phone, tablet, and desktop widths, with touch-sized controls on narrow screens.",
+      "metric": "At viewport widths of 360 px, 768 px, and 1280 px, 100% of pages render; at 360 px, all interactive controls are operable using touch input."
+     }
+    ],
+    "removed": [
+     "NFR-2",
+     "NFR-3"
+    ]
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

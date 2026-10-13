@@ -1,0 +1,150 @@
+# Design System: Feedlot Operations
+
+## 1. Visual Theme & Atmosphere
+A desk-first operations interface: calm, grounded, and built to be scanned through a long working day. Density is 6/10, variance 4/10, and motion 5/10. It takes plain-language confidence, a clear worklist hierarchy, and restrained single-color actions from people and workforce tools, then shifts to compact data rows, crisp edges, and documentary subject photography for procurement and performance work. The field’s soft-card default gives way to 4px corners and rule-defined surfaces; a characterful, practical sans pairing and tighter table rhythm make the interface feel specific without becoming severe. The warm coral accent belongs only to actions and selection; status meanings have their own distinct colors.
+
+## 2. Color Palette & Roles
+- **Paper Gray** (#F5F5F5) — The sole page background; neutral and quiet.
+- **Work White** (#FFFFFF) — The sole panel and field surface.
+- **Graphite Ink** (#262626) — The sole primary text color; deep but never pure black.
+- **Measured Gray** (#626262) — The sole muted text color for supporting copy and secondary details.
+- **Ledger Rule** (#D8D8D8) — The sole rule color for boundaries and row divisions.
+- **Yard Coral** (#B3473D) — The single accent for primary actions, focus indication, and the selected item; never a status color.
+- **Good Green** (#286143) — A successful or approved state, shown with a status label and small indicator.
+- **Waiting Ochre** (#805600) — A pending or waiting state, shown with a status label and small indicator.
+- **Refused Red** (#A13D36) — A rejected or failed state, shown with a status label and small indicator.
+
+Use these colors consistently throughout. Statuses use their own color on the neutral surface, never an accent-tinted background; keep text and state indicators legible without relying on color alone.
+
+## 3. Typography Rules
+- **Display and headings:** Hanken Grotesk, with compact, sturdy forms and restrained tracking; use weight and size for hierarchy rather than oversized headlines.
+- **Body:** Source Sans Three, 16px minimum, 1.5 line-height, and a 65-character measure for longer explanatory copy.
+- **Mono:** IBM Plex Mono, reserved for numbers, codes, and times only; never use it for labels, statuses, or sentences. Align figures in tables and counters with tabular numerals.
+- Use sentence case for labels, headings, and buttons. Uppercase is reserved for table column headings, with 0.08em tracking. Keep large display text at −0.025em tracking and use one typographic contrast per view.
+- **Avoid:** Inter, generic system-font styling, generic serif faces, oversized type used as a substitute for hierarchy, and all-uppercase interface copy.
+
+## 4. Component Stylings
+- **Buttons:** 4px corners and a 44px desktop height, increasing to 48px on narrow screens. Primary actions use a solid accent fill with high-contrast text; secondary actions are transparent with a clear 1px rule. On press, scale to 0.97; do not add glow or a shadow. Keep every touch target at least 44px.
+- **Panels and cards:** Use a solid work surface and a 1px ledger rule, with no shadow on ordinary panels. A single restrained shadow level is reserved for overlays that must sit above the page. Use panels only when grouping improves hierarchy; otherwise separate content with rules and open space.
+- **Status chips:** Compact, square-shouldered shapes with a small state indicator and explicit sentence-case text. Use the semantic status color, not the action accent; never communicate state by color alone.
+- **Inputs:** 4px corners, a visible label above, optional helper text, and an error directly below. Fields are 44px high (48px on narrow screens); keyboard focus uses a crisp 2px accent outline with a 2px offset. Never use floating labels.
+- **Tables:** Keep rows dense but breathable, with 48px desktop rows, a 1px horizontal rule, and figures aligned in columns. On narrow screens, reflow records into clearly labeled vertical groups rather than creating horizontal page overflow.
+- **Loading:** Use static skeletal shapes that match the final layout; reserve shimmer for actual loading only. Never substitute a generic circular spinner.
+- **Empty and error states:** Compose an empty state from a short plain-language instruction and the action that resolves it, without decorative illustration. Place errors inline with a clear recovery direction.
+- **Images:** Use real photographs for any represented person, animal, place, or equipment. Operational photography uses a consistent 4:3 crop and natural, even light; portraits use a 1:1 face-and-shoulders crop, and the same person keeps the exact same photograph and crop wherever repeated. Do not use decorative stock scenes, illustrations, or logo strips.
+- **Icons:** Use one restrained line-icon set, 1.75px stroke, and 16–20px sizing. Use icons only where they speed recognition; text carries meaning.
+
+## 5. Layout Principles
+Use a shared twelve-column CSS grid aligned to a centered 1440px maximum content width. Keep data-first work areas broad enough to scan, reserve asymmetric space deliberately, and align offsets to the grid rather than making random placements. Prefer ruled lists, dense tables, and varied two-column compositions over three equal card columns or repeated card grids. Use CSS Grid for layout; avoid percentage-based flex calculations and `calc()` layout hacks. No element overlaps another or relies on absolute-position stacking for content. Below 768px, collapse multi-column content to one column, reflow tables into vertical record groups, wrap controls cleanly, and prevent horizontal overflow. Test at 375px, 768px, 1024px, and 1440px; scale headings with `clamp()`, keep body text at least 16px, and reduce gaps while preserving the 8px spacing rhythm. Use `min-height: 100dvh` for full-height shells, never `100vh` as a fixed screen height.
+
+## 6. Motion & Interaction
+Interactions are deliberate and specific to the element; focus, hover, press, and state changes remain clearly distinguishable. The complete motion language—including tokens, movement layers, the single ambient cue, signature moment, CSS, and reduced-motion behavior—is defined once in Section 9.
+
+## 7. Anti-Patterns (Banned)
+- No emojis, custom mouse cursors, or icons added to every item by default.
+- No Inter, generic serif faces, pure black, neon, outer glows, gradients, glass effects, floating blobs, or gradient headline text.
+- No equal three-column card rows, default bento grids, glass cards, repeated icon-in-a-square feature tiles, or identical card templates down the page.
+- No generic KPI-card sets with decorative sparklines or unsupported percentage claims; no invented or suspiciously round metrics.
+- No generic names, placeholder copy, lorem ipsum, vague action verbs, or AI copywriting clichés such as “Elevate,” “Seamless,” “Unleash,” and “Next-Gen.”
+- No decorative stock scenes, illustrations, broken image links, logo strips, star-rating quote carousels, or ornamental badges.
+- No filler prompts, scroll arrows, bouncing chevrons, parallax on text, scroll-jacking, far-off fly-ins, or motion longer than 900ms outside the one-time entrance.
+- No repeated fade-up on every section, bouncing or wiggling elements, pulsing action buttons, or animations that restart on every scroll pass.
+- No more than one perpetual animation per view; shimmer is for genuine loading only.
+- No hidden content awaiting an animation, no low-contrast text, and no missing visible keyboard focus or reduced-motion support.
+
+## 8. Voice & Font Rationale
+- **Voice:** Grounded, plain-spoken, exact—the everyday language of people handling cattle, purchases, feed, and records, never console jargon.
+- **Display:** Hanken Grotesk — its compact, sturdy shapes make operational headings confident without turning them into corporate signage (Google Fonts).
+- **Body / Mono:** Source Sans Three keeps extended work readable at practical sizes; IBM Plex Mono gives numbers, codes, and times a distinct, aligned rhythm without taking over prose (Google Fonts).
+
+## 9. Motion System
+
+### Tokens
+| Token | CSS value | Use |
+|---|---|---|
+| `--dur-instant` | `90ms` | Press, toggle, checkbox |
+| `--dur-quick` | `160ms` | Hover, focus, tooltip |
+| `--dur-base` | `260ms` | Menus, tabs, accordions |
+| `--dur-slow` | `420ms` | Sheets, modals, section reveals |
+| `--dur-scene` | `800ms` | One-time page entrance ceiling; within 700–900ms |
+| `--ease-out` | `cubic-bezier(0.16, 1, 0.3, 1)` | Entering elements |
+| `--ease-in` | `cubic-bezier(0.7, 0, 0.84, 0)` | Exiting elements |
+| `--ease-inout` | `cubic-bezier(0.65, 0, 0.35, 1)` | Movement between positions |
+| `--ease-spring` | `linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1)` | CSS spring equivalent, stiffness 100 / damping 20 |
+| `--travel` | `12px` | Maximum reveal translation, within 8–16px |
+
+### Movement layers
+- **Entrance:** Reveal the main heading first, then nearby content at 50ms intervals; after six items, reveal the remainder as one group. Each item settles from 8px with opacity moving from 0.78 to 1 over 420ms, so the full sequence completes within 800ms and content remains visible throughout.
+- **Scroll-linked:** The signature moment is the feeding-sequence progress rule: as each relevant row enters view, its track fills left to right to make sequence and progress legible. Use the view timeline only where supported; keep a clear static track when unsupported.
+- **Interaction feedback:** Press uses `scale(0.97)` for 90ms. Hover is element-specific: an existing arrow nudges 3px, a row takes on the page surface, and an underline draws from left to right. Focus-visible uses the 2px outlined brand focus style with a 2px offset.
+- **State transitions:** Tabs move their indicator with `transform` over 260ms using `--ease-inout`; accordions transition `grid-template-rows` from `0fr` to `1fr` over 260ms. Inserted or reordered rows use a 160ms fade and 8px shift. Where a record title is shared between views, use the View Transitions API and a shared `view-transition-name` when available.
+- **Ambient, maximum one:** Only while a real operational state is actively updating, a live-state dot breathes between 0.82 and 0.86 opacity over an 8s cycle; otherwise it is still.
+- **Signature moment:** A feed-plan sequence track fills as its row enters view, connecting movement to the order of work rather than decorating the screen.
+- **Reduced motion:** Under `prefers-reduced-motion: reduce`, show all entrance content immediately, remove scroll-linked and ambient animation, and keep other state changes to a fade of at most 120ms. No content may be hidden until an animation finishes.
+
+```css
+:root {
+  --dur-instant: 90ms;
+  --dur-quick: 160ms;
+  --dur-base: 260ms;
+  --dur-slow: 420ms;
+  --dur-scene: 800ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+  --travel: 12px;
+}
+
+@keyframes settle-in {
+  from { opacity: 0.78; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sequence-fill {
+  from { transform: scaleX(0.12); }
+  to { transform: scaleX(1); }
+}
+@keyframes live-breathe {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 0.86; }
+}
+
+.page-entry {
+  animation: settle-in var(--dur-slow) var(--ease-out) both;
+  animation-delay: var(--stagger, 0ms);
+}
+.sequence-track {
+  transform: scaleX(0.12);
+  transform-origin: left;
+}
+@supports (animation-timeline: view()) {
+  .sequence-track {
+    animation: sequence-fill 420ms var(--ease-out) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+}
+.live-state-dot {
+  animation: live-breathe 8s var(--ease-inout) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-entry { animation: none; opacity: 1; transform: none; }
+  .sequence-track, .live-state-dot { animation: none; }
+  *, *::before, *::after { transition-duration: 120ms !important; scroll-behavior: auto !important; }
+}
+```
+
+## 10. Component Substitutions
+- Rounded icon-tile feature cards become text-first, ruled worklists with varied row hierarchy.
+- Repeated KPI cards and decorative sparklines become one contextual summary followed by a sortable, dense table.
+- Pill-shaped promotional badges become no badge; meaningful state remains a compact, squared status chip with explicit text.
+- Decorative logo strips, generic testimonials, and pricing-card patterns are omitted rather than added to an operational interface.
+- Gradient meshes, glass panels, and near-equal bento tiles give way to flat surfaces, hairline rules, and deliberate whitespace.
+- An icon on every link or row is replaced by a restrained shared icon set only where recognition is faster than reading.
+
+## 11. Human Fingerprint
+- **Unexpected decision:** Major content groups use open space followed by one full-width 2px ledger rule; ordinary table rows keep a fine 1px divider. That deliberate change of rule weight gives dense operational information a familiar ledger rhythm without adding marks beside values.
+- **Radius family / elevation / grid:** Sharp-soft edge family at 4px for panels, fields, and controls; ordinary panels have a rule and no shadow, with one restrained shadow level for overlays; all asymmetry aligns to a shared twelve-column grid inside a 1440px maximum width.
+- **Image treatment / icon set:** Real subject photography uses consistent natural light, 4:3 operational crops, and 1:1 portrait crops, reusing the same person’s exact photo and crop wherever repeated. One 1.75px-stroke line-icon set uses 16–20px icons only where they improve recognition.
+- **Micro-details:** Keep keyboard focus conspicuous, errors inline, empty states actionable, figures aligned, and dates formatted consistently for the user’s locale.

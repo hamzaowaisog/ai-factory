@@ -1,0 +1,324 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>PARK//CONSOLE — Authentication Status</title>
+<!-- Google Fonts: IBM Plex Sans & IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#5f5e61",
+            "primary-container": "#18181b",
+            "on-primary": "#303033",
+            "on-secondary-fixed": "#1c1b1d",
+            "error": "#ffb4ab",
+            "on-primary-fixed-variant": "#47464a",
+            "surface-dim": "#141313",
+            "secondary-container": "#474648",
+            "on-primary-fixed": "#1b1b1e",
+            "secondary-fixed-dim": "#c9c6c7",
+            "tertiary-fixed": "#e8e2d9",
+            "surface-container-low": "#1c1b1c",
+            "on-secondary-fixed-variant": "#474648",
+            "outline-variant": "#47464b",
+            "inverse-surface": "#e5e2e1",
+            "error-container": "#93000a",
+            "surface-bright": "#3a3939",
+            "tertiary": "#cbc6bd",
+            "surface-container-high": "#2b2a2a",
+            "surface": "#141313",
+            "outline": "#919095",
+            "on-tertiary-fixed": "#1d1b16",
+            "surface-container-highest": "#353435",
+            "surface-container": "#201f20",
+            "on-tertiary-container": "#85817a",
+            "tertiary-container": "#1a1813",
+            "on-tertiary-fixed-variant": "#494640",
+            "primary-fixed": "#e4e1e6",
+            "inverse-on-surface": "#313030",
+            "primary-fixed-dim": "#c8c5ca",
+            "on-primary-container": "#828184",
+            "on-background": "#e5e2e1",
+            "on-surface": "#e5e2e1",
+            "on-secondary": "#313031",
+            "on-error-container": "#ffdad6",
+            "primary": "#c8c5ca",
+            "surface-tint": "#c8c5ca",
+            "on-surface-variant": "#c8c5cb",
+            "surface-container-lowest": "#0e0e0e",
+            "surface-variant": "#353435",
+            "secondary": "#c9c6c7",
+            "background": "#141313",
+            "tertiary-fixed-dim": "#cbc6bd",
+            "on-secondary-container": "#b7b4b6",
+            "on-tertiary": "#33302a",
+            "on-error": "#690005",
+            "secondary-fixed": "#e5e1e3"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": [
+              "IBM Plex Sans"
+            ],
+            "display": [
+              "IBM Plex Sans"
+            ],
+            "body": [
+              "IBM Plex Sans"
+            ],
+            "mono": [
+              "IBM Plex Mono", "monospace"
+            ],
+            "label": [
+              "IBM Plex Mono", "monospace"
+            ]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    /* Design System Custom Tokens and Calibration */
+    :root {
+      --canvas: #18181B;
+      --panel: #1F1F23;
+      --raised: #27272C;
+      --ink: #F4F4F5;
+      --ink-2: #A1A1AA;
+      --ink-3: #71717A;
+      --rule: rgba(244,244,245,0.08);
+      --rule-strong: rgba(244,244,245,0.16);
+      --accent: #E6C34A;
+      --accent-press: #CFAE3E;
+      --accent-tint: rgba(230,195,74,0.08);
+      --clear: #45C07F;
+      --stop: #E5534B;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    body {
+      background-color: var(--canvas);
+      color: var(--ink);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100dvh;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .font-mono-tabular {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums slashed-zero;
+    }
+
+    /* Ambient Breathing Indicator Animation (Design System §9) */
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+      50% {
+        transform: scale(1.75);
+        opacity: 0.15;
+      }
+    }
+
+    .live-ring-pulse {
+      animation: breathe 6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      transform-origin: center center;
+    }
+
+    /* Motion token: Signature Bay Carry Definition */
+    ::view-transition-group(bay-code) {
+      animation-duration: 420ms;
+      animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    .bay-code-token {
+      view-transition-name: bay-code;
+    }
+
+    /* Coordinated Entrance Animation */
+    @keyframes entranceRise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .anim-enter {
+      animation: entranceRise 260ms cubic-bezier(0.65, 0, 0.35, 1) both;
+    }
+    .anim-enter-d1 { animation-delay: 50ms; }
+    .anim-enter-d2 { animation-delay: 100ms; }
+    .anim-enter-d3 { animation-delay: 150ms; }
+    .anim-enter-d4 { animation-delay: 200ms; }
+    .anim-enter-d5 { animation-delay: 250ms; }
+
+    /* Interaction Rules */
+    .press-action {
+      transition: transform 90ms var(--ease-out), background-color 160ms var(--ease-out), color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    }
+    .press-action:active {
+      transform: scale(0.97);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Reduced Motion Safeguard */
+    @media (prefers-reduced-motion: reduce) {
+      .anim-enter, .anim-enter-d1, .anim-enter-d2, .anim-enter-d3, .anim-enter-d4, .anim-enter-d5 {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .live-ring-pulse {
+        animation: none !important;
+      }
+      .press-action:active {
+        transform: none !important;
+      }
+      ::view-transition-group(*) {
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between selection:bg-[#E6C34A] selection:text-[#18181B]">
+<!-- Top Instrument Identity Strip (Docked full-width top-0, no navigation items) -->
+<header class="w-full bg-surface-container border-b border-outline-variant">
+<div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<!-- Bay marker indicator strip -->
+<span class="w-[20px] h-[2px] bg-[#E6C34A] inline-block"></span>
+<span class="font-headline text-sm font-semibold tracking-wider text-on-surface uppercase">
+          PARK//CONSOLE
+        </span>
+</div>
+<!-- Silent diagnostic status badge (Literal transcript help_outline icon) -->
+<div class="flex items-center space-x-2 text-on-surface-variant text-xs font-mono-tabular">
+<span class="text-[11px] uppercase tracking-wider hidden sm:inline text-secondary">FAIL_SAFE · NODE 04</span>
+<span aria-hidden="true" class="material-symbols-outlined text-[16px] text-outline">help_outline</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area: Centered Narrow Instrument Column with generous vertical whitespace -->
+<main class="flex-grow flex items-center justify-center px-4 sm:px-6 py-12 md:py-20">
+<div class="w-full max-w-lg mx-auto">
+<!-- Precision Instrument Card Container -->
+<div class="bg-[#1F1F23] border border-outline-variant rounded-lg p-6 sm:p-8 anim-enter shadow-none relative">
+<!-- Top instrument indicator / header badge -->
+<div class="flex items-center justify-between pb-5 border-b border-outline-variant/60 anim-enter anim-enter-d1">
+<div class="flex items-center space-x-2.5">
+<!-- Live-link status dot with 6s ambient breathing ring -->
+<div class="relative flex items-center justify-center w-3 h-3">
+<span class="live-ring-pulse absolute inset-0 rounded-full border border-[#E5534B]"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#E5534B]"></span>
+</div>
+<span class="font-mono-tabular text-[11px] font-medium tracking-[0.08em] uppercase text-on-surface-variant">
+              PARK//CONSOLE · AUTH STATUS
+            </span>
+</div>
+<div class="bay-code-token font-mono-tabular text-[10px] tracking-wider uppercase text-outline px-1.5 py-0.5 border border-outline-variant/50 rounded bg-[#18181B]">
+            ERR_404_ID
+          </div>
+</div>
+<!-- Heading & Primary Message -->
+<div class="pt-6 anim-enter anim-enter-d2">
+<h1 class="font-headline font-semibold text-xl sm:text-[1.375rem] leading-snug tracking-[-0.02em] text-[#F4F4F5]">
+            We couldn't load your employee profile
+          </h1>
+<p class="mt-3 font-body text-sm leading-[1.5] text-[#A1A1AA] max-w-[60ch]">
+            You're signed in as sana.qureshi@folio3.com, but the corporate directory didn't return your record. This is usually temporary.
+          </p>
+</div>
+<!-- Detail Box: Inset Brand Zinc Canvas well with mono/clean styling -->
+<div class="mt-6 bg-[#18181B] border border-outline-variant rounded p-3.5 anim-enter anim-enter-d3">
+<div class="flex items-start justify-between gap-3">
+<div class="font-mono-tabular text-xs text-[#A1A1AA] select-all leading-relaxed">
+              Reference: PRF-20251014-0832 · Tue 14 Oct 2025, 8:32 AM PKT
+            </div>
+<span class="font-mono-tabular text-[10px] uppercase text-[#71717A] tracking-wider shrink-0 mt-0.5">
+              SYNC_FAIL
+            </span>
+</div>
+</div>
+<!-- Action Row: Strictly One Primary Action and 'Back to sign in' -->
+<div class="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-start gap-3 anim-enter anim-enter-d4">
+<!-- Primary button: "Try again" -->
+<button class="press-action inline-flex items-center justify-center h-10 px-5 rounded bg-[#E6C34A] hover:bg-[#CFAE3E] text-[#18181B] font-headline font-medium text-sm tracking-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E6C34A]" type="button">
+            Try again
+          </button>
+<!-- The ONLY external link that opens another page: "Back to sign in" -->
+<a class="press-action inline-flex items-center justify-center h-10 px-4 rounded border border-outline-variant hover:border-outline text-on-surface hover:text-[#F4F4F5] bg-transparent font-headline font-medium text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E6C34A]" href="/login">
+            Back to sign in
+          </a>
+</div>
+<!-- Divider with industrial 24px yellow bay-line segment -->
+<div class="relative mt-8 mb-6 anim-enter anim-enter-d5">
+<div class="w-full h-[1px] bg-outline-variant/60"></div>
+<div class="absolute left-0 top-0 w-6 h-[2px] bg-[#E6C34A]"></div>
+</div>
+<!-- Support Block -->
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 text-xs anim-enter anim-enter-d5">
+<p class="font-mono-tabular text-[#A1A1AA] leading-normal text-xs">
+            Still not working? Contact Facilities &amp; Parking: parking@folio3.com · ext. 214
+          </p>
+<a class="press-action shrink-0 font-mono-tabular text-xs font-medium text-[#E6C34A] hover:text-[#CFAE3E] underline underline-offset-4 decoration-outline-variant hover:decoration-[#E6C34A]" href="mailto:parking@folio3.com">
+            Email support
+          </a>
+</div>
+</div>
+</div>
+</main>
+<!-- Static Industrial Audit Footer (Docked full-width bottom-0, no nav links) -->
+<footer class="w-full bg-surface border-t border-outline-variant">
+<div class="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs font-mono-tabular text-on-surface-variant gap-2">
+<div class="text-[11px] uppercase tracking-widest text-[#71717A]">
+        © 2025 GARAGE OPS · AUDIT ID E-7704 · SECURE INSTRUMENT
+      </div>
+<div class="text-[11px] uppercase tracking-wider text-[#71717A] flex items-center space-x-3">
+<span>GATE CLUSTER 01</span>
+<span>·</span>
+<span>DIRECTORY DISCONNECT</span>
+</div>
+</div>
+</footer>
+<script>(function(){var T=[{"id":"S-1","names":["sign in","signin"],"words":["signin"]},{"id":"S-4","names":["good morning ahmed raza","today"],"words":["today"]},{"id":"S-5","names":["available space","space"],"words":["space"]},{"id":"S-6","names":["release"],"words":["release"]},{"id":"S-7","names":["claim a space","claim"],"words":["claim"]},{"id":"S-9","names":["my profile dedicated holder","profile"],"words":["profile"]},{"id":"S-10","names":["my vehicle","vehicle"],"words":["vehicle"]},{"id":"S-11","names":["live entrance","security"],"words":["security"]},{"id":"S-2","names":["we couldn t load your employee profile","profile error","signin profile error"],"words":["signin","profile"]},{"id":"S-3","names":["add the car you ll park with","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-8","names":["claim confirmed","confirmed"],"words":["claim","confirmed"]},{"id":"S-12","names":["entry log","log","security log"],"words":["security","log"]},{"id":"S-13","names":["employee","admin employee"],"words":["employee"]},{"id":"S-15","names":["parking space","space","admin space"],"words":["space"]},{"id":"S-16","names":["release claim","release","admin release"],"words":["release"]},{"id":"S-17","names":["calendar setting","setting","admin setting"],"words":["setting"]},{"id":"S-18","names":["report","admin report"],"words":["report"]},{"id":"S-14","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"back to sign in":"S-1"},A={"save and continue":"S-5","releases":"S-6","my profile":"S-9","my vehicles":"S-10","claim a space":"S-7","today":"S-4","available spaces":"S-5","confirm claim":"S-8","entry log":"S-12","live entrance":"S-11","parking spaces":"S-15","releases claims":"S-16","calendar settings":"S-17","reports":"S-18","view employee":"S-14","employees":"S-13"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-2";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,422 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Wire API shell, authentication, and shared conventions",
+      "reqs": [
+       "REQ-2",
+       "REQ-3",
+       "REQ-4",
+       "REQ-5",
+       "REQ-18",
+       "REQ-19",
+       "REQ-20",
+       "Preserve `/`, `/openapi/v1.json`, and `/swagger`; discover endpoint modules by convention so later slices need no Program.cs edits.",
+       "Persist/bootstrap support for the configured database and establish shared auth, scope, audit, email, and seeding conventions.",
+       "Implement contracted staff authorization URL and customer sign-in/code/resend/password-reset routes.",
+       "Validate database startup configuration and return contract-shaped storage errors.",
+       "Retain existing health/OpenAPI/Swagger routes and establish `/api` endpoint-module routing.",
+       "Use EnsureCreated only for a genuinely table-free database; leave nonempty schemas unchanged at startup."
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/App.Api.csproj",
+       "App.Api/appsettings.json",
+       "App.Api/appsettings.Development.json",
+       "App.Api/Endpoints/IEndpointModule.cs",
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Auth/**",
+       "App.Api/Models/Identity/**",
+       "App.Api/Infrastructure/**",
+       "App.Api/Seeding/IDemoSeedModule.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs"
+      ],
+      "conventions": [
+       "Keep route registration in discovered endpoint modules; don't add later routes to Program.cs.",
+       "Use assembly-scanned IEntityTypeConfiguration and demo-seed modules so later slices do not modify AppDb or SeedData.",
+       "Return only contract-declared status/body shapes; use shared error/audit services.",
+       "External email and staff identity calls go only through registered interfaces."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 1250,
+      "complexity": "external-dependency",
+      "approach": "Keep root health and generated-doc routes intact. Add assembly-discovered endpoint modules and demo-seed modules, with `/api` as group prefix; later tasks add only their own module and entity/configuration files. Add identity, organization, warehouse, account-scope, address, authentication challenge/session/reset-token, and audit entities through assembly-scanned EF configurations. Implement customer password hashing and persisted opaque sessions; put staff-token validation and email delivery behind IStaffIdentityProvider and IEmailSender. Map only locked auth operations and declared responses. Declare each new provider/email setting in appsettings.json with an empty value; provide valid nonproduction Development settings separately without changing tests. SeedData.Run invokes discovered modules."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Implement catalog and system-administration operations",
+      "reqs": [
+       "REQ-6",
+       "REQ-16",
+       "Persist searchable products and immutable versioned temperature profiles; validate tier boundaries and governance history.",
+       "Implement organization shelf-life, account assignment, and account/product administration operations."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/AdminEndpoints.cs",
+       "App.Api/Models/Admin/**",
+       "App.Api/Seeding/AdminDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Models/Identity/Account.cs"
+      ],
+      "conventions": [
+       "Each module maps its own exact contract paths and operationIds; endpoint discovery is owned by TASK-1.",
+       "Add EF configurations beside the domain entities and never edit AppDb.cs.",
+       "Use existing Account, Organization, and Warehouse identities rather than duplicate tables."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1050,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement each contracted admin operation in the module. Add product, profile-version, tier, and admin query/configuration entities with explicit mappings and foreign keys. Keep profile versions immutable; validate effective dates and continuous nonoverlapping tiers, and use identity entities from TASK-1. Seed only empty tables and reference valid existing or deterministically seeded parents."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Implement warehouse receipts, stock, and movements",
+      "reqs": [
+       "REQ-3",
+       "REQ-7",
+       "Persist warehouse records and uploaded evidence across restart in PostgreSQL.",
+       "Create separate quarantined receipts, preserve lot traceability, validate expiry, process receipt files, and record stock movement/opening-stock history."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Warehouse/**",
+       "App.Api/Seeding/WarehouseDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Models/Admin/Product.cs"
+      ],
+      "conventions": [
+       "Map only the locked contract's warehouse routes and response envelopes.",
+       "Persist every mutation through AppDb; do not return transient sample records.",
+       "Store uploaded file content in the database, not through a direct file-store call."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 1450,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement contracted warehouse routes in one module. Persist distinct receipts and handling units, receipt file metadata/content, movements, and opening-stock records; store file bytes as Base64 text in PostgreSQL. Enforce declared statuses, validation, and warehouse scope, and keep list filters contract-shaped. Seed empty tables only."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Implement temperature history, cold rooms, and excursion processing",
+      "reqs": [
+       "REQ-12",
+       "Persist/recalculate receipt-upload readings, gaps, excursions, tier budgets, and cold-room history; run configured alert checks through IEmailSender.",
+       "Implement cold-room and temperature-history operations only where defined by the locked contract; do not add an uncontracted gateway route."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/TemperatureEndpoints.cs",
+       "App.Api/Models/Temperature/**",
+       "App.Api/Seeding/TemperatureDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Warehouse/HandlingUnit.cs"
+      ],
+      "conventions": [
+       "Use occurred-time ordering and idempotent reading persistence.",
+       "Send email only via the registered IEmailSender seam.",
+       "Do not change or extend contracts/openapi.yaml."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3"
+      ],
+      "plannedLoc": 1700,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add contracted cold-room/history endpoints and hosted processing in this slice. Normalize readings by occurred time, deduplicate, exclude future/pre-sealing readings from calculations, recalculate excursions and per-tier budgets after late data, expose explicit gaps, and send email alerts via the seam. Keep processing transactional so malformed batches are not partially persisted. Do not create an uncontracted gateway route: AC-12.8–12.10 require a contract change."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Implement customer orders, allocation, and expiry processing",
+      "reqs": [
+       "REQ-8",
+       "REQ-9",
+       "REQ-10",
+       "Run local-day expiry checks, remove expired allocations, apply replacement rules, audit changes, and send dispatcher alerts.",
+       "Persist orders and enforce configured delivery dates and pre-pack change/cancel rules, including idempotency behavior supported by the locked contract.",
+       "Allocate only eligible released stock, implement partial/complete rules and earliest-expiry allocation, prevent concurrent over-allocation, and handle back orders."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/CustomerOrderEndpoints.cs",
+       "App.Api/Models/Orders/**",
+       "App.Api/Seeding/OrderDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Warehouse/HandlingUnit.cs"
+      ],
+      "conventions": [
+       "Use transactions/locking for idempotency and inventory allocation.",
+       "Use database state as the authority for returned order status and allocations.",
+       "Share the audit and notification seams established in TASK-1."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3"
+      ],
+      "plannedLoc": 1700,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement contracted customer-order operations and persistence. Persist organization-scoped idempotency key and request digest; reject conflicting key reuse and prevent over-allocation with transactional locking. Apply warehouse calendar/time-zone/cut-off and organization shelf-life settings. Add expiry hosted check here because it updates both inventory and order allocations; use shared audit/email seams. TASK-6 implements allocation override and dispatch-order operations."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Implement packing and dispatcher route/order operations",
+      "reqs": [
+       "REQ-11",
+       "Enforce packing compatibility/logger uniqueness, route assignment conflicts, planned-time qualification and safety margin; record route changes."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/DispatchEndpoints.cs",
+       "App.Api/Models/Dispatch/**",
+       "App.Api/Seeding/DispatchDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Orders/Order.cs"
+      ],
+      "conventions": [
+       "Keep route and packing changes atomic; return the contract-declared conflict shape on invalid state.",
+       "Use profile and stock qualification data from earlier slices.",
+       "Keep dispatcher operations separate from the driver module."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5"
+      ],
+      "plannedLoc": 1750,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement dispatch and packing operations using allocations, stock, and profile data from prior slices. Persist boxes, box contents, route stops and planned times; enforce one logger per box, compatible storage bands, nonconflicting driver/vehicle assignments, and configured safety margins. Return declared 409 conflicts without partial mutations and audit consequential changes."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Implement driver route, scan, sync, and handover operations",
+      "reqs": [
+       "REQ-11",
+       "Scope driver operations to the authenticated driver's routes, persist idempotent queued actions and evidence, and validate handover quantities."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/DriverEndpoints.cs",
+       "App.Api/Models/Driver/**",
+       "App.Api/Seeding/DriverDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/DispatchEndpoints.cs",
+       "App.Api/Models/Dispatch/DispatchRoute.cs"
+      ],
+      "conventions": [
+       "Authenticate and scope every driver operation to the assigned route.",
+       "Persist action identifiers with uniqueness so sync retries cannot duplicate accepted actions.",
+       "Persist evidence in PostgreSQL and never call an external file store directly."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-6"
+      ],
+      "plannedLoc": 1400,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement driver operations and persistence together. Query routes by authenticated account and reject access to another driver's route; persist scans, departure checks, unique action IDs, handover signatures/photos, delivery quantities, and refusal reasons. Apply actions transactionally and return contract-declared conflict/not-found responses for invalid state or duplicate actions."
+     },
+     {
+      "id": "TASK-8",
+      "title": "Implement quality cases and governed dispositions",
+      "reqs": [
+       "REQ-13",
+       "Persist proposals and decision history, enforce two-person proposal approval, apply current dispositions to extant stock, and record witnessed destruction."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/QualityEndpoints.cs",
+       "App.Api/Models/Quality/**",
+       "App.Api/Seeding/QualityDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/TemperatureEndpoints.cs",
+       "App.Api/Models/Temperature/TemperatureExcursion.cs"
+      ],
+      "conventions": [
+       "Keep decisions append-only; represent supersession with an explicit self-reference.",
+       "Use transactions when a decision changes stock status or allocations.",
+       "Use explicit role checks only for role requirements stated by the spec/contract."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3",
+       "TASK-4"
+      ],
+      "plannedLoc": 1500,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement quality endpoints and tables for cases, proposals, decisions, and destruction. Prevent proposal self-approval; require a distinct eligible Quality Manager for approval; preserve superseded decisions; refuse conflicting changes to destroyed/delivered quantities; apply eligible disposition changes to extant stock and allocations transactionally. Include budget/telemetry details from temperature records."
+     },
+     {
+      "id": "TASK-9",
+      "title": "Implement signed recalls and recall trace",
+      "reqs": [
+       "REQ-14",
+       "Persist signed recall selection, trace lots through affected stock and delivery records, and enforce quantity-accounting closure/write-off rules."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/RecallEndpoints.cs",
+       "App.Api/Models/Recall/**",
+       "App.Api/Seeding/RecallDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/QualityEndpoints.cs",
+       "App.Api/Models/Quality/QualityDecision.cs"
+      ],
+      "conventions": [
+       "Persist recall trace links rather than fabricating trace results at read time.",
+       "Use customer/warehouse scope when returning related records.",
+       "Require signed action fields exactly as declared by the contract."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3",
+       "TASK-5",
+       "TASK-7",
+       "TASK-8"
+      ],
+      "plannedLoc": 1450,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement recall starts and signed actions with immutable trace links to selected lots and affected stock/delivery records. Block recalled stock from new allocation, scope customer responses to their organization and delivery, validate quantities against delivered totals, and require accounted quantities or a valid signed write-off before closure. TASK-11 implements general lot history."
+     },
+     {
+      "id": "TASK-10",
+      "title": "Implement customer organization operations and certificates",
+      "reqs": [
+       "REQ-15",
+       "Scope customer data and mutations to the authenticated organization; enforce Customer Administrator access for address/team management and persist language preferences."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/CustomerEndpoints.cs",
+       "App.Api/Models/Customer/**",
+       "App.Api/Seeding/CustomerDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/CustomerOrderEndpoints.cs",
+       "App.Api/Models/Identity/Address.cs"
+      ],
+      "conventions": [
+       "Apply organization scoping in the query, before projection to the response.",
+       "Use IEmailSender for invitation messages.",
+       "Retain PDF/evidence content in PostgreSQL and return only the contracted media type."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-5",
+       "TASK-7",
+       "TASK-9"
+      ],
+      "plannedLoc": 1550,
+      "complexity": "standard",
+      "approach": "Add remaining contracted customer and customer-admin operations in this slice. Persist delivery certificate versions and PDF bytes, invitations, and organization addresses; route invitation email through IEmailSender. Ensure customer reads/mutations are organization-scoped, only Customer Administrators manage addresses/team, and language values match the contract enum."
+     },
+     {
+      "id": "TASK-11",
+      "title": "Implement audit queries, operational reports, and lot history",
+      "reqs": [
+       "REQ-1",
+       "REQ-16",
+       "REQ-17",
+       "Implement every remaining operation in the locked contract with exact filters, request/response envelopes, media types, and declared status cases; the complete operation set is testable after this slice is wired.",
+       "Return authorized reports and chronological receipt/movement/delivery/destruction history.",
+       "Expose immutable retained audit events with actor, event time, action type, affected record, and filters."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ReportingEndpoints.cs",
+       "App.Api/Models/Reporting/**",
+       "App.Api/Seeding/ReportingDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/RecallEndpoints.cs",
+       "App.Api/Infrastructure/AuditWriter.cs"
+      ],
+      "conventions": [
+       "Audit events are append-only and have no expiry job.",
+       "Use the shared writer for every consequential mutation and query only via the contracted read operation.",
+       "Calculate report-only values at request time rather than persisting derived fields."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-5",
+       "TASK-6",
+       "TASK-7",
+       "TASK-8",
+       "TASK-9",
+       "TASK-10"
+      ],
+      "plannedLoc": 1550,
+      "complexity": "standard",
+      "approach": "Implement read-only contracted audit/report/history routes. Query shared immutable audit and business-event records with caller-scope/date filters; order lot events chronologically and calculate reports from persisted records. Do not map audit write routes or add uncontracted API operations. Confirm every consequential mutation module uses the TASK-1 audit writer."
+     },
+     {
+      "id": "TASK-12",
+      "title": "Add reviewed deployment schema migration",
+      "reqs": [
+       "REQ-3",
+       "REQ-20",
+       "Supply a reviewed migration adding contract-backed schema to existing databases without changing existing row values; keep startup non-mutating for nonempty databases.",
+       "Align the deployed PostgreSQL schema with the full EF model and support persistent contract-backed records."
+      ],
+      "fileScope": [
+       "App.Api/Migrations/**"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/Models/Warehouse/Receipt.cs"
+      ],
+      "conventions": [
+       "Migration is deployment-run, not startup-run.",
+       "Use explicit primary keys, unique constraints, and foreign keys matching EF configurations and the approved model.",
+       "Do not edit contracts/data-model.yaml; it is factory-owned."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6",
+       "TASK-7",
+       "TASK-8",
+       "TASK-9",
+       "TASK-10",
+       "TASK-11"
+      ],
+      "plannedLoc": 600,
+      "complexity": "standard",
+      "approach": "After all entity configurations exist, provide a reviewed idempotent PostgreSQL deployment migration for the complete model, including keys, unique constraints, indexes, and foreign keys. Keep migration execution out of startup: an empty database uses EnsureCreated; a nonempty database is untouched until deployment applies this migration. Verify the resulting schema against the supplied data model."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

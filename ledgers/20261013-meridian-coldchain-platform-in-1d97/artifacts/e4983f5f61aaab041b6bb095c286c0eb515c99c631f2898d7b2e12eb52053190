@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1813,
+    "end": 1905
+   },
+   "ms": 1,
+   "resultChars": 2344,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1813,&quot;end&quot;:1905}\">\ncontracts/openapi.yaml lines 1813-1905\n1813\tcomponents:\n1814\t  parameters:\n1815\t    Search:\n1816\t      name: search\n1817\t      in: query\n1818\t      required: false\n1819\t      schema:\n1820\t        type: string\n1821\t    Status:\n1822\t      name: status\n1823\t      in: query\n1824\t      required: false\n1825\t      schema:\n1826\t        type: string\n1827\t    DateFrom:\n1828\t      name: from\n1829\t      in: query\n1830\t      required: false\n1831\t      schema:\n1832\t        type: string\n1833\t        format: date\n1834\t    DateTo:\n1835\t      name: to\n1836\t      in: query\n1837\t      required: false\n1838\t      schema:\n1839\t        type: string\n1840\t        format: date\n1841\t    WarehouseId:\n1842\t      name: warehouseId\n1843\t      in: query\n1844\t      required: false\n1845\t      schema:\n1846\t        type: integer\n1847\t    ReceiptId:\n1848\t      name: receiptId\n1849\t      in: path\n1850\t      required: true\n1851\t      schema:\n1852\t        type: integer\n1853\t    UnitId:\n1854\t      name: unitId\n1855\t      in: path\n1856\t      required: true\n1857\t      schema:\n1858\t        type: integer\n1859\t    BoxId:\n1860\t      name: boxId\n1861\t      in: path\n1862\t      required: true\n1863\t      schema:\n1864\t        type: integer\n1865\t    RoomId:\n1866\t      name: roomId\n1867\t      in: path\n1868\t      required: true\n1869\t      schema:\n1870\t        type: integer\n1871\t    OrderId:\n1872\t      name: orderId\n1873\t      in: path\n1874\t      required: true\n1875\t      schema:\n1876\t        type: integer\n1877\t    RouteId:\n1878\t      name: routeId\n1879\t      in: path\n1880\t      required: true\n1881\t      schema:\n1882\t        type: integer\n1883\t    DeliveryId:\n1884\t      name: deliveryId\n1885\t      in: path\n1886\t      required: true\n1887\t      schema:\n1888\t        type: integer\n1889\t    CaseId:\n1890\t      name: caseId\n1891\t      in: path\n1892\t      required: true\n1893\t      schema:\n1894\t        type: integer\n1895\t    DecisionId:\n1896\t      name: decisionId\n1897\t      in: path\n1898\t      required: true\n1899\t      schema:\n1900\t        type: integer\n1901\t    ProposalId:\n1902\t      name: proposalId\n1903\t      in: path\n1904\t      required: true\n1905\t      schema:\n… (2684 lines total; ask for start=1906)\n</untrusted_document>"
+  }
+ ]
+}

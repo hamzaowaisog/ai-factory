@@ -1,0 +1,170 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Edit customer",
+     "subtitle": "Harrow Road Motors · account HRM-0418",
+     "crumbs": [
+      "Customers",
+      "Harrow Road Motors"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Company name",
+         "kind": "text",
+         "value": "Harrow Road Motors Ltd",
+         "required": true,
+         "error": "Enter the company name"
+        },
+        {
+         "label": "Account number",
+         "kind": "text",
+         "value": "HRM-0418",
+         "required": true,
+         "help": "Must be unique across all customers",
+         "hint": "Printed on invoices and delivery notes",
+         "error": "HRM-0418 is already used by Kestrel Autos"
+        },
+        {
+         "label": "Primary contact",
+         "kind": "text",
+         "value": "Dean Marsh",
+         "required": true,
+         "error": "Enter the primary contact's name"
+        },
+        {
+         "label": "Contact email",
+         "kind": "email",
+         "value": "parts@harrowroadmotors.co.uk",
+         "required": true,
+         "error": "Enter a valid email address"
+        },
+        {
+         "label": "Contact phone",
+         "kind": "phone",
+         "value": "+44 20 8964 2271",
+         "required": true,
+         "error": "Enter a UK phone number"
+        },
+        {
+         "label": "Billing address",
+         "kind": "textarea",
+         "value": "Unit 4, Kensal Trade Park, 212 Harrow Road, London W10 4LA",
+         "required": true,
+         "help": "Shown on every invoice",
+         "error": "Enter the billing address"
+        }
+       ],
+       "submit": "Save details"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Assigned price list",
+         "kind": "select",
+         "value": "Trade Band B · 2026",
+         "options": [
+          "Trade Band A · 2026",
+          "Trade Band B · 2026",
+          "Trade Band C · 2026",
+          "Fleet Contract · Kestrel",
+          "Retail list"
+         ],
+         "required": true,
+         "help": "Only active price lists can be assigned",
+         "error": "Choose an active price list"
+        },
+        {
+         "label": "Active",
+         "kind": "toggle",
+         "value": "On",
+         "help": "Inactive customers can't sign in or place orders"
+        }
+       ],
+       "submit": "Save customer"
+      },
+      {
+       "type": "detail",
+       "title": "Record history",
+       "rows": [
+        {
+         "label": "Created by",
+         "value": "Priya Nair (Administrator)"
+        },
+        {
+         "label": "Created",
+         "value": "14 Feb 2024, 09:12"
+        },
+        {
+         "label": "Last changed by",
+         "value": "Tom Whitaker (Administrator)"
+        },
+        {
+         "label": "Last changed",
+         "value": "3 Mar 2026, 16:40"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        },
+        {
+         "label": "Open price lists",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Cancel",
+       "to": "S-21"
+      },
+      {
+       "from": "Save customer",
+       "to": "S-21"
+      },
+      {
+       "from": "Open price lists",
+       "to": "S-30"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save customer",
+       "text": "Harrow Road Motors saved",
+       "tone": "ok"
+      },
+      {
+       "after": "Save details",
+       "text": "Company details saved",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "validation": "Some details need fixing before this customer can be saved.",
+      "success": "Customer saved. Changes apply to their next order."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

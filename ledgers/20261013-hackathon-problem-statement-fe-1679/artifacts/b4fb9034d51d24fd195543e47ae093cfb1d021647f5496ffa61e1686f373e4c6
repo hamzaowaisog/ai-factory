@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 18,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetLotMetricsResponseMock =",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 406,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetLotMetricsResponseMock =&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:75: export const getGetLotMetricsResponseMock = (): LotMetricsResponse => ({\"permissions\":[\"lots.view\"],\"lotId\":2407,\"receivingDate\":\"2026-06-18\",\"entryAverageWeight\":612,\"currentAverageWeight\":711,\"daysO\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed outlook — Range Ledger</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Exact System Design Tokens */
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-quiet: #626262;
+      --border-color: #D8D8D8;
+      --brand-accent: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes fadeInPage {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes liveBreathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .page-entrance {
+      animation: fadeInPage 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-pulse {
+      animation: liveBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-entrance, .status-dot-pulse {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Focus and interactive styles */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--brand-accent);
+      outline-offset: 2px;
+    }
+
+    .table-row-hover:hover {
+      background-color: #FAFAFA;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[#262626] bg-[#F5F5F5]">
+
+  <!-- Plain Header (exact specified order, mark, and Maya Chen profile) -->
+  <header class="bg-[#FFFFFF] border-b border-[#D8D8D8] w-full sticky top-0 z-50">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Left: Brand mark + words and nav menu -->
+      <div class="flex items-center space-x-8 overflow-x-auto py-2 scrollbar-none">
+        <!-- Brand -->
+        <a href="#" class="flex items-center space-x-2.5 shrink-0 select-none no-underline text-[#262626]">
+          <div class="w-7 h-7 bg-[#262626] rounded-[4px] flex items-center justify-center text-white font-bold text-sm heading-hanken">
+            R
+          </div>
+          <span class="font-bold text-[17px] tracking-tight heading-hanken text-[#262626]">Range Ledger</span>
+        </a>
+
+        <!-- Shared Menu (exact sequence & orders) -->
+        <nav class="flex items-center space-x-1 shrink-0 text-[15px] font-medium" aria-label="Main Navigation">
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Yard</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Imports</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Allocations</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Lots</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Inventory</a>
+          <a href="#" class="px-3 py-1.5 text-[#B3473D] border-b-2 border-[#B3473D] font-semibold rounded-[4px]" aria-current="page">Feed outlook</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Rations</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Feed plans</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Feeding</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Reports</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Feed-to-gain</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Profitability</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Sample data</a>
+          <a href="#" class="px-3 py-1.5 text-[#626262] hover:text-[#262626] transition-colors rounded-[4px]">Delivery brief</a>
+        </nav>
+      </div>
+
+      <!-- Right: Maya Chen real photograph + name + role -->
+      <div class="flex items-center space-x-3 shrink-0 pl-4 border-l border-[#D8D8D8] md:border-l-0">
+        <img 
+          src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" 
+          alt="Maya Chen" 
+          class="w-8 h-8 rounded-[4px] object-cover aspect-square border border-[#D8D8D8]"
+        />
+        <div class="flex flex-col text-left leading-tight hidden sm:flex">
+          <span class="text-[14px] font-semibold text-[#262626]">Maya Chen</span>
+          <span class="text-[12px] text-[#626262]">Yard manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Page -->
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 page-entrance space-y-8">
+
+    <!-- Page Heading -->
+    <div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2">
+      <div>
+        <h1 class="text-[32px] font-[650] tracking-tight leading-9 text-[#262626]">Feed outlook</h1>
+        <p class="text-[15px] text-[#626262] mt-1">
+          Red Mesa Yard • America/Denver (Mountain Time) • Saved upcoming operational plans
+        </p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-[#286143] inline-block status-dot-pulse"></span>
+        <span class="text-[14px] text-[#286143] font-medium">Operational normal</span>
+      </div>
+    </div>
+
+    <!-- Section: Key Plan-Based Metrics Panel (24px padding on desktop, 16px on phone, 4px corners, 1px border) -->
+    <div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 sm:p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#D8D8D8]">
+        
+        <!-- Metric 1: Plan-based delivered feed -->
+        <div class="space-y-1">
+          <span class="text-[13px] font-semibold tracking-wide uppercase text-[#626262]">Plan-based delivered feed</span>
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[32px] font-semibold font-mono-num text-[#262626]">8,384</span>
+            <span class="text-[16px] text-[#626262] font-mono-num">lb/day</span>
+          </div>
+          <p class="text-[13px] text-[#626262] leading-5">
+            Summed from saved yard pen plans (exact calculated: <span class="font-mono-num">8,383.8 lb</span>).
+          </p>
+        </div>
+
+        <!-- Metric 2: Configured wastage rate -->
+        <div class="pt-4 md:pt-0 md:pl-6 space-y-1">
+          <span class="text-[13px] font-semibold tracking-wide uppercase text-[#626262]">Configured wastage rate</span>
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[32px] font-semibold font-mono-num text-[#262626]">2.8%</span>
+          </div>
+          <p class="text-[13px] text-[#626262] leading-5">
+            Applied to daily delivery projections for Red Mesa Yard handling & bunk margin.
+          </p>
+        </div>
+
+        <!-- Metric 3: Current On-Hand Starting Inventory -->
+        <div class="pt-4 md:pt-0 md:pl-6 space-y-1">
+          <span class="text-[13px] font-semibold tracking-wide uppercase text-[#626262]">Current physical on-hand</span>
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[32px] font-semibold font-mono-num text-[#262626]">137,400</span>
+            <span class="text-[16px] text-[#626262] font-mono-num">lb</span>
+          </div>
+          <p class="text-[13px] text-[#626262] leading-5">
+            Active balance across 4 bulk commodities (corn, distillers, alfalfa, premix).
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section: Dense Projection Table across all 6 requested horizons -->
+    <div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 sm:p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h2 class="text-[24px] font-[600] tracking-tight leading-7 text-[#262626]">Feed consumption projections</h2>
+          <p class="text-[14px] text-[#626262] mt-0.5">
+            Service-returned projections based on saved plans and configured wastage, not inventory guarantees.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+          <span class="w-2 h-2 rounded-full bg-[#805600] inline-block"></span>
+          <span class="text-[13px] text-[#805600] font-medium">Service-returned projection</span>
+        </div>
+      </div>
+
+      <!-- Compact responsive table -->
+      <div class="overflow-x-auto border border-[#D8D8D8] rounded-[4px]">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="bg-[#FAFAFA] border-b border-[#D8D8D8] text-[13px] font-semibold tracking-wider text-[#626262] uppercase">
+              <th scope="col" class="py-3 px-4">Projection horizon</th>
+              <th scope="col" class="py-3 px-4 text-right">Planned delivered feed</th>
+              <th scope="col" class="py-3 px-4 text-right">Configured wastage (2.8%)</th>
+              <th scope="col" class="py-3 px-4 text-right">Total feed requirement</th>
+              <th scope="col" class="py-3 px-4 text-right">Projected balance</th>
+              <th scope="col" class="py-3 px-4 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D8D8D8] text-[15px]">
+            
+            <!-- Daily Horizon -->
+            <tr class="h-12 sm:h-12 table-row-hover transition-colors">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Daily (1 day)</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#262626]">8,384 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">235 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">8,619 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#286143]">128,781 lb</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#286143]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Covered
+                </span>
+              </td>
+            </tr>
+
+            <!-- Weekly Horizon -->
+            <tr class="h-12 sm:h-12 table-row-hover transition-colors">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Weekly (7 days)</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#262626]">58,687 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">1,643 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">60,330 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#286143]">77,070 lb</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#286143]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Covered
+                </span>
+              </td>
+            </tr>
+
+            <!-- Monthly Horizon -->
+            <tr class="h-12 sm:h-12 table-row-hover transition-colors">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Monthly (30 days)</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#262626]">251,514 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">7,042 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">258,556 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#A13D36]">−12,156 lb</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#A13D36]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#A13D36]"></span>
+                  Reorder needed
+                </span>
+              </td>
+            </tr>
+
+            <!-- Quarterly Horizon -->
+            <tr class="h-12 sm:h-12 table-row-hover transition-colors">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Quarterly (90 days)</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#262626]">754,542 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">21,127 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">775,669 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#A13D36]">−638,269 lb</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#A13D36]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#A13D36]"></span>
+                  Reorder needed
+                </span>
+              </td>
+            </tr>
+
+            <!-- Semi-Annual Horizon -->
+            <tr class="h-12 sm:h-12 table-row-hover transition-colors">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Semi-annual (180 days)</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#262626]">1,509,084 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">42,254 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">1,551,338 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#A13D36]">−1,413,938 lb</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#A13D36]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#A13D36]"></span>
+                  Reorder needed
+                </span>
+              </td>
+            </tr>
+
+            <!-- Annual Horizon -->
+            <tr class="h-12 sm:h-12 table-row-hover transition-colors">
+              <td class="py-3 px-4 font-semibold text-[#262626]">Annual (365 days)</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#262626]">3,060,087 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">85,682 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num text-[#626262]">3,145,769 lb</td>
+              <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#A13D36]">−3,008,369 lb</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#A13D36]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#A13D36]"></span>
+                  Reorder needed
+                </span>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Explanatory note -->
+      <div class="text-[13px] text-[#626262] leading-5 pt-1">
+        Balances reflect cumulative consumption against the static on-hand balance of 137,400 lb without planned inbound commodity contracts factored in.
+      </div>
+    </div>
+
+    <!-- 2px Full-width rule separating major sections -->
+    <hr class="border-t-2 border-[#D8D8D8] my-8" />
+
+    <!-- Two-column section: Pen-Level Daily Quantities & Separate 30-Day Known Actual Wastage -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      
+      <!-- Panel 1: Pen-Level Daily Quantities (Source Plan Jun 19) -->
+      <div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 sm:p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-[18px] font-[600] tracking-tight leading-6 text-[#262626]">Pen-level daily quantities</h3>
+            <p class="text-[14px] text-[#626262] mt-0.5">
+              Source plan date: <span class="font-semibold text-[#262626]">Jun 19</span>
+            </p>
+          </div>
+          <span class="text-[13px] font-mono-num text-[#626262]">3 active pens</span>
+        </div>
+
+        <!-- Pen plan table -->
+        <div class="overflow-x-auto border border-[#D8D8D8] rounded-[4px]">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-[#FAFAFA] border-b border-[#D8D8D8] text-[13px] font-semibold tracking-wider text-[#626262] uppercase">
+                <th scope="col" class="py-3 px-4">Pen</th>
+                <th scope="col" class="py-3 px-4">Ration</th>
+                <th scope="col" class="py-3 px-4 text-right">Head count</th>
+                <th scope="col" class="py-3 px-4 text-right">Rate</th>
+                <th scope="col" class="py-3 px-4 text-right">Daily planned</th>
+                <th scope="col" class="py-3 px-4 text-center">Audit</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#D8D8D8] text-[15px]">
+              
+              <!-- P-04 Row (Flagged for review) -->
+              <tr class="h-12 table-row-hover transition-colors">
+                <td class="py-3 px-4 font-semibold text-[#262626]">P-04</td>
+                <td class="py-3 px-4 text-[#262626]">Grower</td>
+                <td class="py-3 px-4 text-right font-mono-num text-[#262626]">142 head*</td>
+                <td class="py-3 px-4 text-right font-mono-num text-[#626262]">23.5 lb/hd</td>
+                <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#262626]">3,337 lb</td>
+                <td class="py-3 px-4 text-center">
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#805600]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#805600]"></span>
+                    Flagged for review
+                  </span>
+                </td>
+              </tr>
+
+              <!-- P-07 Row -->
+              <tr class="h-12 table-row-hover transition-colors">
+                <td class="py-3 px-4 font-semibold text-[#262626]">P-07</td>
+                <td class="py-3 px-4 text-[#262626]">Grower</td>
+                <td class="py-3 px-4 text-right font-mono-num text-[#262626]">126 head</td>
+                <td class="py-3 px-4 text-right font-mono-num text-[#626262]">22.0 lb/hd</td>
+                <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#262626]">2,772 lb</td>
+                <td class="py-3 px-4 text-center">
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#286143]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                    Normal
+                  </span>
+                </td>
+              </tr>
+
+              <!-- P-12 Row -->
+              <tr class="h-12 table-row-hover transition-colors">
+                <td class="py-3 px-4 font-semibold text-[#262626]">P-12</td>
+                <td class="py-3 px-4 text-[#262626]">Finisher</td>
+                <td class="py-3 px-4 text-right font-mono-num text-[#262626]">94 head</td>
+                <td class="py-3 px-4 text-right font-mono-num text-[#626262]">24.2 lb/hd</td>
+                <td class="py-3 px-4 text-right font-mono-num font-semibold text-[#262626]">2,274.8 lb</td>
+                <td class="py-3 px-4 text-center">
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#286143]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                    Normal
+                  </span>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-[13px] text-[#626262] leading-5">
+          * Note: P-04 plan is retained at 3,337 lb on the previously saved 142 head count and flagged for review after lot count reconciliation.
+        </p>
+      </div>
+
+      <!-- Panel 2: Separate Section for Known Actual Wastage (Never folded into delivered-feed consumption) -->
+      <div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 sm:p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-[18px] font-[600] tracking-tight leading-6 text-[#262626]">Known actual wastage (last 30 days)</h3>
+            <p class="text-[14px] text-[#626262] mt-0.5">
+              Physical inventory reconciliation • Independent of delivered feed
+            </p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[12px] font-medium text-[#286143]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+            Recorded
+          </span>
+        </div>
+
+        <div class="border border-[#D8D8D8] rounded-[4px] p-4 space-y-3 bg-[#FAFAFA]">
+          <div class="flex items-baseline justify-between">
+            <span class="text-[14px] font-medium text-[#626262]">Total recorded actual wastage</span>
+            <div class="flex items-baseline space-x-1.5">
+              <span class="text-[28px] font-semibold font-mono-num text-[#262626]">112</span>
+              <span class="text-[15px] font-mono-num text-[#626262]">lb</span>
+            </div>
+          </div>
+          <div class="h-px bg-[#D8D8D8] w-full"></div>
+          <div class="grid grid-cols-2 gap-4 text-[13px]">
+            <div>
+              <span class="text-[#626262] block">Evaluation window</span>
+              <span class="font-medium text-[#262626]">Last 30 operational days</span>
+            </div>
+            <div>
+              <span class="text-[#626262] block">Wastage accounting rule</span>
+              <span class="font-medium text-[#262626]">Never folded into delivered-feed consumption</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recorded audit details -->
+        <div class="border border-[#D8D8D8] rounded-[4px] p-3 text-[13px] space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <img 
+                src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" 
+                alt="Maya Chen" 
+                class="w-6 h-6 rounded-[4px] object-cover aspect-square border border-[#D8D8D8]"
+              />
+              <span class="font-semibold text-[#262626]">Maya Chen (Yard manager)</span>
+            </div>
+            <span class="font-mono-num text-[#626262]">2025-06-16 13:10 MT</span>
+          </div>
+          <p class="text-[#626262] leading-5">
+            Recorded 112 lb actual wastage and adjusted configured wastage margin from 2.5% to 2.8% to align projections with actual bunk cleanout trends.
+          </p>
+        </div>
+
+        <div class="text-[13px] text-[#626262] leading-5">
+          Projections above calculate wastage using the 2.8% configured operational factor; this 112 lb physical audit ledger is maintained in strict isolation.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

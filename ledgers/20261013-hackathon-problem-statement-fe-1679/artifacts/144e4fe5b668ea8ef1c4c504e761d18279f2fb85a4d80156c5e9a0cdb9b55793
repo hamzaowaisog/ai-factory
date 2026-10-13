@@ -1,0 +1,337 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Responsive feedlot operations web app: staff sign in, then use one permission-aware yard workspace for importing procurement and receiving data, tracing lots and pens, managing feed and inventory, planning and recording feeding, and reviewing performance. Service-returned permissions control navigation, records, actions, and exports. The delivery brief documents the proposed solution and demo.",
+    "shells": [
+     {
+      "id": "yard-staff",
+      "header": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow."
+     }
+    ],
+    "screens": [
+     {
+      "id": "S-1",
+      "title": "Sign in",
+      "route": "/sign-in",
+      "file": "src/pages/SignIn.tsx",
+      "reqs": [
+       "REQ-1"
+      ],
+      "states": [
+       "Submitting credentials",
+       "Authentication error returned by the sign-in service",
+       "Successful sign-in routes to the returned landing page"
+      ],
+      "prompt": "Create the email-and-password sign-in page for Range Ledger. Keep the page to the brand mark and words above one centred panel no wider than 440 px; inside the panel put the heading “Sign in”, one sentence “Use your work account to open your yard.”, then labelled Email and Password fields and the single primary button “Sign in”. Use believable entered-state examples only in the validation state, not as the normal page. Submit credentials to the sign-in service; show its authentication error in the panel without losing the email, and on success go to the service-returned landing page with that user’s returned permissions. Responsive phone, tablet and desktop; no header, footer, illustration or extra navigation."
+     },
+     {
+      "id": "S-2",
+      "title": "Yard",
+      "route": "/yard",
+      "file": "src/pages/YardDashboard.tsx",
+      "shell": "yard-staff",
+      "phone": true,
+      "reqs": [
+       "REQ-1",
+       "REQ-15",
+       "REQ-17",
+       "REQ-20",
+       "REQ-21"
+      ],
+      "states": [
+       "Session expiry or protected-request HTTP 401: clear authenticated page data and return to Sign in",
+       "Returned permission change: remove unauthorized yard data and controls from view"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. This is the Red Mesa Yard operating overview. Let “360 active head” be the first, largest figure, with the service-returned yard context; directly below show the returned yard summary—average ADG 3.02 lb/day, average cost of gain $1.12/lb, total feed cost $82,060—and unavailable values if source data is missing. Follow with a dense sortable lot-performance table, not metric cards: L-2407, L-2409, L-2411 and L-2413, head, ADG, FCR, cost of gain, feed cost and energy; provide a measure selector that re-ranks best and worst lots. Add a compact inventory balance of 137,400 lb, today’s planned delivery of 8,384 lb and the latest weight/feeding activity from the shared dated event list. For activity rows show real photographs of the named staff—Eli Navarro, Rosa Alvarez, Maya Chen, Tomas Reed and Omar Diaz—not illustrated avatars. Use an orderly white worklist, plain bar, soft-cornered surfaces and restrained status chips. On wide screens place the headline and yard summary above a full-width table; on phones stack sections and keep controls touch-sized. Leave breathing room around the dense table; no three-card row."
+     },
+     {
+      "id": "S-3",
+      "title": "Imports",
+      "route": "/imports",
+      "file": "src/pages/Imports.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-4"
+      ],
+      "states": [
+       "Loading adapter records",
+       "Preview ready",
+       "Submitting import",
+       "Import result with matched records and allocation conflict",
+       "Adapter error"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Create a procurement and receiving import worklist for Red Mesa Yard. Lead with the heading “Imports”, a short line naming the mock procurement and receiving adapter, and the primary action “Preview selected records”. Show source PO-8841 with columns for source line, animal description, source head count, existing match and received result: line 1 Angus steers, latest 80 head, matched to L-2407; line 2 Hereford steers, 126 head, matched to L-2409; line 3 Charolais-cross steers, 94 head, created as L-2413 on the first import. Include the returned first-import result (2 matched, 1 created) and the repeat-import result (matched, not duplicated; line 1 allocation conflict because 80 is below 82 mapped). Include source fields and adapter outcome, with Tomas Reed’s real photograph beside the recorded import activity. Allow selection of several records with checkboxes because the import acts on several rows; preview and submit through the documented mock-data adapter and show its returned result. Use a filterable formal worklist, responsive horizontal table overflow on a phone, and plain-language status chips. Do not imply matched rows were newly created."
+     },
+     {
+      "id": "S-4",
+      "title": "Allocations",
+      "route": "/allocations",
+      "file": "src/pages/Allocations.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-4"
+      ],
+      "states": [
+       "Allocation conflict returned for mapped quantity exceeding updated head count",
+       "Save success",
+       "Save refusal returned by service"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Design “Allocations” as a clear two-step traceability worklist: first PO line to lot, then lot to pen. Use PO-8841 lines 1–3 and their source fields, showing Angus steers to L-2407, Hereford steers to L-2409 and Charolais-cross steers to L-2413; show retained head quantities 82, 126 and 94 respectively. Then show the pen assignments: L-2407 (82 mapped) and L-2411 (60) to P-04; L-2409 (126) to P-07; L-2413 (94) to P-12. Make the returned conflict for L-2407 explicit: the repeated import now reports 80 head, below the retained 82 mapped; do not silently reduce its allocation. Show current pen animal counts P-04 140, P-07 126, P-12 94 and capacities 160, 150, 180. Provide multi-select mapping controls only where a mapping action genuinely applies to several records, and one clear primary action “Save allocations”. Use a step-by-step, orderly worklist with compact conflict chips and a responsive stacked treatment on phones."
+     },
+     {
+      "id": "S-5",
+      "title": "Lots",
+      "route": "/lots",
+      "file": "src/pages/Lots.tsx",
+      "shell": "yard-staff",
+      "phone": true,
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-5",
+       "REQ-13",
+       "REQ-14",
+       "REQ-15"
+      ],
+      "states": [
+       "Empty lot list",
+       "Session expiry or protected-request HTTP 401: clear authenticated page data and return to Sign in"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Make “Lots” a filterable worklist, not a tile grid. Put the single leading figure “360 active head” above the table, then filters for pen, breed, sex and lot status that apply immediately. Show four real rows: L-2407, Angus steers, 80 head, P-04, 84 days on feed, ADG 3.12, FCR 7.35, cost of gain $1.07/lb; L-2409, Hereford steers, 126, P-07, 72 days, 3.00, 7.38, $1.14; L-2411, Angus heifers, 60, P-04, 90 days, 2.68, 7.75, $1.21; L-2413, Charolais-cross steers, 94, P-12, 43 days, 3.28, 7.17, $1.04. Include returned target/market forecasts where available and a clear unavailable value when no positive forecast gain rate is returned. Use a compact review chip for the lot with changed inputs. The row itself opens L-2407 with the exact label “L-2407”; no checkbox per row. Keep the table readable and touch-friendly at phone width."
+     },
+     {
+      "id": "S-6",
+      "title": "Lot L-2407",
+      "route": "/lots/L-2407",
+      "file": "src/pages/LotDetail.tsx",
+      "shell": "yard-staff",
+      "phone": true,
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-5",
+       "REQ-12",
+       "REQ-13",
+       "REQ-14"
+      ],
+      "states": [
+       "Forecast-assumption editor open for an authorized manager only",
+       "Weight measurement validation error",
+       "Weight save success",
+       "Forecast unavailable when the returned gain rate is not positive"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Build the detail page for L-2407, an Angus steer lot in P-04 at Red Mesa Yard. Meet the eye first with “L-2407” and the returned 80 active head, then show PO-8841 traceability: source count 80 on repeat import versus 82 still mapped, with the allocation conflict clearly explained. Include returned performance values: 84 days on feed, total gain 20,960 lb, ADG 3.12 lb/day, 154,000 lb feed, FCR 7.35, cost of gain $1.07/lb and projected ship date July 16, 2025. Show target-weight forecast 1,200 lb around July 5 and market-date forecast July 16 at about 1,233 lb, using the lot override 3.12 lb/day against yard default 2.85; managers alone see “Edit forecast assumptions”. Present a time-ordered weight history table: Mar 26 receipt average 884 lb; Jun 15 1,139 lb; Jun 18 1,146 lb, with returned interval gain information. “Add weight measurement” opens an inline date/weight form and saves via the service. Add explainable suggestions with their reasons, e.g. review the feed adjustment because the recent returned interval gain is 2.33 lb/head/day against the 3.12 lot trend; leave plan or sale changes to the planner. Use real photographs of named staff only beside their recorded weight entries. Use a compact worklist/detail layout, not metric cards; on phones stack the history and details with touch-sized controls."
+     },
+     {
+      "id": "S-7",
+      "title": "Inventory",
+      "route": "/inventory",
+      "file": "src/pages/Inventory.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-6",
+       "REQ-17",
+       "REQ-20"
+      ],
+      "states": [
+       "Empty inventory",
+       "Receipt or adjustment validation error",
+       "Receipt saved",
+       "Adjustment saved",
+       "Wastage setting saved",
+       "Permission change removes sample rows and unauthorized controls"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Create the Red Mesa Yard inventory worklist. Lead with the one headline “137,400 lb on hand” and its yard/source context, then a filterable table of actual inventory items: steam-flaked corn 84,600 lb; distillers grains 31,200 lb; alfalfa hay 18,400 lb; mineral premix 3,200 lb. Show each item’s returned stock movements, with dated movement rows sourced from the shared event list: Jun 12 receipt of 20,000 lb corn; Jun 14 feeding consumption of 3,337 lb ration; Jun 16 recorded actual wastage of 112 lb; Jun 17 feeding consumption of 2,772 lb ration. Clearly separate delivered-feed consumption from known actual wastage. Show movement time, staff name, what changed and result; use real photographs for named staff shown in those rows. Authorized inventory users get the single primary action “Record stock movement” with a stepwise receipt/adjustment form, plus an editable wastage setting currently 2.8%; viewers see the same item and movement details without controls. Distinguish sample records and exclude them from operational totals. Use a dense, formal table with filters and responsive phone overflow, not cards."
+     },
+     {
+      "id": "S-8",
+      "title": "Feed outlook",
+      "route": "/feed-outlook",
+      "file": "src/pages/FeedOutlook.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-7",
+       "REQ-17",
+       "REQ-20"
+      ],
+      "states": [
+       "No saved upcoming feed plans",
+       "Projection refresh/loading",
+       "Unavailable projection data",
+       "Permission change removes unauthorized data"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Design “Feed outlook” around saved upcoming plans for Red Mesa Yard. Lead with the current plan-based delivered feed figure, 8,384 lb/day, and the configured wastage rate, 2.8%; then use one dense projection table with all six requested horizons: daily 8,384 lb delivered, 235 lb configured wastage, 128,781 lb projected balance; weekly 58,687, 1,643, 77,070; monthly 251,514, 7,042, −12,156; quarterly 754,542, 21,127, −638,269; semi-annual 1,509,084, 42,254, −1,413,938; annual 3,060,087, 85,682, −3,008,369. Label balances as service-returned projections based on saved plans and configured wastage, not inventory guarantees. Put known actual wastage of 112 lb in a separate, clearly labelled section for the last 30 days; never fold it into delivered-feed consumption. Show the source plan date Jun 19 and pen-level daily quantities P-04 3,337 lb, P-07 2,772 lb and P-12 2,274.8 lb. Use a quiet, compact table rather than six cards; make the wide table scroll or reflow accessibly on a phone."
+     },
+     {
+      "id": "S-9",
+      "title": "Rations",
+      "route": "/rations",
+      "file": "src/pages/Rations.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-8"
+      ],
+      "states": [
+       "Ration editor validation error",
+       "Candidate optimization results returned",
+       "No candidate meets selected nutritional requirements",
+       "Ration saved only after explicit save"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Make “Rations” a nutrition workbench for authorized ration managers. Start with a selectable existing Grower ration and its ingredient table: steam-flaked corn 64%, distillers grains 24%, alfalfa hay 10%, mineral premix 2%; returned crude protein 13.2%, energy 1.48 Mcal/lb and cost $0.145/lb. Show a second Finisher definition at $0.151/lb, with its returned ingredient proportions and nutrition values. Provide create/revise controls as a stepwise editor and an optimizer section where the user enters minimum nutrition requirements. Show returned candidate mixes in a comparison table and mark the lowest-cost candidate that meets the selected requirements; make it clear candidates are not saved until the authorized user chooses “Save ration”. Do not imply optimization itself changes a saved ration. Use a compact ingredient list and formal worklist styling, with no feature-card grid; stack editor and optimizer at phone width."
+     },
+     {
+      "id": "S-10",
+      "title": "Feed plans",
+      "route": "/feed-plans",
+      "file": "src/pages/FeedPlans.tsx",
+      "shell": "yard-staff",
+      "phone": true,
+      "reqs": [
+       "REQ-1",
+       "REQ-9",
+       "REQ-10"
+      ],
+      "states": [
+       "Saved plan flagged for review after relevant input change",
+       "Updated plan preview",
+       "Plan regenerated",
+       "Execution update success",
+       "Execution update refused by service"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Create “Feed plans” as a dated pen-level planner. The first section is the saved Jun 19 plan table: P-04, Grower, saved 3,337 lb at 23.5 lb/head/day using the saved 142-head input; P-07, Grower, 2,772 lb at 22 lb/head/day for 126 head; P-12, Finisher, 2,274.8 lb at 24.2 lb/head/day for 94 head. Flag P-04 “Review needed” because the current relevant head count is 140; retain the saved 3,337 lb until an authorized planner explicitly confirms an update or regenerates it. Show “Generate plan” and an inline preview before saving. Under each assigned pen, show returned execution status and allow status updates only to operators assigned to that pen; other operators see status without enabled update actions. If the service refuses a status change, show its returned refusal beside that row. Use one worklist with clear saved, review, and execution status chips, not cards; make row controls touch-sized on phones."
+     },
+     {
+      "id": "S-11",
+      "title": "Feeding",
+      "route": "/feeding",
+      "file": "src/pages/Feeding.tsx",
+      "shell": "yard-staff",
+      "phone": true,
+      "reqs": [
+       "REQ-1",
+       "REQ-11"
+      ],
+      "states": [
+       "Multi-lot quantities do not add to pen delivered quantity",
+       "Insufficient stock error returned by service",
+       "Save outcome timed out and is unknown",
+       "Feeding event saved with returned variance, cost, energy and consumption",
+       "Correction or void action visible only with returned permission"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Build “Feeding” for recording pen-and-lot activity. Put a short, touch-friendly step flow first: choose date and pen; show assigned lots and ration; enter the pen delivered quantity and each lot’s amount; review; save. Pre-fill a realistic draft for P-04 with L-2407 1,927 lb plus L-2411 1,410 lb = 3,337 lb total, and visibly validate that lot amounts equal the pen amount before enabling save. Beneath it show the returned saved-event worklist from the shared event list: Jun 14 P-04, 3,337 lb, +44 lb variance, $484.87, 4,941 Mcal; Jun 17 P-07, 2,772 lb, −18 lb, $402, 4,100 Mcal. Include feeding status, inventory consumption and lot-level consumption/cost totals in each event’s expanded row. Show stock shortage errors returned by the service; after a timed-out save say “Save outcome unknown” and leave resolution to the existing service/user workflow—do not offer an automatic retry. Show correction and void actions only when returned permissions allow them. Use real photos of Eli Navarro beside his recorded events. Keep one primary action, “Save feeding”, and no row checkboxes."
+     },
+     {
+      "id": "S-12",
+      "title": "Reports",
+      "route": "/reports",
+      "file": "src/pages/Reports.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-16",
+       "REQ-17",
+       "REQ-20"
+      ],
+      "states": [
+       "No results for selected filters",
+       "CSV export ready",
+       "Permission change clears displayed rows and subsequent export data",
+       "Sample rows excluded from operational report and inventory totals"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Make “Reports” an operational report workbench with a narrow filter rail beside a broad results table on desktop; stack filters above the table on phones. Filters apply immediately for report type, date range, pen, lot and ration. Give selectable report views for inventory movements, feeding, lot performance and profitability. The default feeding/plan-variance view shows the dated service-returned rows from the shared event list and answers which pen and lot were fed, which ration/plan applied, planned versus delivered amount, variance, and cost of gain where returned. Include the Jun 14 P-04 event (3,337 lb delivered, +44 lb variance, $484.87) and Jun 17 P-07 event (2,772 lb, −18 lb, $402), plus current lot performance values. Put one primary action “Export CSV”. Display only records and profitability fields returned for the signed-in user’s authorized yards; changing permissions removes rows from view and from any later export. Exclude sample records from operational results, inventory totals and exports, with a visible sample-data distinction. Use a dense sortable table, never a four-metric dashboard."
+     },
+     {
+      "id": "S-13",
+      "title": "Feed-to-gain",
+      "route": "/reports/feed-to-gain",
+      "file": "src/pages/FeedToGainReport.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-17",
+       "REQ-18"
+      ],
+      "states": [
+       "No results for selected filters",
+       "CSV export ready",
+       "PDF export ready",
+       "Permission change clears displayed rows and subsequent exports"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Create the focused “Feed-to-gain” report. Place immediate-apply date-range, breed, sex and pen filters above a dense comparison table for Red Mesa Yard. Use real returned rows: L-2407 Angus steers P-04 ADG 3.12 lb/day, FCR 7.35, cost of gain $1.07/lb; L-2409 Hereford steers P-07 3.00, 7.38, $1.14; L-2411 Angus heifers P-04 2.68, 7.75, $1.21; L-2413 Charolais-cross steers P-12 3.28, 7.17, $1.04. Include the date range and service-returned measure context, and make the L-2407 row open the lot detail. Offer “Export CSV” and “Export PDF” for the filtered authorized results only. Permissions changing must remove no-longer-authorized rows from screen and subsequent exports. Use a formal, sortable report table with clear units and no decorative stat cards."
+     },
+     {
+      "id": "S-14",
+      "title": "Profitability",
+      "route": "/reports/profitability",
+      "file": "src/pages/Profitability.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-17",
+       "REQ-19"
+      ],
+      "states": [
+       "No authorized profitability rows returned",
+       "CSV export ready",
+       "Permission change clears profitability fields, rows and subsequent exports"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Make “Profitability” a filterable on-screen list for the authorized Red Mesa Yard. Show a single leading context line for the selected yard and date range, then a dense sortable table with lot, head, returned investment, net return and service-returned ROI. Example returned results: L-2407 ROI 8.4%, L-2409 6.7%, L-2411 “Unavailable” because ROI was not returned, L-2413 9.1%. Do not calculate or invent missing ROI. The L-2407 row opens its lot detail. Put “Export CSV” above the table as the primary action and show the filtered authorized result in the downloaded CSV; do not include unauthorized yards or fields. When permissions change, clear removed profitability values immediately and ensure a later export cannot contain them. Use the same formal worklist and compact status treatment as the other operational reports."
+     },
+     {
+      "id": "S-15",
+      "title": "Sample data",
+      "route": "/sample-data",
+      "file": "src/pages/SampleData.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-20"
+      ],
+      "states": [
+       "Sample load in progress",
+       "Sample records loaded successfully",
+       "Duplicate load prevented with returned result",
+       "Confirmation required before reset or replacement",
+       "Reset/replacement result returned"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Design “Sample data” as a clear data-management page, not an admin dashboard. Lead with the current state and a visibly distinct “SAMPLE” treatment: sample records are currently loaded for Red Mesa Yard, separate from operational records. Explain that sample records do not enter operational report results, inventory totals or exports. Show the returned sample-load result and whether loading is available; if already loaded, prevent a duplicate load and display the service result. Provide the primary action “Load sample data” when available. Keep “Reset sample data” and “Replace sample data” as secondary destructive actions, each opening a confirmation that plainly says the action cannot be undone before the final confirm control. Show returned outcomes after load, reset or replacement; do not fabricate aggregate values—the Yard page uses service-returned dashboard and yard-summary aggregates. Use a compact status-led list and one action area, with responsive touch targets."
+     },
+     {
+      "id": "S-16",
+      "title": "Delivery brief",
+      "route": "/delivery-brief",
+      "file": "src/pages/DeliveryBrief.tsx",
+      "shell": "yard-staff",
+      "reqs": [
+       "REQ-1",
+       "REQ-22"
+      ],
+      "states": [
+       "Demo destination unavailable"
+      ],
+      "prompt": "At the top, a plain header carries the brand words “Range Ledger” beside a small square mark with a white “R”; the shared menu sits to the right of the brand and keeps this order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief. On the far right, show Maya Chen’s real photograph on the left of her name and the role “Yard manager”; hide menu items and actions the signed-in user’s returned permissions do not allow. Create “Delivery brief” as a concise, editorial delivery overview for the Red Mesa Yard feedlot web app. Start with the proposed solution and one real product description, then a labelled architecture diagram: responsive browser UI → sign-in and permission service → yard operations services → documented mock procurement/receiving adapter and feed/inventory/report services. Include a prominent product-specific demo entry action “Open yard demo” to the Yard page. Follow with a “Prompts used” section showing the actual project brief (“Build a responsive feedlot operations web app with permission-aware procurement imports, lot-to-pen traceability, feeding, inventory, ration planning, forecasts and authorized reporting”) and the UI prompt principle (“Draw each page as a finished responsive staff worklist with returned-service data and role-gated actions”). Add a testing and validation overview covering sign-in/401 clearing, permissions and exports, repeated-import allocation conflicts, multi-lot feed validation, stock errors and timed-out saves. Include challenges (stale head counts, traceability conflicts, separating actual wastage from delivered feed), a candid production-readiness assessment (mock adapter and service contracts still need production integration, security review and operational validation), and a go-to-market analysis for feedlot operators, phased onboarding and measurable pilot outcomes. Vary section rhythm with a narrow text column, diagram and dense checklist; no testimonial carousel, three equal cards or oversized centered hero."
+     }
+    ],
+    "sample": "Shared sample data for every screen; one yard and one timezone: Red Mesa Yard, America/Denver (Mountain Time). Yard capacity is 490 head across P-04 (160), P-07 (150) and P-12 (180). Current active head is 360: P-04 140 (L-2407 current 80 and L-2411 60), P-07 126 (L-2409), P-12 94 (L-2413). L-2407 still has 82 mapped against its updated source count of 80; retain that allocation and show the returned conflict rather than making pen/lot totals silently agree. The other mapped counts are L-2409 126 and L-2413 94. One shared staff directory: Maya Chen — Yard Operations, Yard manager; Eli Navarro — Yard Operations, Pen operator; Rosa Alvarez — Livestock, Livestock technician; Omar Diaz — Feed Planning, Feed planner; Tomas Reed — Procurement, Receiving coordinator; Samira Patel — Nutrition, Ration manager. Where these people appear in activity, use one consistent real photograph for each named person, never an illustration or a different person’s photo. Signed-in example is Maya Chen, Yard manager; the returned permissions still govern actual menu, data and actions. No employee space or vehicle/plate is part of this feedlot product. Lots: L-2407, Angus steers, 80 active head in P-04, arrived Mar 26 2025 at 884 lb average, 84 days on feed on Jun 18, current weight 1,146 lb; returned ADG 3.12 lb/day, total gain 20,960 lb, feed 154,000 lb, FCR 7.35, cost of gain $1.07/lb, projected ship date Jul 16 2025. L-2409, Hereford steers, 126 in P-07, Apr 7 arrival, 72 days on feed, 1,098 lb, ADG 3.00, FCR 7.38, cost of gain $1.14/lb, feed 201,000 lb. L-2411, Angus heifers, 60 in P-04, Mar 20 arrival, 90 days on feed, 1,108 lb, ADG 2.68, FCR 7.75, cost of gain $1.21/lb, feed 112,000 lb. L-2413, Charolais-cross steers, 94 in P-12, May 6 arrival, 43 days on feed, 1,056 lb, ADG 3.28, FCR 7.17, cost of gain $1.04/lb, feed 95,000 lb. Feed-cost/energy values returned for lot reporting: L-2407 $22,330 and 227,920 Mcal; L-2409 $29,145 and 233,600 Mcal; L-2411 $16,240 and 160,160 Mcal; L-2413 $14,345 and 142,500 Mcal. Yard summary values are service-returned: 360 active head, average ADG 3.02 lb/day, average cost of gain $1.12/lb, total feed cost $82,060. Grower ration: steam-flaked corn 64%, distillers grains 24%, alfalfa hay 10%, mineral premix 2%; returned crude protein 13.2%, energy 1.48 Mcal/lb, cost $0.145/lb. Finisher costs $0.151/lb; show its ingredient and nutrition values only as returned by the ration service. Saved Jun 19 plans: P-04 Grower 3,337 lb at 23.5 lb/head/day on the previously saved 142 head; P-07 Grower 2,772 lb at 22 lb/head/day for 126; P-12 Finisher 2,274.8 lb at 24.2 lb/head/day for 94. Total planned delivered feed is 8,383.8 lb/day, displayed rounded as 8,384 lb/day. P-04 is flagged for review after the head-count change; retain saved plan values until authorized confirmation or regeneration. Yard forecast default gain rate is 2.85 lb/day; L-2407 override is 3.12. L-2407 target weight is 1,200 lb, forecast around Jul 5 at about 1,199 lb; Jul 16 market-date forecast about 1,233 lb. A lot forecast without a positive returned rate is unavailable. Inventory current totals: steam-flaked corn 84,600 lb, distillers grains 31,200 lb, alfalfa hay 18,400 lb, mineral premix 3,200 lb; total 137,400 lb. Configured wastage 2.8%; known actual wastage 112 lb in the last 30 days, kept separate from delivered feed. All six outlook horizons use the values shown on Feed outlook and are service-returned projections from saved plans and configured wastage. One shared dated event list (local yard time); every screen showing a log, movement, measurement history, report activity or import check takes its rows from these same events: (1) 2025-03-26 07:30, Tomas Reed, received 82 Angus steers averaging 884 lb into L-2407, Red Mesa Yard/P-04, receipt recorded. (2) 2025-06-12 08:10, Maya Chen, received 20,000 lb steam-flaked corn, Red Mesa Yard, posted. (3) 2025-06-13 09:05, Tomas Reed, imported PO-8841 lines at Red Mesa Yard, 2 matched and 1 created as L-2413, import completed. (4) 2025-06-14 06:20, Eli Navarro, fed P-04 lots L-2407 1,927 lb and L-2411 1,410 lb (3,337 lb total), Red Mesa Yard/P-04, saved with +44 lb returned variance, $484.87 cost and 4,941 Mcal. (5) 2025-06-15 11:40, Rosa Alvarez, recorded L-2407 weight 1,139 lb, Red Mesa Yard/L-2407, measurement saved with returned gain information. (6) 2025-06-16 13:10, Maya Chen, recorded 112 lb actual wastage and changed configured wastage from 2.5% to 2.8%, Red Mesa Yard, saved. (7) 2025-06-17 06:25, Eli Navarro, fed L-2409 in P-07 2,772 lb, Red Mesa Yard/P-07, saved with −18 lb returned variance, $402 cost and 4,100 Mcal. (8) 2025-06-18 07:55, Rosa Alvarez, recorded L-2407 weight 1,146 lb, Red Mesa Yard/L-2407, measurement saved; returned interval gain is 7 lb over three days (2.33 lb/head/day). (9) 2025-06-18 10:10, Tomas Reed, repeated PO-8841 import at Red Mesa Yard, line 1 matched rather than duplicated and returned updated 80 head against 82 already mapped, allocation conflict flagged. (10) 2025-06-18 10:35, Omar Diaz, reviewed P-04 plan at Red Mesa Yard/P-04 after relevant head-count change, saved plan retained at 3,337 lb and flagged for review. ROI is service-returned, never computed on screen: L-2407 8.4%, L-2409 6.7%, L-2411 unavailable, L-2413 9.1%. Sample records, where enabled, are visibly distinct and excluded from operational report/inventory totals and exports.",
+    "noScreen": [],
+    "brand": {}
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

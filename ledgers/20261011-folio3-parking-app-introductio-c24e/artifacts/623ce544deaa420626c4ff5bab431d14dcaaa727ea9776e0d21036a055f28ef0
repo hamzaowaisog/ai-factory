@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Folio3 Parking — Employee Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-container": "#a3efd7",
+            "on-surface-variant": "#3f4945",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-tertiary-fixed": "#3a0a05",
+            "on-primary": "#ffffff",
+            "inverse-primary": "#8ad5be",
+            "tertiary-fixed": "#ffdad4",
+            "surface-container": "#ecefeb",
+            "inverse-on-surface": "#eef1ee",
+            "primary": "#005645",
+            "surface-bright": "#f7faf7",
+            "surface-container-lowest": "#ffffff",
+            "tertiary-container": "#945044",
+            "error": "#ba1a1a",
+            "on-secondary-fixed-variant": "#314c44",
+            "inverse-surface": "#2d312f",
+            "surface-variant": "#e0e3e0",
+            "surface-container-low": "#f1f4f1",
+            "on-secondary": "#ffffff",
+            "background": "#f7faf7",
+            "surface-tint": "#186a57",
+            "surface-container-high": "#e6e9e6",
+            "secondary-fixed-dim": "#afcdc2",
+            "secondary": "#49645b",
+            "on-primary-fixed": "#002019",
+            "secondary-fixed": "#cbe9dd",
+            "on-tertiary": "#ffffff",
+            "on-tertiary-container": "#ffd7d0",
+            "outline": "#6f7975",
+            "surface-dim": "#d8dbd8",
+            "on-background": "#181c1b",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed": "#042019",
+            "on-primary-fixed-variant": "#005141",
+            "on-error-container": "#93000a",
+            "on-secondary-container": "#4d685f",
+            "surface-container-highest": "#e0e3e0",
+            "secondary-container": "#c8e6db",
+            "primary-container": "#1f6f5c",
+            "tertiary": "#77392e",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "surface": "#f7faf7",
+            "outline-variant": "#bec9c4",
+            "on-surface": "#181c1b",
+            "primary-fixed-dim": "#8ad5be",
+            "primary-fixed": "#a5f2d9"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .font-mono-plate { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+    .tabular-numbers { font-variant-numeric: tabular-nums; }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .live-dot {
+      animation: live-breathe 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-full bg-background font-body text-on-surface flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Top Bar: Shared Component Blueprint execution -->
+<header class="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-4 sm:px-6 h-16 max-w-7xl mx-auto">
+<!-- Brand & Status Group -->
+<div class="flex items-center gap-6">
+<a class="font-headline font-bold text-lg text-on-surface tracking-tight flex items-center gap-2" href="#">
+<span class="w-7 h-7 rounded bg-primary-container text-white flex items-center justify-center text-sm font-headline font-bold">F3</span>
+<span>Folio3 Parking</span>
+</a>
+<!-- Live Status Pill (Ambient Indicator) -->
+<div class="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded bg-surface-container text-xs font-mono-plate text-on-surface-variant border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-primary-container live-dot"></span>
+<span class="font-semibold tracking-wider text-on-surface">LIVE</span>
+<span class="text-outline">·</span>
+<span>08:02 PKT</span>
+</div>
+</div>
+<!-- Navigation Links (Semantic Shell mapping: Dashboard active) -->
+<nav class="hidden md:flex items-center h-full gap-1">
+<a class="text-primary border-b-2 border-primary font-medium h-full flex items-center px-3 text-sm" href="#dashboard">
+          Dashboard
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3 text-sm transition-colors" href="#claim">
+          Claim Space
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3 text-sm transition-colors" href="#vehicle">
+          My Vehicle
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3 text-sm transition-colors" href="#help">
+          Help
+        </a>
+</nav>
+<!-- Trailing Identity & Actions -->
+<div class="flex items-center gap-3">
+<!-- User Badge -->
+<div class="flex items-center gap-3 pl-2 sm:border-l border-outline-variant">
+<div class="hidden lg:flex flex-col text-right">
+<span class="text-xs font-semibold text-on-surface leading-tight">Bilal Ahmed</span>
+<span class="text-[11px] text-on-surface-variant leading-tight">bilal.ahmed@folio3.com</span>
+</div>
+<div class="w-8 h-8 rounded bg-surface-container-high border border-outline-variant flex items-center justify-center text-xs font-headline font-bold text-on-surface" title="Bilal Ahmed">
+            BA
+          </div>
+</div>
+<button aria-label="Notifications" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Container -->
+<main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-8">
+<!-- Interactive Prototype State Switcher (Review Toolbar) -->
+<section class="bg-surface-container-low border border-outline-variant rounded-lg p-3 sm:p-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-base">tune</span>
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface">Interactive Preview States</span>
+</div>
+<div class="inline-flex flex-wrap items-center gap-1.5 p-1 bg-surface-container rounded border border-outline-variant" role="tablist">
+<button class="state-tab-btn px-3 py-1.5 rounded text-xs font-medium transition-all bg-surface-container-lowest text-on-surface border border-outline-variant shadow-sm" id="btn-state-normal" onclick="switchState('normal')" type="button">
+            Normal State (3 Available)
+          </button>
+<button class="state-tab-btn px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-on-surface" id="btn-state-success" onclick="switchState('success')" type="button">
+            Claimed Success State
+          </button>
+<button class="state-tab-btn px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-on-surface" id="btn-state-error" onclick="switchState('error')" type="button">
+            Error (Race Condition)
+          </button>
+<button class="state-tab-btn px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-on-surface" id="btn-state-empty" onclick="switchState('empty')" type="button">
+            Empty State (0 Spaces)
+          </button>
+</div>
+</div>
+</section>
+<!-- SECTION 1: Greeting Header -->
+<section class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-outline-variant">
+<div>
+<div class="flex items-center gap-2.5 mb-1.5">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container text-xs font-medium text-on-surface-variant border border-outline-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+            Building A &amp; B · General Employee Roster
+          </span>
+</div>
+<h1 class="text-2xl sm:text-3xl font-headline font-bold text-on-surface tracking-tight">Good morning, Bilal</h1>
+<p class="text-sm text-on-surface-variant mt-0.5">Tuesday, 10 June 2025</p>
+</div>
+<div class="text-left sm:text-right">
+<span class="text-xs uppercase tracking-wider text-outline block">Daily Allocation Window</span>
+<span class="font-mono-plate text-xs font-semibold text-on-surface">08:00 – 10:30 PKT</span>
+</div>
+</section>
+<!-- 12-Column Layout Engine (Columns 1-8 Main Action, Columns 9-12 Rail) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+<!-- Left / Main Canvas: Columns 1 to 8 -->
+<div class="lg:col-span-8 space-y-6">
+<!-- SECTION 2: Large Availability Card State Variants -->
+<!-- 1. Normal State (Default) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 sm:p-7 transition-all" id="card-normal">
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Office Parking Availability</span>
+<span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant font-mono-plate">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+              Updated 08:02 PKT
+            </span>
+</div>
+<div class="py-6 sm:py-8 space-y-4">
+<div class="flex flex-wrap items-baseline gap-3">
+<span class="text-3xl sm:text-4xl font-headline font-bold text-on-surface tracking-tight">3 spaces available now</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-secondary-container text-on-secondary-container text-xs font-medium">
+                ● Available to claim
+              </span>
+</div>
+<p class="text-sm text-on-surface-variant max-w-xl">
+              Released by hybrid colleagues today. Spaces in Basement Floor B2 are ready for immediate employee allocation.
+            </p>
+</div>
+<div class="pt-4 border-t border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<p class="text-xs text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-outline">info</span>
+                One claim per day. Claims can't be cancelled.
+              </p>
+</div>
+<button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded bg-primary-container hover:bg-[#195C4C] active:scale-[0.97] text-white text-sm font-medium transition-all shadow-sm" id="claim-btn-interactive" onclick="simulateClaim()" type="button">
+<span class="material-symbols-outlined text-[18px]">local_parking</span>
+<span id="claim-btn-text">Claim a space for today</span>
+</button>
+</div>
+</article>
+<!-- 2. Success State View (Confirmed status) -->
+<article class="hidden bg-surface-container-lowest border border-outline-variant rounded-lg p-6 sm:p-7 relative overflow-hidden" id="card-success">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary-container"></div>
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-primary-container">Spot Allocated &amp; Verified</span>
+</div>
+<span class="text-xs font-mono-plate text-on-surface-variant">PASS #F3-B214</span>
+</div>
+<div class="py-6 space-y-4">
+<h2 class="text-2xl sm:text-3xl font-headline font-bold text-on-surface tracking-tight">
+              You're parked for today — Space B2-14, Floor B2
+            </h2>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+<div class="bg-surface-container-low p-3.5 rounded border border-outline-variant">
+<span class="text-[11px] uppercase tracking-wider text-outline block mb-1">Allocated Bay</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-primary-container bg-surface-container-lowest text-on-surface text-sm font-mono-plate font-semibold">
+                  BAY B2-14
+                </span>
+</div>
+<div class="bg-surface-container-low p-3.5 rounded border border-outline-variant">
+<span class="text-[11px] uppercase tracking-wider text-outline block mb-1">Vehicle on record</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-on-surface bg-surface-container-lowest text-on-surface text-sm font-mono-plate font-semibold">
+                  BKX-482
+                </span>
+</div>
+<div class="bg-surface-container-low p-3.5 rounded border border-outline-variant">
+<span class="text-[11px] uppercase tracking-wider text-outline block mb-1">Timestamp</span>
+<span class="text-sm font-mono-plate text-on-surface font-semibold block pt-0.5">
+                  08:02:41 PKT
+                </span>
+</div>
+</div>
+</div>
+<!-- Guard Verification QR / Pass Badge -->
+<div class="pt-5 border-t border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-surface-container-high border border-outline-variant rounded p-1 flex items-center justify-center">
+<!-- Clean Guard Pass QR Graphic -->
+<svg class="w-10 h-10 text-on-surface" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3z"></path>
+<path d="M15 15h2v2h-2zM19 15h2v2h-2zM15 19h2v2h-2zM19 19h2v2h-2z"></path>
+</svg>
+</div>
+<div>
+<p class="text-xs font-semibold text-on-surface">Security Guard Check-in Pass</p>
+<p class="text-xs text-on-surface-variant">Show this code or plate chip at the Basement 2 boom gate.</p>
+</div>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-secondary-container text-on-secondary-container text-xs font-semibold">
+<span class="material-symbols-outlined text-base">verified</span>
+<span>ENTRY PERMITTED</span>
+</div>
+</div>
+</article>
+<!-- 3. Error State View (Race Condition) -->
+<article class="hidden bg-surface-container-lowest border border-outline-variant rounded-lg p-6 sm:p-7" id="card-error">
+<div class="p-4 rounded bg-[#FBEAE8] border-l-4 border-error mb-6 flex items-start gap-3">
+<span class="material-symbols-outlined text-error text-[20px] mt-0.5">error</span>
+<div class="space-y-1">
+<h3 class="text-sm font-semibold text-on-surface">Allocation failed</h3>
+<p class="text-sm text-on-surface-variant">
+                Someone claimed the last space first. 0 spaces available now.
+              </p>
+</div>
+</div>
+<div class="pb-6 border-b border-outline-variant space-y-3">
+<div class="flex items-center gap-3">
+<span class="text-3xl font-headline font-bold text-on-surface tracking-tight">0 spaces available</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-error-container text-on-error-container text-xs font-medium">
+                ● At capacity
+              </span>
+</div>
+<p class="text-xs font-mono-plate text-outline">Live sync: 08:02:44 PKT</p>
+</div>
+<div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+<p class="text-xs text-on-surface-variant">
+              The allocation queue has been refreshed. Wait for releases or check again shortly.
+            </p>
+<div class="flex items-center gap-2.5 w-full sm:w-auto">
+<button class="w-full sm:w-auto px-4 py-2 rounded border border-outline-variant hover:bg-surface-variant text-on-surface text-sm font-medium transition-colors" onclick="switchState('normal')" type="button">
+                Refresh count
+              </button>
+</div>
+</div>
+</article>
+<!-- 4. Empty State View (0 spaces / Roster filled) -->
+<article class="hidden bg-surface-container-lowest border border-outline-variant rounded-lg p-6 sm:p-7" id="card-empty">
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Office Parking Availability</span>
+<span class="text-xs font-mono-plate text-outline">Updated 08:02 PKT</span>
+</div>
+<div class="py-6 sm:py-8 space-y-4">
+<div class="flex flex-wrap items-baseline gap-3">
+<span class="text-3xl sm:text-4xl font-headline font-bold text-on-surface tracking-tight">0 spaces available</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container text-outline text-xs font-medium">
+                ● Fully Allocated
+              </span>
+</div>
+<p class="text-sm text-on-surface-variant max-w-lg">
+              0 spaces available — we'll notify you if a space is released by a remote team member before 10:30 PKT.
+            </p>
+</div>
+<div class="pt-4 border-t border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<p class="text-xs text-on-surface-variant">
+              Claims open automatically whenever a spot is surrendered.
+            </p>
+<button class="cursor-not-allowed inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded bg-surface-container-high text-outline text-sm font-medium border border-outline-variant" disabled="" type="button">
+              Claim a space for today
+            </button>
+</div>
+</article>
+<!-- SECTION 3: Notification Permission Tile -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5">
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-start gap-3.5">
+<div class="w-9 h-9 rounded bg-secondary-container text-on-secondary-container flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<div class="space-y-0.5">
+<h4 class="text-sm font-semibold text-on-surface">Release Notifications Active</h4>
+<p class="text-xs text-on-surface-variant">
+                  Push notifications on — we'll alert you when spaces are released.
+                </p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container text-xs font-medium">
+                Enabled
+              </span>
+<button aria-checked="true" aria-label="Toggle notifications" class="w-10 h-6 bg-primary-container rounded-full relative transition-colors focus:outline-none" role="switch" type="button">
+<span class="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-transform"></span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Right / Context Rail: Columns 9 to 12 -->
+<aside class="lg:col-span-4 space-y-6">
+<!-- SECTION 4: 'My vehicles' Summary -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5">
+<div class="flex items-center justify-between pb-3.5 border-b border-outline-variant">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Registered Vehicle</span>
+<div class="flex items-center gap-2">
+<button class="text-xs text-primary-container hover:underline font-medium" onclick="toggleVehicleMode()" type="button">
+                Switch view
+              </button>
+</div>
+</div>
+<!-- Vehicle State: Normal -->
+<div class="py-4 space-y-4" id="vehicle-normal">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-[11px] uppercase tracking-wider text-outline">Primary Plate</span>
+<span class="text-[11px] text-on-surface-variant">Verified</span>
+</div>
+<!-- Folio3 Design System Plate Chip: IBM Plex Mono 500 in Pure Surface chip with 1.5px Charcoal Ink border -->
+<div class="inline-flex items-center px-3 py-1.5 rounded-[4px] bg-white border-[1.5px] border-on-surface shadow-xs">
+<span class="font-mono-plate font-semibold text-base text-on-surface tracking-wider">BKX-482</span>
+</div>
+</div>
+<div class="space-y-1 pt-1">
+<p class="text-sm font-semibold text-on-surface">Toyota Corolla</p>
+<p class="text-xs text-on-surface-variant">White · Sedan · Folio3 Badge #4092</p>
+</div>
+<div class="pt-2 border-t border-outline-variant">
+<a class="inline-flex items-center gap-1.5 text-xs font-medium text-primary-container hover:text-[#195C4C] transition-colors" href="#vehicle">
+<span>View vehicle details</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Vehicle State: Empty / First time setup -->
+<div class="hidden py-6 space-y-4 text-left" id="vehicle-empty">
+<div class="w-10 h-10 rounded bg-surface-container border border-outline-variant flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+</div>
+<div class="space-y-1">
+<p class="text-sm font-semibold text-on-surface">No records yet</p>
+<p class="text-xs text-on-surface-variant">
+                Register your vehicle to be eligible for spot allocations.
+              </p>
+</div>
+<button class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded bg-surface-container-lowest border border-on-surface hover:bg-surface-variant text-on-surface text-xs font-medium transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]">add</span>
+<span>+ Add vehicle</span>
+</button>
+</div>
+</section>
+<!-- Context Rail: Allocation Policy Brief -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5 space-y-3">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline block">Today's Protocol</span>
+<ul class="text-xs text-on-surface-variant space-y-2.5">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary-container mt-0.5">check_circle</span>
+<span>Allocation operates on a first-come queue for unreserved bays.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary-container mt-0.5">check_circle</span>
+<span>Allocations remain valid until 19:30 PKT this evening.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary-container mt-0.5">check_circle</span>
+<span>Contact Guard Console on Intercom Ext. 104 for gate access queries.</span>
+</li>
+</ul>
+</section>
+</aside>
+</div>
+</main>
+<!-- Portal Footer -->
+<footer class="mt-auto border-t border-outline-variant bg-surface-container-lowest">
+<div class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant">
+<p>© 2025 Folio3 Software. Internal system for authorised personnel only.</p>
+<div class="flex items-center gap-5">
+<a class="hover:text-on-surface transition-colors" href="#security">Security Policy</a>
+<a class="hover:text-on-surface transition-colors" href="#terms">Terms of Access</a>
+<a class="hover:text-on-surface transition-colors" href="#helpdesk">Help Desk</a>
+</div>
+</div>
+</footer>
+<!-- Micro-interactions Script -->
+<script>
+    function switchState(state) {
+      const cards = ['normal', 'success', 'error', 'empty'];
+      cards.forEach(c => {
+        const el = document.getElementById(`card-${c}`);
+        if (el) el.classList.add('hidden');
+        const btn = document.getElementById(`btn-state-${c}`);
+        if (btn) {
+          btn.className = "state-tab-btn px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-on-surface";
+        }
+      });
+
+      const targetCard = document.getElementById(`card-${state}`);
+      if (targetCard) targetCard.classList.remove('hidden');
+
+      const activeBtn = document.getElementById(`btn-state-${state}`);
+      if (activeBtn) {
+        activeBtn.className = "state-tab-btn px-3 py-1.5 rounded text-xs font-medium transition-all bg-surface-container-lowest text-on-surface border border-outline-variant shadow-sm";
+      }
+    }
+
+    function simulateClaim() {
+      const btn = document.getElementById('claim-btn-interactive');
+      const text = document.getElementById('claim-btn-text');
+      if (!btn || !text) return;
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        <span>Claiming…</span>
+      `;
+
+      setTimeout(() => {
+        switchState('success');
+        btn.disabled = false;
+        btn.innerHTML = `
+          <span class="material-symbols-outlined text-[18px]">local_parking</span>
+          <span id="claim-btn-text">Claim a space for today</span>
+        `;
+      }, 750);
+    }
+
+    function toggleVehicleMode() {
+      const normalV = document.getElementById('vehicle-normal');
+      const emptyV = document.getElementById('vehicle-empty');
+      if (normalV.classList.contains('hidden')) {
+        normalV.classList.remove('hidden');
+        emptyV.classList.add('hidden');
+      } else {
+        normalV.classList.add('hidden');
+        emptyV.classList.remove('hidden');
+      }
+    }
+  </script>
+</body></html>

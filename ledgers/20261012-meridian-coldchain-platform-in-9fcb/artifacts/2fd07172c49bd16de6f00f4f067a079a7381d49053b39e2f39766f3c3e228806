@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 64px;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-waiting {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .main-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    .section-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .small-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    .text-sm-support {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Status Colors */
+    .status-good {
+      color: #24704B;
+    }
+    .status-waiting {
+      color: #805800;
+    }
+    .status-failed {
+      color: #AE2C2C;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot-good { background-color: #24704B; }
+    .dot-waiting { background-color: #805800; }
+    .dot-failed { background-color: #AE2C2C; }
+
+    /* Header */
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .brand-square {
+      width: 28px;
+      height: 28px;
+      background: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 2px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-item {
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      padding: 20px 0;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 4px;
+      border-radius: 2px;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      background: #EAEAEA;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      color: #626262;
+      margin-left: 8px;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px 0 32px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .section-gap {
+      margin-bottom: 32px;
+    }
+
+    /* Panels */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+    }
+
+    .panel-inset {
+      padding: 16px;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+    }
+
+    /* Grid helpers */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .grid-4col {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* Buttons & Controls */
+    button, .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    button:focus-visible, .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    button:active, .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+    .btn-primary:hover {
+      background: #933E15;
+      border-color: #933E15;
+    }
+
+    .btn-secondary {
+      background: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+    .btn-secondary:hover {
+      background: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-link {
+      background: transparent;
+      border: none;
+      height: auto;
+      padding: 0;
+      color: #A94B1D;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      cursor: pointer;
+    }
+    .btn-link:hover {
+      color: #933E15;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      height: 48px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      padding: 0 16px;
+    }
+
+    td {
+      height: 48px;
+      font-size: 15px;
+      border-bottom: 1px solid #D5D5D5;
+      padding: 0 16px;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Evidence photo & signature */
+    .photo-frame {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      display: block;
+      background: #EAEAEA;
+    }
+
+    .sig-frame {
+      width: 100%;
+      height: 180px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .sig-frame svg {
+      width: 100%;
+      max-height: 100%;
+    }
+
+    .card-divider {
+      height: 1px;
+      background: #D5D5D5;
+      margin: 16px 0;
+    }
+
+    .meta-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 13px;
+      color: #626262;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      color: #202020;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="brand-square">M</div>
+        <span>Meridian</span>
+      </a>
+      <nav>
+        <a href="#" class="nav-item">Orders</a>
+        <a href="#" class="nav-item active">Deliveries</a>
+        <a href="#" class="nav-item">Recall notices</a>
+        <a href="#" class="nav-item">Account</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="avatar-initials">HY</div>
+      <span>Hana Youssef · Cedar Health</span>
+      <span class="lang-switcher">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    
+    <!-- Page Title -->
+    <div class="page-header">
+      <h1 class="main-heading">Delivery detail</h1>
+    </div>
+
+    <!-- Lead Section: Completed Delivery O-290 -->
+    <section class="panel section-gap">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div>
+          <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;">
+            <span class="section-heading font-mono">O-290</span>
+            <span class="section-heading">· Delivered to Cedar Clinic</span>
+            <span class="status-good" style="font-weight: 600; font-size: 15px;">
+              <span class="dot dot-good"></span>good delivered
+            </span>
+          </div>
+          <p class="meta-label">
+            Completed delivery handover recorded on <span class="font-mono">13 May 2026 10:14 BST</span> to receiver <strong style="color: #202020;">Rania Karim</strong> via route <span class="font-mono">R-201</span>
+          </p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <a href="#" class="btn btn-primary">Certificates</a>
+          <a href="#" class="btn btn-secondary">Recall response</a>
+        </div>
+      </div>
+
+      <!-- Key Ledger Values -->
+      <div class="grid-4col" style="margin-bottom: 24px;">
+        <div class="panel-inset meta-group">
+          <span class="meta-label">Consigned product</span>
+          <span class="meta-value"><strong>Insulin Glargine 100 units/mL</strong></span>
+          <span class="text-sm-support text-quiet">Pack of 10 pens</span>
+        </div>
+        <div class="panel-inset meta-group">
+          <span class="meta-label">Lot tracking</span>
+          <span class="meta-value font-mono"><strong>IG-2509</strong></span>
+          <span class="text-sm-support text-quiet">Expires <span class="font-mono">30 November 2026</span></span>
+        </div>
+        <div class="panel-inset meta-group">
+          <span class="meta-label">Delivered quantity</span>
+          <span class="meta-value font-mono"><strong>20 packs</strong></span>
+          <span class="text-sm-support text-quiet">All 20 delivered without dock refusal</span>
+        </div>
+        <div class="panel-inset meta-group">
+          <span class="meta-label">Destination clinic</span>
+          <span class="meta-value"><strong>Cedar Clinic</strong></span>
+          <span class="text-sm-support text-quiet">42 River Road, London</span>
+        </div>
+      </div>
+
+      <!-- Consignment & Lot Table -->
+      <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 12px;">
+          <h2 class="small-heading">Lot specification & custody records</h2>
+        </div>
+        <table style="border: 1px solid #D5D5D5;">
+          <thead>
+            <tr style="background: #FAFAFA;">
+              <th>Lot number</th>
+              <th>Product line</th>
+              <th>Quantity</th>
+              <th>Expiry date</th>
+              <th>Handover recipient</th>
+              <th>Route & transit</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-mono">IG-2509</td>
+              <td>Insulin Glargine 100 units/mL (10 pens)</td>
+              <td class="font-mono">20 packs</td>
+              <td class="font-mono">30 November 2026</td>
+              <td>Rania Karim</td>
+              <td class="font-mono">Route R-201 · VAN-27</td>
+              <td class="status-good font-mono"><span class="dot dot-good"></span>good delivered</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Evidence Access: Photo & Signature -->
+      <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+          <h2 class="small-heading">Handover evidence & verification access</h2>
+          <span class="text-sm-support text-quiet">Retained cryptographic records · 7-year cold chain assurance mandate</span>
+        </div>
+        <div class="grid-2col">
+          <!-- Real delivery photograph -->
+          <div class="panel-inset">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span class="meta-label" style="font-weight: 600; color: #202020;">Real delivery photograph</span>
+              <span class="status-good text-sm-support font-mono"><span class="dot dot-good"></span>good retained</span>
+            </div>
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1W5rIdUIJt2Tz-vzPX8X4pgqYHJfBhJO8xuiqMo59oysJ6ei-o7DWvb0yRQMzJNFioq5k2YfqgtVVt2zZIllaqbQ9cbMC7RC3Pa7uY8lZawU5XuJD4ZkSw_ROcdfpQDSHBILKacW6c5FyyohcMFdLGGm9hA75kiMXbyM09Suged-YZqllmQryWCQibw96i8meQ24PUp-3eEKS64I3FWx55FrJPl5smuImg1GB3qLl8eGO6L46BAisqiJmQ" alt="Real delivery photograph at Cedar Clinic reception desk" class="photo-frame">
+            <div style="margin-top: 10px;">
+              <p class="text-sm-support text-quiet">
+                Photographic proof captured at handover: courier Tariq Mansour presenting insulated medical shipper consignment to clinic staff receiver Rania Karim at Cedar Clinic reception desk.
+              </p>
+            </div>
+          </div>
+
+          <!-- Signed handover -->
+          <div class="panel-inset">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span class="meta-label" style="font-weight: 600; color: #202020;">Signed handover signature</span>
+              <span class="status-good text-sm-support font-mono"><span class="dot dot-good"></span>good captured</span>
+            </div>
+            <div class="sig-frame">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200">
+                <rect width="100%" height="100%" fill="#FFFFFF"/>
+                <path d="M 60 130 C 85 70, 95 65, 110 115 C 120 145, 130 140, 150 90 C 165 50, 175 110, 195 105 C 220 100, 240 125, 270 95 C 295 70, 310 110, 340 100 C 370 90, 395 120, 420 85 M 130 110 L 260 110 M 180 80 Q 230 40 310 75 Q 390 110 440 95" fill="none" stroke="#1A2744" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline;">
+              <p class="text-sm-support text-quiet">
+                Biometric signature drawn on driver terminal by receiver <strong>Rania Karim</strong> at <span class="font-mono">10:14 BST</span>.
+              </p>
+              <a href="#" class="btn-link text-sm-support">Certificates</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Post-delivery Quality Review Q-89 & Recall Notice RC-12 -->
+      <div class="grid-2col">
+        <!-- Quality Review Q-89 Panel -->
+        <div class="panel-inset" style="border-left: 3px solid #805800;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="small-heading font-mono">Q-89</span>
+              <span class="meta-label">· Returned post-delivery quality review</span>
+            </div>
+            <span class="status-waiting font-mono text-sm-support">
+              <span class="dot dot-waiting status-dot-waiting"></span>waiting under review
+            </span>
+          </div>
+          <p class="text-sm-support" style="margin-bottom: 12px; color: #202020;">
+            Delivered O-290 late corrected datalogger readings. Handed to Rania Karim 13 May 10:14 on route R-201. Post-sync corrected readings generated certificate versions 1 and 2. This review is a returned post-delivery quality verification, not a retroactive invented stock hold. Consignment completed on time and in full without dock refusal.
+          </p>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #D5D5D5; padding-top: 10px;">
+            <span class="text-sm-support text-quiet">Opened: <span class="font-mono">14 May 2026 10:20 BST</span></span>
+            <span class="text-sm-support text-quiet">Assigned officer: Omar Saleh</span>
+          </div>
+        </div>
+
+        <!-- Linked Recall Notice RC-12 Panel -->
+        <div class="panel-inset" style="border-left: 3px solid #AE2C2C;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="small-heading font-mono">RC-12</span>
+              <span class="meta-label">· Active manufacturer recall</span>
+            </div>
+            <span class="status-failed font-mono text-sm-support">
+              <span class="dot dot-failed"></span>refused active
+            </span>
+          </div>
+          <p class="text-sm-support" style="margin-bottom: 12px; color: #202020;">
+            Manufacturer defect notice RC-12 initiated 14 May 10:00 BST covers lot IG-2509. Traced scope includes 20 packs delivered to Cedar Clinic on O-290 and 4 packs in North Quay quarantine (24 traced total). Customer reconciliation pending physical return or clinical destruction confirmation.
+          </p>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #D5D5D5; padding-top: 10px;">
+            <a href="#" class="btn-link text-sm-support">Recall notices</a>
+            <a href="#" class="btn btn-secondary" style="height: 36px; padding: 0 14px; font-size: 14px;">Recall response</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transit Section: Order O-299 -->
+    <section class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <span class="section-heading font-mono">O-299</span>
+          <span class="section-heading">· In transit</span>
+          <span class="status-good" style="font-weight: 600; font-size: 15px;">
+            <span class="dot dot-good"></span>good on schedule
+          </span>
+        </div>
+        <span class="text-sm-support text-quiet">Consignment route <span class="font-mono">R-204</span> · Driver Tariq Mansour (VAN-27)</span>
+      </div>
+
+      <!-- Dedicated Arrival & Temperature Status Only -->
+      <div class="grid-2col">
+        <div class="panel-inset meta-group">
+          <span class="meta-label">Cedar Health arrival estimate</span>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+            <span class="section-heading font-mono">14 May 2026 15:00 BST</span>
+          </div>
+          <span class="text-sm-support text-quiet" style="margin-top: 4px;">
+            Destination: Cedar Clinic, 42 River Road, London (Stop 1 of 1)
+          </span>
+        </div>
+
+        <div class="panel-inset meta-group">
+          <span class="meta-label">Consignment box temperature status</span>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+            <span class="status-good font-mono" style="font-size: 20px; font-weight: 600;">
+              <span class="dot dot-good"></span>good (2.0°C–8.0°C compliant)
+            </span>
+          </div>
+          <span class="text-sm-support text-quiet" style="margin-top: 4px;">
+            Both shipper boxes (B-701: 12 packs, B-702: 8 packs) verified within cold-chain specification
+          </span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

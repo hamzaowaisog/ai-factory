@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "sample-data|/auth/sign-in|SignIn|reset|replace",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 5,
+   "resultChars": 1725,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;sample-data|/auth/sign-in|SignIn|reset|replace&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:11: /auth/sign-in:\ncontracts/openapi.yaml:13: operationId: signIn\ncontracts/openapi.yaml:21: $ref: '#/components/schemas/SignInRequest'\ncontracts/openapi.yaml:28: $ref: '#/components/schemas/SignInResponse'\ncontracts/openapi.yaml:2007: /sample-data:\ncontracts/openapi.yaml:2010: summary: \"Return sample-data records and management permissions.\"\ncontracts/openapi.yaml:2020: - \"sample-data.view\"\ncontracts/openapi.yaml:2021: - \"sample-data.manage\"\ncontracts/openapi.yaml:2037: /sample-data/load:\ncontracts/openapi.yaml:2050: - \"sample-data.manage\"\ncontracts/openapi.yaml:2069: /sample-data/reset:\ncontracts/openapi.yaml:2071: operationId: resetSampleData\ncontracts/openapi.yaml:2072: summary: \"Reset sample records after explicit user confirmation.\"\ncontracts/openapi.yaml:2081: description: \"Reset operation result.\"\ncontracts/openapi.yaml:2088: - \"sample-data.manage\"\ncontracts/openapi.yaml:2089: status: \"reset\"\ncontracts/openapi.yaml:2090: message: \"Sample data reset.\"\ncontracts/openapi.yaml:2103: /sample-data/replace:\ncontracts/openapi.yaml:2105: operationId: replaceSampleData\ncontracts/openapi.yaml:2106: summary: \"Replace sample records after explicit user confirmation.\"\ncontracts/openapi.yaml:2115: description: \"Replacement operation result.\"\ncontracts/openapi.yaml:2122: - \"sample-data.manage\"\ncontracts/openapi.yaml:2123: status: \"replaced\"\ncontracts/openapi.yaml:2124: message: \"Sample data replaced.\"\ncontracts/openapi.yaml:2274: SignInRequest:\ncontracts/openapi.yaml:2286: SignInResponse:\n</untrusted_document>"
+  }
+ ]
+}

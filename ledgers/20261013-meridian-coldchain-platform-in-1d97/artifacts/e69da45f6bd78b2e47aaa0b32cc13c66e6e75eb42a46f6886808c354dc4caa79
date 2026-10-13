@@ -1,0 +1,275 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Root health and API documentation endpoints",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Only specifies that the API serves HTTP operations; it does not require retaining a root health endpoint or Swagger/OpenAPI UI."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Requires a root health response that returns HTTP 200 when healthy."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Requires the OpenAPI document and Swagger UI to remain available."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-1",
+      "topic": "Persistence and backend configuration failures",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Does not state a general persistence or backend-configuration-failure behavior in this span."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Requires API requests to use persisted shared records and prohibits successful business responses under invalid or unavailable backend configuration."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-2",
+      "topic": "Authorization and domain-specific access rules",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Requires authorization and receipt operations to follow their contract-defined access rules, without adding further rules."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Specifies detailed staff, customer, warehouse, auditor, and organisation access restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Requires contract-defined authorization/error behavior and protection from other users' or organisations' data, but does not add the detailed rules in sketch 2."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-2",
+      "topic": "Receipt validation and quality rules",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Limits receipt creation/listing behavior to the contract-defined inputs, outputs, and access rules."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Adds refusal of receipts violating business rules, including expired lots or insufficient warehouse authority."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-2",
+      "topic": "Customer order changes and status constraints",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Requires the PATCH operation to follow the contract-defined request and result, without specifying additional status rules."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Limits customer changes or cancellations to their own orders before Packed and refuses foreign orders, disallowed transitions, and invalid changes."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Requires contract-defined PATCH behavior without adding the before-Packed rule."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-3",
+      "topic": "Scope of persisted data and product/profile workflows",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Persists data required by contracted operations rather than broader uncontracted product capabilities."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Adds product temperature-profile versioning and validation, product search, and deactivation behavior where not specified by the contract."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Persists records required by contract operations and their subsequent reads, without requiring broader narrative capabilities."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-3",
+      "topic": "Receipt records and stock handling",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Requires receipt creation/listing persistence and order changes to be reflected in later reads, but adds no receipt uniqueness or stock workflow rules."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Requires separate receipt records, quarantine and release rules, inbound logger/budget retention, and stock-movement records."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Requires distinct traceable receipts with specified receipt fields; behaviour 4 additionally requires quarantine and expiry-based release restrictions when exposed."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "I-3",
+      "topic": "Order validation, allocation, and lifecycle",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Requires order changes to appear in later reads, without specifying order validation or allocation workflows."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Adds extensive order validation, address/calendar rules, duplicate-submission handling, and cross-organisation checks."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Requires detailed allocation, back-ordering, dispatcher override, and concurrency behavior."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Specifies cancellation/change timing, allocation restoration, and reallocation after stock disposition changes."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Requires persistence of supported order/line changes and organisation-scoped reads, without the detailed workflows in sketch 2."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "Adds allocation constraints and suitable-stock ordering where allocation is exposed, but not sketch 2's full workflow."
+       }
+      ]
+     },
+     {
+      "id": "D-9",
+      "span": "I-3",
+      "topic": "Stock visibility, expiry, and warehouse quantities",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 5,
+        "summary": "Requires stock quantities and allocation states to reconcile and automatically expire stock with notification."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 4,
+        "summary": "Specifies receipt quarantine and release limits but not automatic expiry, quantity views, or notification."
+       }
+      ]
+     },
+     {
+      "id": "D-10",
+      "span": "I-3",
+      "topic": "Temperature and shipment workflows",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 6,
+        "summary": "Requires shipper-box/logger constraints, route persistence, assignment-conflict checks, and duration-qualified confirmation."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 7,
+        "summary": "Specifies gateway/device validation, duplicate and late reading handling, silence alerts, and gap visibility."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 8,
+        "summary": "Requires history charts, tier-budget calculations, excursion processing, and recalculation after reordered readings."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 9,
+        "summary": "Requires timed alerts, stock holds, and quality review for excursions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 6,
+        "summary": "Requires persisted temperature readings with duplicate handling, event-time ordering, and marking/exclusion of future or pre-sealing readings."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 7,
+        "summary": "Requires exposed excursion/budget/hold data to be associated with handling units and corrected histories and decisions audited."
+       }
+      ]
+     },
+     {
+      "id": "D-11",
+      "span": "I-3",
+      "topic": "Audit and mutation restrictions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Requires stored records to preserve contract-defined relationships and fields, without requiring a broad audit trail."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 10,
+        "summary": "Requires auditable actors/times for consequential decisions and refuses a broad set of unauthorized or invalid mutations."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Enforces role/organisation permissions and auditor read-only access, but does not require sketch 2's comprehensive audit and mutation rules."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

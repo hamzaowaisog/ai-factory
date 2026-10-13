@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Today's routes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design System exact rules */
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion tokens and animations */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    .animate-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-waiting-dot {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    /* Micro-interactions */
+    .touch-target {
+      min-height: 48px;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 90ms ease;
+    }
+    .touch-target:active {
+      transform: scale(0.985);
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      height: 48px;
+      border-radius: 2px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 140ms ease, outline 140ms ease, transform 90ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #933f17;
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+      background-color: #7f3613;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      height: 48px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 90ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #A94B1D;
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    /* Interactive mobile menu drawer via CSS checkbox */
+    #menu-toggle:checked ~ #nav-drawer {
+      display: block;
+    }
+    #menu-toggle:checked ~ #nav-backdrop {
+      display: block;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center">
+  <!-- Container fixed around mobile width (390px) -->
+  <div class="w-full max-w-[390px] min-h-screen bg-[#F7F7F7] flex flex-col relative pb-10">
+
+    <!-- Header -->
+    <header class="w-full bg-[#FFFFFF] border-b border-[#D5D5D5] px-4 py-3 sticky top-0 z-30">
+      <div class="flex items-center justify-between">
+        <!-- Left: Brand square + Meridian -->
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 bg-[#202020] rounded-[2px] flex items-center justify-center text-white font-bold text-xs font-mono-code leading-none">
+            M
+          </div>
+          <span class="font-heading font-bold text-base text-[#202020] tracking-tight">Meridian</span>
+        </div>
+
+        <!-- Right: Mobile Menu Toggle Button (Drawer triggers on click) -->
+        <div class="flex items-center space-x-2">
+          <span class="text-xs text-[#626262]">EN / العربية</span>
+          <label for="menu-toggle" class="cursor-pointer p-2 rounded-[2px] border border-[#D5D5D5] bg-[#FFFFFF] hover:bg-[#F7F7F7] flex items-center justify-center w-9 h-9" aria-label="Open menu">
+            <svg class="w-5 h-5 text-[#202020]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hidden checkbox for CSS drawer -->
+    <input type="checkbox" id="menu-toggle" class="hidden">
+
+    <!-- Nav Backdrop -->
+    <label for="menu-toggle" id="nav-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden"></label>
+
+    <!-- Slide-over / Pop Navigation Menu -->
+    <aside id="nav-drawer" class="fixed top-0 left-0 bottom-0 w-[300px] max-w-[80vw] bg-[#FFFFFF] border-r border-[#D5D5D5] z-50 p-5 hidden flex-col justify-between shadow-xl">
+      <div>
+        <!-- Driver Profile Header in Menu -->
+        <div class="flex items-center justify-between pb-4 border-b border-[#D5D5D5] mb-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-[2px] bg-[#F7F7F7] border border-[#D5D5D5] flex items-center justify-center font-mono-code font-bold text-xs text-[#202020]">
+              TM
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-[#202020]">Tariq Mansour · Driver</p>
+              <p class="text-xs text-[#626262]">North Quay Warehouse</p>
+            </div>
+          </div>
+          <label for="menu-toggle" class="p-1 cursor-pointer text-[#626262] hover:text-[#202020]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </label>
+        </div>
+
+        <!-- Navigation Links: Exactly Today's routes and Pending work -->
+        <nav class="space-y-1">
+          <a href="#" class="flex items-center px-3 h-12 rounded-[2px] text-sm font-semibold text-[#A94B1D] bg-[#F7F7F7] border-l-2 border-[#A94B1D]">
+            Today's routes
+          </a>
+          <a href="#" class="flex items-center px-3 h-12 rounded-[2px] text-sm font-normal text-[#202020] hover:bg-[#F7F7F7]">
+            Pending work
+          </a>
+        </nav>
+      </div>
+
+      <div class="pt-4 border-t border-[#D5D5D5] flex items-center justify-between text-xs text-[#626262]">
+        <span>Language: EN / العربية</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="px-4 pt-6 flex-1 flex flex-col space-y-6">
+
+      <!-- Driver Identity Bar (Always visible in mobile flow) -->
+      <div class="flex items-center justify-between pb-2 border-b border-[#D5D5D5]">
+        <div class="flex items-center space-x-2">
+          <span class="w-6 h-6 rounded-[2px] bg-[#FFFFFF] border border-[#D5D5D5] flex items-center justify-center font-mono-code font-semibold text-[11px] text-[#202020]">
+            TM
+          </span>
+          <span class="text-sm font-medium text-[#202020]">Tariq Mansour · Driver</span>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-[#24704B]"></span>
+          <span class="text-xs font-mono-code font-medium text-[#24704B]">Connected</span>
+        </div>
+      </div>
+
+      <!-- Page's single heading -->
+      <div>
+        <h1 class="text-[28px] leading-tight font-[650] text-[#202020]">Today's routes</h1>
+        <p class="text-xs text-[#626262] mt-1 font-mono-code">
+          Cached at: 14 May 2026 09:30 BST
+        </p>
+      </div>
+
+      <!-- Primary Route Overview Panel -->
+      <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 flex flex-col space-y-4 animate-entrance">
+        
+        <!-- Route Badge & Status -->
+        <div class="flex items-baseline justify-between">
+          <div class="flex items-baseline space-x-2">
+            <span class="text-xs uppercase tracking-wider text-[#626262]">Route</span>
+            <span class="text-xl font-bold font-mono-code text-[#202020]">R-204</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+            <span class="text-xs font-semibold text-[#24704B]">good</span>
+          </div>
+        </div>
+
+        <!-- Real Van Photo (4:3 aspect ratio, 2px corners) -->
+        <div class="w-full aspect-[4/3] rounded-[2px] overflow-hidden border border-[#D5D5D5] bg-[#F7F7F7]">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1V6kxYXeODWvoVpe_AFHY4zsq216s3f0d3gRHvPhp40XlRK89pWY1jPW_fFhbYpRHAg1_GLjHxB-FI97c57LzSDBD1Hkjp0ljamOnEHEiCjXr-WXPbXNQohpZVStaEUMYdNNPm4wCbrUKRHPk9LUzi8cPB4mbUsQFeYIrxYsTYCb9B7tJ5XwjSuUWt4duyQ8iGzf2XMDVg_eov4oLCi_E4150eyJh3A7ZJyCpDoqQIYq3sgPEIJV-QGZSw" alt="Tariq's white refrigerated delivery van VAN-27" class="w-full h-full object-cover">
+        </div>
+
+        <!-- Vehicle & Schedule Metadata rows -->
+        <div class="grid grid-cols-2 gap-3 pt-1 border-t border-[#D5D5D5]">
+          <div>
+            <span class="text-xs text-[#626262] block">Vehicle</span>
+            <span class="text-sm font-semibold font-mono-code text-[#202020]">VAN-27</span>
+            <span class="text-xs text-[#626262] block font-mono-code">MTR-482</span>
+          </div>
+          <div>
+            <span class="text-xs text-[#626262] block">Planned departure</span>
+            <span class="text-sm font-semibold font-mono-code text-[#202020]">15:00 BST</span>
+            <span class="text-xs text-[#626262] block font-mono-code">14 May 2026</span>
+          </div>
+        </div>
+
+        <!-- Consigned cargo details -->
+        <div class="pt-3 border-t border-[#D5D5D5] space-y-1">
+          <div class="flex justify-between items-baseline">
+            <span class="text-xs text-[#626262]">Consigned cargo scope</span>
+            <span class="text-xs font-semibold font-mono-code text-[#24704B] flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+              good (eligible)
+            </span>
+          </div>
+          <p class="text-sm font-semibold text-[#202020] font-mono-code">Order O-299</p>
+          <p class="text-xs text-[#626262]">20 packs in B-701 &amp; B-702 (Insulin Glargine · Profile v3)</p>
+        </div>
+
+        <!-- Primary Action: Large Route stops control -->
+        <div class="pt-2">
+          <a href="#" class="btn-primary w-full text-base font-semibold tracking-wide touch-target">
+            Route stops
+          </a>
+        </div>
+      </section>
+
+      <!-- Ordered Stops Section -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-[20px] font-[650] text-[#202020]">Ordered stops</h2>
+          <span class="text-xs font-mono-code text-[#626262]">1 stop scheduled</span>
+        </div>
+
+        <!-- Stop Card (Cedar Clinic) -->
+        <div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 space-y-3">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-[2px] bg-[#202020] text-white flex items-center justify-center font-mono-code font-bold text-xs">
+                1
+              </span>
+              <div>
+                <h3 class="text-base font-semibold text-[#202020]">Cedar Clinic</h3>
+                <p class="text-xs text-[#626262]">42 River Road, London</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-sm font-bold font-mono-code text-[#202020]">15:00 BST</span>
+              <span class="text-[11px] block font-mono-code text-[#626262]">14 May 2026</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#D5D5D5] space-y-1.5 text-xs">
+            <div class="flex justify-between">
+              <span class="text-[#626262]">Customer</span>
+              <span class="font-medium text-[#202020]">Cedar Health (Hana Youssef)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-[#626262]">Consignment</span>
+              <span class="font-mono-code font-medium text-[#202020]">Order O-299 · 20 packs</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-[#626262]">Shipper boxes</span>
+              <span class="font-mono-code font-medium text-[#202020]">B-701 (12) + B-702 (8)</span>
+            </div>
+            <div class="flex justify-between items-center pt-1">
+              <span class="text-[#626262]">Thermal status</span>
+              <span class="font-semibold text-[#24704B] flex items-center gap-1 font-mono-code">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+                good
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Offline and Caching Notice (Generous reading style, small text) -->
+      <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 text-[13px] leading-relaxed text-[#626262]">
+        <p>
+          This installable web app caches today's assigned route; offline actions remain tied to Tariq, whereas route/customer cache clears on sign-out, workday end or refused access.
+        </p>
+      </section>
+
+    </main>
+
+  </div>
+</body>
+</html>

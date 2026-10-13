@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5ad59cc5-c25c-4a76-a7d4-0aa242614f8b" name="@3099b7711f11 2026-10-11 02:43:22" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-11T02:43:22.2909118+00:00" queuing="2026-10-11T02:43:22.2909118+00:00" start="2026-10-11T02:43:21.6737891+00:00" finish="2026-10-11T02:43:22.2941959+00:00" />
+  <TestSettings name="default" id="134f938a-9698-4278-a60e-af60603ab1bf">
+    <Deployment runDeploymentRoot="_3099b7711f11_2026-10-11_02_43_22" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="ae7b09db-67e6-46c4-abf0-6655b76def58" testId="b115747d-7afd-c937-3e8d-6e83a405767c" testName="Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder" computerName="3099b7711f11" duration="00:00:00.0019960" startTime="2026-10-11T02:43:22.2168531+00:00" endTime="2026-10-11T02:43:22.2168531+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ae7b09db-67e6-46c4-abf0-6655b76def58" />
+    <UnitTestResult executionId="b0b45b6c-adf9-4d6c-a0d4-153cd4234925" testId="3c04d1ee-82f7-d8e5-1732-cf67df389188" testName="Shop.Tests.DatabaseTests.TestDatabaseRoundTrip" computerName="3099b7711f11" duration="00:00:00.1115659" startTime="2026-10-11T02:43:22.2019766+00:00" endTime="2026-10-11T02:43:22.2020145+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b0b45b6c-adf9-4d6c-a0d4-153cd4234925" />
+    <UnitTestResult executionId="d8293ff7-db7e-4d61-a00b-b3241d11e828" testId="284dd49e-f97c-6878-b584-18ec9e97e633" testName="Shop.Tests.MissingOrderTests.CHAR_ExistingOrderStillReturned" computerName="3099b7711f11" duration="00:00:00.1274040" startTime="2026-10-11T02:43:22.2151022+00:00" endTime="2026-10-11T02:43:22.2151023+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d8293ff7-db7e-4d61-a00b-b3241d11e828" />
+    <UnitTestResult executionId="496a4172-bd32-450a-86a0-804d984278e3" testId="bbc91759-04c8-886a-5cb6-9b998a752c57" testName="Shop.Tests.OrdersTests.ExistingOrderIsReturned" computerName="3099b7711f11" duration="00:00:00.1266259" startTime="2026-10-11T02:43:22.2137915+00:00" endTime="2026-10-11T02:43:22.2137917+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="496a4172-bd32-450a-86a0-804d984278e3" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Shop.Tests.OrdersTests.ExistingOrderIsReturned" storage="/src/shop.tests/bin/debug/net8.0/shop.tests.dll" id="bbc91759-04c8-886a-5cb6-9b998a752c57">
+      <Execution id="496a4172-bd32-450a-86a0-804d984278e3" />
+      <TestMethod codeBase="/src/Shop.Tests/bin/Debug/net8.0/Shop.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Shop.Tests.OrdersTests" name="ExistingOrderIsReturned" />
+    </UnitTest>
+    <UnitTest name="Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder" storage="/src/shop.tests/bin/debug/net8.0/shop.tests.dll" id="b115747d-7afd-c937-3e8d-6e83a405767c">
+      <Execution id="ae7b09db-67e6-46c4-abf0-6655b76def58" />
+      <TestMethod codeBase="/src/Shop.Tests/bin/Debug/net8.0/Shop.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Shop.Tests.MissingOrderTests" name="AC_1_1_Returns404ForMissingOrder" />
+    </UnitTest>
+    <UnitTest name="Shop.Tests.MissingOrderTests.CHAR_ExistingOrderStillReturned" storage="/src/shop.tests/bin/debug/net8.0/shop.tests.dll" id="284dd49e-f97c-6878-b584-18ec9e97e633">
+      <Execution id="d8293ff7-db7e-4d61-a00b-b3241d11e828" />
+      <TestMethod codeBase="/src/Shop.Tests/bin/Debug/net8.0/Shop.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Shop.Tests.MissingOrderTests" name="CHAR_ExistingOrderStillReturned" />
+    </UnitTest>
+    <UnitTest name="Shop.Tests.DatabaseTests.TestDatabaseRoundTrip" storage="/src/shop.tests/bin/debug/net8.0/shop.tests.dll" id="3c04d1ee-82f7-d8e5-1732-cf67df389188">
+      <Execution id="b0b45b6c-adf9-4d6c-a0d4-153cd4234925" />
+      <TestMethod codeBase="/src/Shop.Tests/bin/Debug/net8.0/Shop.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Shop.Tests.DatabaseTests" name="TestDatabaseRoundTrip" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="b115747d-7afd-c937-3e8d-6e83a405767c" executionId="ae7b09db-67e6-46c4-abf0-6655b76def58" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3c04d1ee-82f7-d8e5-1732-cf67df389188" executionId="b0b45b6c-adf9-4d6c-a0d4-153cd4234925" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="284dd49e-f97c-6878-b584-18ec9e97e633" executionId="d8293ff7-db7e-4d61-a00b-b3241d11e828" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bbc91759-04c8-886a-5cb6-9b998a752c57" executionId="496a4172-bd32-450a-86a0-804d984278e3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="4" executed="4" passed="4" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.04]   Discovering: Shop.Tests
+[xUnit.net 00:00:00.06]   Discovered:  Shop.Tests
+[xUnit.net 00:00:00.06]   Starting:    Shop.Tests
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/orders/1 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/orders/2 - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '&lt;&gt;f__AnonymousType0`2' as Json.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '&lt;&gt;f__AnonymousType0`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/orders/2 - 200 - application/json;+charset=utf-8 34.7142ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/orders/1 - 200 - application/json;+charset=utf-8 35.6590ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/orders/999 - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Http.Result.NotFoundObjectResult[1]
+      Setting HTTP status code 404.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/orders/999 - 404 - - 0.5972ms
+[xUnit.net 00:00:00.21]   Finished:    Shop.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="3099b7711f11" outcome="Warning" timestamp="2026-10-11T02:43:22.2597594+00:00">
+        <Text>Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

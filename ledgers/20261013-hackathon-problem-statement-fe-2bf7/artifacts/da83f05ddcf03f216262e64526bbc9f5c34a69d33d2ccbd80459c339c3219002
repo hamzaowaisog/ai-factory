@@ -1,0 +1,53 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "problems": [
+       2
+      ],
+      "text": "What must AC-10.2 verify after a confirmed sample reset or replacement?",
+      "options": [
+       "Check only that the operation reports completed and the resulting recordCount is correct.",
+       "Verify the affected sample records were actually removed by reset or replaced by the replacement sample records, in addition to checking completion and recordCount."
+      ],
+      "recommended": "Verify the affected sample records were actually removed by reset or replaced by the replacement sample records, in addition to checking completion and recordCount.",
+      "reason": "This is the smallest addition that confirms the requested reset or replacement actually affected the sample data.",
+      "impact": 3,
+      "impactReason": "It verifies data-changing reset and replacement behavior, not just a status response."
+     },
+     {
+      "problems": [
+       3
+      ],
+      "text": "What should the sign-in acceptance criteria cover for incorrect credentials sent to POST /auth/sign-in?",
+      "options": [
+       "Keep only the valid-credentials case.",
+       "Add one case confirming incorrect credentials receive the contract-defined rejection response.",
+       "Add separate rejection cases for an incorrect username and an incorrect password."
+      ],
+      "recommended": "Add one case confirming incorrect credentials receive the contract-defined rejection response.",
+      "reason": "One negative case closes the explicit coverage gap without expanding into additional credential scenarios.",
+      "impact": 2,
+      "impactReason": "It clarifies a visible sign-in failure flow without changing data or permissions."
+     }
+    ],
+    "inRequest": [
+     {
+      "problem": 1,
+      "quote": "Build every operation of the locked API contract in contracts/openapi.yaml, exactly as it is written there."
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

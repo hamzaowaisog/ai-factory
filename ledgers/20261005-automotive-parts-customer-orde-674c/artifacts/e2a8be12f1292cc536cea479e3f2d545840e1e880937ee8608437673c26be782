@@ -1,0 +1,94 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The estimate must list all 81 section-74 checklist items as individual line items under their section headings (Product/UX 8, Frontend 20, Backend 20, Integrations 5, QA 12, DevOps 10, Documentation 6), not estimated by screen count."
+     },
+     {
+      "n": 2,
+      "text": "Each line item must show a low and high effort value in person-days, with low less than or equal to high."
+     },
+     {
+      "n": 3,
+      "text": "Each section must show a subtotal, and the subtotals must sum to a grand total, all consistent with the line item values."
+     },
+     {
+      "n": 4,
+      "text": "Each of the 33 first-release scope items from section 76 must be mapped to at least one line item."
+     },
+     {
+      "n": 5,
+      "text": "The Payments line items must be scoped to staff manually setting invoice status to unpaid, paid, or overdue, with no online payment collection."
+     },
+     {
+      "n": 6,
+      "text": "The Order amendments line item must be scoped to staff amending orders before dispatch."
+     },
+     {
+      "n": 7,
+      "text": "Authorization, user management, customer management, permission testing, and customer data-isolation testing line items must be based on exactly three roles: customer user, staff, and admin."
+     },
+     {
+      "n": 8,
+      "text": "Staff manage customers and companies; only admins manage users, products, and price lists."
+     },
+     {
+      "n": 9,
+      "text": "A customer user can see only their own company's orders, invoices, and prices."
+     },
+     {
+      "n": 10,
+      "text": "Order cancellation and order state transition line items must allow customer users and staff to cancel an order only until it is dispatched."
+     },
+     {
+      "n": 11,
+      "text": "Invoice line items must reflect that an invoice is created automatically when an order is dispatched and that pre-dispatch amendments never change an invoice."
+     },
+     {
+      "n": 12,
+      "text": "The ERP CSV import and Import testing line items must be scoped to a daily scheduled pickup of a stock-quantity-only file."
+     },
+     {
+      "n": 13,
+      "text": "A file with bad rows or unknown SKUs must be rejected as a whole, keeping previous stock and logging or alerting an error."
+     },
+     {
+      "n": 14,
+      "text": "The estimate must include a numbered assumptions list stating every item the estimate depends on that the client has not confirmed."
+     },
+     {
+      "n": 15,
+      "text": "The technology proposal must name one recommended choice with a reason for each of the 10 section-75 areas: frontend framework, backend framework, database, authentication approach, file storage, email integration, PDF generation approach, hosting/cloud platform, CI/CD, and monitoring/logging."
+     },
+     {
+      "n": 16,
+      "text": "The authentication approach recommendation must support email-and-password sign-in with an email reset link."
+     },
+     {
+      "n": 17,
+      "text": "The technology proposal must explain how the proposed stack supports up to 1,000 users and 100,000 records in the first year."
+     },
+     {
+      "n": 18,
+      "text": "The technology proposal must explain how order and invoice records are kept for at least 7 years without deletion."
+     },
+     {
+      "n": 19,
+      "text": "The technology proposal must recommend hosting in one cloud region within the client's own cloud account."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

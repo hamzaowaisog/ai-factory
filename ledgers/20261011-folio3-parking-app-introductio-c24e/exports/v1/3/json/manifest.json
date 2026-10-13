@@ -1,0 +1,757 @@
+{
+  "kind": "ai-factory/design-package",
+  "schemaVersion": 1,
+  "line": "20261011-folio3-parking-app-introductio-c24e",
+  "version": 1,
+  "designSha": "eb69f957c48abecd39d1332eafccde7af2f66f8efb4aed1c0d598bc023f2f77c",
+  "demoSha": "f823f08acc40dbd86c501127f727c258e2fe8b4dada5751c65ff8adfb837f956",
+  "run": {
+    "id": "20261011-folio3-parking-app-introductio-c24e",
+    "mode": "design",
+    "project": "standalone-estimates"
+  },
+  "product": {
+    "name": "Parking App",
+    "client": "Folio3"
+  },
+  "approved": {
+    "by": "Hamza (via web)",
+    "at": "2026-10-11T22:38:40.836Z"
+  },
+  "templateVersion": "21",
+  "designSchemaVersion": 1,
+  "look": "design",
+  "references": [],
+  "screens": [
+    {
+      "id": "S-1",
+      "title": "S-1 /sign-in",
+      "route": "/sign-in",
+      "reqs": [
+        "REQ-1",
+        "REQ-26"
+      ],
+      "states": [
+        "default",
+        "error"
+      ]
+    },
+    {
+      "id": "S-2",
+      "title": "S-2 /access-error",
+      "route": "/access-error",
+      "reqs": [
+        "REQ-4"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-3",
+      "title": "S-3 /onboarding/vehicle",
+      "route": "/onboarding/vehicle",
+      "reqs": [
+        "REQ-3",
+        "REQ-2"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-4",
+      "title": "S-4 /dashboard",
+      "route": "/dashboard",
+      "reqs": [
+        "REQ-14",
+        "REQ-15",
+        "REQ-16",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "id": "S-5",
+      "title": "S-5 /dashboard/holder",
+      "route": "/dashboard/holder",
+      "reqs": [
+        "REQ-10",
+        "REQ-12",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "error"
+      ]
+    },
+    {
+      "id": "S-6",
+      "title": "S-6 /releases/schedule",
+      "route": "/releases/schedule",
+      "reqs": [
+        "REQ-11",
+        "REQ-12",
+        "REQ-10"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-7",
+      "title": "S-7 /profile",
+      "route": "/profile",
+      "reqs": [
+        "REQ-2",
+        "REQ-3",
+        "REQ-5"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-8",
+      "title": "S-8 /guard/verifications",
+      "route": "/guard/verifications",
+      "reqs": [
+        "REQ-18",
+        "REQ-19",
+        "REQ-20",
+        "REQ-21",
+        "REQ-22",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "id": "S-9",
+      "title": "S-9 /admin/spaces",
+      "route": "/admin/spaces",
+      "reqs": [
+        "REQ-6",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-10",
+      "title": "S-10 /admin/employees",
+      "route": "/admin/employees",
+      "reqs": [
+        "REQ-6",
+        "REQ-2",
+        "REQ-3"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-11",
+      "title": "S-11 /admin/employees/:id",
+      "route": "/admin/employees/:id",
+      "reqs": [
+        "REQ-6",
+        "REQ-2"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-12",
+      "title": "S-12 /admin/roles",
+      "route": "/admin/roles",
+      "reqs": [
+        "REQ-26",
+        "REQ-5",
+        "REQ-1"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-13",
+      "title": "S-13 /admin/settings",
+      "route": "/admin/settings",
+      "reqs": [
+        "REQ-12"
+      ],
+      "states": [
+        "default"
+      ]
+    },
+    {
+      "id": "S-14",
+      "title": "S-14 /admin/reports/recipients",
+      "route": "/admin/reports/recipients",
+      "reqs": [
+        "REQ-24"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-15",
+      "title": "S-15 /admin/reports",
+      "route": "/admin/reports",
+      "reqs": [
+        "REQ-23",
+        "REQ-22",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-16",
+      "title": "S-16 /admin/audit",
+      "route": "/admin/audit",
+      "reqs": [
+        "REQ-16",
+        "REQ-21",
+        "REQ-20",
+        "REQ-15"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "file": "s-1-default-desktop.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-1-error-desktop.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "error",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-2-default-desktop.png",
+      "id": "S-2",
+      "screen": "S-2 /access-error",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-3-default-desktop.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-4-default-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-4-empty-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-4-error-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "error",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-5-default-desktop.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-5-error-desktop.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "error",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-6-default-desktop.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-7-default-desktop.png",
+      "id": "S-7",
+      "screen": "S-7 /profile",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-8-default-desktop.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-8-empty-desktop.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-8-error-desktop.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "error",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-9-default-desktop.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-9-empty-desktop.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-10-default-desktop.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-10-empty-desktop.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-11-default-desktop.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-12-default-desktop.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-13-default-desktop.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-14-default-desktop.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-14-empty-desktop.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-15-default-desktop.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-15-empty-desktop.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-16-default-desktop.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "default",
+      "viewport": "desktop",
+      "own": true
+    },
+    {
+      "file": "s-16-empty-desktop.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "empty",
+      "viewport": "desktop",
+      "own": true
+    }
+  ],
+  "shotsNote": "the pictures are the design's own, as drawn at desktop width; not drawn, so not pictured: S-1 loading, S-2 loading, S-3 validation, S-3 loading, S-4 success, S-4 loading, S-5 success, S-5 loading, S-6 success, S-6 validation, S-6 loading, S-7 validation, S-9 validation, S-11 success, S-11 validation, S-12 success, S-12 validation, S-13 success, S-13 validation, S-14 success, S-14 validation",
+  "files": [
+    {
+      "path": "demo/index.html",
+      "sha256": "f823f08acc40dbd86c501127f727c258e2fe8b4dada5751c65ff8adfb837f956",
+      "bytes": 10603825
+    },
+    {
+      "path": "design.json",
+      "sha256": "6fc8ae6d1435582925643fcef0f417e236ed533b8b3e0f919029d7370b83b60d",
+      "bytes": 41740
+    },
+    {
+      "path": "screens/DESIGN.md",
+      "sha256": "3f034b42aafbc756361f2b821a13a420f27f7fe654a79c9e1d2de5d6ed5d5e9e",
+      "bytes": 14741
+    },
+    {
+      "path": "screens/S-1-error.html",
+      "sha256": "910b77af21c3f9796244e1ba1ade34ef3750131c0e60976dfb2f9d17cbc5dfdd",
+      "bytes": 16873
+    },
+    {
+      "path": "screens/S-1.html",
+      "sha256": "f1aa1cf002446ad2a4b5278d88bbb7dc0cb733f1d59b846a0e24c29f31e93c65",
+      "bytes": 16011
+    },
+    {
+      "path": "screens/S-10-empty.html",
+      "sha256": "f8d45c6f04dcdf02e59e3a359cb63f932256258d4c94a421418713765f15056e",
+      "bytes": 45848
+    },
+    {
+      "path": "screens/S-10.html",
+      "sha256": "47eb2474ab1fd6bed8b00660481f926bf44e38d72187bf2502323aa02bd5fbb7",
+      "bytes": 41338
+    },
+    {
+      "path": "screens/S-11.html",
+      "sha256": "8962cf8c1808a505299522ac38187c5dc9cbae0d604d3d27948e4e3a84aef4a0",
+      "bytes": 43480
+    },
+    {
+      "path": "screens/S-12.html",
+      "sha256": "68ad57d4d4917c2bd0d5de1f2ef5ff67be6a065cb6f9b0a7c49facbdfc435809",
+      "bytes": 30276
+    },
+    {
+      "path": "screens/S-13.html",
+      "sha256": "7f3679c654ea1c69ed2b7887bbefc75592e7a5f529c880744b929c11eef735cb",
+      "bytes": 30182
+    },
+    {
+      "path": "screens/S-14-empty.html",
+      "sha256": "d4daa3ff8b7226d2c156c98752bf2ec8f33bb0ef0e1987cb6f39172bad12ec5b",
+      "bytes": 34622
+    },
+    {
+      "path": "screens/S-14.html",
+      "sha256": "f00b537985269e6bc97953640de339429c4d7ba73ad07953c30e1cffd5b9daad",
+      "bytes": 39870
+    },
+    {
+      "path": "screens/S-15-empty.html",
+      "sha256": "d2b9f88133e1ac2b621f391e807e4bdf0897675571d5669725188d0c948d6485",
+      "bytes": 38382
+    },
+    {
+      "path": "screens/S-15.html",
+      "sha256": "11989f53a35734bf6ae59f4e59ccf9b37f714eb5b062fa67f246ea94ac1a12ca",
+      "bytes": 37245
+    },
+    {
+      "path": "screens/S-16-empty.html",
+      "sha256": "d4c5f5d470c49580f85a9c3f93f495cc9a831788f2546b3f0d4805e5d48b332e",
+      "bytes": 36752
+    },
+    {
+      "path": "screens/S-16.html",
+      "sha256": "75b93f6bb66b4a2a99494150db4fbe0f214a6201c0cb9fc58d2bfd1eca98cf35",
+      "bytes": 29560
+    },
+    {
+      "path": "screens/S-2.html",
+      "sha256": "1182f387c8755d47eeecd4e49f0045f29f1b5becf3a2209841efe292f31958e9",
+      "bytes": 16983
+    },
+    {
+      "path": "screens/S-3.html",
+      "sha256": "7588b93b41e1af414c751379795301a852f21a37e943eb33cb136ded18661bf1",
+      "bytes": 21332
+    },
+    {
+      "path": "screens/S-4-empty.html",
+      "sha256": "623ce544deaa420626c4ff5bab431d14dcaaa727ea9776e0d21036a055f28ef0",
+      "bytes": 26194
+    },
+    {
+      "path": "screens/S-4-error.html",
+      "sha256": "3d894c3e6af1fb363015a2258ad6518f8e89af5397ffc0460aca71ad32859adb",
+      "bytes": 28475
+    },
+    {
+      "path": "screens/S-4.html",
+      "sha256": "b3c25e363e9f05617bedf2b8a53b7adf22ca487c7a5e70feb96e6176c541ba01",
+      "bytes": 32555
+    },
+    {
+      "path": "screens/S-5-error.html",
+      "sha256": "bea1eafaad18053b8dc9535bbe8a4bd265c30bbcb34c2e739509e2af98839d87",
+      "bytes": 37039
+    },
+    {
+      "path": "screens/S-5.html",
+      "sha256": "909b0775c06fdcffafc908aac009e68832c0e0cba3a64ce2b547dead35ee735a",
+      "bytes": 37827
+    },
+    {
+      "path": "screens/S-6.html",
+      "sha256": "36b4fb24687ee4fdf68b914af08e566449f7ef26bf9bfc892fad5e1dac969c03",
+      "bytes": 52051
+    },
+    {
+      "path": "screens/S-7.html",
+      "sha256": "b31f64eb3e51797398ce14324e387c02974bf6bf461a25deddfe827ae177d644",
+      "bytes": 28604
+    },
+    {
+      "path": "screens/S-8-empty.html",
+      "sha256": "7820f4b1d24bf860beab3dd53ed96dd974c4a5ed28d90560d3399cd7d9b28c72",
+      "bytes": 38714
+    },
+    {
+      "path": "screens/S-8-error.html",
+      "sha256": "3e4f65ecabde86114a594a2747200af3075eb45d4fb9a62717e70cb1199f02b7",
+      "bytes": 34177
+    },
+    {
+      "path": "screens/S-8.html",
+      "sha256": "aa4e769e682380828fc752f269c1ae24eec0ca41409cdc4892083b9a7f64d841",
+      "bytes": 28863
+    },
+    {
+      "path": "screens/S-9-empty.html",
+      "sha256": "4dd9c3c8f2d3e36e1af4b489f2d4ff14e78afd14f3cfe5a356f5a0224c25ff1b",
+      "bytes": 38799
+    },
+    {
+      "path": "screens/S-9.html",
+      "sha256": "62fdfc4ebe9c91475f004936254a80b91455154eb2bbe0721d33582fe5b27edc",
+      "bytes": 36797
+    },
+    {
+      "path": "shots/s-1-default-desktop.png",
+      "sha256": "ca23b6e15d1ba4879319a3178800d28e9602613e541a97fd5ec55cb07f28b560",
+      "bytes": 121079
+    },
+    {
+      "path": "shots/s-1-error-desktop.png",
+      "sha256": "acb780a295d51cf828808bd1048016ec5e0afaa2698325dfcb9ad3eeed5b9cd0",
+      "bytes": 448669
+    },
+    {
+      "path": "shots/s-10-default-desktop.png",
+      "sha256": "b89b657686c017942bbf45fee9920754cc8ef2c4572b00afff69dd809fc33dfd",
+      "bytes": 200990
+    },
+    {
+      "path": "shots/s-10-empty-desktop.png",
+      "sha256": "e33d58006a2b817db4b75d971701da8fbe615661edc7d7959bff26e53bca5782",
+      "bytes": 269106
+    },
+    {
+      "path": "shots/s-11-default-desktop.png",
+      "sha256": "f8dd0cd8d21dff750e531b0515c994b7d985b5951df39d2913e1d21e91917f7b",
+      "bytes": 394386
+    },
+    {
+      "path": "shots/s-12-default-desktop.png",
+      "sha256": "264f96dc90fcb9369945a48a276cd5b78acbcc34bdf996dc669f21d3a8804a19",
+      "bytes": 348225
+    },
+    {
+      "path": "shots/s-13-default-desktop.png",
+      "sha256": "9dcaa2b71620c8d5e76dfdf722255e7067f7346c0d3cb62d24fd53f19aae172c",
+      "bytes": 302983
+    },
+    {
+      "path": "shots/s-14-default-desktop.png",
+      "sha256": "ed3336f03196266ecb3b694bef50aede5b4537054bf0410175d7365aa758168c",
+      "bytes": 309963
+    },
+    {
+      "path": "shots/s-14-empty-desktop.png",
+      "sha256": "d75e07e4bf965b1f8655ef68d01c5807701628abd3d4b81cf2ec071ccb512d3a",
+      "bytes": 268948
+    },
+    {
+      "path": "shots/s-15-default-desktop.png",
+      "sha256": "dba1799856589bd7d2252afc51433f48e4e60993a5d69e03be3c1391508ef865",
+      "bytes": 351049
+    },
+    {
+      "path": "shots/s-15-empty-desktop.png",
+      "sha256": "ea2a38b88880010f406ee0c2d6dddc6cfad3b1c9f5e33c18e7de81030e0e45fd",
+      "bytes": 280637
+    },
+    {
+      "path": "shots/s-16-default-desktop.png",
+      "sha256": "c26a329cbac2b4966c6bd5571f805fc7e0e403e10855558814bba2e4107e10ec",
+      "bytes": 264587
+    },
+    {
+      "path": "shots/s-16-empty-desktop.png",
+      "sha256": "e72addf6ea8d75d6fa34548bcf9a1d5fc7a486394b0f803a37d267f31ea4595b",
+      "bytes": 322406
+    },
+    {
+      "path": "shots/s-2-default-desktop.png",
+      "sha256": "adc398cec8f95f6c15d1bfb72dc6c3048e52daf310c46b76daae1f94f65a83a6",
+      "bytes": 165576
+    },
+    {
+      "path": "shots/s-3-default-desktop.png",
+      "sha256": "a10277427a9aee321ebb05796f2ce3c684e1701b584e3a52c66f92082989f580",
+      "bytes": 226998
+    },
+    {
+      "path": "shots/s-4-default-desktop.png",
+      "sha256": "da7ac9dd303ebdab3f73147d747beece6bb676878211de9d9650bdac643b8726",
+      "bytes": 271087
+    },
+    {
+      "path": "shots/s-4-empty-desktop.png",
+      "sha256": "b1c5336e5f51617d109a6a44b5a6254ab64028958e3b2b729b0e451ff1999cc8",
+      "bytes": 229514
+    },
+    {
+      "path": "shots/s-4-error-desktop.png",
+      "sha256": "b556231ec0b8addd8ead125f31ff26564b9573ced4002e7d90933adda831517e",
+      "bytes": 266984
+    },
+    {
+      "path": "shots/s-5-default-desktop.png",
+      "sha256": "c952acb44e1b0db59967b1f8b0694875e7c6e52d85e8d9d8ee77f558e1aaf5f2",
+      "bytes": 394508
+    },
+    {
+      "path": "shots/s-5-error-desktop.png",
+      "sha256": "2ac5afae6693bbab789cfd4c8a69561f0f49b4ad0c94e97abeac225b31915c25",
+      "bytes": 369868
+    },
+    {
+      "path": "shots/s-6-default-desktop.png",
+      "sha256": "5127d27c9e408bd252b8ac30e9c2656a601ee91d2455bc388c5a3648236256d4",
+      "bytes": 306292
+    },
+    {
+      "path": "shots/s-7-default-desktop.png",
+      "sha256": "f771f96388229b0215c178b1c2c5541c283fe2178cf06af7ea23133e5d04a8f6",
+      "bytes": 379324
+    },
+    {
+      "path": "shots/s-8-default-desktop.png",
+      "sha256": "db2baa83bd9148aff36013009cafb5f36ba2741042ef7f4733fe3b10a74e66c1",
+      "bytes": 253270
+    },
+    {
+      "path": "shots/s-8-empty-desktop.png",
+      "sha256": "4bfa54fa9dff3a927b50d7c7f0382dcab495137f2806a7c973a3d0806abe8e83",
+      "bytes": 313510
+    },
+    {
+      "path": "shots/s-8-error-desktop.png",
+      "sha256": "0fc8fc83dd8bb9024e5281c4a182ddef869e0fcf7d06adc3f1bc9abb911cf269",
+      "bytes": 235628
+    },
+    {
+      "path": "shots/s-9-default-desktop.png",
+      "sha256": "c384282d69759bb675da3322dc4709d91307b0b6b51689e36032cfe425884610",
+      "bytes": 223519
+    },
+    {
+      "path": "shots/s-9-empty-desktop.png",
+      "sha256": "ec54e7ca992b71b4c3fcd5641d50030cee11238f21031fa105390d35061b9410",
+      "bytes": 302468
+    },
+    {
+      "path": "tokens.css",
+      "sha256": "c8ed49fdb75f103cc5c8deba695ce835560bfcf38ad4bd0d7ba95707183790dd",
+      "bytes": 1122
+    },
+    {
+      "path": "tokens.json",
+      "sha256": "26d2dbfcb739a03a21bd28ff7e6bd2ec9e4daf4b7fa7e0b196a0efa95376661e",
+      "bytes": 9075
+    }
+  ]
+}

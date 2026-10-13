@@ -1,0 +1,95 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "For every operation declared in `contracts/openapi.yaml`, accept the contract-defined method, path, parameters, request body, and content types, and return the documented success status, response body, and headers.",
+        "kind": "happy"
+       },
+       {
+        "text": "Implement the contract's API operations for the feedlot data and workflows they cover, including their documented inputs and outputs for lots/pens, feeding and weight records, feed-to-gain metrics, and reports; calculations and updates exposed by an operation match the contract's definitions.",
+        "kind": "happy"
+       },
+       {
+        "text": "For malformed, invalid, missing, or conflicting request data, return the error status and response shape specified by the contract; do not report a successful operation when its documented preconditions fail.",
+        "kind": "error"
+       },
+       {
+        "text": "Requests to paths or methods not defined by the contract do not act as contract operations and receive the API's documented not-found or method-not-allowed response.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Persist application records in the project's PostgreSQL database, connecting through the configured `App` connection string; subsequent API operations read the stored records rather than relying only on process-local data.",
+        "kind": "data"
+       },
+       {
+        "text": "When an operation creates or updates data, persist the change so it remains available to later requests and after an application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "If the configured database cannot be reached or a database operation fails, do not claim the data change succeeded; return the failure response provided by the API contract.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, insert a small set of believable sample records into every application table, using the contract's examples as the source for sample values; after seeding, list operations have sample records to return.",
+        "kind": "data"
+       },
+       {
+        "text": "Seed related records with consistent references and values so that sample entities can be read together through the API without broken relationships.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "With `Seed:Demo` set to true, application startup runs the demo seed data.",
+        "kind": "happy"
+       },
+       {
+        "text": "With `Seed:Demo` false or unset, startup does not insert demo rows; API behavior and tests must remain valid against an empty database.",
+        "kind": "data"
+       },
+       {
+        "text": "Tests do not assume that demo rows exist and do not depend on the seeding setting being enabled.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "This repository exposes the API and its documented operations, not user-facing product screens; no web-app screens are built here.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

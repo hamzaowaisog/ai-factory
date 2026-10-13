@@ -1,0 +1,483 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Feedlot API shall implement every HTTP operation in contracts/openapi.yaml with its defined method, path, parameters, request and response schemas, security requirements, and response codes.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "A valid sign-in request using the contract schema and credentials accepted by the fixture",
+        "when": "the client sends POST /api/auth/sign-in without a bearer token",
+        "then": "the response status is 200 and the response body conforms to SignInResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A valid authenticated user session",
+        "when": "the client sends GET /api/session",
+        "then": "the response status is 200 and the response body conforms to SessionResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "An authenticated principal permitted to view the yard",
+        "when": "the client sends GET /api/dashboard with a valid rankBy value",
+        "then": "the response status is 200 and the response body conforms to DashboardResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.4",
+        "given": "An authenticated principal permitted to manage imports and an available mock source",
+        "when": "the client sends GET /api/imports/source-records",
+        "then": "the response status is 200 and the response body conforms to ImportPreviewResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.5",
+        "given": "An authenticated principal permitted to manage imports and a valid ImportRequest",
+        "when": "the client sends POST /api/imports",
+        "then": "the response status is 200 and the response body conforms to ImportResult",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.6",
+        "given": "An authenticated principal permitted to view allocations",
+        "when": "the client sends GET /api/allocations",
+        "then": "the response status is 200 and the response body conforms to AllocationsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.7",
+        "given": "An authenticated principal permitted to manage allocations and a valid AllocationUpdateRequest",
+        "when": "the client sends PUT /api/allocations",
+        "then": "the response status is 200 and the response body conforms to AllocationsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.8",
+        "given": "An authenticated principal permitted to view lots and valid optional lot filters",
+        "when": "the client sends GET /api/lots",
+        "then": "the response status is 200 and the response body conforms to LotsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.9",
+        "given": "An authenticated principal permitted to view forecasts and an existing lot",
+        "when": "the client sends GET /api/lots/{lotId}/forecast",
+        "then": "the response status is 200 and the response body conforms to ForecastResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.10",
+        "given": "An authenticated principal permitted to manage forecasts and a valid ForecastSettingsRequest",
+        "when": "the client sends PATCH /api/forecast-settings",
+        "then": "the response status is 200 and the response body conforms to ForecastSettingsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.11",
+        "given": "An authenticated principal permitted to manage forecasts and an existing lot with a valid ForecastSettingsRequest",
+        "when": "the client sends PATCH /api/lots/{lotId}/forecast-settings",
+        "then": "the response status is 200 and the response body conforms to ForecastSettingsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.12",
+        "given": "An authenticated principal permitted to view lots and an existing lot",
+        "when": "the client sends GET /api/lots/{lotId}/metrics",
+        "then": "the response status is 200 and the response body conforms to LotMetricsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.13",
+        "given": "An authenticated principal permitted to view lots and an existing lot",
+        "when": "the client sends GET /api/lots/{lotId}/insights",
+        "then": "the response status is 200 and the response body conforms to InsightsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.14",
+        "given": "An authenticated principal permitted to manage plans and an existing lot with a valid InsightActionRequest",
+        "when": "the client sends POST /api/lots/{lotId}/insights/actions",
+        "then": "the response status is 200 and the response body conforms to InsightActionResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.15",
+        "given": "An authenticated principal permitted to view weights and an existing lot",
+        "when": "the client sends GET /api/lots/{lotId}/weights",
+        "then": "the response status is 200 and the response body conforms to WeightHistoryResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.16",
+        "given": "An authenticated principal permitted to manage weights and an existing lot with a valid WeightMeasurementRequest",
+        "when": "the client sends POST /api/lots/{lotId}/weights",
+        "then": "the response status is 201 and the response body conforms to WeightMeasurementResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.17",
+        "given": "An authenticated principal permitted to view inventory",
+        "when": "the client sends GET /api/inventory",
+        "then": "the response status is 200 and the response body conforms to InventoryResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.18",
+        "given": "An authenticated principal permitted to manage inventory and a valid InventoryItemRequest",
+        "when": "the client sends POST /api/inventory/items",
+        "then": "the response status is 201 and the response body conforms to InventoryItemResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.19",
+        "given": "An authenticated principal permitted to manage inventory, an existing item, and a valid InventoryItemRequest",
+        "when": "the client sends PATCH /api/inventory/items/{itemId}",
+        "then": "the response status is 200 and the response body conforms to InventoryItemResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.20",
+        "given": "An authenticated principal permitted to manage inventory and a valid InventoryMovementRequest",
+        "when": "the client sends POST /api/inventory/movements",
+        "then": "the response status is 201 and the response body conforms to MovementResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.21",
+        "given": "An authenticated principal permitted to view inventory and a valid horizon query value",
+        "when": "the client sends GET /api/inventory/projections",
+        "then": "the response status is 200 and the response body conforms to ProjectionsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.22",
+        "given": "An authenticated principal permitted to export inventory",
+        "when": "the client sends GET /api/inventory/export",
+        "then": "the response status is 200 and the response body conforms to ExportResponse with a text/csv artifact",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.23",
+        "given": "An authenticated principal permitted to view rations",
+        "when": "the client sends GET /api/rations",
+        "then": "the response status is 200 and the response body conforms to RationsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.24",
+        "given": "An authenticated principal permitted to manage rations and a valid RationRequest",
+        "when": "the client sends POST /api/rations",
+        "then": "the response status is 201 and the response body conforms to RationResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.25",
+        "given": "An authenticated principal permitted to manage rations, an existing ration, and a valid RationRequest",
+        "when": "the client sends PATCH /api/rations/{rationId}",
+        "then": "the response status is 200 and the response body conforms to RationResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.26",
+        "given": "An authenticated principal permitted to manage rations and a valid OptimizationRequest",
+        "when": "the client sends POST /api/rations/optimization",
+        "then": "the response status is 200 and the response body conforms to OptimizationResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.27",
+        "given": "An authenticated principal permitted to approve rations and an existing ration eligible for approval",
+        "when": "the client sends POST /api/rations/{rationId}/approval",
+        "then": "the response status is 200 and the response body conforms to ApprovalResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.28",
+        "given": "An authenticated principal permitted to view feed plans",
+        "when": "the client sends GET /api/feed-plans",
+        "then": "the response status is 200 and the response body conforms to FeedPlansResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.29",
+        "given": "An authenticated principal permitted to manage plans and a valid FeedPlanRequest",
+        "when": "the client sends POST /api/feed-plans",
+        "then": "the response status is 201 and the response body conforms to FeedPlanResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.30",
+        "given": "An authenticated principal permitted to manage plans, an existing plan, and a valid PlanReviewRequest",
+        "when": "the client sends POST /api/feed-plans/{planId}/review",
+        "then": "the response status is 200 and the response body conforms to FeedPlanResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.31",
+        "given": "An authenticated principal permitted to update plan status, an existing plan, and a valid PlanStatusRequest",
+        "when": "the client sends PATCH /api/feed-plans/{planId}/status",
+        "then": "the response status is 200 and the response body conforms to FeedPlanResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.32",
+        "given": "An authenticated principal permitted to view feeding activity",
+        "when": "the client sends GET /api/feeding-events",
+        "then": "the response status is 200 and the response body conforms to FeedingEventsResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.33",
+        "given": "An authenticated principal permitted to manage feeding and a valid FeedingEventRequest",
+        "when": "the client sends POST /api/feeding-events",
+        "then": "the response status is 201 and the response body conforms to FeedingEventResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.34",
+        "given": "An authenticated principal permitted to correct feeding, an existing event, and a valid FeedingEventRequest",
+        "when": "the client sends PATCH /api/feeding-events/{eventId}",
+        "then": "the response status is 200 and the response body conforms to FeedingEventResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.35",
+        "given": "An authenticated principal permitted to void feeding and an existing event eligible for voiding",
+        "when": "the client sends POST /api/feeding-events/{eventId}/void",
+        "then": "the response status is 200 and the response body conforms to FeedingEventResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.36",
+        "given": "An authenticated principal permitted to view reports and valid optional operational report filters",
+        "when": "the client sends GET /api/reports/operational",
+        "then": "the response status is 200 and the response body conforms to OperationalReportResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.37",
+        "given": "An authenticated principal permitted to export reports and valid optional operational report filters",
+        "when": "the client sends GET /api/reports/operational/export",
+        "then": "the response status is 200 and the response body conforms to ExportResponse with a text/csv artifact",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.38",
+        "given": "An authenticated principal permitted to view reports and valid required date-range values with optional feed-to-gain filters",
+        "when": "the client sends GET /api/reports/feed-to-gain",
+        "then": "the response status is 200 and the response body conforms to FeedToGainResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.39",
+        "given": "An authenticated principal permitted to export reports and valid date-range, filter, and csv or pdf format values",
+        "when": "the client sends GET /api/reports/feed-to-gain/export",
+        "then": "the response status is 200 and the response body conforms to ExportResponse with an artifact matching the requested format",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.40",
+        "given": "An authenticated principal permitted to view profitability and valid optional profitability filters",
+        "when": "the client sends GET /api/reports/profitability",
+        "then": "the response status is 200 and the response body conforms to ProfitabilityResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.41",
+        "given": "An authenticated principal permitted to export profitability and valid optional profitability filters",
+        "when": "the client sends GET /api/reports/profitability/export",
+        "then": "the response status is 200 and the response body conforms to ExportResponse with a text/csv artifact",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.42",
+        "given": "An authenticated principal permitted to view sample data",
+        "when": "the client sends GET /api/sample-data",
+        "then": "the response status is 200 and the response body conforms to SampleDataResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.43",
+        "given": "An authenticated principal permitted to manage sample data",
+        "when": "the client sends POST /api/sample-data/load",
+        "then": "the response status is 200 and the response body conforms to SampleOperationResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.44",
+        "given": "An authenticated principal permitted to manage sample data, with the required confirmation in a valid SampleConfirmationRequest",
+        "when": "the client sends POST /api/sample-data/reset",
+        "then": "the response status is 200 and the response body conforms to SampleOperationResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.45",
+        "given": "An authenticated principal permitted to manage sample data, with the required confirmation in a valid SampleConfirmationRequest",
+        "when": "the client sends POST /api/sample-data/replace",
+        "then": "the response status is 200 and the response body conforms to SampleOperationResponse",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The Feedlot API shall persist every application value read or changed by its operations, including calculated or cached values used by later requests, in PostgreSQL through the existing App connection string.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A clean PostgreSQL database configured through ConnectionStrings:App and an authorized principal",
+        "when": "the client creates or changes an application record through its contract API operation and then reads it through the corresponding API list or detail operation",
+        "then": "the response contains the saved value and a PostgreSQL row contains the same value",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "A PostgreSQL database containing compatible pre-existing rows before application startup",
+        "when": "the application initializes its data structures and serves an API request",
+        "then": "the pre-existing row values remain present and the response status for the request is 200",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When Seed:Demo is true on a clean database, the Feedlot API shall have App.Api/SeedData.cs populate each application table with two or three believable sample rows based on examples in contracts/openapi.yaml.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A clean PostgreSQL database and application configuration Seed:Demo=true",
+        "when": "the application starts and a test queries the application tables and calls their corresponding list API operations",
+        "then": "each application table has two or three sample rows and each list response contains at least one corresponding row",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When Seed:Demo is false, the Feedlot API shall not run SeedData.Run or insert demo rows during application startup.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "A clean PostgreSQL database and application configuration Seed:Demo=false",
+        "when": "the application starts and a test queries the application tables and calls list API operations",
+        "then": "the demo-data row count is zero and the list responses contain no demo rows",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When a ration defines ingredient proportions, the Feedlot API shall calculate inventory consumption and ration cost from as-fed ingredient weights and use dry-matter values only for nutritional calculations.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A test-created ration whose ingredient proportions are percentages of as-fed weight, with different dry-matter percentages and known unit costs, and sufficient inventory",
+        "when": "the client records a feeding event through POST /api/feeding-events",
+        "then": "the response event shows each ingredient's consumed as-fed quantity and a cost equal to the sum of as-fed ingredient quantities multiplied by their unit costs, while nutrition values reflect dry-matter data",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "If a feeding event requires more of any ingredient than the inventory contains, then the Feedlot API shall reject the entire event without changing inventory or lot feed rollups.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "A test-created ration and inventory where one ingredient has less stock than the event requires, with recorded pre-request inventory and lot totals",
+        "when": "the client submits POST /api/feeding-events for that event",
+        "then": "the response status is 409, no event row exists for the rejected request, the inventory row values are unchanged, and the lot feed-total response values are unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "The Feedlot API shall return feed-to-gain metrics and projected ship dates as unavailable whenever their required denominator or positive gain is absent.",
+      "op": "ADDED",
+      "sources": [
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "A test-created lot whose receiving date makes Days on Feed zero",
+        "when": "the client sends GET /api/lots/{lotId}/metrics",
+        "then": "the response field daysOnFeed is 0 and the response fields adg and projectedShipDate are null",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "A test-created lot with positive Days on Feed and zero or negative total weight gain",
+        "when": "the client sends GET /api/lots/{lotId}/metrics",
+        "then": "the response fields feedConversionRatio and costOfGain are null, and projectedShipDate is null when ADG is zero or negative",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "The Feedlot API repository shall provide product functionality through API operations and shall not implement web-app product screens.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "The API application built from this repository",
+        "when": "a person inspects its browser-accessible surfaces",
+        "then": "the screen shows API health or API documentation and does not show feedlot product screens",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [],
+    "assumptions": [
+     "ASM-1: SeedData.Run behavior for sample rows already present after multiple Seed:Demo=true startups is assumed not to be a required repeat-startup behavior; the system starts empty and uses seed data for set-up."
+    ],
+    "suggestions": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

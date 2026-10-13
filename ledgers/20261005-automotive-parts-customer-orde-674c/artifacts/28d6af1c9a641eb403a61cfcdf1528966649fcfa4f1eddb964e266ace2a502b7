@@ -1,0 +1,133 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-75",
+      "ears": "When staff mark an Unpaid or Overdue invoice as paid with a payment date no later than today, the portal shall set its status to Paid and record the payment date and the staff user, storing no card data and sending no request to any payment provider.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "I-16",
+       "ASM-24"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-75.1",
+        "given": "An Unpaid invoice",
+        "when": "A staff user marks it paid with payment date 6 Oct 2026",
+        "then": "The invoice record has status Paid, payment date 6 Oct 2026 and recordedBy the staff user",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.2",
+        "given": "An Unpaid invoice",
+        "when": "A staff user marks it paid without a payment date",
+        "then": "The response is a validation error status (400/422) and the status value stays Unpaid",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.3",
+        "given": "Unpaid invoice INV-000051 and today is 2026-10-20",
+        "when": "Staff mark it paid with date 2026-10-21",
+        "then": "The response status is 400 with error code INVALID_PAYMENT_DATE",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.4",
+        "given": "Invoice INV-000050 already Paid",
+        "when": "Staff mark it paid again",
+        "then": "The response status is 409 with error code ALREADY_PAID",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.5",
+        "given": "A signed-in Buyer",
+        "when": "The Buyer tries to mark an invoice of their company paid",
+        "then": "The response status is 403",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.6",
+        "given": "An Unpaid invoice",
+        "when": "A staff user marks it paid with payment date 6 Oct 2026 and an extra cardNumber field 4242424242424242 in the request",
+        "then": "The returned invoice record and its stored row contain no card number value",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.7",
+        "given": "An Unpaid invoice and outbound traffic to the Stripe API host is recorded",
+        "when": "A staff user marks it paid with payment date 6 Oct 2026",
+        "then": "The response status is 200 and the recorded outbound call count to the Stripe API host is 0",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     }
+    ],
+    "outOfScope": [
+     "Customer Account Manager role (Q-1)",
+     "Saved basket templates, request section 16 (ASM-1)",
+     "Buyers creating or editing their own delivery addresses (Q-7, ASM-13)",
+     "Basket persistence across sessions (ASM-14)",
+     "Nested categories (ASM-15)",
+     "Separate Rejected order status; rejection uses Cancelled with a reason (ASM-16)",
+     "SMS and push notifications (ASM-17, ASM-18)",
+     "Full field-level audit trail beyond created/last-changed by and at, status timeline and amendment records (ASM-21)",
+     "Custom report builder (ASM-20)",
+     "Migration of existing customer, product, price or vehicle data; system starts empty with seed data (ASM-22)",
+     "CSV upload of vehicle compatibility data (ASM-23)",
+     "Native mobile apps (ASM-30)",
+     "Languages other than English (ASM-10)",
+     "Backorders and ordering above imported stock (request section 8; ASM-4)",
+     "Taking online card payments in this phase, and therefore any Stripe integration, partial payments and payment-method capture (request section 32: 'The portal does not take online card payments in this phase'; ASM-24 is kept as a constraint: Stripe is the only permitted provider for any later card payments and card data never enters the portal, enforced by REQ-75)",
+     "Route planning (request section 22)",
+     "Volume, promotional, discount and date-effective pricing (request section 10: one price per product per price list)",
+     "Any modification of or writing back to ERP stock or orders (request section 9)",
+     "Reproducing an existing client invoice template (ASM-26)"
+    ],
+    "assumptions": [
+     "There is no existing code, so every requirement is ADDED. Endpoint paths in acceptance criteria only show the contract.",
+     "Payments (decided, not open): the client's own text in request section 32 says the portal takes no online card payments in this phase, and invoice payment tracking (I-16) means staff record the payment date and recording user (REQ-75). ASM-24 came from a default (fromDefault: payments) and is applied as a constraint, not as a new capability: Stripe is the only payment provider allowed if card payments are added in a later phase, cards only, and card data stays with the provider. In this phase the portal therefore makes no calls to Stripe or any other payment provider and stores no card data (AC-75.6, AC-75.7). This is consistent with both sources, so no payments decision is left open.",
+     "Rejection HTTP status codes differ between drafts (e.g. 400 vs 410 for expired links, 400 vs 422 vs 409 for validation errors, 202 vs 200 for reset requests). d3 states codes are examples; the merged ACs use one code where drafts agree on the outcome, and the fixed rule is success or rejection with no record change on rejection.",
+     "The pending invitation status is called \"Pending\" (d1/d2) or \"Invited\" (d3); these are the same state.",
+     "An ERP file fails validation as a whole if it is missing, unreadable, empty, missing a required column, or has any non-numeric or negative quantity. Unknown product identifiers alone do not fail the file (ASM-6).",
+     "Stock import rows are matched by distributor product code until the client supplies the column layout (ASM-7). Products missing from a valid file keep their previous quantity; a product never imported counts as Out of stock.",
+     "Placing or confirming an order does not reduce imported stock; nothing is reserved.",
+     "Price or stock changes at checkout reject the submission and return current values; the order is never silently repriced.",
+     "Repeat order works for an order of any status and adds lines at their original quantity, capped at available stock and flagged when reduced.",
+     "Order and basket totals are net (tax-exclusive); tax and gross appear only on invoices (ASM-9). One currency with 2 decimal places.",
+     "A deactivated price list cannot be newly assigned. If a company has no assigned or an inactive price list, every product shows 'Price on request' (d3).",
+     "Search is a case-insensitive substring match; ranking is not specified.",
+     "Vehicle compatibility entries store a model-year range (from–to) (d1); d3 says model year.",
+     "Confirmation validation means every line is active and within available stock and the delivery address still exists.",
+     "A password reset request returns the same response whether or not the email exists, and whether or not the account is eligible for a reset.",
+     "Password reset is available only to active accounts, including temporarily locked ones (ASM-19), of active companies. Pending invitees must use their invitation link, and deactivated users or users of inactive companies get no reset email; a link issued before deactivation or company deactivation can no longer be used (Q-5).",
+     "Order emails go to the placing Buyer only while that Buyer is active and still linked to the order's company; otherwise they go to the company's contact email, so a deactivated or moved Buyer receives no details of the old company's orders.",
+     "An administrator cannot deactivate or change the role of their own account. Because only an active Administrator can make these changes, this also guarantees at least one active Administrator always remains.",
+     "Customer companies are created and edited by Administrators only (request section 3.4 'Manage customer accounts'); Office Staff can search and view companies (request section 3.3) and manage delivery addresses (Q-7).",
+     "The sales report (REQ-86) is built from non-Cancelled orders whose order date falls in the selected range; the delivered-date basis from the d1 draft is dropped.",
+     "The dashboard failedImports count is the number of failed stock imports since the last successful import (REQ-67); the 7-day variant from another draft is dropped.",
+     "The stock quantity limit (ASM-4) applies to Buyer baskets, staff-created order lines and staff amendments.",
+     "Staff removing an order line counts as a quantity change to 0 and triggers the amendment email (ASM-35). Staff cannot add new lines to Received orders.",
+     "Product images may be JPEG, PNG or WebP; ASM-29 sets the 10 MB limit.",
+     "Delivery list CSV columns are those in REQ-64 until the client confirms them.",
+     "The invoice date is the date the order became Delivered.",
+     "Management has no separate role; managers use Office Staff or Administrator accounts for the sales report.",
+     "Reactivating a user is allowed only while the user's company is active (d3 reading of 'where permitted').",
+     "Session idle timeout values are draft assumptions; the request only says 'session management'."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

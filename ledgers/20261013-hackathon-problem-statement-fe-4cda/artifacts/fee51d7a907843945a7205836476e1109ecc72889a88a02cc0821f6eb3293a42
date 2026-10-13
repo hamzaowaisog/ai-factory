@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "feedConversionRatio|projectedShipDate|dryMatterPercent|wastagePercent",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 1845,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;feedConversionRatio|projectedShipDate|dryMatterPercent|wastagePercent&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:396: projectedShipDate: \"2026-09-18\"\ncontracts/openapi.yaml:540: feedConversionRatio: 7.1\ncontracts/openapi.yaml:542: projectedShipDate: \"2026-09-18\"\ncontracts/openapi.yaml:745: dryMatterPercent: 88.0\ncontracts/openapi.yaml:748: wastagePercent: 2.0\ncontracts/openapi.yaml:797: dryMatterPercent: 90.0\ncontracts/openapi.yaml:800: wastagePercent: 1.0\ncontracts/openapi.yaml:849: dryMatterPercent: 88.0\ncontracts/openapi.yaml:852: wastagePercent: 2.0\ncontracts/openapi.yaml:907: dryMatterPercent: 88.0\ncontracts/openapi.yaml:910: wastagePercent: 2.0\ncontracts/openapi.yaml:954: wastagePercent: 2.0\ncontracts/openapi.yaml:1029: dryMatterPercent: 88.0\ncontracts/openapi.yaml:1069: dryMatterPercent: 88.0\ncontracts/openapi.yaml:1120: dryMatterPercent: 88.0\ncontracts/openapi.yaml:2755: - projectedShipDate\ncontracts/openapi.yaml:2791: projectedShipDate:\ncontracts/openapi.yaml:2909: - feedConversionRatio\ncontracts/openapi.yaml:2911: - projectedShipDate\ncontracts/openapi.yaml:2946: feedConversionRatio:\ncontracts/openapi.yaml:2954: projectedShipDate:\ncontracts/openapi.yaml:3165: - dryMatterPercent\ncontracts/openapi.yaml:3168: - wastagePercent\ncontracts/openapi.yaml:3189: dryMatterPercent:\ncontracts/openapi.yaml:3197: wastagePercent:\ncontracts/openapi.yaml:3277: - dryMatterPercent\ncontracts/openapi.yaml:3280: - wastagePercent\ncontracts/openapi.yaml:3291: dryMatterPercent:\ncontracts/openapi.yaml:3299: wastagePercent:\ncontracts/openapi.yaml:3403: - wastagePercent\ncontracts/openapi.yaml:3413: wastagePercent:\ncontracts/openapi.yaml:3449: - dryMatterPercent\ncontracts/openapi.yaml:3472: dryMatterPercent:\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,186 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-24",
+      "op": "ADDED",
+      "ears": "If placing an order fails with a network error or a server error, then the portal shall show an error message, which for a network error tells the buyer to check My orders before retrying, and keep the cart lines, address and delivery option so the buyer can try again.",
+      "sources": [
+       "I-5",
+       "ASM-11",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "A buyer at checkout with 2 lines, an address and Next day selected, and the API returning status 500",
+        "when": "they press \"Place order\"",
+        "then": "An error message is shown, the 2 lines, the address and Next day are still displayed, and \"Place order\" is enabled",
+        "level": "manual"
+       },
+       {
+        "id": "AC-24.2",
+        "given": "A buyer at checkout with 2 lines, an address and Standard selected, and the POST /api/orders request failing with a network error (no response)",
+        "when": "they press \"Place order\"",
+        "then": "The message \"Your order may have been placed. Check My orders before trying again.\" is shown, the 2 lines, the address and Standard are still displayed, and \"Place order\" is enabled",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-39",
+      "op": "ADDED",
+      "ears": "When the orders API rejects an order with a 409 stock conflict, the cart shall lower each affected line to the stock now available with the message \"Only n available\", remove each affected line whose available stock is 0 with the message \"<part name> is now out of stock\", and keep all other lines.",
+      "sources": [
+       "I-3",
+       "I-5",
+       "ASM-3",
+       "ASM-25",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-39.1",
+        "given": "A CartStore holding 5 of BP-200, 1 of OF-100 \"Oil Filter\" and 2 of AF-300",
+        "when": "CartStore.applyStockLimits([{BP-200, 3}, {OF-100, 0}]) is called with the 409 response",
+        "then": "The returned lines list has BP-200 with quantity value 3 and message \"Only 3 available\", AF-300 with quantity value 2, and no OF-100 line; the returned messages include \"Oil Filter is now out of stock\"",
+        "level": "unit"
+       },
+       {
+        "id": "AC-39.2",
+        "given": "The CartStore after AC-39.1",
+        "when": "CartStore.lines() is called",
+        "then": "Every returned line has a quantity value from 1 to 99 and CartStore.count() returns 5",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-40",
+      "op": "ADDED",
+      "ears": "While a place-order request is in progress, the checkout shall disable \"Place order\".",
+      "sources": [
+       "I-5",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-40.1",
+        "given": "A CheckoutForm with a 20-character address and delivery option Standard",
+        "when": "CheckoutForm.startSubmit() is called and then CheckoutForm.canPlaceOrder() is called",
+        "then": "The returned value is false",
+        "level": "unit"
+       },
+       {
+        "id": "AC-40.2",
+        "given": "The CheckoutForm from AC-40.1 after startSubmit()",
+        "when": "CheckoutForm.finishSubmit() is called and then CheckoutForm.canPlaceOrder() is called",
+        "then": "The returned value is true",
+        "level": "unit"
+       },
+       {
+        "id": "AC-40.3",
+        "given": "A buyer at checkout with a valid cart, address and delivery option, and the orders API delaying its response by 3 seconds",
+        "when": "they press \"Place order\" twice within 1 second",
+        "then": "The button is shown disabled until the response arrives and exactly one POST /api/orders request is sent",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-41",
+      "op": "ADDED",
+      "ears": "When the buyer opens the cart, the cart shall fetch the current price of each line's part from the parts API and use only those current prices for unit prices, line totals and totals.",
+      "sources": [
+       "I-3",
+       "I-4",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-41.1",
+        "given": "A CartStore holding 3 of BP-200 saved at unit price 12.50, and a parts API client stub returning BP-200 with price 14.00 and stock 10",
+        "when": "CartStore.refresh(partsClient) is called and then CartStore.lines() and CartStore.subtotal() are called",
+        "then": "One call is sent to the parts client for BP-200, the returned line has unitPrice 14.00 and lineTotal 42.00, and the returned subtotal value is 42.00",
+        "level": "unit"
+       },
+       {
+        "id": "AC-41.2",
+        "given": "A buyer whose stored cart holds BP-200 saved at £12.50, while the parts database price for BP-200 is now £14.00",
+        "when": "they open /cart",
+        "then": "The unit price shown is £14.00, the subtotal shown is based on £14.00, and £12.50 is not displayed anywhere on the page",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-42",
+      "op": "ADDED",
+      "ears": "If the current part data fetched when the cart opens shows a cart line's part has 0 stock, then the cart shall remove that line and give the message \"<part name> is now out of stock\".",
+      "sources": [
+       "I-3",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-42.1",
+        "given": "A CartStore holding 2 of OF-100 \"Oil Filter\" and 1 of BP-200, and a parts API client stub returning OF-100 with stock 0 and BP-200 with stock 10",
+        "when": "CartStore.refresh(partsClient) is called",
+        "then": "The returned lines list contains only BP-200 with quantity value 1, the returned messages include \"Oil Filter is now out of stock\", and CartStore.count() returns 1",
+        "level": "unit"
+       },
+       {
+        "id": "AC-42.2",
+        "given": "A CartStore whose only line is 1 of OF-100 \"Oil Filter\", and a parts API client stub returning OF-100 with stock 0",
+        "when": "CartStore.refresh(partsClient) is called and then CartStore.lines() is called",
+        "then": "The returned lines list is empty, so no line with quantity value 0 remains",
+        "level": "unit"
+       }
+      ]
+     }
+    ],
+    "removed": [
+     "REQ-26"
+    ],
+    "outOfScope": [
+     "Sign-in and accounts (the existing company login is used as-is)",
+     "A separate requirement that the API rejects requests without a valid company-login session with status 401; the existing company login is relied on as-is (Q-4)",
+     "Payments and invoices",
+     "Admin or staff screens, including changing an order's status after Placed (ASM-6)",
+     "Adding or editing parts",
+     "Stock management, including changing stock when orders are placed or cancelled (ASM-2)",
+     "Returns",
+     "Emails and notifications",
+     "Multiple or saved delivery addresses (ASM-15)",
+     "Discounts",
+     "Vehicle (VIN) lookup",
+     "Reports",
+     "Mobile apps",
+     "Other languages or currencies",
+     "Integrations with other systems"
+    ],
+    "assumptions": [
+     "ASM-19: The API endpoints are GET /api/parts (q, category, brand, page), GET /api/parts/brands, POST /api/orders, GET /api/orders (status), GET /api/orders/{orderNumber} and POST /api/orders/{orderNumber}/cancel. Paths can be renamed as long as the behaviour stays the same.",
+     "ASM-20: Cart and checkout logic in the React app sits in public client classes CartStore (addPart, setQuantity, removeLine, lines, count, subtotal, totals, applyStockLimits, refresh) and CheckoutForm (canPlaceOrder, startSubmit, finishSubmit), so it can be unit-tested directly; CartStore.refresh takes a parts API client so the outbound call can be stubbed.",
+     "ASM-21: API error statuses are 400 for invalid input, 404 for an order that doesn't exist or belongs to another buyer, and 409 for stock or cancel conflicts. Session handling is left to the existing company login (Q-4).",
+     "ASM-22: A quantity that isn't a whole number is rounded to the nearest whole number before being limited to 1–99 (from ASM-12).",
+     "ASM-23: Pressing \"Add to cart\" when the line quantity already equals the part's stock leaves the quantity unchanged and shows \"Only n available\", the same as REQ-14.",
+     "ASM-24: The order total is calculated on the server from current part prices and the delivery charge. Prices and totals the client sends are ignored.",
+     "ASM-25: When a cart line's part is found to have 0 stock (on a 409 stock conflict or when the cart opens), the line is removed from the cart rather than set to quantity 0, with the message \"<part name> is now out of stock\", so every remaining line keeps a quantity of 1–99 (settled by Q-1).",
+     "ASM-26: When the cart opens, CartStore.refresh reads the current price and stock of the cart's parts from the existing parts API (GET /api/parts filtered to the cart's part numbers); any price saved in local storage is never shown (Q-3).",
+     "ASM-27: The network-error message text is \"Your order may have been placed. Check My orders before trying again.\"; the exact wording can change as long as it tells the buyer to check My orders before retrying (Q-2)."
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

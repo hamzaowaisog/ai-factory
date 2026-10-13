@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Entry checks — Folio3 Parking</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container": "#fbeae6",
+            "primary-container": "#a95540",
+            "outline-variant": "#dac1bb",
+            "on-surface": "#221a18",
+            "on-tertiary-container": "#b2fff0",
+            "surface-tint": "#974733",
+            "surface-dim": "#e7d7d3",
+            "on-secondary": "#ffffff",
+            "on-primary-container": "#ffece8",
+            "surface-container-highest": "#efdfdb",
+            "on-primary-fixed-variant": "#78301e",
+            "on-tertiary-fixed": "#00201c",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed": "#3c0700",
+            "surface-bright": "#fff8f6",
+            "outline": "#88726d",
+            "on-secondary-container": "#794f45",
+            "primary-fixed": "#ffdad2",
+            "primary": "#8b3e2a",
+            "on-secondary-fixed": "#31130b",
+            "on-primary": "#ffffff",
+            "error": "#ba1a1a",
+            "inverse-primary": "#ffb4a2",
+            "secondary-container": "#fdc5b7",
+            "inverse-surface": "#382e2c",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#643d33",
+            "secondary-fixed": "#ffdad2",
+            "tertiary-container": "#007b6e",
+            "surface-container-low": "#fff1ed",
+            "on-surface-variant": "#55433e",
+            "tertiary": "#006056",
+            "surface-container-high": "#f5e5e1",
+            "secondary": "#7e5449",
+            "on-error": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-variant": "#efdfdb",
+            "on-tertiary": "#ffffff",
+            "tertiary-fixed": "#96f3e3",
+            "on-tertiary-fixed-variant": "#005047",
+            "inverse-on-surface": "#feede9",
+            "tertiary-fixed-dim": "#79d7c7",
+            "surface": "#fff8f6",
+            "on-background": "#221a18",
+            "primary-fixed-dim": "#ffb4a2",
+            "background": "#fff8f6",
+            "secondary-fixed-dim": "#f1baac"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["\"Source Sans 3\"", "sans-serif"],
+            "mono": ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    
+    @keyframes settle-in {
+      from { opacity: 0.84; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes active-check {
+      0%, 100% { opacity: 0.76; }
+      50% { opacity: 1; }
+    }
+    
+    .page-intro {
+      animation: settle-in var(--dur-slow) var(--ease-out) both;
+    }
+
+    .entry-check-live::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 9999px;
+      background-color: #007b6e;
+      margin-right: 6px;
+      animation: active-check 7.5s var(--ease-inout) infinite;
+    }
+
+    .tabular-numbers {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .focus-ring:focus-visible {
+      outline: 2px solid #a95540;
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-intro,
+      .entry-check-live::before {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      *, *::before, *::after {
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Shared Component: TopNavBar -->
+<header class="docked full-width top-0 bg-surface-container-lowest dark:bg-inverse-surface border-b border-outline-variant dark:border-outline flat no shadows sticky z-30">
+<div class="flex justify-between items-center w-full px-6 max-w-[1440px] mx-auto h-14">
+<!-- Brand & Navigation Group -->
+<div class="flex items-center gap-8 h-full">
+<!-- Brand Title -->
+<span class="font-headline font-semibold text-lg text-on-surface dark:text-inverse-on-surface tracking-tight select-none">
+          Folio3 Parking
+        </span>
+<!-- Role-based Navigation Links (Exact Shared Component sequence & casing) -->
+<nav aria-label="Main Administration" class="hidden md:flex items-center space-x-6 h-full">
+<a class="text-on-surface-variant dark:text-outline-variant font-medium pb-3.5 pt-4 hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-160 focus-ring" href="#">Overview</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium pb-3.5 pt-4 hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-160 focus-ring" href="#">Employees</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium pb-3.5 pt-4 hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-160 focus-ring" href="#">Parking setup</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium pb-3.5 pt-4 hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-160 focus-ring" href="#">Weekly report</a>
+<!-- Active Tab: Entry checks (Border + primary text) -->
+<a aria-current="page" class="text-primary dark:text-inverse-primary font-semibold border-b-2 border-primary dark:border-inverse-primary pb-3.5 pt-4 focus-ring" href="#">Entry checks</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium pb-3.5 pt-4 hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-160 focus-ring" href="#">Audit history</a>
+</nav>
+</div>
+<!-- Administrator Profile Anchor (Priya Nair) -->
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<div class="font-headline font-semibold text-sm leading-tight text-on-surface">Priya Nair</div>
+<div class="text-xs text-on-surface-variant">Parking Administrator</div>
+</div>
+<img alt="Priya Nair, Parking Administrator profile portrait" class="w-9 h-9 rounded-full object-cover border border-outline-variant shadow-xs flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1VwWzSJ8eWrtaCfTF8yQAHJ5ml32Y3DrT-0xxblKf3Br833Qba3zhfSj2EwvG04AqTk4HdxTcNMoXR2tJ6wZygjw343-wMiQrYS7VU6v7JVo44sQpgzO_D_3bDyHjMMcDKYfXRftvYU3H5BBkL_l2Khnp2Wv5wnS1zBnWogkHipU87ihc8ItVkN38W98tmaWJtwxWsMUaAKeIho6E3uE-n-Tx0SnQfmxH5cgU_X5z3crRn3kVI3oQ32"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas: max-width 1440px Grid -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto px-6 py-7 page-intro">
+<!-- Screen Header Area -->
+<div class="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<div class="flex items-center gap-2.5 mb-1.5">
+<h1 class="font-headline font-semibold text-2xl text-on-surface tracking-tight">Entry checks</h1>
+<span class="entry-check-live inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-surface-container-low text-tertiary border border-outline-variant/60">
+            Scanning active
+          </span>
+</div>
+<p class="text-on-surface-variant text-base max-w-2xl leading-relaxed">
+          Record of entrance checks and barrier authorization attempts. This interface displays read-only gate evaluation events and does not manually open or control physical barriers.
+        </p>
+</div>
+<!-- Timezone & Timestamp metadata -->
+<div class="text-xs text-on-surface-variant font-mono tracking-tight self-start md:self-end tabular-numbers bg-surface-container-lowest px-3 py-1.5 rounded-lg border border-outline-variant/70">
+        IST (UTC+05:30) • Tue 19 May 2026
+      </div>
+</div>
+<!-- Summary Metrics Bar (0 attempts evaluated) -->
+<section aria-label="Evaluation summary" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 flex items-center justify-between">
+<div>
+<span class="block text-xs uppercase tracking-[0.07em] font-semibold text-on-surface-variant">Total attempts</span>
+<span class="text-xs text-outline">Evaluated today</span>
+</div>
+<span class="font-mono text-2xl font-semibold text-on-surface tabular-numbers">0</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 flex items-center justify-between">
+<div>
+<span class="block text-xs uppercase tracking-[0.07em] font-semibold text-on-surface-variant">Authorized</span>
+<span class="text-xs text-outline">RFID &amp; plate validated</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-outline-variant"></span>
+<span class="font-mono text-2xl font-semibold text-on-surface tabular-numbers">0</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 flex items-center justify-between">
+<div>
+<span class="block text-xs uppercase tracking-[0.07em] font-semibold text-on-surface-variant">Denied</span>
+<span class="text-xs text-outline">Unmatched or restricted</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-outline-variant"></span>
+<span class="font-mono text-2xl font-semibold text-on-surface tabular-numbers">0</span>
+</div>
+</div>
+</section>
+<!-- Filter Control Toolbar -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 mb-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+<form class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end" onsubmit="event.preventDefault();">
+<!-- Date Selector -->
+<div class="flex flex-col">
+<label class="block text-xs font-medium text-on-surface-variant mb-1.5 uppercase tracking-[0.07em]" for="filter-date">Date</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-sm rounded-lg py-2 pl-3 pr-8 font-mono appearance-none focus-ring cursor-pointer h-10" id="filter-date">
+<option selected="">Today (19 May 2026)</option>
+<option>Yesterday (18 May 2026)</option>
+<option>17 May 2026</option>
+<option>Custom range…</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Result Filter -->
+<div class="flex flex-col">
+<label class="block text-xs font-medium text-on-surface-variant mb-1.5 uppercase tracking-[0.07em]" for="filter-result">Result</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-sm rounded-lg py-2 pl-3 pr-8 appearance-none focus-ring cursor-pointer h-10" id="filter-result">
+<option selected="">All results</option>
+<option>Authorized only</option>
+<option>Denied only</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Entry Status Filter -->
+<div class="flex flex-col">
+<label class="block text-xs font-medium text-on-surface-variant mb-1.5 uppercase tracking-[0.07em]" for="filter-status">Gate status</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-sm rounded-lg py-2 pl-3 pr-8 appearance-none focus-ring cursor-pointer h-10" id="filter-status">
+<option selected="">All statuses</option>
+<option>Passed barrier</option>
+<option>Holding at sensor</option>
+<option>Turned away</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Primary Action: Apply Filters -->
+<div class="flex items-center">
+<button class="w-full h-10 bg-primary-container text-on-primary font-medium text-sm rounded-lg px-4 flex items-center justify-center gap-2 hover:bg-primary transition-colors duration-160 active:scale-[0.97] transition-transform duration-90 focus-ring" type="submit">
+<span>Apply filters</span>
+</button>
+</div>
+</form>
+</div>
+<!-- Empty State Table Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden">
+<!-- Table Header (Visible for structure & scan layout) -->
+<div class="hidden md:grid grid-cols-12 px-6 py-3 bg-surface-container-low border-b border-outline-variant text-xs font-semibold uppercase tracking-[0.07em] text-on-surface-variant">
+<div class="col-span-2">Time evaluated</div>
+<div class="col-span-3">Vehicle / License plate</div>
+<div class="col-span-3">Assigned employee</div>
+<div class="col-span-2">Checkpoint gate</div>
+<div class="col-span-2 text-right">Verification verdict</div>
+</div>
+<!-- Empty State Body -->
+<div class="p-12 sm:p-16 flex flex-col items-center justify-center text-center">
+<!-- Parking Bay Accent Graphic (Humanist paired stall marking) -->
+<div class="w-16 h-16 rounded-xl bg-surface-container-low flex items-center justify-center mb-5 border border-outline-variant/60">
+<div class="flex items-center space-x-1.5">
+<span class="h-6 w-0.5 bg-outline rounded-full"></span>
+<span class="material-symbols-outlined text-outline text-2xl">sensors</span>
+<span class="h-6 w-0.5 bg-outline rounded-full"></span>
+</div>
+</div>
+<!-- Exact Empty State Messaging -->
+<h2 class="font-headline font-semibold text-lg sm:text-xl text-on-surface mb-2 tracking-tight">
+          No entry checks recorded yet
+        </h2>
+<p class="text-on-surface-variant text-sm max-w-md leading-relaxed mb-6">
+          Optical license plate scanners and RFID checkpoints will automatically transmit readouts here as soon as vehicles approach North Gate 1 or West Gate 2.
+        </p>
+<!-- The single allowed action to add or simulate the first record -->
+<div class="flex flex-col sm:flex-row items-center gap-3">
+<button class="h-10 px-5 bg-primary-container text-on-primary font-medium text-sm rounded-lg inline-flex items-center justify-center gap-2 hover:bg-primary transition-colors duration-160 active:scale-[0.97] transition-transform duration-90 focus-ring" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Record manual entry check</span>
+</button>
+</div>
+<!-- Informational Note -->
+<div class="mt-8 pt-6 border-t border-outline-variant/60 w-full max-w-md text-xs text-on-surface-variant flex items-center justify-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span>Optical logs stream automatically via gate telemetry. No sync delays detected.</span>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load boxes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Typography assignments */
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-waiting-dot {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Layout & Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    nav.header-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-link {
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      text-decoration: none;
+      padding: 20px 0;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 4px;
+    }
+
+    .nav-link.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      background-color: #EEEEEE;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Public Sans', sans-serif;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 13px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .page-heading {
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+
+    /* Top Action / Nav back */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 24px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #202020;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.99);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Panel Card */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    /* Route Overview Bar */
+    .route-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #D5D5D5;
+      margin-bottom: 20px;
+    }
+
+    .route-meta-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .route-title-line {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .route-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .route-code {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .route-details-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-top: 8px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-val {
+      font-size: 15px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Scanned Summary Banner */
+    .scan-status-summary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .summary-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .summary-lead {
+      font-size: 20px;
+      font-weight: 650;
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #202020;
+    }
+
+    .summary-sub {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Scan Input Section */
+    .scan-input-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 650;
+      font-family: 'Hanken Grotesk', sans-serif;
+      margin-bottom: 16px;
+      color: #202020;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .scan-input-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .touch-input {
+      flex: 1;
+      height: 48px;
+      padding: 0 16px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-size: 16px;
+      color: #202020;
+      font-family: 'IBM Plex Mono', monospace;
+      transition: border-color 150ms ease;
+    }
+
+    .touch-input:focus {
+      outline: none;
+      border-color: #A94B1D;
+    }
+
+    .touch-input::placeholder {
+      color: #626262;
+      font-family: 'Public Sans', sans-serif;
+    }
+
+    .scan-btn {
+      height: 48px;
+      padding: 0 24px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #202020;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .scan-btn:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .scan-btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Expected vs Scanned List Table */
+    .table-container {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 20px 24px 16px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .list-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .list-table th {
+      height: 48px;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #626262;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .list-table td {
+      height: 64px;
+      padding: 0 24px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .list-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status Indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Detail Sub-lines in Table */
+    .cell-title {
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .cell-sub {
+      font-size: 13px;
+      color: #626262;
+      margin-top: 2px;
+    }
+
+    /* Storage & Offline Assurance Banner */
+    .assurance-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+
+    .assurance-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+      margin-bottom: 6px;
+    }
+
+    .assurance-desc {
+      font-size: 14px;
+      color: #626262;
+      line-height: 1.5;
+    }
+
+    /* Actions Bottom Bar */
+    .actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 32px;
+      background-color: #A94B1D;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #FFFFFF;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 150ms ease, transform 100ms ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary:disabled {
+      background-color: #D5D5D5;
+      border-color: #D5D5D5;
+      color: #626262;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .actions-help-text {
+      font-size: 14px;
+      color: #626262;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="brand-cluster">
+        <div class="brand-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="header-nav">
+        <a href="#" class="nav-link">Today's routes</a>
+        <a href="#" class="nav-link">Pending work</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-avatar">TM</div>
+        <span class="user-name">Tariq Mansour · Driver</span>
+      </div>
+      <div class="lang-switcher">
+        EN / العربية
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body -->
+  <main>
+    <!-- Title and Nav Bar -->
+    <div class="page-title-row">
+      <h1 class="page-heading">Load boxes</h1>
+      <a href="#" class="btn-secondary">Route stops</a>
+    </div>
+
+    <!-- Route Assignment Card -->
+    <div class="panel">
+      <div class="route-header">
+        <div class="route-meta-left">
+          <div class="route-title-line">
+            <span class="route-label">Route</span>
+            <span class="route-code font-mono">R-204</span>
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              good
+            </span>
+          </div>
+          <div class="cell-sub">Confirmed delivery schedule for North Quay Warehouse dispatch</div>
+        </div>
+      </div>
+
+      <div class="route-details-grid">
+        <div class="meta-item">
+          <span class="meta-label">Vehicle</span>
+          <span class="meta-val font-mono">VAN-27 (plate MTR-482)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Assigned driver</span>
+          <span class="meta-val">Tariq Mansour</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Consigned cargo</span>
+          <span class="meta-val">Order <span class="font-mono">0-299</span> (20 packs)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Planned departure</span>
+          <span class="meta-val font-mono">14 May 2026 15:00 BST</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lead Progress Summary -->
+    <div class="scan-status-summary">
+      <div class="summary-left">
+        <div class="summary-lead">0 of 2 expected boxes scanned for R-204</div>
+        <div class="summary-sub">Scan each assigned shipper carton prior to loading vehicle VAN-27.</div>
+      </div>
+      <span class="status-badge status-waiting">
+        <span class="status-dot animate-waiting-dot"></span>
+        waiting
+      </span>
+    </div>
+
+    <!-- Touch-sized Scan Box Input -->
+    <div class="scan-input-card">
+      <h2 class="section-title">Scan box</h2>
+      <label for="box-barcode-input" class="field-label">Scan box barcode or enter identifier</label>
+      <div class="scan-input-group">
+        <input 
+          type="text" 
+          id="box-barcode-input" 
+          class="touch-input" 
+          placeholder="e.g. B-701 or B-702" 
+          autofocus 
+          autocomplete="off" 
+          spellcheck="false"
+        >
+        <button type="button" class="scan-btn">Scan box</button>
+      </div>
+    </div>
+
+    <!-- Expected & Scanned List -->
+    <div class="table-container">
+      <div class="table-header">
+        <h2 class="section-title" style="margin-bottom: 0;">Expected boxes (2)</h2>
+        <span class="cell-sub font-mono">Order 0-299 · Insulin Glargine 100 units/mL</span>
+      </div>
+      <table class="list-table">
+        <thead>
+          <tr>
+            <th>Box identifier</th>
+            <th>Contents & Lot</th>
+            <th>Datalogger gateway</th>
+            <th>Telemetry & Age</th>
+            <th>Loading state</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="cell-title font-mono">B-701</div>
+              <div class="cell-sub">BioTherm 12L</div>
+            </td>
+            <td>
+              <div class="cell-title">12 packs</div>
+              <div class="cell-sub font-mono">Lot IG-2511 · Exp. 31 Mar 2027</div>
+            </td>
+            <td>
+              <div class="cell-title font-mono">LOG-9921</div>
+              <div class="cell-sub">Berlinger Fridge-tag</div>
+            </td>
+            <td>
+              <div class="cell-title font-mono">4.4°C (2–8°C)</div>
+              <div class="cell-sub font-mono">14 May 14:40 BST · 20m ago</div>
+            </td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                waiting
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="cell-title font-mono">B-702</div>
+              <div class="cell-sub">BioTherm 12L</div>
+            </td>
+            <td>
+              <div class="cell-title">8 packs</div>
+              <div class="cell-sub font-mono">Lot IG-2511 · Exp. 31 Mar 2027</div>
+            </td>
+            <td>
+              <div class="cell-title font-mono">LOG-8819</div>
+              <div class="cell-sub">SenseTech probe</div>
+            </td>
+            <td>
+              <div class="cell-title font-mono">4.8°C (cached)</div>
+              <div class="cell-sub font-mono">14 May 11:45 BST · 3h 15m ago</div>
+            </td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                waiting
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Durable Offline Storage Assurance Notice -->
+    <div class="assurance-card">
+      <div class="assurance-title">Loading queue assurance</div>
+      <div class="assurance-desc">
+        Offline loading can queue only after complete durable local storage; otherwise show an error, never 'queued'.
+      </div>
+    </div>
+
+    <!-- Departure Action Bar -->
+    <div class="actions-bar">
+      <div class="actions-help-text">
+        Primary Confirm departure disabled until both expected boxes are scanned and all wrong-route boxes removed.
+      </div>
+      <button type="button" class="btn-primary" disabled>
+        Confirm departure
+      </button>
+    </div>
+  </main>
+
+</body>
+</html>

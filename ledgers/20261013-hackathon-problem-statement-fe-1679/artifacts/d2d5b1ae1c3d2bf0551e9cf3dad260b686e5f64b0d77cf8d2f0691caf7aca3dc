@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 17,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 116,
+    "end": 124
+   },
+   "ms": 1,
+   "resultChars": 3281,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:116,&quot;end&quot;:124}\">\nlib/api/client.msw.ts lines 116-124\n116\t\n117\texport const getCreateFeedingEventResponseMock = (): FeedingEventResponse => ({\"permissions\":[\"feeding.manage\"],\"event\":{\"id\":4502,\"dateTime\":\"2026-08-21T06:10:00-06:00\",\"penId\":12,\"pen\":\"P-12\",\"rationId\":1201,\"ration\":\"Grower 90\",\"operator\":\"Jordan Lee\",\"plannedQuantity\":1680,\"deliveredQuantity\":1700,\"variance\":20,\"grossCost\":323,\"energy\":2924,\"status\":\"Completed\",\"lotAllocations\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"head\":140,\"deliveredQuantity\":1700,\"lotCost\":323,\"netEnergy\":2924}],\"inventoryMovements\":[{\"id\":7102,\"itemId\":501,\"movementType\":\"Delivered-feed consumption\",\"quantity\":1700,\"netStockEffect\":-1700}]},\"lotFeedTotals\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"cumulativeFeed\":8729,\"cumulativeCost\":9773}]})\n118\t\n119\texport const getCorrectFeedingEventResponseMock = (): FeedingEventResponse => ({\"permissions\":[\"feeding.correct\"],\"event\":{\"id\":4501,\"dateTime\":\"2026-08-20T06:10:00-06:00\",\"penId\":12,\"pen\":\"P-12\",\"rationId\":1201,\"ration\":\"Grower 90\",\"operator\":\"Jordan Lee\",\"plannedQuantity\":1680,\"deliveredQuantity\":1690,\"variance\":10,\"grossCost\":321.1,\"energy\":2906.8,\"status\":\"Corrected\",\"lotAllocations\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"head\":140,\"deliveredQuantity\":1690,\"lotCost\":321.1,\"netEnergy\":2906.8}],\"inventoryMovements\":[{\"id\":7103,\"itemId\":501,\"movementType\":\"Corrected delivered-feed consumption\",\"quantity\":1690,\"netStockEffect\":-1690}]},\"lotFeedTotals\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"cumulativeFeed\":8719,\"cumulativeCost\":9771.1}]})\n120\t\n121\texport const getVoidFeedingEventResponseMock = (): FeedingEventResponse => ({\"permissions\":[\"feeding.void\"],\"event\":{\"id\":4501,\"dateTime\":\"2026-08-20T06:10:00-06:00\",\"penId\":12,\"pen\":\"P-12\",\"rationId\":1201,\"ration\":\"Grower 90\",\"operator\":\"Jordan Lee\",\"plannedQuantity\":1680,\"deliveredQuantity\":1700,\"variance\":20,\"grossCost\":323,\"energy\":2924,\"status\":\"Voided\",\"lotAllocations\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"head\":140,\"deliveredQuantity\":1700,\"lotCost\":323,\"netEnergy\":2924}],\"inventoryMovements\":[{\"id\":7104,\"itemId\":501,\"movementType\":\"Void reversal\",\"quantity\":1700,\"netStockEffect\":1700}]},\"lotFeedTotals\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"cumulativeFeed\":7029,\"cumulativeCost\":9450}]})\n122\t\n123\texport const getGetOperationalReportResponseMock = (): OperationalReportResponse => ({\"permissions\":[\"reports.view\",\"reports.export\"],\"feedingRows\":[{\"id\":4501,\"dateTime\":\"2026-08-20T06:10:00-06:00\",\"pen\":\"P-12\",\"lotsFed\":\"L-2407\",\"ration\":\"Grower 90\",\"planned\":1680,\"delivered\":1700,\"variance\":20,\"grossCost\":323,\"netEnergy\":2924,\"costOfGain\":1.38,\"deliveryStatus\":\"Completed\",\"sampleData\":false}],\"performanceRows\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\",\"activeHead\":140,\"daysOnFeed\":92,\"currentWeight\":711,\"adg\":3.4,\"fcr\":7.1,\"feedCost\":9450,\"energy\":18.6,\"sampleData\":false}],\"inventoryRows\":[{\"id\":501,\"name\":\"Rolled Corn\",\"remainingInventory\":8200,\"sampleData\":false}],\"summary\":{\"penWithMostFeed\":\"P-12\",\"bestFcrLot\":\"L-2407\",\"highestAdgLot\":\"L-2407\",\"mostUsedRation\":\"Grower 90\",\"feedCostPerWeightGain\":1.38}})\n124\t\n… (730 lines total; ask for start=125)\n</untrusted_document>"
+  }
+ ]
+}

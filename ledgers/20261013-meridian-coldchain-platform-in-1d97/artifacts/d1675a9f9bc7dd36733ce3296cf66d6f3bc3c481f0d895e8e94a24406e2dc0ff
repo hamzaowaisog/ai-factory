@@ -1,0 +1,38 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "operationId:.*(changeCustomerOrder|listCustomerOrders|getCustomerOrder|listWarehouse|listReceipts|createReceipt)|summary:.*(warehouse-scoped|customer|packed|quarantin|authorization)",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2121,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;operationId:.*(changeCustomerOrder|listCustomerOrders|getCustomerOrder|listWarehouse|listReceipts|createRece\">\ncontracts/openapi.yaml:12: summary: \"Get the configured staff identity-provider authorization URL.\"\ncontracts/openapi.yaml:23: summary: \"Submit customer email and password and begin one-time-code verification.\"\ncontracts/openapi.yaml:44: summary: \"Verify the customer's one-time code.\"\ncontracts/openapi.yaml:65: summary: \"Resend the customer one-time code.\"\ncontracts/openapi.yaml:146: operationId: listReceipts\ncontracts/openapi.yaml:147: summary: \"List warehouse-scoped receipts using supplied filters.\"\ncontracts/openapi.yaml:163: operationId: createReceipt\ncontracts/openapi.yaml:164: summary: \"Record and quarantine an inbound receipt.\"\ncontracts/openapi.yaml:355: summary: \"List packed boxes and compatibility status.\"\ncontracts/openapi.yaml:1065: operationId: listCustomerOrders\ncontracts/openapi.yaml:1066: summary: \"List orders scoped by the authenticated customer's organization.\"\ncontracts/openapi.yaml:1081: summary: \"Place a customer order using an idempotency key.\"\ncontracts/openapi.yaml:1109: operationId: getCustomerOrder\ncontracts/openapi.yaml:1110: summary: \"Get an order scoped to the authenticated customer.\"\ncontracts/openapi.yaml:1125: operationId: changeCustomerOrder\ncontracts/openapi.yaml:1126: summary: \"Change a customer order before packing.\"\ncontracts/openapi.yaml:1153: summary: \"Cancel a customer order when available.\"\ncontracts/openapi.yaml:1172: summary: \"List deliveries scoped to the authenticated customer's organization.\"\ncontracts/openapi.yaml:1250: summary: \"List recall notices for the authenticated customer's organization.\"\ncontracts/openapi.yaml:1291: summary: \"Get customer account language, time zone and organization settings.\"\ncontracts/openapi.yaml:1303: summary: \"Save customer account language preference.\"\ncontracts/openapi.yaml:1402: summary: \"List customer organization members.\"\ncontracts/openapi.yaml:1414: summary: \"Invite a member to the customer organization.\"\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "securitySchemes:|^security:|type: http|bearerFormat|name:.*Role|CustomerId|WarehouseId",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 500,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;securitySchemes:|^security:|type: http|bearerFormat|name:.*Role|CustomerId|WarehouseId&quot;,&quot;glob&quot;:&quot;contracts/op\">\ncontracts/openapi.yaml:258: - $ref: \"#/components/parameters/WarehouseId\"\ncontracts/openapi.yaml:1784: - $ref: \"#/components/parameters/WarehouseId\"\ncontracts/openapi.yaml:1841: WarehouseId:\ncontracts/openapi.yaml:1842: name: warehouseId\ncontracts/openapi.yaml:2560: warehouseIds:\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "operationId: changeCustomerOrder|operationId: listCustomerOrders|operationId: getCustomerOrder",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 401,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;operationId: changeCustomerOrder|operationId: listCustomerOrders|operationId: getCustomerOrder&quot;,&quot;glob&quot;:&quot;cont\">\ncontracts/openapi.yaml:1065: operationId: listCustomerOrders\ncontracts/openapi.yaml:1109: operationId: getCustomerOrder\ncontracts/openapi.yaml:1125: operationId: changeCustomerOrder\n</untrusted_document>"
+  }
+ ]
+}

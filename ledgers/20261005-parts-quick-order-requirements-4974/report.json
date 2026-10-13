@@ -1,0 +1,330 @@
+{
+  "runId": "20261005-parts-quick-order-requirements-4974",
+  "status": "running",
+  "request": "# Parts Quick Order — requirements\n\n## Purpose\nA small web portal where a garage's parts buyer finds car parts, orders them and tracks the order. This release has exactly three screens. Anything not w",
+  "costUsd": 0.389603,
+  "activeMin": 0.6355333333333333,
+  "firstTimePassRate": 1,
+  "topCost": [
+    {
+      "step": "estimate",
+      "costUsd": 0.389603
+    }
+  ],
+  "steps": [
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.006,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 0,
+        "answersChanged": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 0,
+        "answersChanged": 0
+      }
+    },
+    {
+      "step": "specify",
+      "stage": "specify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "design",
+      "stage": "design",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "design-baseline",
+      "stage": "design-baseline",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.006,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "breakdown",
+      "stage": "breakdown",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.167,
+      "gates": {
+        "passed": 6,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "estimate",
+      "stage": "estimate",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 43872,
+        "output": 9601,
+        "cached": 0
+      },
+      "costUsd": 0.389603,
+      "activeSec": 31.122,
+      "gates": {
+        "passed": 2,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 82,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "approve-estimate",
+      "stage": "approve-estimate",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.07500000000000001,
+      "gates": {
+        "passed": 1,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "export",
+      "stage": "export",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 6.765,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    }
+  ],
+  "createdAt": "2026-10-05T23:14:04.536Z",
+  "humanCards": [
+    "estimate-approval"
+  ]
+}

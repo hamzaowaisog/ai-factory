@@ -1,0 +1,1054 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Yard - Range Ledger</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+    :root {
+      --bg: #F5F5F5;
+      --surface: #FFFFFF;
+      --text: #262626;
+      --text-quiet: #626262;
+      --border: #D8D8D8;
+      --primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-refused: #A13D36;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: var(--text);
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 26px;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    @keyframes track-fill {
+      from {
+        transform: scaleX(0);
+      }
+      to {
+        transform: scaleX(1);
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    .track-anim {
+      transform-origin: left center;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+      animation-duration: 420ms;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      animation-name: track-fill;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 16px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 17px;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      margin-right: 20px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-quiet);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      transition: color 120ms ease, background-color 120ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background-color: var(--bg);
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 600;
+      background-color: transparent;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 20px;
+      flex-shrink: 0;
+    }
+
+    .profile-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--border);
+      display: block;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      text-align: left;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: var(--text-quiet);
+      white-space: nowrap;
+    }
+
+    /* Layout structure */
+    main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 24px;
+    }
+
+    .major-rule {
+      border: none;
+      height: 2px;
+      background-color: var(--border);
+      margin: 8px 0;
+    }
+
+    /* Headline & Summary */
+    .headline-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .primary-kpi-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .yard-page-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .stat-hero {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 44px;
+      font-weight: 650;
+      line-height: 48px;
+      color: var(--text);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .stat-hero .stat-unit {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-quiet);
+    }
+
+    .yard-context-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-quiet);
+      margin-top: 6px;
+    }
+
+    .yard-summary-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .summary-label {
+      font-size: 13px;
+      color: var(--text-quiet);
+      font-weight: 400;
+    }
+
+    .summary-val {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Conflict notification */
+    .conflict-callout {
+      background: #FFFFFF;
+      border: 1px solid var(--status-waiting);
+      border-left: 4px solid var(--status-waiting);
+      border-radius: 4px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .conflict-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-chip.good {
+      color: var(--status-good);
+      background: rgba(40, 97, 67, 0.08);
+      border-color: rgba(40, 97, 67, 0.2);
+    }
+    .status-chip.good .status-dot {
+      background-color: var(--status-good);
+    }
+
+    .status-chip.waiting {
+      color: var(--status-waiting);
+      background: rgba(128, 86, 0, 0.08);
+      border-color: rgba(128, 86, 0, 0.2);
+    }
+    .status-chip.waiting .status-dot {
+      background-color: var(--status-waiting);
+    }
+
+    .status-chip.refused {
+      color: var(--status-refused);
+      background: rgba(161, 61, 54, 0.08);
+      border-color: rgba(161, 61, 54, 0.2);
+    }
+    .status-chip.refused .status-dot {
+      background-color: var(--status-refused);
+    }
+
+    /* Table Toolbar */
+    .table-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-select {
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 120ms ease;
+    }
+
+    .field-select:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    /* Data table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 15px;
+    }
+
+    thead th {
+      height: 44px;
+      padding: 0 16px;
+      background: #FAFAFA;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 100ms ease;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: #FAFAFA;
+    }
+
+    td {
+      padding: 0 16px;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    /* Lower Section: Inventory & Dated Events Feed */
+    .lower-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .inventory-stat-group {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .stat-box {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      background: #FAFAFA;
+    }
+
+    .stat-box-title {
+      font-size: 13px;
+      color: var(--text-quiet);
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .stat-box-num {
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .stat-box-meta {
+      font-size: 13px;
+      color: var(--text-quiet);
+      margin-top: 4px;
+    }
+
+    .breakdown-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding-bottom: 4px;
+      border-bottom: 1px dotted var(--border);
+    }
+
+    .breakdown-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Event list */
+    .event-feed {
+      display: flex;
+      flex-direction: column;
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+    }
+
+    .event-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-height: 52px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 100ms ease;
+    }
+
+    .event-row:last-child {
+      border-bottom: none;
+    }
+
+    .event-row:hover {
+      background-color: #FAFAFA;
+    }
+
+    .event-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .event-time-col {
+      width: 140px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+    }
+
+    .event-staff {
+      width: 110px;
+      flex-shrink: 0;
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .event-desc {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 20px;
+    }
+
+    .event-status {
+      flex-shrink: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px) {
+      .lower-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      header {
+        height: auto;
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      nav {
+        width: 100%;
+        padding-bottom: 4px;
+      }
+
+      .user-profile {
+        margin-left: 0;
+        align-self: flex-end;
+      }
+
+      main {
+        padding: 16px;
+        gap: 16px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      tbody tr {
+        height: 56px;
+      }
+      
+      .event-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 56px;
+      }
+
+      .event-time-col {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+<!-- Plain Persistent Header -->
+<header>
+<div style="display: flex; align-items: center; width: 100%; justify-content: space-between;">
+<div class="brand-group">
+<div aria-hidden="true" class="brand-mark">R</div>
+<span class="brand-name">Range Ledger</span>
+<!-- Shared Menu (orderly) -->
+<nav aria-label="Main Navigation">
+<a aria-current="page" class="nav-item active" href="#">Yard</a>
+<a class="nav-item" href="#">Imports</a>
+<a class="nav-item" href="#">Allocations</a>
+<a class="nav-item" href="#">Lots</a>
+<a class="nav-item" href="#">Inventory</a>
+<a class="nav-item" href="#">Feed outlook</a>
+<a class="nav-item" href="#">Rations</a>
+<a class="nav-item" href="#">Feed plans</a>
+<a class="nav-item" href="#">Feeding</a>
+<a class="nav-item" href="#">Reports</a>
+<a class="nav-item" href="#">Feed-to-gain</a>
+<a class="nav-item" href="#">Profitability</a>
+<a class="nav-item" href="#">Sample data</a>
+<a class="nav-item" href="#">Delivery brief</a>
+</nav>
+</div>
+<!-- Signed-in User: Maya Chen, Yard manager -->
+<div class="user-profile">
+<img alt="Maya Chen" class="profile-photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKt79IwT3sHU8A8RSdp-oo2nULjAH9hgdGI7xxl0FuOIschp4FZz3uNkOxACVH0GAIzHns0ivhfYpiwG6KUKqGf0rHTeJ1uMTn_peGvgNkWn8RqA0rcU4BPugIVtLQTQVYXd2eGG49XPBRxYcp3gzKxaxSWHHXgdBz9JWrz02PXquLRqaVhK6_6yZqdXfA1_GiIFkCJ1Mn5dn6ZRMAt6_2nKOHPDecEbMrhAFB4csq8eOc4Ruu5wKERncC02uD-5hnu2YXqRdsWE7H">
+<div class="user-meta">
+<span class="user-name">Maya Chen</span>
+<span class="user-role">Yard manager</span>
+</div>
+</div>
+</div>
+</header>
+<main>
+<!-- Yard Overview Panel -->
+<section class="panel">
+<div class="headline-row">
+<div class="primary-kpi-block">
+<h1 class="yard-page-title">Yard</h1>
+<div class="stat-hero">
+<span class="mono">360</span>
+<span class="stat-unit">active head</span>
+</div>
+<div class="yard-context-badge">
+<span>Red Mesa Yard</span>
+<span>•</span>
+<span>Capacity <span class="mono">490</span> head (73.5% utilized)</span>
+<span>•</span>
+<span class="mono">America/Denver (MT)</span>
+</div>
+</div>
+<div>
+<span class="status-chip good">
+<span class="status-dot live-dot"></span>
+            Operational normal
+          </span>
+</div>
+</div>
+<!-- Returned Yard Summary -->
+<div class="yard-summary-bar">
+<div class="summary-item">
+<span class="summary-label">Average ADG</span>
+<span class="summary-val"><span class="mono">3.02</span> lb/day</span>
+</div>
+<div class="summary-item">
+<span class="summary-label">Average Cost of Gain</span>
+<span class="summary-val">$<span class="mono">1.12</span>/lb</span>
+</div>
+<div class="summary-item">
+<span class="summary-label">Total Feed Cost</span>
+<span class="summary-val">$<span class="mono">82,060</span></span>
+</div>
+<div class="summary-item">
+<span class="summary-label">Active Pens</span>
+<span class="summary-val"><span class="mono">3</span> pens (P-04, P-07, P-12)</span>
+</div>
+<div class="summary-item">
+<span class="summary-label">Yard Forecast Gain Rate</span>
+<span class="summary-val"><span class="mono">2.85</span> lb/day</span>
+</div>
+</div>
+</section>
+<!-- Source Count vs Allocation Flag Callout -->
+<section class="conflict-callout" role="alert">
+<div class="conflict-info">
+<span class="status-chip waiting">
+<span class="status-dot"></span>
+          Allocation conflict
+        </span>
+<span>
+<strong>L-2407 in Pen P-04:</strong> 82 head mapped against updated source count of 80 head from PO-8841. Allocation retained; review required.
+        </span>
+</div>
+<div class="mono" style="font-size: 13px; color: var(--text-quiet);">
+        2025-06-18 10:10 MT
+      </div>
+</section>
+<!-- Dense Sortable Lot-Performance Table -->
+<section class="panel">
+<div class="table-toolbar">
+<div class="toolbar-left">
+<h2>Lot performance</h2>
+<span style="font-size: 14px; color: var(--text-quiet);">4 active lots</span>
+</div>
+<div class="toolbar-right">
+<label for="rank-selector" style="font-size: 14px; color: var(--text-quiet);">Measure ranking:</label>
+<select class="field-select" id="rank-selector">
+<option value="adg">ADG (Average Daily Gain)</option>
+<option value="fcr">FCR (Feed Conversion Ratio)</option>
+<option value="cog">Cost of gain</option>
+<option value="feed">Feed cost</option>
+<option value="energy">Energy (Mcal)</option>
+</select>
+</div>
+</div>
+<div aria-label="Lot performance table" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<tr>
+<th>Lot</th>
+<th>Breed &amp; Class</th>
+<th>Pen</th>
+<th class="text-right">Head</th>
+<th class="text-right">Days on feed</th>
+<th class="text-right">Avg Wt (lb)</th>
+<th class="text-right">ADG (lb/d)</th>
+<th class="text-right">FCR</th>
+<th class="text-right">Cost of gain</th>
+<th class="text-right">Feed cost</th>
+<th class="text-right">Energy (Mcal)</th>
+<th class="text-right">Return on investment</th>
+<th class="text-center">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="mono">L-2413</strong></td>
+<td>Charolais-cross steers</td>
+<td><span class="mono">P-12</span></td>
+<td class="text-right mono">94</td>
+<td class="text-right mono">43</td>
+<td class="text-right mono">1,056</td>
+<td class="text-right mono"><strong>3.28</strong></td>
+<td class="text-right mono">7.17</td>
+<td class="text-right mono">$1.04/lb</td>
+<td class="text-right mono">$14,345</td>
+<td class="text-right mono">142,500</td>
+<td class="text-right mono">9.1%</td>
+<td class="text-center"><span class="status-chip good"><span class="status-dot"></span>Best ADG</span></td>
+</tr>
+<tr>
+<td><strong class="mono">L-2407</strong></td>
+<td>Angus steers</td>
+<td><span class="mono">P-04</span></td>
+<td class="text-right mono">80 <span style="font-size: 12px; color: var(--status-waiting);">(82 map)</span></td>
+<td class="text-right mono">84</td>
+<td class="text-right mono">1,146</td>
+<td class="text-right mono"><strong>3.12</strong></td>
+<td class="text-right mono">7.35</td>
+<td class="text-right mono">$1.07/lb</td>
+<td class="text-right mono">$22,330</td>
+<td class="text-right mono">227,920</td>
+<td class="text-right mono">8.4%</td>
+<td class="text-center"><span class="status-chip waiting"><span class="status-dot"></span>Review</span></td>
+</tr>
+<tr>
+<td><strong class="mono">L-2409</strong></td>
+<td>Hereford steers</td>
+<td><span class="mono">P-07</span></td>
+<td class="text-right mono">126</td>
+<td class="text-right mono">72</td>
+<td class="text-right mono">1,098</td>
+<td class="text-right mono"><strong>3.00</strong></td>
+<td class="text-right mono">7.38</td>
+<td class="text-right mono">$1.14/lb</td>
+<td class="text-right mono">$29,145</td>
+<td class="text-right mono">233,600</td>
+<td class="text-right mono">6.7%</td>
+<td class="text-center"><span class="status-chip good"><span class="status-dot"></span>On track</span></td>
+</tr>
+<tr>
+<td><strong class="mono">L-2411</strong></td>
+<td>Angus heifers</td>
+<td><span class="mono">P-04</span></td>
+<td class="text-right mono">60</td>
+<td class="text-right mono">90</td>
+<td class="text-right mono">1,108</td>
+<td class="text-right mono"><strong>2.68</strong></td>
+<td class="text-right mono">7.75</td>
+<td class="text-right mono">$1.21/lb</td>
+<td class="text-right mono">$16,240</td>
+<td class="text-right mono">160,160</td>
+<td class="text-right mono" style="color: var(--text-quiet);">Unavailable</td>
+<td class="text-center"><span class="status-chip refused"><span class="status-dot"></span>High FCR</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="font-size: 13px; color: var(--text-quiet); margin-top: 12px; display: flex; justify-content: space-between;">
+<span>Return on investment is service-returned; source data unavailable for L-2411.</span>
+<span>Target weight forecast: L-2407 projected Jul 16 2025 at 1,233 lb.</span>
+</div>
+</section>
+<!-- 2px major structural rule -->
+<hr class="major-rule">
+<!-- Lower Section: Compact Inventory Balance & Latest Activity List -->
+<div class="lower-grid">
+<!-- Compact Inventory Balance -->
+<section class="panel">
+<h3>Inventory balance</h3>
+<p style="font-size: 14px; color: var(--text-quiet); margin-top: 2px;">Commodity stock &amp; daily commitments</p>
+<div class="inventory-stat-group">
+<div class="stat-box">
+<div class="stat-box-title">Total inventory on hand</div>
+<div class="stat-box-num mono">137,400 <span style="font-size: 16px; font-weight: normal; color: var(--text-quiet);">lb</span></div>
+<div class="stat-box-meta">Configured wastage: <span class="mono">2.8%</span> (actual <span class="mono">112 lb</span> / 30d)</div>
+</div>
+<div class="stat-box">
+<div class="stat-box-title">Today's planned delivery</div>
+<div class="stat-box-num mono">8,384 <span style="font-size: 16px; font-weight: normal; color: var(--text-quiet);">lb/day</span></div>
+<div class="stat-box-meta">Exact calculated: <span class="mono">8,383.8 lb</span> across 3 pens</div>
+</div>
+<div style="padding-top: 4px;">
+<div style="font-size: 13px; font-weight: 600; color: var(--text-quiet); text-transform: uppercase; margin-bottom: 8px;">Commodity stock breakdown</div>
+<div class="breakdown-list">
+<div class="breakdown-row">
+<span>Steam-flaked corn</span>
+<strong class="mono">84,600 lb</strong>
+</div>
+<div class="breakdown-row">
+<span>Distillers grains</span>
+<strong class="mono">31,200 lb</strong>
+</div>
+<div class="breakdown-row">
+<span>Alfalfa hay</span>
+<strong class="mono">18,400 lb</strong>
+</div>
+<div class="breakdown-row">
+<span>Mineral premix</span>
+<strong class="mono">3,200 lb</strong>
+</div>
+</div>
+</div>
+<div style="border-top: 1px solid var(--border); padding-top: 12px; font-size: 13px; color: var(--text-quiet);">
+<strong>Active Rations:</strong> Grower ($0.145/lb, 13.2% CP, 1.48 Mcal/lb) • Finisher ($0.151/lb)
+          </div>
+</div>
+</section>
+<!-- Latest Weight & Feeding Activity -->
+<section class="panel">
+<div style="display: flex; justify-content: space-between; align-items: baseline;">
+<div>
+<h3>Recent activity</h3>
+<p style="font-size: 14px; color: var(--text-quiet); margin-top: 2px;">Shared dated event records for Red Mesa Yard</p>
+</div>
+<span style="font-size: 13px; color: var(--text-quiet);">Showing 6 latest events</span>
+</div>
+<div class="event-feed">
+<!-- Event 10: Omar Diaz -->
+<div class="event-row">
+<img alt="Omar Diaz" class="event-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKxTb3YIzpKVo6ds7sOHJdKt2KLdvVT9BWtS4W_DvEzGSUSkgXacPhwuGi_fPDzl07dYb3dnXigItZlCAZIkZx6o3RZUT4_Vnxck45D4yFQ9eEOWi89tR2fZdKeA3t7OWxzirp5y2KM68bojdMg3B1UsZqeAx6PBJVxrJqGZflLjkSR8i7NIDQPZJVXp7crwWj7kIH63mtbfcZuXNmGjbh8aV_waFZ9JRNOHVs-DP1zf4HzcUn5lCAYRG-gwlSm0RU24TfI4nBYnSz">
+<div class="event-time-col">
+<span class="mono" style="font-weight: 600;">2025-06-18</span>
+<span class="mono" style="color: var(--text-quiet);">10:35 MT</span>
+</div>
+<div class="event-staff">Omar Diaz</div>
+<div class="event-desc">
+              Reviewed P-04 plan after head-count change; saved plan retained at <span class="mono">3,337 lb</span>.
+            </div>
+<div class="event-status">
+<span class="status-chip waiting"><span class="status-dot"></span>Flagged review</span>
+</div>
+</div>
+<!-- Event 9: Tomas Reed -->
+<div class="event-row">
+<img alt="Tomas Reed" class="event-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6fquyzYBGlDTiklapk-IUp_9YaxX_rytjJeqGoRoelwAqxN-VRToIWCNV-mSnJBMJfCD8pFLi8TeU4tETeB4wjyvpbv93dZ90aH2ErBnbooY7c94sVDBovCGvbTQ1G6ZqtOFb4eriTdVAV2qCSxeTQODrrigwRxbM1jTZbTbqLjRjCAFBni5s5MG_PC8iKOkPtYcXNUMQc3GZxzq0FlkHZMdp248rNxyNp-1SckwsAyl7EvMACleW5xypiQYTVSAehYjs3io1ns8D">
+<div class="event-time-col">
+<span class="mono" style="font-weight: 600;">2025-06-18</span>
+<span class="mono" style="color: var(--text-quiet);">10:10 MT</span>
+</div>
+<div class="event-staff">Tomas Reed</div>
+<div class="event-desc">
+              Repeated PO-8841 import; line 1 matched, updated source to <span class="mono">80</span> head against <span class="mono">82</span> mapped.
+            </div>
+<div class="event-status">
+<span class="status-chip waiting"><span class="status-dot"></span>Conflict</span>
+</div>
+</div>
+<!-- Event 8: Rosa Alvarez -->
+<div class="event-row">
+<img alt="Rosa Alvarez" class="event-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzDQwNpOp9Ne5Z3Ic85y_k_-wuvkBe342Jjq-FBlDO0DjOeTNwMLS2N5i2TbBehJVYOOuvFHris67vCfLFYjrWEjSTKc2Lk3I7fNVcC5Xefl17Ev3vyEAnUNtM618MI1iCfdYMXyTxNlXQ4q87t4MB5omW3GwVH0P6AF6WwZkLakkKjexFimHJK5nEiyhQtK-hDwhXapvBDNvgUT1B8K1q-8l_v8tdjZdzK5rjIiKgwO9rnU81nbsZgAkML3fs9ikJkyGazTViSPvI">
+<div class="event-time-col">
+<span class="mono" style="font-weight: 600;">2025-06-18</span>
+<span class="mono" style="color: var(--text-quiet);">07:55 MT</span>
+</div>
+<div class="event-staff">Rosa Alvarez</div>
+<div class="event-desc">
+              Recorded L-2407 weight <span class="mono">1,146 lb</span>; interval gain <span class="mono">7 lb</span> over 3 days (<span class="mono">2.33 lb/d</span>).
+            </div>
+<div class="event-status">
+<span class="status-chip good"><span class="status-dot"></span>Recorded</span>
+</div>
+</div>
+<!-- Event 7: Eli Navarro -->
+<div class="event-row">
+<img alt="Eli Navarro" class="event-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPhhlGZ8gut8dRxHGdGDR_WBv27SpAVRsYWKqYcdXlGn9l0DK9s-00G-iMpTtYUtjV8D_SeC31m03TCXvdp15tFrlHr_mPS3JxxFXdOSEGEDoJg1-DJeXQIhiLOcfZIXr6YNhs87HDYJ2rxsrIActfIuD-dRWiHMoEjdr-vPM5MfNDKjT98UmusWQju8XaBXgQg22pMTWXnvx3YQKQKb7rAI6zdmuL0kZwWAr1WFIX0tNskh5EXzFpooFur-9XeJ-EXkc_Kk98J4uK">
+<div class="event-time-col">
+<span class="mono" style="font-weight: 600;">2025-06-17</span>
+<span class="mono" style="color: var(--text-quiet);">06:25 MT</span>
+</div>
+<div class="event-staff">Eli Navarro</div>
+<div class="event-desc">
+              Fed L-2409 in P-07 <span class="mono">2,772 lb</span> (<span class="mono">-18 lb</span> variance, <span class="mono">$402</span>, <span class="mono">4,100 Mcal</span>).
+            </div>
+<div class="event-status">
+<span class="status-chip good"><span class="status-dot"></span>Delivered</span>
+</div>
+</div>
+<!-- Event 6: Maya Chen -->
+<div class="event-row">
+<img alt="Maya Chen" class="event-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKt79IwT3sHU8A8RSdp-oo2nULjAH9hgdGI7xxl0FuOIschp4FZz3uNkOxACVH0GAIzHns0ivhfYpiwG6KUKqGf0rHTeJ1uMTn_peGvgNkWn8RqA0rcU4BPugIVtLQTQVYXd2eGG49XPBRxYcp3gzKxaxSWHHXgdBz9JWrz02PXquLRqaVhK6_6yZqdXfA1_GiIFkCJ1Mn5dn6ZRMAt6_2nKOHPDecEbMrhAFB4csq8eOc4Ruu5wKERncC02uD-5hnu2YXqRdsWE7H">
+<div class="event-time-col">
+<span class="mono" style="font-weight: 600;">2025-06-16</span>
+<span class="mono" style="color: var(--text-quiet);">13:10 MT</span>
+</div>
+<div class="event-staff">Maya Chen</div>
+<div class="event-desc">
+              Recorded <span class="mono">112 lb</span> actual wastage; configured wastage adjusted from <span class="mono">2.5%</span> to <span class="mono">2.8%</span>.
+            </div>
+<div class="event-status">
+<span class="status-chip good"><span class="status-dot"></span>Configured</span>
+</div>
+</div>
+<!-- Event 5: Rosa Alvarez -->
+<div class="event-row">
+<img alt="Rosa Alvarez" class="event-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzDQwNpOp9Ne5Z3Ic85y_k_-wuvkBe342Jjq-FBlDO0DjOeTNwMLS2N5i2TbBehJVYOOuvFHris67vCfLFYjrWEjSTKc2Lk3I7fNVcC5Xefl17Ev3vyEAnUNtM618MI1iCfdYMXyTxNlXQ4q87t4MB5omW3GwVH0P6AF6WwZkLakkKjexFimHJK5nEiyhQtK-hDwhXapvBDNvgUT1B8K1q-8l_v8tdjZdzK5rjIiKgwO9rnU81nbsZgAkML3fs9ikJkyGazTViSPvI">
+<div class="event-time-col">
+<span class="mono" style="font-weight: 600;">2025-06-15</span>
+<span class="mono" style="color: var(--text-quiet);">11:40 MT</span>
+</div>
+<div class="event-staff">Rosa Alvarez</div>
+<div class="event-desc">
+              Recorded L-2407 weight <span class="mono">1,139 lb</span> at Red Mesa Yard/L-2407.
+            </div>
+<div class="event-status">
+<span class="status-chip good"><span class="status-dot"></span>Recorded</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-2";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

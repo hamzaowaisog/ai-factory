@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Recalls — Empty State | Meridian Quality Assurance</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with forms & container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-container": "#cdeaff",
+            "on-error": "#ffffff",
+            "secondary-container": "#ffbda2",
+            "secondary": "#84523d",
+            "on-tertiary": "#ffffff",
+            "background": "#f9f9f9",
+            "on-secondary-fixed-variant": "#683b27",
+            "inverse-primary": "#ffb597",
+            "on-primary": "#ffffff",
+            "tertiary-fixed-dim": "#82cfff",
+            "tertiary": "#005577",
+            "error-container": "#ffdad6",
+            "surface-container": "#eeeeee",
+            "on-background": "#1a1c1c",
+            "on-tertiary-fixed": "#001e2d",
+            "primary-container": "#a94b1d",
+            "inverse-on-surface": "#f1f1f1",
+            "on-secondary-container": "#7a4a35",
+            "surface-container-highest": "#e2e2e2",
+            "secondary-fixed": "#ffdbcd",
+            "on-tertiary-fixed-variant": "#004c6b",
+            "secondary-fixed-dim": "#f9b89d",
+            "outline": "#897269",
+            "surface-dim": "#dadada",
+            "on-surface": "#1a1c1c",
+            "surface-variant": "#e2e2e2",
+            "tertiary-container": "#006e99",
+            "primary-fixed-dim": "#ffb597",
+            "inverse-surface": "#2f3131",
+            "on-primary-container": "#ffe0d4",
+            "error": "#ba1a1a",
+            "surface-bright": "#f9f9f9",
+            "primary-fixed": "#ffdbcd",
+            "tertiary-fixed": "#c6e7ff",
+            "on-primary-fixed-variant": "#7d2d00",
+            "on-primary-fixed": "#360f00",
+            "surface-container-low": "#f3f3f3",
+            "outline-variant": "#ddc1b6",
+            "on-secondary-fixed": "#331103",
+            "primary": "#893405",
+            "surface-tint": "#9e4315",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#56423b",
+            "surface-container-high": "#e8e8e8",
+            "surface": "#f9f9f9",
+            "on-error-container": "#93000a",
+            "surface-container-lowest": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {},
+          "fontFamily": {
+            "headline": [
+              "Hanken Grotesk"
+            ],
+            "display": [
+              "Hanken Grotesk"
+            ],
+            "body": [
+              "Public Sans"
+            ],
+            "label": [
+              "Public Sans"
+            ],
+            "mono": [
+              "IBM Plex Mono"
+            ]
+          },
+          "fontSize": {}
+        },
+      },
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-headline {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-stage-1 {
+      animation: entranceFadeUp var(--dur-base) var(--ease-out) both;
+    }
+
+    .animate-stage-2 {
+      animation: entranceFadeUp var(--dur-base) var(--ease-out) 60ms both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-property: opacity !important;
+        transition-duration: 120ms !important;
+      }
+    }
+
+    .focus-ring:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-press:active {
+      transform: scale(0.97);
+      transition-duration: var(--dur-instant);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-primary selection:text-white">
+<!-- Desktop Header -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D5D5D5] z-30">
+<div class="max-w-[1280px] mx-auto px-8 h-16 flex items-center justify-between">
+<!-- Left cluster: Logo mark + Brand + Navigation -->
+<div class="flex items-center space-x-8">
+<div class="flex items-center space-x-3">
+<div class="w-7 h-7 bg-[#202020] text-white flex items-center justify-center rounded-[2px] font-headline font-bold text-sm tracking-tight select-none">
+            M
+          </div>
+<span class="font-headline font-semibold text-base tracking-tight text-[#202020]">
+            Meridian
+          </span>
+</div>
+<nav aria-label="Main Navigation" class="flex items-center space-x-6 text-sm">
+<a class="focus-ring text-[#626262] hover:text-[#202020] transition-colors py-5 text-[15px] font-normal" href="#">
+            Waiting decisions
+          </a>
+<a aria-current="page" class="focus-ring text-[#202020] font-semibold text-[15px] border-b-2 border-[#A94B1D] py-5 inline-block" href="#">
+            Recalls
+          </a>
+</nav>
+</div>
+<!-- Right cluster: Operator details + Locale selector -->
+<div class="flex items-center space-x-6">
+<div class="flex items-center space-x-3">
+<div aria-hidden="true" class="w-8 h-8 rounded-[2px] bg-[#EEEEEE] border border-[#D5D5D5] text-[#202020] font-headline font-semibold text-xs flex items-center justify-center select-none">
+            NF
+          </div>
+<div class="text-sm">
+<span class="text-[#202020] font-medium">Nadia Farouk</span>
+<span class="text-[#626262] mx-1">·</span>
+<span class="text-[#626262]">Quality Manager</span>
+</div>
+</div>
+<span aria-hidden="true" class="text-[#D5D5D5] select-none">|</span>
+<button aria-label="Switch Language between English and Arabic" class="focus-ring text-xs tracking-wider text-[#626262] hover:text-[#202020] font-mono-num font-medium py-1 px-1.5 transition-colors" type="button">
+          EN / العربية
+        </button>
+</div>
+</div>
+</header>
+<!-- Main Work Surface -->
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-8 pt-8 pb-16 flex flex-col">
+<!-- Title & Top Action Bar -->
+<div class="flex items-center justify-between pb-6 border-b border-[#D5D5D5] animate-stage-1">
+<div>
+<h1 class="text-[28px] leading-[1.2] font-headline font-[650] text-[#202020] tracking-[-0.025em]">
+          Recalls
+        </h1>
+<p class="text-sm text-[#626262] mt-1 font-normal">
+          Active lot quarantines, manufacturer revocations and product returns.
+        </p>
+</div>
+<div class="flex items-center space-x-3">
+<!-- Direct page control: Start recall -->
+<button class="btn-press focus-ring h-12 px-6 bg-[#A94B1D] hover:bg-[#893405] text-[#FFFFFF] text-[15px] font-medium rounded-[2px] transition-colors inline-flex items-center justify-center" type="button">
+          Start recall
+        </button>
+</div>
+</div>
+<!-- Empty State Container Panel -->
+<div class="mt-8 flex-1 flex flex-col animate-stage-2">
+<div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] w-full min-h-[460px] flex flex-col items-center justify-center px-6 py-16 text-center">
+<!-- Subtle Vector Work Icon (Checklist / Lot quarantine box) -->
+<div class="w-14 h-14 rounded-[2px] bg-[#F7F7F7] border border-[#D5D5D5] flex items-center justify-center mb-6 text-[#626262]">
+<svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-linecap="square" stroke-linejoin="miter" stroke-width="1.75" viewbox="0 0 24 24">
+<!-- Box with open lid / archive flap -->
+<path d="M4 8V19H20V8"></path>
+<path d="M2 5H22V8H2V5Z"></path>
+<!-- Centered verification tick / inspection rule -->
+<path d="M10 12H14"></path>
+<path d="M12 10V14"></path>
+</svg>
+</div>
+<!-- Plain-language Statement -->
+<h2 class="font-headline font-[650] text-[20px] leading-[1.3] text-[#202020] mb-2">
+          No recalls recorded
+        </h2>
+<p class="text-[15px] leading-[1.5] text-[#626262] max-w-[460px] mb-8 font-normal">
+          No manufacturer recalls or lot quarantines are currently active or under reconciliation for this facility.
+        </p>
+<!-- Primary Call to Action -->
+<button class="btn-press focus-ring h-12 px-6 bg-[#A94B1D] hover:bg-[#893405] text-[#FFFFFF] text-[15px] font-medium rounded-[2px] transition-colors inline-flex items-center justify-center" type="button">
+          Start recall
+        </button>
+<!-- Contextual secondary reference without tab/state switching -->
+<div class="mt-8 pt-6 border-t border-[#D5D5D5] w-full max-w-[340px] text-center">
+<p class="text-xs text-[#626262]">
+            Need to review past logs? Go to <a class="focus-ring text-[#202020] font-medium underline underline-offset-4 hover:text-[#A94B1D] transition-colors" href="#">Recall detail</a> or check pending actions in <a class="focus-ring text-[#202020] font-medium underline underline-offset-4 hover:text-[#A94B1D] transition-colors" href="#">Waiting decisions</a>.
+          </p>
+</div>
+</div>
+</div>
+</main>
+</body></html>

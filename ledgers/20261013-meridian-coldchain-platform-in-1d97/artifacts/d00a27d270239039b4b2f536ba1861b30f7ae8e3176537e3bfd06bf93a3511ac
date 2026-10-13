@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "class ContractRequestCases|static class ContractMatrix|AssertSuccessAsync",
+    "glob": "App.Tests/*.cs"
+   },
+   "ms": 2,
+   "resultChars": 604,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;class ContractRequestCases|static class ContractMatrix|AssertSuccessAsync&quot;,&quot;glob&quot;:&quot;App.Tests/*.cs&quot;}\">\nApp.Tests/AcceptanceTests.cs:31: await ContractRequestCases.AssertSuccessAsync(response, operation.SuccessKind);\nApp.Tests/ContractMatrix.cs:4: internal static class ContractMatrix\nApp.Tests/ContractRequestCases.cs:9: internal static class ContractRequestCases\nApp.Tests/ContractRequestCases.cs:160: internal static async Task AssertSuccessAsync(HttpResponseMessage response, string kind)\n</untrusted_document>"
+  }
+ ]
+}

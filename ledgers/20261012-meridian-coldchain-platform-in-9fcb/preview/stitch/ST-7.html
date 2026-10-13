@@ -1,0 +1,357 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipts</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --brand: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-failed: #AE2C2C;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    .font-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Borders, corners, rhythm rules */
+    .panel-box {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+
+    .input-field {
+      height: 48px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 1px var(--brand);
+    }
+
+    .btn-primary {
+      height: 48px;
+      background-color: var(--brand);
+      color: #FFFFFF;
+      border: 1px solid var(--brand);
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 150ms ease, transform 100ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .sync-breathe {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header: exact specification -->
+  <header class="bg-[#FFFFFF] border-b border-[#D5D5D5] w-full sticky top-0 z-20">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      
+      <!-- Left: Logo + Menu -->
+      <div class="flex items-center space-x-8">
+        <!-- Logo -->
+        <div class="flex items-center space-x-2.5">
+          <div class="w-6 h-6 bg-[#202020] rounded-[2px] flex items-center justify-center text-[#FFFFFF] font-bold text-xs font-hanken">
+            M
+          </div>
+          <span class="font-hanken font-[650] text-lg text-[#202020] tracking-tight">Meridian</span>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="hidden md:flex items-center space-x-1" aria-label="Main Navigation">
+          <a href="#" class="px-3 py-2 text-base font-medium rounded-[2px] border-b-2 border-[#A94B1D] text-[#A94B1D]">Receipts</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Stock</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Moves</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Boxes</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Cold rooms</a>
+        </nav>
+      </div>
+
+      <!-- Right: User info + Language -->
+      <div class="flex items-center space-x-6 text-sm">
+        <div class="flex items-center space-x-2">
+          <span class="w-7 h-7 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px] flex items-center justify-center font-mono-num font-medium text-xs text-[#202020]">
+            LH
+          </span>
+          <span class="text-[#202020] font-medium hidden sm:inline">Leila Haddad · Warehouse Operator</span>
+        </div>
+        <div class="text-[#626262] font-medium text-sm border-l border-[#D5D5D5] pl-6 py-1">
+          <span class="text-[#202020]">EN</span> / <span>العربية</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Mobile Nav Bar (below main bar on small screens) -->
+    <div class="md:hidden border-t border-[#D5D5D5] px-4 py-2 flex items-center space-x-4 overflow-x-auto text-sm">
+      <a href="#" class="text-[#A94B1D] font-medium whitespace-nowrap border-b-2 border-[#A94B1D] pb-1">Receipts</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Stock</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Moves</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Boxes</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Cold rooms</a>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-6 py-8 animate-entrance">
+    
+    <!-- Top Action Section: Heading + Breathing room on wide screens + Record receipt button -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-[#202020] m-0">Receipts</h1>
+      </div>
+      <div>
+        <button type="button" class="btn-primary w-full sm:w-auto">
+          Record receipt
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <section class="panel-box p-4 mb-8" aria-label="Filters">
+      <div class="flex flex-col md:flex-row md:items-end gap-4">
+        
+        <!-- Search field -->
+        <div class="flex-1 flex flex-col">
+          <label for="search-input" class="text-sm font-medium text-[#202020] mb-2">Search</label>
+          <input type="text" id="search-input" placeholder="Search lot, code, product or reference" class="input-field w-full" disabled="">
+        </div>
+
+        <!-- Status Filter -->
+        <div class="w-full md:w-56 flex flex-col">
+          <label for="status-filter" class="text-sm font-medium text-[#202020] mb-2">Status</label>
+          <select id="status-filter" class="input-field w-full bg-[#FFFFFF]" disabled="">
+            <option>All statuses</option>
+            <option>quarantine before release</option>
+            <option>available</option>
+            <option>On Hold</option>
+            <option>Rejected</option>
+            <option>Recalled</option>
+            <option>Expired</option>
+          </select>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="w-full md:w-56 flex flex-col">
+          <label for="date-filter" class="text-sm font-medium text-[#202020] mb-2">Receipt date</label>
+          <input type="date" id="date-filter" value="2026-05-14" class="input-field w-full font-mono-num" disabled="">
+        </div>
+
+        <!-- CSV Export Button -->
+        <div class="w-full md:w-auto">
+          <button type="button" class="btn-secondary w-full md:w-auto" disabled="" style="opacity: 0.6; cursor: not-allowed;">
+            CSV export
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Receipts Content: Empty State -->
+    <section class="panel-box overflow-hidden" aria-label="Receipts Table">
+      
+      <!-- Table Header (Compact receipt table columns) -->
+      <div class="hidden lg:grid grid-cols-12 px-4 py-3 bg-[#FFFFFF] border-b border-[#D5D5D5] text-sm font-medium text-[#626262]">
+        <div class="col-span-1">Photo</div>
+        <div class="col-span-2">Lot &amp; Code</div>
+        <div class="col-span-3">Product</div>
+        <div class="col-span-2">Packs</div>
+        <div class="col-span-2">Received</div>
+        <div class="col-span-2">Status</div>
+      </div>
+
+      <!-- Empty State View -->
+      <div class="py-20 px-6 flex flex-col items-center justify-center text-center">
+        <div class="w-12 h-12 rounded-[2px] bg-[#F7F7F7] border border-[#D5D5D5] flex items-center justify-center mb-4 text-[#626262]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8V21H3V8"></path>
+            <path d="M1 3H23V8H1z"></path>
+            <path d="M10 12H14"></path>
+          </svg>
+        </div>
+        
+        <h2 class="font-hanken font-[650] text-xl text-[#202020] mb-2">No receipts recorded</h2>
+        <p class="text-[#626262] text-base max-w-md mb-6 leading-relaxed">
+          No inbound shipments have been logged for North Quay yet. Record a receipt to begin intake and quarantine verification.
+        </p>
+
+        <div>
+          <button type="button" class="btn-primary">
+            Record receipt
+          </button>
+        </div>
+      </div>
+
+      <!-- Compact Table Reference Footer Note -->
+      <div class="px-4 py-3 bg-[#F7F7F7] border-t border-[#D5D5D5] flex flex-col sm:flex-row sm:items-center justify-between text-sm text-[#626262] gap-2">
+        <div>Assigned warehouse: <span class="text-[#202020] font-medium">North Quay</span></div>
+        <div class="font-mono-num text-xs">0 records</div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8"},A={"request password reset":"S-3","back to sign in":"S-1","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-6";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

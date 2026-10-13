@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Ledger — Profitability</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design tokens */
+    :root {
+      --bg: #F5F5F5;
+      --surface: #FFFFFF;
+      --text: #262626;
+      --text-muted: #626262;
+      --border: #D8D8D8;
+      --primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion specifications */
+    @keyframes fadeInPage {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: fadeInPage 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-status-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .live-status-dot {
+        animation: none !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: var(--text);
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 28px;
+      text-align: center;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-name {
+      font-family: var(--font-heading);
+      font-weight: 650;
+      font-size: 18px;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 16px;
+      height: 100%;
+    }
+
+    nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 400;
+      white-space: nowrap;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 600;
+      border-bottom: 2px solid var(--primary);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .profile-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      display: block;
+      border: 1px solid var(--border);
+    }
+
+    .profile-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .profile-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .profile-role {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Layout & container */
+    main {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+    }
+
+    .page-title {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 38px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    /* Leading context line */
+    .context-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .context-line-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .context-strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-badge.good {
+      color: var(--status-good);
+    }
+
+    .status-badge.waiting {
+      color: var(--status-waiting);
+    }
+
+    .status-badge.failed {
+      color: var(--status-failed);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot.good {
+      background-color: var(--status-good);
+    }
+
+    .dot.waiting {
+      background-color: var(--status-waiting);
+    }
+
+    .dot.failed {
+      background-color: var(--status-failed);
+    }
+
+    /* Filter card / top panel */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .panel-header-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .filters-row {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .input-control {
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 12px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--text);
+      background-color: var(--surface);
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-control.mono {
+      font-family: var(--font-mono);
+      font-size: 14px;
+    }
+
+    .input-control:hover {
+      border-color: #A0A0A0;
+    }
+
+    .input-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    select.input-control {
+      cursor: pointer;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 4px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+      outline: none;
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #9c3b32;
+      border-color: #9c3b32;
+    }
+
+    .btn-primary:active {
+      background-color: #853129;
+      border-color: #853129;
+    }
+
+    .btn-secondary {
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: #A0A0A0;
+      background-color: #FAFAFA;
+    }
+
+    .btn-secondary:active {
+      background-color: #F0F0F0;
+    }
+
+    /* Table Section */
+    .table-container-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .table-toolbar {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toolbar-title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .toolbar-meta {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .table-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Dense sortable table */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table.dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #FAFAFA;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    th.sortable {
+      cursor: pointer;
+    }
+
+    th.sortable:hover {
+      color: var(--text);
+    }
+
+    th.text-right,
+    td.text-right {
+      text-align: right;
+    }
+
+    th.text-center,
+    td.text-center {
+      text-align: center;
+    }
+
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 120ms ease;
+    }
+
+    tbody tr:hover {
+      background-color: #FBFBFB;
+    }
+
+    tbody tr.clickable-row {
+      cursor: pointer;
+    }
+
+    tbody tr.clickable-row:hover {
+      background-color: #F7F5F4;
+    }
+
+    td {
+      padding: 10px 16px;
+      font-size: 15px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .mono-val {
+      font-family: var(--font-mono);
+      font-size: 14px;
+    }
+
+    .lot-link {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: underline;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .lot-link:hover {
+      color: var(--primary);
+    }
+
+    .pen-tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: #EEEEEE;
+      color: var(--text);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #D0D0D0;
+    }
+
+    .conflict-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--status-waiting);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .roi-badge {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .roi-badge.good {
+      color: var(--status-good);
+    }
+
+    .roi-badge.unavailable {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    /* Summary row */
+    tfoot tr {
+      height: 48px;
+      background-color: #FAFAFA;
+      font-weight: 600;
+      border-top: 2px solid var(--border);
+    }
+
+    tfoot td {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    /* Policy and Traceability strip */
+    .notice-strip {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 20px;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-top: 24px;
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    .notice-strip .dot {
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .notice-content {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      gap: 24px;
+    }
+
+    .notice-left {
+      color: var(--text);
+    }
+
+    .notice-left strong {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--status-waiting);
+    }
+
+    .notice-right {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 900px) {
+      header {
+        padding: 0 16px;
+      }
+      main {
+        padding: 20px 16px 48px 16px;
+      }
+      .panel {
+        padding: 16px;
+      }
+      .filters-row {
+        grid-template-columns: 1fr;
+      }
+      tbody tr {
+        height: 56px;
+      }
+      .notice-content {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .notice-right {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Plain brand header with shared navigation and Maya Chen profile -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-mark">R</div>
+      <div class="brand-name">Range Ledger</div>
+    </div>
+
+    <nav aria-label="Main Navigation">
+      <a href="#" class="nav-item">Yard</a>
+      <a href="#" class="nav-item">Imports</a>
+      <a href="#" class="nav-item">Allocations</a>
+      <a href="#" class="nav-item">Lots</a>
+      <a href="#" class="nav-item">Inventory</a>
+      <a href="#" class="nav-item">Feed outlook</a>
+      <a href="#" class="nav-item">Rations</a>
+      <a href="#" class="nav-item">Feed plans</a>
+      <a href="#" class="nav-item">Feeding</a>
+      <a href="#" class="nav-item">Reports</a>
+      <a href="#" class="nav-item">Feed-to-gain</a>
+      <a href="#" class="nav-item active">Profitability</a>
+      <a href="#" class="nav-item">Sample data</a>
+      <a href="#" class="nav-item">Delivery brief</a>
+    </nav>
+
+    <div class="user-profile">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen portrait" class="profile-photo">
+      <div class="profile-meta">
+        <span class="profile-name">Maya Chen</span>
+        <span class="profile-role">Yard manager</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="animate-entrance">
+    <!-- Page one heading -->
+    <h1 class="page-title">Profitability</h1>
+
+    <!-- Single leading context line for authorized yard and date range -->
+    <div class="context-line">
+      <div class="context-line-text">
+        <span class="context-strong">Red Mesa Yard</span> • <span class="mono-val">America/Denver (Mountain Time)</span> • Evaluation cohort window: <span class="mono-val context-strong">2025-03-20 to 2025-06-18</span> (84d cohort window) • 4 authorized lots
+      </div>
+      <div class="status-badge good">
+        <span class="dot good live-status-dot"></span>
+        Authorized operational view
+      </div>
+    </div>
+
+    <!-- Filter card -->
+    <div class="panel">
+      <div class="panel-header-line">
+        <div>
+          Returned measure baseline: <span class="context-strong">Service-returned ledger margin &amp; closeout telemetry</span>
+        </div>
+        <div class="status-badge good">
+          <span class="dot good"></span>
+          Live service calculation
+        </div>
+      </div>
+
+      <div class="filters-row">
+        <div class="field-group">
+          <label class="field-label" for="date-range-filter">Evaluation Horizon</label>
+          <input type="text" id="date-range-filter" class="input-control mono" value="2025-03-20 – 2025-06-18" readonly>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="breed-filter">Breed &amp; Class</label>
+          <select id="breed-filter" class="input-control">
+            <option value="all" selected>All breeds (Angus, Hereford, Charolais)</option>
+            <option value="angus-steers">Angus steers</option>
+            <option value="hereford-steers">Hereford steers</option>
+            <option value="angus-heifers">Angus heifers</option>
+            <option value="charolais-steers">Charolais-cross steers</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="pen-filter">Pen Allocation</label>
+          <select id="pen-filter" class="input-control">
+            <option value="all" selected>All pens (P-04, P-07, P-12)</option>
+            <option value="p-04">Pen P-04 (140 head)</option>
+            <option value="p-07">Pen P-07 (126 head)</option>
+            <option value="p-12">Pen P-12 (94 head)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="roi-filter">ROI Return Status</label>
+          <select id="roi-filter" class="input-control">
+            <option value="all" selected>All returned statuses</option>
+            <option value="returned">Service-returned ROI only</option>
+            <option value="unavailable">Unavailable only</option>
+          </select>
+        </div>
+
+        <div class="field-group" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary">
+            Reset filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dense Sortable Worklist Table -->
+    <div class="table-container-panel">
+      <div class="table-toolbar">
+        <div class="toolbar-title-group">
+          <h2 class="section-title">Lot Profitability &amp; Return Breakdown</h2>
+          <span class="toolbar-meta">4 authorized lot rows returned • Red Mesa Yard</span>
+        </div>
+        <div class="table-actions">
+          <!-- Primary action export csv -->
+          <button type="button" class="btn btn-primary" title="Export authorized Red Mesa Yard records to CSV">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="dense-table" aria-label="Lot Profitability Worklist">
+          <thead>
+            <tr>
+              <th class="sortable">Lot ID ↑</th>
+              <th>Breed &amp; Class</th>
+              <th class="text-center">Pen</th>
+              <th class="text-right sortable">Head</th>
+              <th class="text-right sortable">Days on Feed</th>
+              <th class="text-right sortable">Current Wt</th>
+              <th class="text-right sortable">Returned Investment</th>
+              <th class="text-right sortable">Total Gain Value</th>
+              <th class="text-right sortable">Net Return</th>
+              <th class="text-right sortable">Service ROI</th>
+              <th class="text-center">Lot Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- L-2407: Row opens lot detail -->
+            <tr class="clickable-row" onclick="window.location.hash='#L-2407'" title="Click to view Lot L-2407 detail">
+              <td>
+                <a href="#L-2407" class="lot-link">
+                  L-2407
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="7" y1="17" x2="17" y2="7"></line>
+                    <polyline points="7 7 17 7 17 17"></polyline>
+                  </svg>
+                </a>
+              </td>
+              <td>Angus steers</td>
+              <td class="text-center"><span class="pen-tag">P-04</span></td>
+              <td class="text-right">
+                <span class="mono-val">80</span>
+                <span class="conflict-note">82 mapped</span>
+              </td>
+              <td class="text-right mono-val">84</td>
+              <td class="text-right mono-val">1,146 lb</td>
+              <td class="text-right mono-val">$96,480</td>
+              <td class="text-right mono-val">$104,584</td>
+              <td class="text-right mono-val" style="font-weight: 600;">+$8,104</td>
+              <td class="text-right">
+                <span class="roi-badge good">8.4%</span>
+              </td>
+              <td class="text-center">
+                <a href="#L-2407" class="btn btn-secondary" style="height: 32px; padding: 0 10px; font-size: 13px;">Open</a>
+              </td>
+            </tr>
+
+            <!-- L-2409 -->
+            <tr>
+              <td>
+                <span class="mono-val" style="font-weight: 600;">L-2409</span>
+              </td>
+              <td>Hereford steers</td>
+              <td class="text-center"><span class="pen-tag">P-07</span></td>
+              <td class="text-right mono-val">126</td>
+              <td class="text-right mono-val">72</td>
+              <td class="text-right mono-val">1,098 lb</td>
+              <td class="text-right mono-val">$148,800</td>
+              <td class="text-right mono-val">$158,770</td>
+              <td class="text-right mono-val" style="font-weight: 600;">+$9,970</td>
+              <td class="text-right">
+                <span class="roi-badge good">6.7%</span>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-secondary" style="height: 32px; padding: 0 10px; font-size: 13px;">View</button>
+              </td>
+            </tr>
+
+            <!-- L-2411: ROI Unavailable -->
+            <tr>
+              <td>
+                <span class="mono-val" style="font-weight: 600;">L-2411</span>
+              </td>
+              <td>Angus heifers</td>
+              <td class="text-center"><span class="pen-tag">P-04</span></td>
+              <td class="text-right mono-val">60</td>
+              <td class="text-right mono-val">90</td>
+              <td class="text-right mono-val">1,108 lb</td>
+              <td class="text-right mono-val">$69,240</td>
+              <td class="text-right mono-val">—</td>
+              <td class="text-right mono-val">—</td>
+              <td class="text-right">
+                <span class="roi-badge unavailable">Unavailable</span>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-secondary" style="height: 32px; padding: 0 10px; font-size: 13px;">View</button>
+              </td>
+            </tr>
+
+            <!-- L-2413 -->
+            <tr>
+              <td>
+                <span class="mono-val" style="font-weight: 600;">L-2413</span>
+              </td>
+              <td>Charolais-cross steers</td>
+              <td class="text-center"><span class="pen-tag">P-12</span></td>
+              <td class="text-right mono-val">94</td>
+              <td class="text-right mono-val">43</td>
+              <td class="text-right mono-val">1,056 lb</td>
+              <td class="text-right mono-val">$108,120</td>
+              <td class="text-right mono-val">$117,959</td>
+              <td class="text-right mono-val" style="font-weight: 600;">+$9,839</td>
+              <td class="text-right">
+                <span class="roi-badge good">9.1%</span>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-secondary" style="height: 32px; padding: 0 10px; font-size: 13px;">View</button>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Yard Authorized Summary • Service-Returned</td>
+              <td class="text-right mono-val">360</td>
+              <td class="text-right mono-val">—</td>
+              <td class="text-right mono-val">—</td>
+              <td class="text-right mono-val">$422,640</td>
+              <td class="text-right mono-val">—</td>
+              <td class="text-right mono-val" style="font-weight: 600;">+$27,913</td>
+              <td class="text-right mono-val" style="font-weight: 600; color: var(--status-good);">8.1% avg*</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Formal Operational Traceability & Authorization Strip -->
+    <div class="notice-strip">
+      <span class="dot waiting"></span>
+      <div class="notice-content">
+        <div class="notice-left">
+          <strong>PO-8841 traceability conflict:</strong>
+          Pen P-04 retains 82 mapped allocation against source receipt of 80 head for lot L-2407. L-2411 ROI is service-suppressed (not returned by telemetry). Unreturned values are never interpolated.
+        </div>
+        <div class="notice-right">
+          Export authorization policy: Maya Chen (Yard manager) • Authorized records only
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Roles &amp; Access - Folio3 Parking</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&amp;family=IBM+Plex+Mono:wght@500&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "outline-variant": "#bec9c4",
+            "on-tertiary-container": "#ffd7d0",
+            "surface-container": "#ecefeb",
+            "error-container": "#ffdad6",
+            "primary-fixed": "#a5f2d9",
+            "primary": "#005645",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#afcdc2",
+            "tertiary-container": "#945044",
+            "outline": "#6f7975",
+            "on-primary-fixed-variant": "#005141",
+            "on-error": "#ffffff",
+            "surface-container-highest": "#e0e3e0",
+            "tertiary-fixed": "#ffdad4",
+            "on-tertiary": "#ffffff",
+            "on-secondary-container": "#4d685f",
+            "on-error-container": "#93000a",
+            "surface-variant": "#e0e3e0",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "surface": "#f7faf7",
+            "primary-container": "#1f6f5c",
+            "background": "#f7faf7",
+            "on-tertiary-fixed": "#3a0a05",
+            "surface-bright": "#f7faf7",
+            "surface-container-low": "#f1f4f1",
+            "on-secondary-fixed-variant": "#314c44",
+            "on-primary-container": "#a3efd7",
+            "secondary": "#49645b",
+            "on-secondary-fixed": "#042019",
+            "on-background": "#181c1b",
+            "secondary-fixed": "#cbe9dd",
+            "inverse-primary": "#8ad5be",
+            "surface-container-lowest": "#ffffff",
+            "surface-tint": "#186a57",
+            "error": "#ba1a1a",
+            "surface-container-high": "#e6e9e6",
+            "on-surface-variant": "#3f4945",
+            "on-surface": "#181c1b",
+            "surface-dim": "#d8dbd8",
+            "on-primary": "#ffffff",
+            "inverse-on-surface": "#eef1ee",
+            "tertiary": "#77392e",
+            "inverse-surface": "#2d312f",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-primary-fixed": "#002019",
+            "secondary-container": "#c8e6db",
+            "primary-fixed-dim": "#8ad5be"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body {
+      font-family: 'Public Sans', sans-serif;
+      color: #181c1b;
+      background-color: #f7faf7;
+      margin: 0;
+    }
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      background: #ffffff;
+      border: 1.5px solid #181c1b;
+      border-radius: 4px;
+      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      background: #ffffff;
+      border: 1.5px solid #1f6f5c;
+      border-radius: 4px;
+      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    .toast-slide {
+      animation: toastIn 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes toastIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased bg-surface text-on-surface">
+<!-- ==================== SIDE NAVIGATION BAR (SHARED COMPONENT) ==================== -->
+<aside class="fixed left-0 top-0 h-screen w-[232px] flex flex-col justify-between py-4 px-3 z-30 bg-surface-container-lowest border-r border-outline-variant">
+<div class="flex flex-col gap-5">
+<!-- SideNav Brand Header -->
+<div class="px-2 pt-1 flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-white flex items-center justify-center font-headline font-bold text-base shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="local_parking">local_parking</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline text-base font-bold text-on-surface tracking-tight">Folio3 Parking</span>
+<span class="text-[11px] font-body text-outline font-medium tracking-normal leading-tight">Admin Management Portal</span>
+</div>
+</div>
+<!-- Quick Action CTA -->
+<div class="px-1">
+<button class="w-full h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors active:scale-[0.97]">
+<span class="material-symbols-outlined text-[16px] text-primary-container" data-icon="event_busy">event_busy</span>
+<span>Release Today</span>
+</button>
+</div>
+<!-- Navigation Links -->
+<nav class="flex flex-col gap-1">
+<!-- 1. Claim & Release -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="swap_driving_apps">swap_driving_apps</span>
+<span>Claim &amp; Release</span>
+</a>
+<!-- 2. Daily Allocations -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="event_available">event_available</span>
+<span>Daily Allocations</span>
+</a>
+<!-- 3. Guard Console -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="local_police">local_police</span>
+<span>Guard Console</span>
+</a>
+<!-- 4. Vehicle Roster -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="directions_car">directions_car</span>
+<span>Vehicle Roster</span>
+</a>
+<!-- 5. Spaces & Employees (ACTIVE TAB: RBAC and Employee Provisioning context) -->
+<a class="bg-secondary-container text-on-secondary-container font-semibold border-l-2 border-primary rounded-r px-3 py-2 flex items-center gap-3 transition-colors text-sm" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary" data-icon="badge">badge</span>
+<span>Spaces &amp; Employees</span>
+</a>
+</nav>
+</div>
+<!-- SideNav Footer Links -->
+<div class="flex flex-col gap-1 pt-3 border-t border-outline-variant">
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="history">history</span>
+<span>Audit Logs</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</aside>
+<!-- ==================== MAIN APPLICATION WRAPPER ==================== -->
+<div class="pl-[232px] flex flex-col min-h-screen">
+<!-- ==================== TOP NAVIGATION BAR (SHARED COMPONENT) ==================== -->
+<header class="w-full px-8 py-2.5 flex items-center justify-between sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant">
+<!-- Search Bar on Left -->
+<div class="flex items-center gap-3 w-80">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[18px]" data-icon="search">search</span>
+<input class="w-full h-8 pl-8 pr-3 text-xs bg-surface-container-low border border-outline-variant rounded focus:border-primary-container focus:ring-1 focus:ring-primary-container text-on-surface placeholder:text-outline font-body outline-none" placeholder="Search roles, staff, space ID..." type="search"/>
+</div>
+</div>
+<!-- Right cluster actions & User Profile -->
+<div class="flex items-center gap-3">
+<!-- Secondary Action Badge -->
+<span class="px-2.5 py-1 text-xs font-semibold text-primary bg-secondary-container rounded border border-outline-variant">
+          Admin Console
+        </span>
+<!-- Trailing action icons -->
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors" title="Help &amp; Documentation">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+</button>
+<div class="h-4 w-[1px] bg-outline-variant mx-1"></div>
+<!-- Admin User Profile Avatar Badge -->
+<div class="flex items-center gap-2.5 pl-1">
+<div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-xs font-semibold text-on-surface-variant" title="Admin user profile avatar initials in circular badge">
+            AS
+          </div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-semibold text-on-surface leading-tight">Ayesha Siddiqui</span>
+<span class="text-[11px] font-mono text-outline leading-tight">F3-0921 · it-admin</span>
+</div>
+</div>
+</div>
+</header>
+<!-- ==================== MAIN CONTENT AREA ==================== -->
+<main class="flex-1 px-8 py-8 max-w-[1280px] w-full mx-auto flex flex-col gap-8">
+<!-- ==================== SECTION 1: PAGE HEADER & INFO NOTE ==================== -->
+<section class="flex flex-col gap-4">
+<!-- Breadcrumb & Title Cluster -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-xs text-outline font-body">
+<span>Spaces &amp; Employees</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+<span class="text-on-surface font-medium">Roles &amp; Access</span>
+</div>
+<h1 class="font-headline font-bold text-2xl tracking-tight text-[#18181B]">
+            Roles and access
+          </h1>
+<p class="text-sm text-outline max-w-[70ch] leading-relaxed font-body">
+            Manage corporate Role-Based Access Control (RBAC) across Folio3 Parking services. Grant scoped privileges to employees, gate security officers, and portal administrators.
+          </p>
+</div>
+<!-- Informational Callout / Note Box -->
+<div class="p-3.5 bg-surface-container-lowest border border-outline-variant rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5 shrink-0" data-icon="lock">lock</span>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-2">
+<div class="text-xs font-body text-[#18181B] leading-relaxed">
+<span class="font-semibold text-primary-container">System Genesis:</span> 
+              First administrator provisioned from deployment config: 
+              <code class="font-mono bg-surface-container px-1.5 py-0.5 rounded text-[#18181B] border border-outline-variant text-[11px] ml-1">it-admin@folio3.com</code>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-mono text-outline bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+              Immutable Root Owner
+            </span>
+</div>
+</div>
+</section>
+<!-- ==================== SECTION 2: ASSIGN ROLE FORM CARD ==================== -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 flex flex-col gap-5">
+<div class="flex items-center justify-between border-b border-outline-variant pb-3">
+<div>
+<h2 class="font-headline text-base font-bold text-[#18181B] tracking-tight">
+              Assign new role
+            </h2>
+<p class="text-xs text-outline font-body mt-0.5">
+              Select an authenticated corporate user and configure their operational boundary.
+            </p>
+</div>
+<span class="text-[11px] font-mono font-medium text-primary-container bg-secondary-container px-2.5 py-1 rounded">
+            RBAC v2.4 Active
+          </span>
+</div>
+<form class="flex flex-col gap-5" onsubmit="event.preventDefault(); triggerRoleSuccess();">
+<!-- Folio3 Email Input with Domain Badge -->
+<div class="flex flex-col gap-1.5 max-w-xl">
+<label class="text-xs font-semibold text-[#18181B] flex items-center justify-between" for="user-email">
+<span>Folio3 Corporate Email</span>
+<span class="text-[11px] font-mono text-primary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="verified">verified</span>
+                Verified Workspace Identity
+              </span>
+</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[18px]" data-icon="mail">mail</span>
+</div>
+<input class="w-full h-10 pl-9 pr-32 font-mono text-sm bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-secondary-container text-[#18181B]" id="user-email" required="" type="email" value="kamran.ali@folio3.com"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<span class="text-xs font-mono text-outline bg-surface-container px-2 py-0.5 rounded border border-outline-variant">
+                  @folio3.com
+                </span>
+</div>
+</div>
+<p class="text-[11px] text-outline font-body">
+              Only <span class="font-semibold text-[#18181B]">@folio3.com</span> Workspace accounts can be assigned roles.
+            </p>
+</div>
+<!-- Role Selector: Semantic Radio Card Cluster -->
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-[#18181B]">
+              Role Selection &amp; Permissions Scope
+            </label>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<!-- Option 1: Employee -->
+<label class="relative flex flex-col p-3.5 rounded border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:border-primary-container has-[:checked]:bg-secondary-container/20 group">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline group-has-[:checked]:text-primary-container" data-icon="badge">badge</span>
+<span class="font-headline font-semibold text-sm text-[#18181B]">Employee</span>
+</div>
+<input class="text-primary-container focus:ring-primary-container" name="assigned_role" type="radio" value="Employee"/>
+</div>
+<p class="text-xs text-outline leading-snug">
+                  Bay reservation, personal vehicle roster profile, release notification toggles.
+                </p>
+</label>
+<!-- Option 2: Security guard (Checked for preview scenario) -->
+<label class="relative flex flex-col p-3.5 rounded border border-primary-container bg-secondary-container/30 cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:border-primary-container group">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary group-has-[:checked]:text-primary" data-icon="local_police">local_police</span>
+<span class="font-headline font-semibold text-sm text-[#18181B]">Security guard</span>
+</div>
+<input checked="" class="text-primary-container focus:ring-primary-container" name="assigned_role" type="radio" value="Security guard"/>
+</div>
+<p class="text-xs text-outline leading-snug">
+                  Gate console, ANPR manual override, vehicle validation, and barrier trigger.
+                </p>
+</label>
+<!-- Option 3: Administrator -->
+<label class="relative flex flex-col p-3.5 rounded border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:border-primary-container has-[:checked]:bg-secondary-container/20 group">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline group-has-[:checked]:text-primary-container" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span class="font-headline font-semibold text-sm text-[#18181B]">Administrator</span>
+</div>
+<input class="text-primary-container focus:ring-primary-container" name="assigned_role" type="radio" value="Administrator"/>
+</div>
+<p class="text-xs text-outline leading-snug">
+                  Full parking inventory, corporate employee rosters, and RBAC role allocations.
+                </p>
+</label>
+</div>
+</div>
+<!-- Form Actions Footer -->
+<div class="flex items-center justify-between pt-2 border-t border-outline-variant">
+<span class="text-xs text-outline font-body flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              State changes propagate within 60s across perimeter nodes.
+            </span>
+<div class="flex items-center gap-3">
+<button class="h-9 px-4 text-xs font-semibold text-[#18181B] bg-surface-container-lowest border border-outline-variant rounded hover:bg-surface-container-low transition-colors" type="button">
+                Cancel
+              </button>
+<button class="h-9 px-5 text-xs font-semibold text-white bg-primary-container hover:bg-[#195c4c] rounded transition-all active:scale-[0.97] flex items-center gap-1.5 shadow-sm" type="submit">
+<span class="material-symbols-outlined text-[16px]" data-icon="person_add">person_add</span>
+<span>Assign role</span>
+</button>
+</div>
+</div>
+</form>
+</section>
+<!-- ==================== SECTION 3: AUTHORIZED ACCOUNTS TABLE ==================== -->
+<section class="flex flex-col gap-3">
+<!-- Table Section Header & Filter Bar -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-center gap-2.5">
+<h2 class="font-headline text-base font-bold text-[#18181B] tracking-tight">
+              Authorized Accounts
+            </h2>
+<span class="px-2 py-0.5 text-xs font-mono font-semibold bg-surface-container text-[#18181B] rounded border border-outline-variant">
+              3 users
+            </span>
+</div>
+<div class="flex items-center gap-2">
+<!-- Table Search -->
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]" data-icon="search">search</span>
+<input class="w-full h-8 pl-8 pr-3 text-xs bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container text-on-surface placeholder:text-outline font-body" placeholder="Filter by name, email or role..." type="text"/>
+</div>
+<!-- Export / Filter secondary action -->
+<button class="h-8 px-2.5 bg-surface-container-lowest border border-outline-variant rounded text-xs font-medium text-[#18181B] hover:bg-surface-container flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="filter_list">filter_list</span>
+<span>Filter</span>
+</button>
+</div>
+</div>
+<!-- Table Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="py-2.5 px-4 text-[12px] font-semibold text-outline uppercase tracking-wider font-label" scope="col">
+                    User
+                  </th>
+<th class="py-2.5 px-4 text-[12px] font-semibold text-outline uppercase tracking-wider font-label" scope="col">
+                    Email
+                  </th>
+<th class="py-2.5 px-4 text-[12px] font-semibold text-outline uppercase tracking-wider font-label" scope="col">
+                    Role
+                  </th>
+<th class="py-2.5 px-4 text-[12px] font-semibold text-outline uppercase tracking-wider font-label" scope="col">
+                    Assigned by
+                  </th>
+<th class="py-2.5 px-4 text-[12px] font-semibold text-outline uppercase tracking-wider font-label" scope="col">
+                    Date
+                  </th>
+<th class="py-2.5 px-4 text-[12px] font-semibold text-outline uppercase tracking-wider font-label text-right" scope="col">
+                    Actions
+                  </th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-sm font-body">
+<!-- ROW 1: Kamran Ali -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-headline font-semibold text-xs text-[#18181B] border border-outline-variant">
+                        KA
+                      </div>
+<div class="flex flex-col">
+<span class="font-semibold text-[#18181B]">Kamran Ali</span>
+<span class="text-[11px] text-outline font-mono">F3-8820 · Security Ops</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-[#18181B]">kamran.ali@folio3.com</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-secondary-container text-on-secondary-container border border-outline-variant">
+<span class="material-symbols-outlined text-[15px] text-primary" data-icon="local_police">local_police</span>
+<span>Security guard</span>
+</span>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-outline">it-admin@folio3.com</span>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-[#18181B] tabular-nums">02 Jun 2025</span>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="inline-flex items-center gap-1">
+<button class="h-7 px-2 text-xs font-medium text-primary hover:bg-secondary-container rounded transition-colors" title="Edit Role">
+                        Edit role
+                      </button>
+<button class="w-7 h-7 flex items-center justify-center text-outline hover:text-[#18181B] hover:bg-surface-container rounded transition-colors" title="More options">
+<span class="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- ROW 2: Nadia Hussain -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-headline font-semibold text-xs text-[#18181B] border border-outline-variant">
+                        NH
+                      </div>
+<div class="flex flex-col">
+<span class="font-semibold text-[#18181B]">Nadia Hussain</span>
+<span class="text-[11px] text-outline font-mono">F3-1044 · People Operations</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-[#18181B]">nadia.hussain@folio3.com</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-primary-container text-white">
+<span class="material-symbols-outlined text-[15px]" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span>Administrator</span>
+</span>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-outline">it-admin@folio3.com</span>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-[#18181B] tabular-nums">28 May 2025</span>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="inline-flex items-center gap-1">
+<button class="h-7 px-2 text-xs font-medium text-primary hover:bg-secondary-container rounded transition-colors" title="Edit Role">
+                        Edit role
+                      </button>
+<button class="w-7 h-7 flex items-center justify-center text-outline hover:text-[#18181B] hover:bg-surface-container rounded transition-colors" title="More options">
+<span class="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- ROW 3: Bilal Ahmed -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-headline font-semibold text-xs text-[#18181B] border border-outline-variant">
+                        BA
+                      </div>
+<div class="flex flex-col">
+<span class="font-semibold text-[#18181B]">Bilal Ahmed</span>
+<span class="text-[11px] text-outline font-mono">F3-6209 · Engineering Lead</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-[#18181B]">bilal.ahmed@folio3.com</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-surface-container text-[#18181B] border border-outline-variant">
+<span class="material-symbols-outlined text-[15px] text-outline" data-icon="badge">badge</span>
+<span>Employee</span>
+</span>
+</td>
+<td class="py-3 px-4">
+<span class="text-xs text-outline italic">— (Auto-synced / default)</span>
+</td>
+<td class="py-3 px-4">
+<span class="font-mono text-xs text-[#18181B] tabular-nums">01 Jun 2025</span>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="inline-flex items-center gap-1">
+<button class="h-7 px-2 text-xs font-medium text-primary hover:bg-secondary-container rounded transition-colors" title="Edit Role">
+                        Edit role
+                      </button>
+<button class="w-7 h-7 flex items-center justify-center text-outline hover:text-[#18181B] hover:bg-surface-container rounded transition-colors" title="More options">
+<span class="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Pagination/Status Bar -->
+<div class="px-4 py-2.5 bg-surface-container-low border-t border-outline-variant flex items-center justify-between text-xs text-outline font-body">
+<span>Showing 3 of 3 provisioned records</span>
+<div class="flex items-center gap-4">
+<span class="tabular-nums">Sync cadence: real-time Google Directory webhook</span>
+<button class="text-primary hover:underline font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="sync">sync</span>
+                Force re-sync
+              </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- ==================== INTERACTIVE TOAST NOTIFICATION BANNER ==================== -->
+<aside class="fixed bottom-6 right-6 z-50 toast-slide" id="toast-banner">
+<div class="bg-surface-container-lowest border border-outline-variant shadow-lg rounded-lg p-3.5 pr-4 flex items-center gap-3 max-w-md">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]" data-icon="check_circle">check_circle</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-semibold text-[#18181B]">Role Updated Successfully</span>
+<span class="text-xs text-outline font-body">
+<span class="font-medium text-[#18181B]">Kamran Ali</span> is now a <span class="font-semibold text-primary">Security guard</span>.
+        </span>
+</div>
+<button class="ml-2 w-6 h-6 rounded flex items-center justify-center text-outline hover:text-[#18181B] hover:bg-surface-container transition-colors" onclick="dismissToast()" title="Dismiss notification">
+<span class="material-symbols-outlined text-[16px]" data-icon="close">close</span>
+</button>
+</div>
+</aside>
+<!-- ==================== MICRO-INTERACTION LOGIC ==================== -->
+<script>
+    function dismissToast() {
+      const toast = document.getElementById('toast-banner');
+      if (toast) {
+        toast.style.transition = 'opacity 180ms ease, transform 180ms ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(12px)';
+        setTimeout(() => toast.remove(), 200);
+      }
+    }
+
+    function triggerRoleSuccess() {
+      const email = document.getElementById('user-email').value || 'kamran.ali@folio3.com';
+      const toast = document.getElementById('toast-banner');
+      if (toast) {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      }
+    }
+  </script>
+</body></html>

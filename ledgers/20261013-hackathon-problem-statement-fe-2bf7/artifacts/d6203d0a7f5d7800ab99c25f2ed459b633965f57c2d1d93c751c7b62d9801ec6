@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "profitability|/reports/profitability",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 1358,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;profitability|/reports/profitability&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:101: - \"profitability.view\"\ncontracts/openapi.yaml:1908: /reports/profitability:\ncontracts/openapi.yaml:1910: operationId: getProfitability\ncontracts/openapi.yaml:1911: summary: \"Return authorized lot profitability rows and view permissions.\"\ncontracts/openapi.yaml:1935: description: \"Authorized profitability rows; fields may be omitted by permission.\"\ncontracts/openapi.yaml:1939: $ref: '#/components/schemas/ProfitabilityResponse'\ncontracts/openapi.yaml:1942: - \"profitability.view\"\ncontracts/openapi.yaml:1943: - \"profitability.export\"\ncontracts/openapi.yaml:1944: canViewProfitability: true\ncontracts/openapi.yaml:1965: /reports/profitability/export:\ncontracts/openapi.yaml:1967: operationId: exportProfitability\ncontracts/openapi.yaml:1968: summary: \"Export filtered authorized profitability rows as CSV.\"\ncontracts/openapi.yaml:1998: fileName: \"profitability.csv\"\ncontracts/openapi.yaml:4234: ProfitabilityRow:\ncontracts/openapi.yaml:4287: ProfitabilityResponse:\ncontracts/openapi.yaml:4291: - canViewProfitability\ncontracts/openapi.yaml:4298: canViewProfitability:\ncontracts/openapi.yaml:4303: $ref: '#/components/schemas/ProfitabilityRow'\n</untrusted_document>"
+  }
+ ]
+}

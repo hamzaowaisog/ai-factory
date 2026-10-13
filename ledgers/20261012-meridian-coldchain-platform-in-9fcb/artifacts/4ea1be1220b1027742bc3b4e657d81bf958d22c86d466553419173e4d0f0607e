@@ -1,0 +1,96 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "source": "cli",
+    "spans": [
+     {
+      "id": "I-1",
+      "text": "Replace the current manual processes with a single platform covering stock, orders, deliveries, live temperature monitoring, quality decisions and recalls."
+     },
+     {
+      "id": "I-2",
+      "text": "Provide a responsive web portal for warehouse staff, dispatchers, quality staff, administrators and auditors."
+     },
+     {
+      "id": "I-3",
+      "text": "Provide a customer portal for hospitals, pharmacies and clinics."
+     },
+     {
+      "id": "I-4",
+      "text": "Provide a driver experience that keeps working without a connection."
+     },
+     {
+      "id": "I-5",
+      "text": "Receive temperature readings from data loggers and cold-room sensors."
+     },
+     {
+      "id": "I-6",
+      "text": "Keep a centralized shared record of stock, orders and temperature history."
+     },
+     {
+      "id": "I-7",
+      "text": "Support secure sign-in, role and warehouse access controls, customer-organization isolation, and read-only auditor access."
+     },
+     {
+      "id": "I-8",
+      "text": "Define versioned product temperature profiles and stability budgets."
+     },
+     {
+      "id": "I-9",
+      "text": "Receive stock by lot, track inbound logger readings, quarantine stock, and release it through quality review."
+     },
+     {
+      "id": "I-10",
+      "text": "Let customer users place, view, change and cancel orders under the specified delivery and order rules."
+     },
+     {
+      "id": "I-11",
+      "text": "Allocate released stock to orders by earliest expiry while respecting shelf-life, availability and order-completion rules."
+     },
+     {
+      "id": "I-12",
+      "text": "Pack stock into qualified shipper boxes and plan routes with drivers and vehicles."
+     },
+     {
+      "id": "I-13",
+      "text": "Store and process delayed, duplicated and out-of-order temperature readings reliably."
+     },
+     {
+      "id": "I-14",
+      "text": "Detect excursions, charge stability budgets, place affected stock on hold, and alert relevant users."
+     },
+     {
+      "id": "I-15",
+      "text": "Enable drivers to load, drive and record delivery handovers using their phone, including offline use."
+     },
+     {
+      "id": "I-16",
+      "text": "Support the portals in English and Arabic, with Arabic displayed right to left."
+     },
+     {
+      "id": "I-17",
+      "text": "Track recalled lots, block remaining stock and account for customer responses."
+     }
+    ],
+    "changeClass": "feature",
+    "risk": "high",
+    "riskTags": [
+     "auth",
+     "pii",
+     "migration"
+    ],
+    "rigor": "full",
+    "touchesUi": true
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "function getGetAllocationsResponseMock|const getGetAllocationsResponseMock|getGetImport|function getGetDashboardResponseMock",
+    "glob": "tests/**"
+   },
+   "ms": 3,
+   "resultChars": 210,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;function getGetAllocationsResponseMock|const getGetAllocationsResponseMock|getGetImport|function getGetDashb\">\nNo matches\n</untrusted_document>"
+  }
+ ]
+}

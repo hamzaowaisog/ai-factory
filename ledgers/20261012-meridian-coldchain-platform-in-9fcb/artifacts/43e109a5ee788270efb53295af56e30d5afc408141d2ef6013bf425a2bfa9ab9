@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography */
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: var(--text);
+    }
+
+    h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: var(--text-quiet);
+    }
+
+    .text-sm {
+      font-size: 14px;
+    }
+
+    /* Header component */
+    .header {
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #000000;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 64px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 400;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--primary);
+    }
+
+    .nav-item.active {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar-initials {
+      width: 28px;
+      height: 28px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .user-name {
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: var(--text-quiet);
+      border-left: 1px solid var(--border);
+      padding-left: 16px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      flex: 1;
+    }
+
+    .page-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Panel and Controls */
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+
+    .controls-panel {
+      padding: 16px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .filters-group {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .field-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-wrapper.search-field {
+      flex: 1;
+      max-width: 420px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      color: var(--text-quiet);
+      font-weight: 400;
+    }
+
+    .input-field, .select-field {
+      height: 48px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 150ms ease;
+      width: 100%;
+    }
+
+    .select-field {
+      min-width: 180px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23202020' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+    }
+
+    .input-field:focus, .select-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .actions-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      outline: none;
+      white-space: nowrap;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-primary:focus-visible {
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary);
+    }
+
+    .btn-secondary {
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg);
+      border-color: #BDBDBD;
+    }
+
+    .btn-secondary:focus-visible {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .btn-table-action {
+      height: 36px;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    /* Table */
+    .table-panel {
+      overflow: hidden;
+    }
+
+    .table-container {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .table-container th {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      border-bottom: 1px solid var(--border);
+      background-color: var(--surface);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .table-container td {
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      font-size: 15px;
+      color: var(--text);
+      background-color: var(--surface);
+    }
+
+    .table-container tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-container tbody tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    .initials-badge {
+      width: 32px;
+      height: 32px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .name-col {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 100%;
+    }
+
+    /* Status indicator */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-badge.status-good {
+      color: var(--status-good);
+    }
+
+    .status-badge.status-waiting {
+      color: var(--status-waiting);
+    }
+
+    .status-badge.status-refused {
+      color: var(--status-refused);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good .status-dot {
+      background-color: var(--status-good);
+    }
+
+    .status-waiting .status-dot {
+      background-color: var(--status-waiting);
+    }
+
+    .status-refused .status-dot {
+      background-color: var(--status-refused);
+    }
+
+    /* Empty state display */
+    .empty-state-card {
+      padding: 64px 32px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .empty-state-icon {
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-quiet);
+      margin-bottom: 8px;
+    }
+
+    .empty-state-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      color: var(--text);
+    }
+
+    .empty-state-desc {
+      font-size: 15px;
+      color: var(--text-quiet);
+      max-width: 420px;
+      line-height: 1.5;
+    }
+
+    /* Footer meta bar inside table panel */
+    .table-footer {
+      padding: 12px 16px;
+      background-color: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+
+    /* Motion specifications */
+    @keyframes fadeInPage {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance-anim {
+      animation: fadeInPage 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .saved-handoff-anim {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .syncing .status-waiting .status-dot {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <a href="#" class="brand">
+        <div class="brand-mark">M</div>
+        <span class="brand-title">Meridian</span>
+      </a>
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="#" class="nav-item">Products</a></li>
+          <li><a href="#" class="nav-item">Organisations</a></li>
+          <li><a href="#" class="nav-item active">Accounts</a></li>
+          <li><a href="#" class="nav-item">Audit trail</a></li>
+          <li><a href="#" class="nav-item">Reports</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials">MV</div>
+        <span class="user-name">Marcus Vale · System Administrator</span>
+      </div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container entrance-anim">
+    <!-- Page Heading -->
+    <div class="page-title-row">
+      <h1>Accounts</h1>
+      <a href="#" class="btn btn-primary">Account detail</a>
+    </div>
+
+    <!-- Search & Filters Toolbar -->
+    <div class="panel controls-panel">
+      <div class="filters-group">
+        <div class="field-wrapper search-field">
+          <label class="field-label" for="account-search">Search accounts</label>
+          <input type="text" id="account-search" class="input-field" placeholder="Search by name, role, scope, or identifier..." value="">
+        </div>
+        <div class="field-wrapper">
+          <label class="field-label" for="role-filter">Role filter</label>
+          <select id="role-filter" class="select-field">
+            <option value="all">All roles</option>
+            <option value="warehouse">Warehouse Operator</option>
+            <option value="driver">Driver</option>
+            <option value="buyer">Cedar Health buyer</option>
+            <option value="quality">Quality Manager</option>
+          </select>
+        </div>
+        <div class="field-wrapper">
+          <label class="field-label" for="status-filter">Status filter</label>
+          <select id="status-filter" class="select-field">
+            <option value="all">All statuses</option>
+            <option value="good">good active</option>
+            <option value="waiting">waiting response</option>
+            <option value="refused">refused inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions-group">
+        <button type="button" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.5 10.5V13.5H13.5V10.5" stroke="#202020" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 2.5V10.5M8 10.5L5 7.5M8 10.5L11 7.5" stroke="#202020" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          CSV export
+        </button>
+      </div>
+    </div>
+
+    <!-- Accounts Table Panel -->
+    <div class="panel table-panel">
+      <table class="table-container">
+        <thead>
+          <tr>
+            <th style="width: 260px;">Account Member</th>
+            <th style="width: 220px;">Role</th>
+            <th style="width: 260px;">Facility & Location Scope</th>
+            <th style="width: 240px;">Identifier</th>
+            <th style="width: 160px;">Status</th>
+            <th style="width: 140px; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="name-col">
+                <span class="initials-badge">LH</span>
+                <span style="font-weight: 500;">Leila Haddad</span>
+              </div>
+            </td>
+            <td>Warehouse Operator</td>
+            <td>North Quay Warehouse</td>
+            <td class="font-mono text-sm">leila.haddad@meridian.example</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>good active</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="#" class="btn btn-secondary btn-table-action">Account detail</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="name-col">
+                <span class="initials-badge">TM</span>
+                <span style="font-weight: 500;">Tariq Mansour</span>
+              </div>
+            </td>
+            <td>Driver</td>
+            <td>North Quay · VAN-27 (MTR-482)</td>
+            <td class="font-mono text-sm">tariq.mansour@meridian.example</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>good active</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="#" class="btn btn-secondary btn-table-action">Account detail</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="name-col">
+                <span class="initials-badge">HY</span>
+                <span style="font-weight: 500;">Hana Youssef</span>
+              </div>
+            </td>
+            <td>Cedar Health buyer</td>
+            <td>Cedar Clinic, 42 River Road</td>
+            <td class="font-mono text-sm">hana.youssef@cedarhealth.example</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>good active</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="#" class="btn btn-secondary btn-table-action">Account detail</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="name-col">
+                <span class="initials-badge">NF</span>
+                <span style="font-weight: 500;">Nadia Farouk</span>
+              </div>
+            </td>
+            <td>Quality Manager</td>
+            <td>Meridian Quality Compliance</td>
+            <td class="font-mono text-sm">nadia.farouk@meridian.example</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>good active</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="#" class="btn btn-secondary btn-table-action">Account detail</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <span>Showing 4 accounts</span>
+        <span class="font-mono">Prototype date: 14 May 2026 · Europe/London (BST)</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

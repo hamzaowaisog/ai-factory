@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yard — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Design System Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-muted: #626262;
+      --border-rule: #D8D8D8;
+      --primary-accent: #B3473D;
+      
+      /* Status tokens */
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-refused: #A13D36;
+      
+      /* Typography */
+      --font-heading: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 48px;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .entrance-animate {
+      animation: entranceFade 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .entrance-animate,
+      .live-dot {
+        animation: none !important;
+      }
+    }
+
+    /* Header Rules */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-rule);
+      height: 60px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background: #262626;
+      color: #FFFFFF;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 650;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand-text {
+      font-family: var(--font-heading);
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: right;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      display: block;
+      border: 1px solid var(--border-rule);
+    }
+
+    .user-meta {
+      display: none; /* hidden on small mobile view, shown on wide screen */
+    }
+
+    @media (min-width: 600px) {
+      .user-meta {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+      }
+      .user-meta .name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-main);
+      }
+      .user-meta .role {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+    }
+
+    .menu-button {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--border-rule);
+      background: var(--bg-surface);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .menu-button:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    .menu-bar {
+      width: 18px;
+      height: 2px;
+      background: var(--text-main);
+      border-radius: 1px;
+    }
+
+    /* Container layout */
+    .page-container {
+      max-width: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Headings */
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+      color: var(--text-main);
+    }
+
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+      color: var(--text-main);
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Panels & Surfaces */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      padding: 16px;
+    }
+
+    /* Section Divider */
+    .group-divider {
+      width: 100%;
+      height: 2px;
+      background: var(--border-rule);
+      margin: 8px 0;
+    }
+
+    /* Hero Context & Yard Overview */
+    .yard-hero-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .headline-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-hero-val {
+      font-family: var(--font-mono);
+      font-size: 40px;
+      font-weight: 600;
+      line-height: 44px;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+    }
+
+    .metric-hero-label {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    .context-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 8px 0;
+      border-top: 1px solid var(--border-rule);
+      border-bottom: 1px solid var(--border-rule);
+    }
+
+    .context-item span.mono {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    /* Summary Metrics Strip */
+    .yard-summary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-rule);
+    }
+
+    .summary-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .summary-label {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+
+    .summary-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Status indicator */
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      line-height: 16px;
+      font-weight: 400;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: var(--status-good);
+    }
+    .status-good .status-dot {
+      background: var(--status-good);
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+    }
+    .status-waiting .status-dot {
+      background: var(--status-waiting);
+    }
+
+    .status-refused {
+      color: var(--status-refused);
+    }
+    .status-refused .status-dot {
+      background: var(--status-refused);
+    }
+
+    /* Form controls */
+    .select-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label.control-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    select.field {
+      width: 100%;
+      height: 48px;
+      padding: 0 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-rule);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 15px;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23262626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+    }
+
+    select.field:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    /* Dense Stacked Worklist / Table */
+    .worklist {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+
+    .lot-record {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-rule);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lot-record:last-child {
+      border-bottom: none;
+    }
+
+    .lot-record-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .lot-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .lot-code-pen {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lot-code {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .pen-pill {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-muted);
+      border: 1px solid var(--border-rule);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--bg-page);
+    }
+
+    .breed-tag {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .lot-grid-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 12px;
+      background: var(--bg-page);
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-rule);
+    }
+
+    .grid-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .grid-cell-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .grid-cell-val {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .conflict-alert {
+      font-size: 13px;
+      color: var(--status-refused);
+      background: #FFF5F4;
+      border: 1px solid #F2CAC7;
+      border-radius: 4px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Inventory Section */
+    .inventory-bar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inventory-hero-values {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-rule);
+    }
+
+    .sub-metric-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sub-metric-val {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .sub-metric-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .plain-progress-track {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .progress-segment {
+      height: 100%;
+    }
+
+    .seg-corn { background: #8E7051; width: 61.5%; }
+    .seg-distillers { background: #B59779; width: 22.7%; }
+    .seg-hay { background: #859B73; width: 13.4%; }
+    .seg-mineral { background: #626262; width: 2.4%; }
+
+    .inventory-detail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .inv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .inv-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+    }
+
+    .inv-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    /* Activity list */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+
+    .activity-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-rule);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      min-height: 56px;
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid var(--border-rule);
+    }
+
+    .activity-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .activity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .activity-person {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    .activity-time {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .activity-desc {
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-main);
+    }
+
+    .activity-subtext {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Button Tokens */
+    .btn-primary {
+      height: 48px;
+      background: var(--primary-accent);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    /* Focus & Hover states */
+    button:hover, select:hover {
+      opacity: 0.96;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Plain Header (strictly as specified) -->
+  <header>
+    <a href="#" class="brand-group" aria-label="Range Ledger Home">
+      <div class="brand-mark">R</div>
+      <span class="brand-text">Range Ledger</span>
+    </a>
+
+    <div class="header-right">
+      <div class="user-profile-badge">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="user-avatar" width="32" height="32">
+        <div class="user-meta">
+          <span class="name">Maya Chen</span>
+          <span class="role">Yard manager</span>
+        </div>
+      </div>
+      <button class="menu-button" aria-label="Open Navigation Menu">
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Page Content Container (Mobile width 390px stacked viewport) -->
+  <main class="page-container entrance-animate">
+    <!-- Single Heading -->
+    <section>
+      <h1>Yard</h1>
+    </section>
+
+    <!-- Operating Overview: 360 active head + service context -->
+    <section class="panel yard-hero-panel">
+      <div class="headline-metric">
+        <div class="metric-hero-val"><span class="mono">360</span> active head</div>
+        <div class="metric-hero-label">Red Mesa Yard &bull; Mountain Time (<span class="mono">America/Denver</span>)</div>
+      </div>
+
+      <div class="context-row">
+        <div class="context-item">Capacity: <span class="mono">490</span> head</div>
+        <div class="context-item">Occupancy: <span class="mono">73.5%</span></div>
+        <div class="context-item">Active Pens: <span class="mono">P-04</span>, <span class="mono">P-07</span>, <span class="mono">P-12</span></div>
+      </div>
+
+      <!-- Service-returned yard summary -->
+      <div class="yard-summary-list">
+        <div class="summary-item">
+          <span class="summary-label">Average ADG</span>
+          <span class="summary-value"><span class="mono">3.02</span> lb/day</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Average cost of gain</span>
+          <span class="summary-value">$<span class="mono">1.12</span>/lb</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total feed cost</span>
+          <span class="summary-value">$<span class="mono">82,060</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Full-width 2px Group Divider -->
+    <div class="group-divider"></div>
+
+    <!-- Lot Performance Worklist & Measure Selector -->
+    <section style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h2>Lot performance</h2>
+          <span class="status-chip status-good">
+            <span class="status-dot live-dot"></span>
+            Operational
+          </span>
+        </div>
+
+        <div class="select-wrap">
+          <label for="measure-selector" class="control-label">Rank lots by measure</label>
+          <select id="measure-selector" class="field">
+            <option value="adg" selected>Average daily gain (ADG)</option>
+            <option value="fcr">Feed conversion ratio (FCR)</option>
+            <option value="cog">Cost of gain ($/lb)</option>
+            <option value="head">Active head</option>
+            <option value="energy">Net energy (Mcal)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Dense Sortable Lot Table (Phone layout: stacked labeled records, no side-scroll) -->
+      <div class="worklist">
+
+        <!-- L-2413 (Top rank for ADG 3.28) -->
+        <article class="lot-record">
+          <div class="lot-record-header">
+            <div class="lot-identity">
+              <div class="lot-code-pen">
+                <span class="lot-code">L-2413</span>
+                <span class="pen-pill">P-12</span>
+              </div>
+              <span class="breed-tag">Charolais-cross steers</span>
+            </div>
+            <span class="status-chip status-good">
+              <span class="status-dot"></span>
+              Best ADG
+            </span>
+          </div>
+
+          <div class="lot-grid-stats">
+            <div class="grid-cell">
+              <span class="grid-cell-label">Active head</span>
+              <span class="grid-cell-val"><span class="mono">94</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">ADG</span>
+              <span class="grid-cell-val"><span class="mono">3.28</span> lb/day</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">FCR</span>
+              <span class="grid-cell-val"><span class="mono">7.17</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Cost of gain</span>
+              <span class="grid-cell-val">$<span class="mono">1.04</span>/lb</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Feed cost</span>
+              <span class="grid-cell-val">$<span class="mono">14,345</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Energy</span>
+              <span class="grid-cell-val"><span class="mono">142,500</span> Mcal</span>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>Arrived <span class="mono">2025-05-06</span> &bull; <span class="mono">43</span> DOF</span>
+            <span>Weight: <span class="mono">1,056</span> lb</span>
+          </div>
+        </article>
+
+        <!-- L-2407 (ADG 3.12, has allocation conflict alert) -->
+        <article class="lot-record">
+          <div class="lot-record-header">
+            <div class="lot-identity">
+              <div class="lot-code-pen">
+                <span class="lot-code">L-2407</span>
+                <span class="pen-pill">P-04</span>
+              </div>
+              <span class="breed-tag">Angus steers</span>
+            </div>
+            <span class="status-chip status-waiting">
+              <span class="status-dot"></span>
+              Review count
+            </span>
+          </div>
+
+          <!-- Conflict notice as returned by source -->
+          <div class="conflict-alert">
+            <span style="font-weight:600;">Conflict:</span> 82 mapped against updated source count 80
+          </div>
+
+          <div class="lot-grid-stats">
+            <div class="grid-cell">
+              <span class="grid-cell-label">Active head</span>
+              <span class="grid-cell-val"><span class="mono">80</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">ADG</span>
+              <span class="grid-cell-val"><span class="mono">3.12</span> lb/day</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">FCR</span>
+              <span class="grid-cell-val"><span class="mono">7.35</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Cost of gain</span>
+              <span class="grid-cell-val">$<span class="mono">1.07</span>/lb</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Feed cost</span>
+              <span class="grid-cell-val">$<span class="mono">22,330</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Energy</span>
+              <span class="grid-cell-val"><span class="mono">227,920</span> Mcal</span>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>Arrived <span class="mono">2025-03-26</span> &bull; <span class="mono">84</span> DOF</span>
+            <span>Target: <span class="mono">1,200</span> lb (<span class="mono">Jul 5</span>)</span>
+          </div>
+        </article>
+
+        <!-- L-2409 (ADG 3.00) -->
+        <article class="lot-record">
+          <div class="lot-record-header">
+            <div class="lot-identity">
+              <div class="lot-code-pen">
+                <span class="lot-code">L-2409</span>
+                <span class="pen-pill">P-07</span>
+              </div>
+              <span class="breed-tag">Hereford steers</span>
+            </div>
+            <span class="status-chip status-good">
+              <span class="status-dot"></span>
+              On plan
+            </span>
+          </div>
+
+          <div class="lot-grid-stats">
+            <div class="grid-cell">
+              <span class="grid-cell-label">Active head</span>
+              <span class="grid-cell-val"><span class="mono">126</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">ADG</span>
+              <span class="grid-cell-val"><span class="mono">3.00</span> lb/day</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">FCR</span>
+              <span class="grid-cell-val"><span class="mono">7.38</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Cost of gain</span>
+              <span class="grid-cell-val">$<span class="mono">1.14</span>/lb</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Feed cost</span>
+              <span class="grid-cell-val">$<span class="mono">29,145</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Energy</span>
+              <span class="grid-cell-val"><span class="mono">233,600</span> Mcal</span>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>Arrived <span class="mono">2025-04-07</span> &bull; <span class="mono">72</span> DOF</span>
+            <span>Weight: <span class="mono">1,098</span> lb</span>
+          </div>
+        </article>
+
+        <!-- L-2411 (ADG 2.68, lowest rank) -->
+        <article class="lot-record">
+          <div class="lot-record-header">
+            <div class="lot-identity">
+              <div class="lot-code-pen">
+                <span class="lot-code">L-2411</span>
+                <span class="pen-pill">P-04</span>
+              </div>
+              <span class="breed-tag">Angus heifers</span>
+            </div>
+            <span class="status-chip status-waiting">
+              <span class="status-dot"></span>
+              Lowest gain
+            </span>
+          </div>
+
+          <div class="lot-grid-stats">
+            <div class="grid-cell">
+              <span class="grid-cell-label">Active head</span>
+              <span class="grid-cell-val"><span class="mono">60</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">ADG</span>
+              <span class="grid-cell-val"><span class="mono">2.68</span> lb/day</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">FCR</span>
+              <span class="grid-cell-val"><span class="mono">7.75</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Cost of gain</span>
+              <span class="grid-cell-val">$<span class="mono">1.21</span>/lb</span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Feed cost</span>
+              <span class="grid-cell-val">$<span class="mono">16,240</span></span>
+            </div>
+            <div class="grid-cell">
+              <span class="grid-cell-label">Energy</span>
+              <span class="grid-cell-val"><span class="mono">160,160</span> Mcal</span>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>Arrived <span class="mono">2025-03-20</span> &bull; <span class="mono">90</span> DOF</span>
+            <span>ROI: <span style="color:var(--text-muted);">Unavailable</span></span>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- Full-width 2px Group Divider -->
+    <div class="group-divider"></div>
+
+    <!-- Inventory Balance & Delivery -->
+    <section class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+        <h3>Inventory &amp; delivery</h3>
+        <span class="status-chip status-good"><span class="status-dot"></span>Sufficient</span>
+      </div>
+
+      <div class="inventory-bar-group">
+        <div class="inventory-hero-values">
+          <div class="sub-metric-block">
+            <span class="sub-metric-val"><span class="mono">137,400</span> lb</span>
+            <span class="sub-metric-label">Current balance</span>
+          </div>
+          <div class="sub-metric-block">
+            <span class="sub-metric-val"><span class="mono">8,384</span> lb</span>
+            <span class="sub-metric-label">Today's planned delivery</span>
+          </div>
+        </div>
+
+        <!-- Plain segmented bar -->
+        <div class="plain-progress-track" title="Inventory composition">
+          <div class="progress-segment seg-corn" title="Steam-flaked corn"></div>
+          <div class="progress-segment seg-distillers" title="Distillers grains"></div>
+          <div class="progress-segment seg-hay" title="Alfalfa hay"></div>
+          <div class="progress-segment seg-mineral" title="Mineral premix"></div>
+        </div>
+
+        <div class="inventory-detail-list">
+          <div class="inv-row">
+            <div class="inv-name">
+              <span class="inv-swatch seg-corn"></span>
+              Steam-flaked corn
+            </div>
+            <span class="mono">84,600 lb</span>
+          </div>
+          <div class="inv-row">
+            <div class="inv-name">
+              <span class="inv-swatch seg-distillers"></span>
+              Distillers grains
+            </div>
+            <span class="mono">31,200 lb</span>
+          </div>
+          <div class="inv-row">
+            <div class="inv-name">
+              <span class="inv-swatch seg-hay"></span>
+              Alfalfa hay
+            </div>
+            <span class="mono">18,400 lb</span>
+          </div>
+          <div class="inv-row">
+            <div class="inv-name">
+              <span class="inv-swatch seg-mineral"></span>
+              Mineral premix
+            </div>
+            <span class="mono">3,200 lb</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-rule); font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+          <span>Wastage config: <span class="mono">2.8%</span></span>
+          <span>Last 30d actual: <span class="mono">112 lb</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Full-width 2px Group Divider -->
+    <div class="group-divider"></div>
+
+    <!-- Recent Weight & Feeding Activity -->
+    <section style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h3>Yard activity</h3>
+        <span style="font-size: 13px; color: var(--text-muted);">Local Yard Time (MT)</span>
+      </div>
+
+      <div class="activity-list">
+
+        <!-- Event 10: Omar Diaz -->
+        <div class="activity-item">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbGoxZ71OFfRQtpo7OoG8TOt6_y8ykRykDGY-sg7_KLIgVhdQ0jSMRHK-V3-Brww1c4aLo6u_hrIG56eRCeDGpBgRYyfMOOt2DkYLyzKXTS9XId7I8DEkQPAUS2t_yh8SLgZxkuHeNeukLSA1eNQ1yPZQlcZVSRjHtH5GFzDy2OR4pPln4JHJFy2mNjbdddvM4knTcJUGxjt4FsIzBPmj9fMCzViLaWhjiF38-5ZJm_oE0-Pl-JmLBSvcAfyXXBOE1QXuQKbBmMSJL" alt="Omar Diaz" class="activity-avatar" width="40" height="40">
+          <div class="activity-content">
+            <div class="activity-header">
+              <span class="activity-person">Omar Diaz</span>
+              <span class="activity-time"><span class="mono">2025-06-18 10:35</span></span>
+            </div>
+            <p class="activity-desc">Reviewed P-04 plan at Red Mesa Yard/P-04 after relevant head-count change.</p>
+            <div class="activity-subtext">
+              <span class="status-chip status-waiting"><span class="status-dot"></span>Flagged for review (3,337 lb retained)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event 9: Tomas Reed -->
+        <div class="activity-item">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaitWmXE0blIcuxBTcJ5VF7_ni67JRY421j8LZsAb8HwGab3PjCg68It0ceIxf8-ZN3QjhzVHSGvgGbSni4tWR_maEb__Vu8sY7iUiANufJi2NDZng6A_lOxtsz5y-IAVcoiWAkDb3S58kQg1CWhxJorx5UMMRhLF69DPxGJhAi0MY1xjghi8c1IqxhDl1augNz8-4TbpqhQD5wFdPcd1f_a4GifnpsaQhNwRmsCmgopBmTsU1ktPurvpme2e2K3hl9w3X0GYE1s6f" alt="Tomas Reed" class="activity-avatar" width="40" height="40">
+          <div class="activity-content">
+            <div class="activity-header">
+              <span class="activity-person">Tomas Reed</span>
+              <span class="activity-time"><span class="mono">2025-06-18 10:10</span></span>
+            </div>
+            <p class="activity-desc">Repeated PO-8841 import at Red Mesa Yard. Line 1 matched rather than duplicated and returned updated 80 head against 82 already mapped.</p>
+            <div class="activity-subtext">
+              <span class="status-chip status-refused"><span class="status-dot"></span>Allocation conflict flagged</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event 8: Rosa Alvarez -->
+        <div class="activity-item">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1UxmBLWzQYZG8D4esUDiSC3Lxx3O1obRDZuFhZvCtVf7Uhy68O6JsTXwSFdj86XGFcitWORXy37q9lL4n5I-R80-N0GZgk5XV3aek1qrOPMURBM3Q57bjItBmwaJCri0InpclljpZL8WWIEvbuns-mS2G1pPBw5hKVkRPOVuTbmD1gPo3iewCORaVQWa-akrIjaINhq70gogfYAAw69cn8_AAVt4g4qJPNhro2Tb4suO8pmm8PqY9hdI3s" alt="Rosa Alvarez" class="activity-avatar" width="40" height="40">
+          <div class="activity-content">
+            <div class="activity-header">
+              <span class="activity-person">Rosa Alvarez</span>
+              <span class="activity-time"><span class="mono">2025-06-18 07:55</span></span>
+            </div>
+            <p class="activity-desc">Recorded L-2407 weight 1,146 lb at Red Mesa Yard/L-2407.</p>
+            <div class="activity-subtext">
+              <span>Interval gain: <span class="mono">7 lb</span> over 3 days (<span class="mono">2.33 lb/head/day</span>)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event 7: Eli Navarro -->
+        <div class="activity-item">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH" alt="Eli Navarro" class="activity-avatar" width="40" height="40">
+          <div class="activity-content">
+            <div class="activity-header">
+              <span class="activity-person">Eli Navarro</span>
+              <span class="activity-time"><span class="mono">2025-06-17 06:25</span></span>
+            </div>
+            <p class="activity-desc">Fed L-2409 in P-07 2,772 lb at Red Mesa Yard/P-07.</p>
+            <div class="activity-subtext">
+              <span>Variance: <span class="mono">&minus;18 lb</span> &bull; Cost: $<span class="mono">402</span> &bull; Energy: <span class="mono">4,100 Mcal</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event 6: Maya Chen -->
+        <div class="activity-item">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="activity-avatar" width="40" height="40">
+          <div class="activity-content">
+            <div class="activity-header">
+              <span class="activity-person">Maya Chen</span>
+              <span class="activity-time"><span class="mono">2025-06-16 13:10</span></span>
+            </div>
+            <p class="activity-desc">Recorded 112 lb actual wastage and changed configured wastage from 2.5% to 2.8%.</p>
+            <div class="activity-subtext">
+              <span class="status-chip status-good"><span class="status-dot"></span>Saved</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Primary Action (Thumb-friendly on phone) -->
+    <div style="margin-top: 8px;">
+      <button class="btn-primary" type="button">Log Yard Measurement</button>
+    </div>
+
+  </main>
+
+</body>
+</html>

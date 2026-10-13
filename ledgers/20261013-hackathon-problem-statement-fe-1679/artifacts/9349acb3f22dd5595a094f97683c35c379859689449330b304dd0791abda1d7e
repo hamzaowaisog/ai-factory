@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 101,
+    "end": 108
+   },
+   "ms": 1,
+   "resultChars": 1628,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:101,&quot;end&quot;:108}\">\nlib/api/client.msw.ts lines 101-108\n101\texport const getUpdateRationResponseMock = (): RationResponse => ({\"permissions\":[\"rations.manage\"],\"ration\":{\"id\":1201,\"name\":\"Grower 90 revised\",\"type\":\"Grower\",\"ingredients\":[{\"ingredient\":\"Rolled Corn\",\"proportion\":64,\"inventoryOnHand\":8200}],\"intendedAnimalType\":\"Steer\",\"minimumWeight\":600,\"maximumWeight\":900,\"dryMatterPercent\":88,\"energy\":1.74,\"costPerPound\":0.19,\"approvalStatus\":\"Pending\"}})\n102\t\n103\texport const getOptimizeRationResponseMock = (): OptimizationResponse => ({\"permissions\":[\"rations.manage\"],\"qualifyingMixFound\":true,\"candidate\":{\"id\":71,\"corn\":62,\"distillers\":18,\"alfalfa\":15,\"premix\":5,\"crudeProtein\":14.2,\"netEnergy\":1.72,\"costPerPound\":0.19,\"evaluationStatus\":\"Qualifies\"}})\n104\t\n105\texport const getApproveRationResponseMock = (): ApprovalResponse => ({\"permissions\":[\"rations.approve\"],\"rationId\":1202,\"approvalStatus\":\"Approved\",\"message\":\"Ration approved.\"})\n106\t\n107\texport const getGetFeedPlansResponseMock = (): FeedPlansResponse => ({\"permissions\":[\"plans.view\",\"plans.manage\"],\"plans\":[{\"id\":3301,\"date\":\"2026-08-21\",\"penId\":12,\"pen\":\"P-12\",\"lotIds\":[2407],\"animalCount\":140,\"rationId\":1201,\"ration\":\"Grower 90\",\"plannedQuantity\":1680,\"plannedTime\":\"06:00\",\"quantityPerAnimal\":12,\"totalFeedCost\":319.2,\"expectedEnergyIntake\":20.64,\"status\":\"Planned\",\"reviewRequired\":true,\"actualIntake\":1700,\"variance\":20,\"assignedOperator\":\"Jordan Lee\"}]})\n108\t\n… (730 lines total; ask for start=109)\n</untrusted_document>"
+  }
+ ]
+}

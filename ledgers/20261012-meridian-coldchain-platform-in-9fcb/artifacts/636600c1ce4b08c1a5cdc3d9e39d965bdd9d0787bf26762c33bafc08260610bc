@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route detail — Meridian</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Strict CSS token overrides & typography rules */
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, .font-heading-main {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 650;
+    }
+
+    h2, .font-heading-section {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      line-height: 1.3;
+      font-weight: 650;
+    }
+
+    h3, .font-heading-sub {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes syncBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .motion-entrance {
+      animation: entranceFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-breathing-dot {
+      animation: syncBreathe 6s ease-in-out infinite;
+    }
+
+    .motion-saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Control interactive states */
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      height: 48px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms ease, box-shadow 150ms ease;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background-color: #933f17;
+    }
+    .btn-primary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+    .btn-primary:active {
+      background-color: #7d3513;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      height: 48px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms ease, border-color 150ms ease;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #BFBFBF;
+    }
+    .btn-secondary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+    .btn-secondary:active {
+      background-color: #EFEFEF;
+    }
+
+    .nav-item-active {
+      color: #202020;
+      position: relative;
+    }
+    .nav-item-active::after {
+      content: '';
+      position: absolute;
+      bottom: -17px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .nav-item-inactive {
+      color: #626262;
+      transition: color 140ms ease;
+    }
+    .nav-item-inactive:hover {
+      color: #202020;
+    }
+    .nav-item-inactive:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[#202020] bg-[#F7F7F7]">
+
+  <!-- Header -->
+  <header class="bg-[#FFFFFF] border-b border-[#D5D5D5] w-full">
+    <div class="max-w-[1280px] mx-auto px-8 h-14 flex items-center justify-between">
+      <!-- Left: Logo & Nav -->
+      <div class="flex items-center gap-8">
+        <div class="flex items-center gap-2.5">
+          <div class="w-6 h-6 bg-[#202020] rounded-[2px] flex items-center justify-center text-[#FFFFFF] font-bold text-xs select-none">
+            M
+          </div>
+          <span class="font-heading-main text-lg tracking-tight font-bold text-[#202020]">Meridian</span>
+        </div>
+        <nav class="flex items-center gap-6 text-[15px] font-medium pt-0.5">
+          <a href="#" class="nav-item-inactive">Orders</a>
+          <a href="#" class="nav-item-active font-semibold">Routes</a>
+        </nav>
+      </div>
+
+      <!-- Right: User info & Language -->
+      <div class="flex items-center gap-6 text-[14px]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px] flex items-center justify-center font-mono-num text-xs font-semibold text-[#202020]">
+            PN
+          </div>
+          <span class="text-[#202020] font-medium">Priya Nair</span>
+          <span class="text-[#626262]">·</span>
+          <span class="text-[#626262]">Dispatcher</span>
+        </div>
+        <div class="h-4 w-[1px] bg-[#D5D5D5]"></div>
+        <div class="text-[#626262] text-[14px] flex items-center gap-1.5 select-none">
+          <span class="text-[#202020] font-medium">EN</span>
+          <span>/</span>
+          <span>العربية</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-[1280px] mx-auto px-8 py-8 motion-entrance">
+    
+    <!-- Page Title & Header Actions -->
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="font-heading-main text-[#202020]">Route detail</h1>
+      <div class="flex items-center gap-3">
+        <a href="#" class="btn-primary">Route plan</a>
+      </div>
+    </div>
+
+    <!-- Top Route Overview Hero Panel -->
+    <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-6 mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- Left: Route specs & Metadata -->
+        <div class="lg:col-span-7 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-4">
+              <span class="font-mono-num text-2xl font-bold tracking-tight text-[#202020]">Route R-204</span>
+              <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                confirmed
+              </span>
+            </div>
+
+            <!-- Key metadata grid -->
+            <div class="grid grid-cols-3 gap-6 py-4 border-t border-b border-[#D5D5D5]">
+              <div>
+                <div class="text-[14px] text-[#626262] mb-1">Route date</div>
+                <div class="font-mono-num text-[16px] text-[#202020] font-medium">14 May 2026</div>
+              </div>
+              <div>
+                <div class="text-[14px] text-[#626262] mb-1">Assigned driver</div>
+                <div class="text-[16px] text-[#202020] font-medium">Tariq Mansour</div>
+              </div>
+              <div>
+                <div class="text-[14px] text-[#626262] mb-1">Vehicle assignment</div>
+                <div class="font-mono-num text-[16px] text-[#202020] font-medium">VAN-27 · MTR-482</div>
+              </div>
+            </div>
+
+            <!-- Planned departure & margin note -->
+            <div class="grid grid-cols-3 gap-6 pt-4">
+              <div>
+                <div class="text-[14px] text-[#626262] mb-1">Planned departure</div>
+                <div class="font-mono-num text-[16px] text-[#202020]">15:00 BST</div>
+              </div>
+              <div>
+                <div class="text-[14px] text-[#626262] mb-1">Route margin</div>
+                <div class="font-mono-num text-[16px] text-[#202020]">38 min qualified-duration</div>
+              </div>
+              <div>
+                <div class="text-[14px] text-[#626262] mb-1">Cargo scope</div>
+                <div class="text-[16px] text-[#202020]">Order 0-299 (20 packs)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Real photograph of the white van cropped to 4:3 -->
+        <div class="lg:col-span-5">
+          <div class="border border-[#D5D5D5] rounded-[2px] overflow-hidden bg-[#FFFFFF]">
+            <div class="aspect-[4/3] w-full overflow-hidden bg-[#F7F7F7]">
+              <img 
+                src="https://lh3.googleusercontent.com/aida/AEtjO1V6kxYXeODWvoVpe_AFHY4zsq216s3f0d3gRHvPhp40XlRK89pWY1jPW_fFhbYpRHAg1_GLjHxB-FI97c57LzSDBD1Hkjp0ljamOnEHEiCjXr-WXPbXNQohpZVStaEUMYdNNPm4wCbrUKRHPk9LUzi8cPB4mbUsQFeYIrxYsTYCb9B7tJ5XwjSuUWt4duyQ8iGzf2XMDVg_eov4oLCi_E4150eyJh3A7ZJyCpDoqQIYq3sgPEIJV-QGZSw" 
+                alt="Tariq Mansour refrigerated white van VAN-27 at North Quay logistics depot" 
+                class="w-full h-full object-cover rounded-[2px]"
+              />
+            </div>
+            <div class="px-4 py-2.5 bg-[#FFFFFF] border-t border-[#D5D5D5] flex items-center justify-between text-[14px]">
+              <span class="font-mono-num text-[#202020] font-medium">VAN-27 (MTR-482)</span>
+              <span class="text-[#626262]">Refrigerated courier van · Profile v3</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Stops in Route Order -->
+    <section class="mb-8">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="font-heading-section text-[#202020]">Stops in route order</h2>
+        <span class="text-[14px] text-[#626262]">1 planned delivery stop · Sequence 01</span>
+      </div>
+
+      <!-- Stop Card / Panel -->
+      <div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-6">
+        
+        <!-- Stop Top Row -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#D5D5D5]">
+          <div class="flex items-start gap-4">
+            <div class="w-8 h-8 rounded-[2px] bg-[#F7F7F7] border border-[#D5D5D5] flex items-center justify-center font-mono-num text-[15px] font-semibold text-[#202020]">
+              1
+            </div>
+            <div>
+              <div class="flex items-center gap-3">
+                <h3 class="font-heading-sub text-[18px] text-[#202020]">Cedar Clinic</h3>
+                <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                  <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                  confirmed
+                </span>
+              </div>
+              <div class="text-[14px] text-[#626262] mt-0.5">42 River Road, London</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-6 text-[14px]">
+            <div>
+              <span class="text-[#626262] block text-[13px]">Scheduled stop</span>
+              <span class="font-mono-num text-[16px] text-[#202020] font-medium">15:00 BST</span>
+            </div>
+            <div class="h-8 w-[1px] bg-[#D5D5D5]"></div>
+            <div>
+              <span class="text-[#626262] block text-[13px]">Qualified-duration margin</span>
+              <span class="font-mono-num text-[16px] text-[#202020] font-medium">+38m allowance</span>
+            </div>
+            <div class="h-8 w-[1px] bg-[#D5D5D5]"></div>
+            <div>
+              <span class="text-[#626262] block text-[13px]">Last update</span>
+              <span class="font-mono-num text-[16px] text-[#202020]">14 May 09:30</span>
+            </div>
+            <div class="pl-2">
+              <a href="#" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 14px;">Delivery evidence</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stop Details Sub-bar: Order Link & Consignee -->
+        <div class="py-4 flex flex-wrap items-center justify-between text-[14px] border-b border-[#D5D5D5] bg-[#FFFFFF]">
+          <div class="flex items-center gap-6">
+            <div>
+              <span class="text-[#626262]">Consignment order:</span>
+              <span class="font-mono-num font-semibold text-[#202020] ml-1">Order 0-299</span>
+            </div>
+            <div>
+              <span class="text-[#626262]">Consignee:</span>
+              <span class="text-[#202020] font-medium ml-1">Cedar Health (Hana Youssef)</span>
+            </div>
+            <div>
+              <span class="text-[#626262]">Product:</span>
+              <span class="text-[#202020] font-medium ml-1">Insulin Glargine 100 units/mL (Lot IG-2511)</span>
+            </div>
+          </div>
+          <div>
+            <a href="#" class="text-[#A94B1D] font-medium hover:underline text-[14px]">Order detail</a>
+          </div>
+        </div>
+
+        <!-- Box Ledger Table -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-[14px] font-semibold text-[#202020]">Consigned shipper boxes & telemetry</div>
+            <div class="text-[13px] text-[#626262]">Total allocation: 20 packs (B-701: 12 packs · B-702: 8 packs)</div>
+          </div>
+
+          <div class="overflow-x-auto border border-[#D5D5D5] rounded-[2px]">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-[#F7F7F7] border-b border-[#D5D5D5] text-[14px] text-[#626262]">
+                  <th class="py-3 px-4 font-medium">Box</th>
+                  <th class="py-3 px-4 font-medium">Quantity</th>
+                  <th class="py-3 px-4 font-medium">Datalogger gateway</th>
+                  <th class="py-3 px-4 font-medium">Latest temperature</th>
+                  <th class="py-3 px-4 font-medium">Reading time</th>
+                  <th class="py-3 px-4 font-medium">Returned status</th>
+                  <th class="py-3 px-4 font-medium">Alerts</th>
+                  <th class="py-3 px-4 font-medium">Allocation effect</th>
+                  <th class="py-3 px-4 font-medium text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="text-[15px] divide-y divide-[#D5D5D5]">
+                
+                <!-- Row 1: B-701 -->
+                <tr class="hover:bg-[#FBFBFB] transition-colors h-[48px]">
+                  <td class="py-3 px-4 font-mono-num font-semibold text-[#202020]">
+                    B-701
+                  </td>
+                  <td class="py-3 px-4 font-mono-num text-[#202020]">
+                    12 packs
+                  </td>
+                  <td class="py-3 px-4 font-mono-num text-[14px] text-[#202020]">
+                    LOG-8814
+                  </td>
+                  <td class="py-3 px-4 font-mono-num font-semibold text-[#202020]">
+                    4.6°C
+                  </td>
+                  <td class="py-3 px-4 font-mono-num text-[14px] text-[#626262]">
+                    14 May 11:45 BST
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                      <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                      good
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-[14px] text-[#626262]">
+                    None
+                  </td>
+                  <td class="py-3 px-4 text-[14px] text-[#202020]">
+                    Allocated to 0-299 (eligible)
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <a href="#" class="btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">Box temperature</a>
+                  </td>
+                </tr>
+
+                <!-- Row 2: B-702 -->
+                <tr class="hover:bg-[#FBFBFB] transition-colors h-[48px]">
+                  <td class="py-3 px-4 font-mono-num font-semibold text-[#202020]">
+                    B-702
+                  </td>
+                  <td class="py-3 px-4 font-mono-num text-[#202020]">
+                    8 packs
+                  </td>
+                  <td class="py-3 px-4 font-mono-num text-[14px] text-[#202020]">
+                    LOG-8819
+                  </td>
+                  <td class="py-3 px-4 font-mono-num font-semibold text-[#202020]">
+                    4.8°C
+                  </td>
+                  <td class="py-3 px-4 font-mono-num text-[14px] text-[#626262]">
+                    14 May 11:45 BST
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                      <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                      good
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-[14px] text-[#626262]">
+                    None
+                  </td>
+                  <td class="py-3 px-4 text-[14px] text-[#202020]">
+                    Allocated to 0-299 (eligible)
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <a href="#" class="btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">Box temperature</a>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Operational Context & Assurance Summary -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Box Consignment & Thermal Assurance Panel -->
+      <div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-6">
+        <h3 class="font-heading-sub text-[#202020] mb-4">Thermal packaging specification</h3>
+        
+        <div class="space-y-4 text-[14px]">
+          <div class="flex justify-between py-2 border-b border-[#D5D5D5]">
+            <span class="text-[#626262]">Shipper specification</span>
+            <span class="font-medium text-[#202020]">Credo ProEnthalp 4L / BioTherm 12L</span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-[#D5D5D5]">
+            <span class="text-[#626262]">Validated temperature band</span>
+            <span class="font-mono-num font-medium text-[#202020]">2.0°C – 8.0°C (Profile v3)</span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-[#D5D5D5]">
+            <span class="text-[#626262]">Upper tier tolerance (>8–10°C)</span>
+            <span class="font-mono-num font-medium text-[#202020]">30-minute cumulative allowance</span>
+          </div>
+          <div class="flex justify-between py-2">
+            <span class="text-[#626262]">Hold duration qualification</span>
+            <span class="font-mono-num font-medium text-[#202020]">48 hours qualified hold</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outbound Chain of Custody & Audit Reference -->
+      <div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-6">
+        <h3 class="font-heading-sub text-[#202020] mb-4">Outbound chain of custody</h3>
+
+        <div class="space-y-4 text-[14px]">
+          <div class="flex justify-between py-2 border-b border-[#D5D5D5]">
+            <span class="text-[#626262]">Depot of origin</span>
+            <span class="font-medium text-[#202020]">North Quay Warehouse (Cold Room C2, Rack 4)</span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-[#D5D5D5]">
+            <span class="text-[#626262]">Packing operator</span>
+            <span class="text-[#202020]">Leila Haddad · Warehouse Operator</span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-[#D5D5D5]">
+            <span class="text-[#626262]">Dispatch authorized by</span>
+            <span class="text-[#202020]">Priya Nair · Dispatcher</span>
+          </div>
+          <div class="flex justify-between py-2">
+            <span class="text-[#626262]">Delivery transit driver</span>
+            <span class="text-[#202020]">Tariq Mansour · VAN-27</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,703 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "Where the locked OpenAPI contract defines authentication, session, dashboard, and lot-list operations, the Feedlot API shall implement those operations with the declared request, response, and security behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "A client has valid sign-in credentials and no bearer token",
+        "when": "it sends POST /api/auth/sign-in with the contract SignInRequest body",
+        "then": "the response status is 200 and the response contains accessToken and user fields defined by SignInResponse",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/session",
+        "then": "the response status is 200 and the response user field contains the current user and permissions",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/dashboard?rankBy=fcr",
+        "then": "the response status is 200 and the response contains yardSummary, rankingMeasure, bestLots, worstLots, and lots fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.4",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/lots with one or more contract filters such as penId, breed, sex, or status",
+        "then": "the response status is 200 and the response lots list contains rows matching the supplied filters and the contract fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.5",
+        "given": "A request targets a contract operation requiring bearer authentication and has no bearer token",
+        "when": "the request is sent",
+        "then": "the response status is 401 and the response error code is UNAUTHENTICATED",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "Where the locked OpenAPI contract defines procurement import and allocation operations, the Feedlot API shall provide the declared preview, import, read-allocation, and save-allocation behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A client has a valid bearer token and the source adapter is available",
+        "when": "it sends GET /api/imports/source-records",
+        "then": "the response status is 200 and the response records field is a list of available procurement and receiving records",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "A client has a valid bearer token and submits a valid ImportRequest selecting source records",
+        "when": "it sends POST /api/imports",
+        "then": "the response status is 200 and the response contains status, createdCount, updatedCount, records, and allocationConflicts fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.3",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/allocations",
+        "then": "the response status is 200 and the response contains poLines, lotPens, and pens lists",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.4",
+        "given": "A client has a valid bearer token and submits a valid AllocationUpdateRequest",
+        "when": "it sends PUT /api/allocations",
+        "then": "the response status is 200 and the response contains the saved PO-line-to-lot and lot-to-pen allocation values",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "Where the locked OpenAPI contract defines lot forecasts and forecast settings, the Feedlot API shall provide lot forecast reads and yard-level and lot-specific setting updates with the declared behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A client has a valid bearer token and the requested lot exists",
+        "when": "it sends GET /api/lots/{lotId}/forecast",
+        "then": "the response status is 200 and the response contains the lot forecast values, forecastBasis, and effective yard and lot assumptions",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "A client has a valid bearer token and submits a valid ForecastSettingsRequest",
+        "when": "it sends PATCH /api/forecast-settings",
+        "then": "the response status is 200 and the response contains the persisted yard targetWeight and expectedGainRate values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.3",
+        "given": "A client has a valid bearer token, the requested lot exists, and it submits a valid ForecastSettingsRequest",
+        "when": "it sends PATCH /api/lots/{lotId}/forecast-settings",
+        "then": "the response status is 200 and the response contains the persisted lot forecast override values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.4",
+        "given": "A client has a valid bearer token and the requested lot does not exist",
+        "when": "it requests that lot's forecast or updates its forecast settings",
+        "then": "the response status is 404 and the response error code is NOT_FOUND",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "Where the locked OpenAPI contract defines lot metrics and operational insights, the Feedlot API shall return service-calculated metrics and explainable suggestions and accept the declared planner action.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "A client has a valid bearer token and the requested lot exists",
+        "when": "it sends GET /api/lots/{lotId}/metrics",
+        "then": "the response status is 200 and the response contains daysOnFeed, totalWeightGain, adg, totalFeedConsumedPounds, feedConversionRatio, costOfGain, projectedShipDate, and feedCost fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "A client has a valid bearer token and the requested lot exists",
+        "when": "it sends GET /api/lots/{lotId}/insights",
+        "then": "the response status is 200 and each returned suggestion includes its rule or trend basis",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.3",
+        "given": "A client has a valid bearer token and submits a valid InsightActionRequest for an existing lot",
+        "when": "it sends POST /api/lots/{lotId}/insights/actions",
+        "then": "the response status is 200 and the response contains action status, message, planId, and saleDate fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "Where the locked OpenAPI contract defines lot weight history, the Feedlot API shall return measurements in date order and persist newly submitted measurements with the contract fields.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A client has a valid bearer token and the requested lot exists",
+        "when": "it sends GET /api/lots/{lotId}/weights",
+        "then": "the response status is 200 and the response measurements list is in date order with the contract measurement fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "A client has a valid bearer token and submits a valid WeightMeasurementRequest for an existing lot",
+        "when": "it sends POST /api/lots/{lotId}/weights",
+        "then": "the response status is 201 and the response measurement contains the saved values and calculated gainSincePrevious",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.3",
+        "given": "A client submits a weight measurement that fails the contract validation rules",
+        "when": "it sends POST /api/lots/{lotId}/weights",
+        "then": "the response status is 422 and the response error code is VALIDATION_ERROR",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "Where the locked OpenAPI contract defines inventory operations, the Feedlot API shall provide inventory reads, item creation and updates, and receipt or adjustment recording with the declared stock values.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/inventory",
+        "then": "the response status is 200 and the response contains operationalTotals, items, and movements fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "A client has a valid bearer token and submits a valid InventoryItemRequest",
+        "when": "it sends POST /api/inventory/items",
+        "then": "the response status is 201 and the response item contains the contract fields and initialized stock values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.3",
+        "given": "A client has a valid bearer token, an existing inventory item, and a valid InventoryItemRequest",
+        "when": "it sends PATCH /api/inventory/items/{itemId}",
+        "then": "the response status is 200 and the response item contains the updated fields and stock values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.4",
+        "given": "A client has a valid bearer token and submits a valid receipt or adjustment InventoryMovementRequest for an existing item",
+        "when": "it sends POST /api/inventory/movements",
+        "then": "the response status is 201 and the response contains the saved movement and the item with updated stock values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.5",
+        "given": "A client submits an inventory request that fails the contract validation rules",
+        "when": "it sends the applicable inventory write request",
+        "then": "the response status is 422 and the response error code is VALIDATION_ERROR",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "Where the locked OpenAPI contract defines inventory projections and export, the Feedlot API shall return wastage-adjusted projections for each declared horizon and an inventory CSV artifact.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "A client has a valid bearer token",
+        "when": "it requests GET /api/inventory/projections separately with horizon=daily, weekly, monthly, quarterly, semiAnnual, and annual",
+        "then": "each response status is 200 and each response contains the requested horizon, projection rows, and movement distinctions",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/inventory/export",
+        "then": "the response status is 200 and the response contains fileName, contentType text/csv, and a Base64 CSV content field",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.3",
+        "given": "A client has a valid bearer token and supplies a horizon outside the contract enum",
+        "when": "it sends GET /api/inventory/projections",
+        "then": "the response status is 422 and the response error code is VALIDATION_ERROR",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "Where the locked OpenAPI contract defines ration operations, the Feedlot API shall provide ration reads, creation, revision, optimization, and approval with the declared response behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/rations",
+        "then": "the response status is 200 and the response rations list contains saved ration definitions and their ingredient and cost fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.2",
+        "given": "A client has a valid bearer token and submits a valid RationRequest",
+        "when": "it sends POST /api/rations",
+        "then": "the response status is 201 and the response ration contains the saved definition and calculated costPerPound",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.3",
+        "given": "A client has a valid bearer token, an existing ration, and a valid RationRequest",
+        "when": "it sends PATCH /api/rations/{rationId}",
+        "then": "the response status is 200 and the response ration contains the revised definition",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.4",
+        "given": "A client has a valid bearer token and submits a valid ration optimization request",
+        "when": "it sends POST /api/rations/optimization",
+        "then": "the response status is 200 and the response contains the contract optimization result and cost comparison fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.5",
+        "given": "A client has a valid bearer token and the requested ration exists in a state eligible for approval",
+        "when": "it sends POST /api/rations/{rationId}/approval",
+        "then": "the response status is 200 and the response contains the rationId and updated approvalStatus fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "Where the locked OpenAPI contract defines feed-plan operations, the Feedlot API shall provide plan reads and creation, review handling, and execution-status updates with the declared calculated and saved values.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/feed-plans",
+        "then": "the response status is 200 and the response plans list contains saved plan and audit-history fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "A client has a valid bearer token and submits a valid FeedPlanRequest",
+        "when": "it sends POST /api/feed-plans",
+        "then": "the response status is 201 and the response plan contains calculated planned quantity, cost, energy, and status fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.3",
+        "given": "A client has a valid bearer token, an existing plan, and a valid PlanReviewRequest",
+        "when": "it sends POST /api/feed-plans/{planId}/review",
+        "then": "the response status is 200 and the response plan contains the resulting reviewRequired and plan values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.4",
+        "given": "A client has a valid bearer token, an existing plan, and a valid PlanStatusRequest",
+        "when": "it sends PATCH /api/feed-plans/{planId}/status",
+        "then": "the response status is 200 and the response plan contains the saved execution status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "Where the locked OpenAPI contract defines feeding-event operations, the Feedlot API shall provide event reads, recording, correction, and voiding with corresponding inventory movements and lot feed totals.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/feeding-events",
+        "then": "the response status is 200 and the response events list contains feeding activity and lot allocation fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "A client has a valid bearer token and submits a valid FeedingEventRequest",
+        "when": "it sends POST /api/feeding-events",
+        "then": "the response status is 201 and the response contains the saved event, calculated variance and cost, inventoryMovements, and updated lotFeedTotals",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.3",
+        "given": "A client has a valid bearer token, an existing feeding event, and a valid FeedingEventRequest",
+        "when": "it sends PATCH /api/feeding-events/{eventId}",
+        "then": "the response status is 200 and the response contains the corrected event, resulting inventory movement, and recalculated lotFeedTotals",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.4",
+        "given": "A client has a valid bearer token and an existing feeding event that can be voided",
+        "when": "it sends POST /api/feeding-events/{eventId}/void",
+        "then": "the response status is 200 and the response event has Voided status with a reversal movement and recalculated lotFeedTotals",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.5",
+        "given": "A client submits a feeding event that conflicts with current inventory or fails the contract validation rules",
+        "when": "it sends POST /api/feeding-events",
+        "then": "the response status is 409 or 422 as declared for the conflict or validation condition and the response contains the contract ApiError fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "Where the locked OpenAPI contract defines operational report operations, the Feedlot API shall return filtered operational rows and summary values and export the filtered authorized rows as CSV.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "A client has a valid bearer token and supplies any supported penId, lotId, from, or to filters",
+        "when": "it sends GET /api/reports/operational",
+        "then": "the response status is 200 and the response contains permission-filtered feedingRows, performanceRows, inventoryRows, and summary fields matching the filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "A client has a valid bearer token and supplies the same supported filters",
+        "when": "it sends GET /api/reports/operational/export",
+        "then": "the response status is 200 and the response contains a CSV file artifact containing only the filtered authorized rows",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "Where the locked OpenAPI contract defines feed-to-gain report operations, the Feedlot API shall return metrics calculated from records in the selected date range and export filtered results in the requested format.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "A client has a valid bearer token and supplies required from and to dates plus any supported breed, sex, or penId filters",
+        "when": "it sends GET /api/reports/feed-to-gain",
+        "then": "the response status is 200 and the response rows contain the contract ADG, feed, FCR, cost-of-gain, and energy fields for matching lots",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "A client has a valid bearer token and supplies required dates, supported filters, and format=csv or format=pdf",
+        "when": "it sends GET /api/reports/feed-to-gain/export",
+        "then": "the response status is 200 and the response contains a file artifact whose contentType and content correspond to the requested format and filtered authorized rows",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.3",
+        "given": "A client omits a required date or supplies an export format outside the contract enum",
+        "when": "it sends a feed-to-gain report or export request",
+        "then": "the response status is 422 and the response error code is VALIDATION_ERROR",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "Where the locked OpenAPI contract defines profitability report operations, the Feedlot API shall return filtered authorized profitability rows and export those rows as CSV.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "A client has a valid bearer token and supplies any supported horizon, breed, penId, or roiStatus filters",
+        "when": "it sends GET /api/reports/profitability",
+        "then": "the response status is 200 and the response contains the authorized rows and canViewProfitability field declared by the contract",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-13.2",
+        "given": "A client has a valid bearer token and supplies the supported profitability filters",
+        "when": "it sends GET /api/reports/profitability/export",
+        "then": "the response status is 200 and the response contains a CSV file artifact with the filtered authorized rows",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "Where the locked OpenAPI contract defines sample-data management operations, the Feedlot API shall provide sample-data reads, idempotent loading, and explicitly confirmed reset and replacement behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "A client has a valid bearer token",
+        "when": "it sends GET /api/sample-data",
+        "then": "the response status is 200 and the response contains loaded, recordCount, and records fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-14.2",
+        "given": "A client has a valid bearer token and sample records have not yet been loaded",
+        "when": "it sends POST /api/sample-data/load",
+        "then": "the response status is 200 and the response contains the load status, recordCount, and records fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-14.3",
+        "given": "A client has a valid bearer token and sample records are already loaded",
+        "when": "it sends POST /api/sample-data/load again",
+        "then": "the response status is 200 and the response status field reports already_loaded without duplicating the records",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-14.4",
+        "given": "A client has a valid bearer token and submits the required confirmation body",
+        "when": "it sends POST /api/sample-data/reset or POST /api/sample-data/replace",
+        "then": "the response status is 200 and the response status and recordCount fields report the completed requested operation",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-14.5",
+        "given": "A client has a valid bearer token and omits or fails the required confirmation",
+        "when": "it sends POST /api/sample-data/reset or POST /api/sample-data/replace",
+        "then": "the response status is 422 or 409 as declared for validation or state conflict and the response contains the contract ApiError fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "The Feedlot API shall persist contract domain records in the project's PostgreSQL database using the connection string named App.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 8,
+        "lineEnd": 9,
+        "quote": "builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\n    ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_4»")));"
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 22,
+        "quote": "        using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();"
+       },
+       {
+        "path": "App.Api/AppDb.cs",
+        "lineStart": 5,
+        "lineEnd": 7,
+        "quote": "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n}"
+       }
+      ],
+      "sources": [
+       "I-2",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "The API is connected to an isolated PostgreSQL database through ConnectionStrings:App",
+        "when": "a client creates an inventory item through POST /api/inventory/items and the API process is restarted",
+        "then": "the response after restart is 200 and the returned item has the same id and field values as the successful create response",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-15.2",
+        "given": "The API starts with a configured App PostgreSQL connection",
+        "when": "startup creates the database schema",
+        "then": "a row exists in PostgreSQL for each persisted record type required by the implemented contract operations",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "When Seed:Demo is true, the Feedlot API shall use SeedData.Run to insert at least three believable example-derived rows into each empty contract-backed data table so each corresponding API collection has data, and leave nonempty tables unchanged.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/SeedData.cs",
+        "lineStart": 7,
+        "lineEnd": 9,
+        "quote": "    public static void Run(AppDb db)\n    {\n    }"
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 23,
+        "lineEnd": 24,
+        "quote": "        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 169,
+        "lineEnd": 170,
+        "quote": "                  - id: 701\n                    vendor: \"Prairie Livestock\""
+       }
+      ],
+      "sources": [
+       "I-3",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "Each contract-backed data table in an isolated PostgreSQL database is empty and Seed:Demo is true",
+        "when": "the API starts successfully",
+        "then": "the row count is at least three for each contract-backed data table and each corresponding API collection response contains a nonempty list",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-16.2",
+        "given": "A contract-backed table already contains operational rows and Seed:Demo is true",
+        "when": "the API starts and runs SeedData.Run",
+        "then": "the pre-existing row values are unchanged and no seed rows are added to that nonempty table",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-16.3",
+        "given": "Seed:Demo is true and a seed write to PostgreSQL fails during startup",
+        "when": "the API starts",
+        "then": "startup fails and the surfaced error identifies the seed-write failure",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "ears": "When Seed:Demo is false and persisted collections are empty, the Feedlot API shall serve the contract collection operations without requiring or assuming demo-seed rows.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "An isolated PostgreSQL database has no records and Seed:Demo is false",
+        "when": "a client calls the contract list endpoints, including GET /api/lots, GET /api/inventory, GET /api/rations, GET /api/feed-plans, and GET /api/feeding-events",
+        "then": "each response status is 200 and each response's collection field is an empty list rather than an error or an assumed demo record",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "Seed:Demo is false and an API test creates its own records through contract write operations",
+        "when": "the test reads the corresponding contract list operation",
+        "then": "the response list contains the test-created records without depending on demo-seed record ids or counts",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "Where the locked OpenAPI contract defines an HTTP operation, the Feedlot API shall expose only that contract operation and shall not expose feedlot product-screen routes.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-5",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "A client requests a path that is not defined by the contract, such as /api/yard",
+        "when": "it sends GET to that path",
+        "then": "the response status is 404",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-18.2",
+        "given": "A client invokes an HTTP method not defined for a contract path, such as POST /api/dashboard",
+        "when": "the request is sent",
+        "then": "the response status is 405",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Successful API writes to contract domain data use PostgreSQL durability and remain available after an API process restart.",
+      "metric": "100% of successfully acknowledged writes remain readable with the same persisted values after a process restart against the same App PostgreSQL database."
+     }
+    ],
+    "outOfScope": [
+     "Feedlot product screens and web-app UI implementation, which belong to the separate web-app repository."
+    ],
+    "assumptions": [],
+    "suggestions": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

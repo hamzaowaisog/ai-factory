@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2000,
+    "end": 2068
+   },
+   "ms": 0,
+   "resultChars": 3041,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2000,&quot;end&quot;:2068}\">\ncontracts/openapi.yaml lines 2000-2068\n2000\t                contentBase64: \"bG90LHJldHVybixyb2k=\"\n2001\t        '401':\n2002\t          $ref: '#/components/responses/Unauthorized'\n2003\t        '403':\n2004\t          $ref: '#/components/responses/Forbidden'\n2005\t        '500':\n2006\t          $ref: '#/components/responses/ServerError'\n2007\t  /sample-data:\n2008\t    get:\n2009\t      operationId: getSampleData\n2010\t      summary: \"Return sample-data records and management permissions.\"\n2011\t      responses:\n2012\t        '200':\n2013\t          description: \"Current sample records and status.\"\n2014\t          content:\n2015\t            application/json:\n2016\t              schema:\n2017\t                $ref: '#/components/schemas/SampleDataResponse'\n2018\t              example:\n2019\t                permissions:\n2020\t                  - \"sample-data.view\"\n2021\t                  - \"sample-data.manage\"\n2022\t                loaded: true\n2023\t                recordCount: 12\n2024\t                records:\n2025\t                  - id: 9901\n2026\t                    entity: \"Lot\"\n2027\t                    recordType: \"Sample\"\n2028\t                    status: \"Loaded\"\n2029\t                    isolationScope: \"Sample records excluded from operational reports.\"\n2030\t                    sampleData: true\n2031\t        '401':\n2032\t          $ref: '#/components/responses/Unauthorized'\n2033\t        '403':\n2034\t          $ref: '#/components/responses/Forbidden'\n2035\t        '500':\n2036\t          $ref: '#/components/responses/ServerError'\n2037\t  /sample-data/load:\n2038\t    post:\n2039\t      operationId: loadSampleData\n2040\t      summary: \"Load sample records unless already loaded.\"\n2041\t      responses:\n2042\t        '200':\n2043\t          description: \"Load result including duplicate-load status.\"\n2044\t          content:\n2045\t            application/json:\n2046\t              schema:\n2047\t                $ref: '#/components/schemas/SampleOperationResponse'\n2048\t              example:\n2049\t                permissions:\n2050\t                  - \"sample-data.manage\"\n2051\t                status: \"already_loaded\"\n2052\t                message: \"Sample data was already loaded.\"\n2053\t                recordCount: 12\n2054\t                records:\n2055\t                  - id: 9901\n2056\t                    entity: \"Lot\"\n2057\t                    recordType: \"Sample\"\n2058\t                    status: \"Loaded\"\n2059\t                    isolationScope: \"Sample records excluded from operational reports.\"\n2060\t                    sampleData: true\n2061\t        '401':\n2062\t          $ref: '#/components/responses/Unauthorized'\n2063\t        '403':\n2064\t          $ref: '#/components/responses/Forbidden'\n2065\t        '409':\n2066\t          $ref: '#/components/responses/Conflict'\n2067\t        '500':\n2068\t          $ref: '#/components/responses/ServerError'\n… (4376 lines total; ask for start=2069)\n</untrusted_document>"
+  }
+ ]
+}

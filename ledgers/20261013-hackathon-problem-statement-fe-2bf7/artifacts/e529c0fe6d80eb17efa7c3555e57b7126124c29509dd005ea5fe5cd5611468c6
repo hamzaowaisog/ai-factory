@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 4270,
+    "end": 4325
+   },
+   "ms": 2,
+   "resultChars": 1754,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:4270,&quot;end&quot;:4325}\">\ncontracts/openapi.yaml lines 4270-4325\n4270\t          type: number\n4271\t          format: double\n4272\t          nullable: true\n4273\t        totalGainValue:\n4274\t          type: number\n4275\t          format: double\n4276\t          nullable: true\n4277\t        netReturn:\n4278\t          type: number\n4279\t          format: double\n4280\t          nullable: true\n4281\t        roiPercent:\n4282\t          type: number\n4283\t          format: double\n4284\t          nullable: true\n4285\t        sampleData:\n4286\t          type: boolean\n4287\t    ProfitabilityResponse:\n4288\t      type: object\n4289\t      required:\n4290\t        - permissions\n4291\t        - canViewProfitability\n4292\t        - rows\n4293\t      properties:\n4294\t        permissions:\n4295\t          type: array\n4296\t          items:\n4297\t            type: string\n4298\t        canViewProfitability:\n4299\t          type: boolean\n4300\t        rows:\n4301\t          type: array\n4302\t          items:\n4303\t            $ref: '#/components/schemas/ProfitabilityRow'\n4304\t    SampleRecord:\n4305\t      type: object\n4306\t      required:\n4307\t        - id\n4308\t        - entity\n4309\t        - recordType\n4310\t        - status\n4311\t        - isolationScope\n4312\t        - sampleData\n4313\t      properties:\n4314\t        id:\n4315\t          type: integer\n4316\t        entity:\n4317\t          type: string\n4318\t        recordType:\n4319\t          type: string\n4320\t        status:\n4321\t          type: string\n4322\t        isolationScope:\n4323\t          type: string\n4324\t        sampleData:\n4325\t          type: boolean\n… (4376 lines total; ask for start=4326)\n</untrusted_document>"
+  }
+ ]
+}

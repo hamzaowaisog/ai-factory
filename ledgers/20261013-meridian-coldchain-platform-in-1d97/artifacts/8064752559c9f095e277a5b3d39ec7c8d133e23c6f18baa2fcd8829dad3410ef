@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement only the Meridian API operations and behavior defined in the OpenAPI contract, retaining the existing root health, OpenAPI-document, and Swagger UI routes."
+     },
+     {
+      "n": 2,
+      "text": "Persist business-data changes in the configured PostgreSQL database, applying only lifecycle constraints explicitly described by each operation."
+     },
+     {
+      "n": 3,
+      "text": "Run `SeedData.Run` during startup when `Seed:Demo` is true; seed only empty contract-backed tables with two to five contract-example-based rows per table and valid references, preserving existing rows."
+     },
+     {
+      "n": 4,
+      "text": "When `Seed:Demo` is false or unset, do not run the demo seeder or create demo rows."
+     },
+     {
+      "n": 5,
+      "text": "Return an empty list for a contract collection operation with no matching persisted records, rather than returning unpersisted sample records."
+     },
+     {
+      "n": 6,
+      "text": "Use the existing staff identity provider with authorization URL and token-validation settings supplied by deployment configuration, return the configured URL from the contracted authorization-URL operation, and validate staff tokens using those settings."
+     },
+     {
+      "n": 7,
+      "text": "Fail application startup with an error identifying the affected setting when a required staff identity-provider authorization URL or token-validation setting is missing or invalid; use valid nonproduction settings in the existing health tests and factory checks."
+     },
+     {
+      "n": 8,
+      "text": "Authenticate customer accounts through the contract's email-and-password and one-time-code flow, and authorize each authenticated caller using the roles, `warehouseIds`, and `organizationIds` in the associated PostgreSQL account record."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

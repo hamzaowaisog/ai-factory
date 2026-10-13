@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingDotPulse {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Header styling */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .logo-square {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    nav.main-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 56px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      height: 56px;
+      display: inline-flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-link.active {
+      color: #A94B1D;
+      border-bottom: 2px solid #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #202020;
+    }
+
+    .avatar-hy {
+      width: 28px;
+      height: 28px;
+      border-radius: 2px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM+Plex+Mono', 'Public Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      color: #626262;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+    }
+
+    h1.page-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+      margin-bottom: 32px;
+    }
+
+    /* Panels */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .panel-header {
+      margin-bottom: 24px;
+    }
+
+    .panel-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .panel-subtitle {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 4px;
+    }
+
+    /* Form & Fields */
+    .field-group {
+      margin-bottom: 20px;
+    }
+
+    .field-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label.field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .field-helper {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .select-field, .input-field {
+      width: 100%;
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: #202020;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+
+    .select-field:focus, .input-field:focus {
+      border-color: #A94B1D;
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .readonly-field {
+      width: 100%;
+      min-height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 12px 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: #202020;
+      display: flex;
+      align-items: center;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      height: 48px;
+      padding: 0 24px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 150ms ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Status indicator */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-badge.good {
+      color: #24704B;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    /* Grid layout inside panels */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .address-card {
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      background-color: #FFFFFF;
+    }
+
+    .address-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+      margin-bottom: 4px;
+    }
+
+    .address-line {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Persistent Header -->
+  <header>
+    <div class="header-left">
+      <div class="brand-cluster">
+        <div class="logo-square">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="main-nav">
+        <a href="#orders" class="nav-link">Orders</a>
+        <a href="#deliveries" class="nav-link">Deliveries</a>
+        <a href="#recalls" class="nav-link">Recall notices</a>
+        <a href="#account" class="nav-link active">Account</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-hy">HY</div>
+        <span>Hana Youssef · Cedar Health</span>
+      </div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <main class="entrance">
+    <h1 class="page-title">Account</h1>
+
+    <!-- Buyer Identity & Account Details -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Cedar Health</h2>
+        <div class="panel-subtitle">Buyer account: Hana Youssef</div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom: 20px;">
+        <div class="field-group">
+          <label class="field-label">Organization</label>
+          <div class="readonly-field">Cedar Health</div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Primary buyer</label>
+          <div class="readonly-field">Hana Youssef</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Account time zone</label>
+        <div class="readonly-field mono">Europe/London (BST)</div>
+        <div class="field-helper">All delivery schedules, datalogger timestamps, and chronological audit ledgers are calculated in this time zone.</div>
+      </div>
+    </div>
+
+    <!-- Language Selection & RTL Behavior -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Language selection</h2>
+        <div class="panel-subtitle">Arabic flips navigation, tables and charts right to left while dates stay in the account time zone.</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="language-select">Interface language</label>
+        <select id="language-select" class="select-field">
+          <option value="en" selected>English</option>
+          <option value="ar">العربية (Arabic)</option>
+        </select>
+        <div class="field-helper">Selecting Arabic enables right-to-left layout across navigation, consignment tables, and thermal charts while timestamps remain formatted in Europe/London.</div>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <button type="button" class="btn-primary">Save language</button>
+      </div>
+    </div>
+
+    <!-- Assurance Criteria (Read-only) -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Assurance & shelf-life requirements</h2>
+        <div class="panel-subtitle">Contractual criteria enforced on cold-chain allocations</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Minimum remaining shelf life</label>
+        <div class="readonly-field">
+          <span class="mono" style="font-weight: 600;">90 days</span>
+          <span style="color: #626262; margin-left: 8px;">(read-only policy minimum)</span>
+        </div>
+        <div class="field-helper">Inbound lots IG-2511 and IG-2509 are evaluated against this threshold prior to packing and route assignment.</div>
+      </div>
+    </div>
+
+    <!-- Saved Delivery Addresses (Read-only for buyer) -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Saved destination addresses</h2>
+        <div class="panel-subtitle">Read-only delivery locations registered for this buyer</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="address-card">
+          <div class="address-name">Cedar Clinic</div>
+          <div class="address-line">42 River Road, London</div>
+          <div style="margin-top: 12px;">
+            <span class="status-badge good">
+              <span class="status-dot"></span>
+              <span>good primary delivery destination</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="address-card">
+          <div class="address-name">Cedar Day Unit</div>
+          <div class="address-line">18 Elm Street, London</div>
+          <div style="margin-top: 12px; font-size: 14px; color: #626262;">
+            Secondary clinic unit
+          </div>
+        </div>
+      </div>
+      <div class="field-helper" style="margin-top: 16px;">
+        Destination locations are managed by Cedar Health Customer Administrator Salma Idris.
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

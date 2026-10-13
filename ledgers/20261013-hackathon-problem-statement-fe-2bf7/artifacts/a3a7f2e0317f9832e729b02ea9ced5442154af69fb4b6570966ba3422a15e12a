@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 11,
+    "end": 60
+   },
+   "ms": 3,
+   "resultChars": 1955,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:11,&quot;end&quot;:60}\">\ncontracts/openapi.yaml lines 11-60\n11\t  /auth/sign-in:\n12\t    post:\n13\t      operationId: signIn\n14\t      summary: \"Sign in with email and password.\"\n15\t      security: []\n16\t      requestBody:\n17\t        required: true\n18\t        content:\n19\t          application/json:\n20\t            schema:\n21\t              $ref: '#/components/schemas/SignInRequest'\n22\t      responses:\n23\t        '200':\n24\t          description: \"Authenticated user and permission set.\"\n25\t          content:\n26\t            application/json:\n27\t              schema:\n28\t                $ref: '#/components/schemas/SignInResponse'\n29\t              example:\n30\t                accessToken: \"«SECRET_1»\"\n31\t                user:\n32\t                  id: 1\n33\t                  name: \"Riley Morgan\"\n34\t                  email: \"riley@example.test\"\n35\t                  landingPage: \"/yard\"\n36\t                  permissions:\n37\t                    - \"yard.view\"\n38\t                    - \"inventory.view\"\n39\t                  authorizedYards:\n40\t                    - id: 1\n41\t                      name: \"North Yard\"\n42\t        '400':\n43\t          $ref: '#/components/responses/BadRequest'\n44\t        '401':\n45\t          $ref: '#/components/responses/Unauthorized'\n46\t        '422':\n47\t          $ref: '#/components/responses/ValidationError'\n48\t        '500':\n49\t          $ref: '#/components/responses/ServerError'\n50\t  /session:\n51\t    get:\n52\t      operationId: getSession\n53\t      summary: \"Return the current user and refreshed permissions.\"\n54\t      responses:\n55\t        '200':\n56\t          description: \"Current authenticated session.\"\n57\t          content:\n58\t            application/json:\n59\t              schema:\n60\t                $ref: '#/components/schemas/SessionResponse'\n… (4376 lines total; ask for start=61)\n</untrusted_document>"
+  }
+ ]
+}

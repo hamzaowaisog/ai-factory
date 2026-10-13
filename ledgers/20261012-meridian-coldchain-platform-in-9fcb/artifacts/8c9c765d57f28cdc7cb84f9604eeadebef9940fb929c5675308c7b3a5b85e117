@@ -1,0 +1,1651 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Design system",
+      "reqs": [],
+      "fileScope": [
+       "app/layout.tsx",
+       "package.json",
+       "app/globals.css"
+      ],
+      "exemplars": [
+       "components/ui/button.tsx",
+       "components/ui/card.tsx"
+      ],
+      "conventions": [
+       "Use factory-generated kit; add tokens in globals.css."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 25,
+      "complexity": "standard",
+      "approach": "Follow designSystemTask todo exactly: install packages and build once so the scaffold compiles as written. Add approved CSS-variable tokens and configure generated layout; no screens or routes."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Sign-in S-1",
+      "reqs": [
+       "REQ-2: configured staff sign-in and customer credential flow; render errors/refusal.",
+       "REQ-29: sign-in/reset entry."
+      ],
+      "fileScope": [
+       "components/screens/s-1/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-2/container.tsx",
+       "components/screens/s-3/container.tsx"
+      ],
+      "conventions": [
+       "Implement container only; generated route/page stays intact; API via lib/api."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "First screen slice: wire sign-in container to API; validate credentials, start configured staff provider flow, show pending/success/invalid/disabled states."
+     },
+     {
+      "id": "TASK-3",
+      "title": "One-time code S-2",
+      "reqs": [
+       "REQ-2: verify and resend customer code, show wrong/expired/resend outcomes and no protected content before success."
+      ],
+      "fileScope": [
+       "components/screens/s-2/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-1/container.tsx",
+       "components/screens/s-3/container.tsx"
+      ],
+      "conventions": [
+       "Use generated API client."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 40,
+      "complexity": "standard",
+      "approach": "Retain challenge context, validate code fields, submit verify/resend and display API states."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Request reset S-3",
+      "reqs": [
+       "REQ-2/29: request reset using email and display returned confirmation/error."
+      ],
+      "fileScope": [
+       "components/screens/s-3/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-1/container.tsx",
+       "components/screens/s-4/container.tsx"
+      ],
+      "conventions": [
+       "Container-only behavior."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 35,
+      "complexity": "standard",
+      "approach": "Validate email, submit reset request and show API result."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Set password S-4",
+      "reqs": [
+       "REQ-29: validate token/password fields, set password, recover from invalid or expired token."
+      ],
+      "fileScope": [
+       "components/screens/s-4/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-3/container.tsx",
+       "components/screens/s-1/container.tsx"
+      ],
+      "conventions": [
+       "Use generated route params and API."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 40,
+      "complexity": "standard",
+      "approach": "Check token, validate matching passwords, submit and render success/error or request-another-link."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Access refused S-5",
+      "reqs": [
+       "REQ-3/24/40: show access denial without protected/cached route data and link to sign-in."
+      ],
+      "fileScope": [
+       "components/screens/s-5/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-1/container.tsx",
+       "components/screens/s-25/container.tsx"
+      ],
+      "conventions": [
+       "Never pass protected records to this screen."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 25,
+      "complexity": "standard",
+      "approach": "Render refusal and return link after protected state is cleared."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Receipts S-6",
+      "reqs": [
+       "REQ-1: warehouse portal entry.",
+       "REQ-3: scope/refusal.",
+       "REQ-7: list receipts.",
+       "REQ-27: filters/CSV.",
+       "REQ-28: selected language."
+      ],
+      "fileScope": [
+       "components/screens/s-6/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-9/container.tsx",
+       "components/screens/s-18/container.tsx"
+      ],
+      "conventions": [
+       "Container owns empty/loading/refused/export states."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load scoped receipts, filter/search, render states and export full filtered set as CSV."
+     },
+     {
+      "id": "TASK-8",
+      "title": "Record receipt S-7",
+      "reqs": [
+       "REQ-7: capture receipt fields, submit and show quarantine result or field errors."
+      ],
+      "fileScope": [
+       "components/screens/s-7/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-15/container.tsx"
+      ],
+      "conventions": [
+       "Do not show save after refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load selectors, validate required fields, submit and render returned receipt/status/errors."
+     },
+     {
+      "id": "TASK-9",
+      "title": "Receipt detail S-8",
+      "reqs": [
+       "REQ-7/8: logger/evidence uploads, temperature/budget and file validation.",
+       "REQ-11: returned unit readings.",
+       "REQ-27: metadata."
+      ],
+      "fileScope": [
+       "components/screens/s-8/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-7/container.tsx"
+      ],
+      "conventions": [
+       "Use generated API upload operations; do not invent logger-format validation."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Load detail, upload both file types, validate evidence image/PDF and 10 MB limit, show progress/results/errors."
+     },
+     {
+      "id": "TASK-10",
+      "title": "Stock S-9",
+      "reqs": [
+       "REQ-1/3: scoped stock and denial.",
+       "REQ-10: on-hand/status quantities, filters and location.",
+       "REQ-27: CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-9/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "conventions": [
+       "Do not infer status/temperature tier from gaps."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load/filter stock, show empty/refused states and export filtered CSV; warn on non-reconciling figures without altering them."
+     },
+     {
+      "id": "TASK-11",
+      "title": "Handling unit S-10",
+      "reqs": [
+       "REQ-10/11: unit quantity, history and budgets.",
+       "REQ-19/20: chart/table, alerts, empty states.",
+       "REQ-21/22: show gap and API status without inferred hold/estimated tier.",
+       "REQ-59: lot events."
+      ],
+      "fileScope": [
+       "components/screens/s-10/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-8/container.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "conventions": [
+       "Honor returned reading flags/order."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load unit/history/alerts, wire chart/table, show budgets/gaps/flags/API status and chronological lot events."
+     },
+     {
+      "id": "TASK-12",
+      "title": "Move stock S-11",
+      "reqs": [
+       "REQ-12: validate and submit movement; display returned record or refusal/network error."
+      ],
+      "fileScope": [
+       "components/screens/s-11/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-7/container.tsx",
+       "components/screens/s-12/container.tsx"
+      ],
+      "conventions": [
+       "Never show failed move as saved."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Validate positive quantity/source/destination, submit via API and show returned actor/time/quantity or error."
+     },
+     {
+      "id": "TASK-13",
+      "title": "Moves S-12",
+      "reqs": [
+       "REQ-12/27: list/filter movement events and export filtered CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-12/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-11/container.tsx"
+      ],
+      "conventions": [
+       "Actor and timestamps are read-only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load movement rows, filter date/unit/location, show empty state and export filtered rows."
+     },
+     {
+      "id": "TASK-14",
+      "title": "Boxes S-13",
+      "reqs": [
+       "REQ-17: box/logger/compatibility/sealing list.",
+       "REQ-27: filtered CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-13/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-14/container.tsx"
+      ],
+      "conventions": [
+       "Keep API values read-only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load/filter boxes, show empty and returned compatibility/seal state, export CSV."
+     },
+     {
+      "id": "TASK-15",
+      "title": "Pack box S-14",
+      "reqs": [
+       "REQ-16: allocations and blocked stock effects.",
+       "REQ-17: pack with one logger, compatibility/refusal and seal details."
+      ],
+      "fileScope": [
+       "components/screens/s-14/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-13/container.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "conventions": [
+       "Show sealed only after API confirmation."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load stock, validate quantities/logger uniqueness, submit pack/seal and display returned compatibility, refusal and seal record."
+     },
+     {
+      "id": "TASK-16",
+      "title": "Opening stock S-15",
+      "reqs": [
+       "REQ-61: submit opening stock details and show result/refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-15/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-7/container.tsx",
+       "components/screens/s-11/container.tsx"
+      ],
+      "conventions": [
+       "API enforces authorization."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load selectors, validate fields, submit and render API result."
+     },
+     {
+      "id": "TASK-17",
+      "title": "Cold rooms S-16",
+      "reqs": [
+       "REQ-19/20: room readings, silence, alerts and no-data state."
+      ],
+      "fileScope": [
+       "components/screens/s-16/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-17/container.tsx"
+      ],
+      "conventions": [
+       "Gateway data only through generated API."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load cold-room data and alerts, display latest reading/silence and empty state."
+     },
+     {
+      "id": "TASK-18",
+      "title": "Cold room detail S-17",
+      "reqs": [
+       "REQ-19/20: chart/table readings, gaps, alerts and empty states.",
+       "REQ-21: show review gap/API status without inferred hold."
+      ],
+      "fileScope": [
+       "components/screens/s-17/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "conventions": [
+       "Do not infer quality status."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load telemetry through API, wire chart/table and render returned gap/silence/alerts."
+     },
+     {
+      "id": "TASK-19",
+      "title": "Dispatcher orders S-18",
+      "reqs": [
+       "REQ-1/3: scoped list and denial.",
+       "REQ-15: order states/details.",
+       "REQ-27: filters and CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-18/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-41/container.tsx"
+      ],
+      "conventions": [
+       "Clear protected rows on refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load/search/filter orders, handle empty/refusal, export filtered CSV and link details."
+     },
+     {
+      "id": "TASK-20",
+      "title": "Dispatcher order detail S-19",
+      "reqs": [
+       "REQ-6: recalculation and downstream status.",
+       "REQ-13: shelf-life rule read-only.",
+       "REQ-15: cancellation availability/outcomes.",
+       "REQ-16: allocations and reason-required override."
+      ],
+      "fileScope": [
+       "components/screens/s-19/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-18/container.tsx",
+       "components/screens/s-43/container.tsx"
+      ],
+      "conventions": [
+       "Trust returned order and route state."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 80,
+      "complexity": "standard",
+      "approach": "Load order/allocation, submit override/cancellation, refresh and render refusal/status/box-route effects."
+     },
+     {
+      "id": "TASK-21",
+      "title": "Routes S-20",
+      "reqs": [
+       "REQ-1/18/33: ordered route/stops, status and update time.",
+       "REQ-27: filter/export."
+      ],
+      "fileScope": [
+       "components/screens/s-20/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-18/container.tsx",
+       "components/screens/s-22/container.tsx"
+      ],
+      "conventions": [
+       "Preserve returned stop order."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load routes, filter, display schedule/status and export; link route plan."
+     },
+     {
+      "id": "TASK-22",
+      "title": "Route plan S-21",
+      "reqs": [
+       "REQ-18: create/confirm route, margin refusal, changed route/notification and errors."
+      ],
+      "fileScope": [
+       "components/screens/s-21/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-20/container.tsx",
+       "components/screens/s-19/container.tsx"
+      ],
+      "conventions": [
+       "API supplies margin and confirmation."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Validate route fields/stops, submit, render confirmation/refusal/overage or network error."
+     },
+     {
+      "id": "TASK-23",
+      "title": "Route detail S-22",
+      "reqs": [
+       "REQ-6/16: returned stock/order/box effects.",
+       "REQ-18/33: route stops, schedules/status.",
+       "REQ-34: gateway temperature/status/alerts."
+      ],
+      "fileScope": [
+       "components/screens/s-22/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-20/container.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "conventions": [
+       "Use gateway through lib/api."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load route and gateway records; display stop/box values and returned restrictions."
+     },
+     {
+      "id": "TASK-24",
+      "title": "Box temperature S-23",
+      "reqs": [
+       "REQ-19/20: histories, gaps, flags, excursions, alerts and empty state.",
+       "REQ-34: readings and stale cached state."
+      ],
+      "fileScope": [
+       "components/screens/s-23/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-17/container.tsx"
+      ],
+      "conventions": [
+       "Do not call gateway directly."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load readings through API, wire chart/table and indicate stale, gaps, flags and alerts."
+     },
+     {
+      "id": "TASK-25",
+      "title": "Delivery evidence S-24",
+      "reqs": [
+       "REQ-25/37/62: show authorized evidence and handover fields within retention."
+      ],
+      "fileScope": [
+       "components/screens/s-24/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-22/container.tsx",
+       "components/screens/s-46/container.tsx"
+      ],
+      "conventions": [
+       "Clear evidence on denial/expiry."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load evidence and display returned signature/photo links; handle denied, not delivered and expired states."
+     },
+     {
+      "id": "TASK-26",
+      "title": "Driver today and offline foundation S-25",
+      "reqs": [
+       "REQ-1/3: scoped driver entry and refusal clearing.",
+       "REQ-24: cache current workday route, same-driver queue and installable web behavior.",
+       "REQ-31: today's assigned routes/empty state.",
+       "REQ-40: full offline payload persistence, stable retry ID/time, reauthentication before sync."
+      ],
+      "fileScope": [
+       "components/screens/s-25/container.tsx",
+       "app/manifest.ts",
+       "public/sw.js",
+       "lib/driver/offline-store.ts"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "conventions": [
+       "Use IndexedDB/browser APIs and generated client, never native app/store/push.",
+       "This slice owns first-use shared driver store."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 180,
+      "complexity": "rules-or-algorithm",
+      "approach": "Wire today's routes. Add installable web manifest/service-worker shell cache and IndexedDB route/action store keyed by driver and serving workday. Handle storage quota and same-driver sync; clear protected route cache at sign-out/refusal but keep queued actions until API acceptance/refusal. No new settings."
+     },
+     {
+      "id": "TASK-27",
+      "title": "Driver route stops S-26",
+      "reqs": [
+       "REQ-24/31: online/cached ordered route.",
+       "REQ-34: stale cached temperature.",
+       "REQ-41: route differences and resolution block."
+      ],
+      "fileScope": [
+       "components/screens/s-26/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-25/container.tsx",
+       "components/screens/s-22/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 store and preserve completed handovers."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 70,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load online/cache route, show stale values, reconcile differences and block unresolved work."
+     },
+     {
+      "id": "TASK-28",
+      "title": "Load boxes S-27",
+      "reqs": [
+       "REQ-24/40: offline loading queue/sync.",
+       "REQ-32: scans, wrong/missing box correction and departure block.",
+       "REQ-35/36: hold and online recall blocking."
+      ],
+      "fileScope": [
+       "components/screens/s-27/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-14/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 store; online API state is authoritative."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 80,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement scan/unscan/correction, queue offline with storage errors, and enable departure only when expected boxes are scanned and no wrong box remains."
+     },
+     {
+      "id": "TASK-29",
+      "title": "Driver stop detail S-28",
+      "reqs": [
+       "REQ-25/31/34: stop boxes, quantities, route order, stale temperatures.",
+       "REQ-35/36: prevent ineligible handover.",
+       "REQ-39: whole-box refusal with per-box reasons."
+      ],
+      "fileScope": [
+       "components/screens/s-28/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-29/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 cache and returned eligibility."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load stop or cache, show eligibility/temp, link deliverable boxes to handover and validate whole-box reasons."
+     },
+     {
+      "id": "TASK-30",
+      "title": "Handover S-29",
+      "reqs": [
+       "REQ-24/25: recipient, acknowledgment, delivered/undelivered quantities and result.",
+       "REQ-35/36: block held/online recalled box.",
+       "REQ-37/38: required name/signature/photo/time; optional browser location.",
+       "REQ-39: reason each refused box.",
+       "REQ-40/42: persist/retry offline and show conflict/quality-case result."
+      ],
+      "fileScope": [
+       "components/screens/s-29/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-28/container.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 store; never display restricted handover complete."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 95,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate required evidence, quantities and reasons; use browser location with unavailable fallback; queue full payload and stable ID/time offline; render synchronization result."
+     },
+     {
+      "id": "TASK-31",
+      "title": "Pending work S-30",
+      "reqs": [
+       "REQ-24/40: same-driver sync, retain transient payload, clear only on acknowledgment and stop retrying refusal.",
+       "REQ-41/42: show route conflicts and quality-case outcome."
+      ],
+      "fileScope": [
+       "components/screens/s-30/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-29/container.tsx",
+       "components/screens/s-26/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 store; do not send another driver's work."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 70,
+      "complexity": "rules-or-algorithm",
+      "approach": "List queue, sync after originating driver authentication and render per-action outcomes; preserve transient failures and stop rejected sends."
+     },
+     {
+      "id": "TASK-32",
+      "title": "Route changes S-31",
+      "reqs": [
+       "REQ-24/41: show differences always, resolve affected unsent work before continuing, preserve completed handovers."
+      ],
+      "fileScope": [
+       "components/screens/s-31/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 store."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 65,
+      "complexity": "rules-or-algorithm",
+      "approach": "Compare cached/current route, list changed stops and unsent actions, require a resolution and retain completed handovers."
+     },
+     {
+      "id": "TASK-33",
+      "title": "Quality cases S-32",
+      "reqs": [
+       "REQ-1/3: scoped cases/refusal.",
+       "REQ-9/20/23: decisions, alerts, delivered cases.",
+       "REQ-27: filter/CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-32/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-36/container.tsx"
+      ],
+      "conventions": [
+       "Auditor access read-only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load cases, filter, show empty/refusal, export filtered CSV and link detail."
+     },
+     {
+      "id": "TASK-34",
+      "title": "Quality review S-33",
+      "reqs": [
+       "REQ-6/9: returned release, proposal, recalculation.",
+       "REQ-19-23: histories, budgets, alerts, gaps and cases without inferred tier/status.",
+       "REQ-43-46: recommendations, conditional two-person flow, justification, signing and resulting effects."
+      ],
+      "fileScope": [
+       "components/screens/s-33/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "conventions": [
+       "Never edit signed decision; API state authoritative."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 100,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load case/history/budgets; determine flow from proposed decision/tier/allowance; require justification when opposing; submit and render returned outcomes."
+     },
+     {
+      "id": "TASK-35",
+      "title": "Signed decision S-34",
+      "reqs": [
+       "REQ-45/46: identity confirmation/reason, immutable signed history, separate supersede and downstream result/refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-34/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-33/container.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "conventions": [
+       "Failed identity confirmation is not signed."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load signed history, validate, submit superseding action and show returned status/error."
+     },
+     {
+      "id": "TASK-36",
+      "title": "Destruction S-35",
+      "reqs": [
+       "REQ-47: date/quantity/witness, prevent quantity over remaining rejected stock, render service outcome."
+      ],
+      "fileScope": [
+       "components/screens/s-35/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-11/container.tsx",
+       "components/screens/s-34/container.tsx"
+      ],
+      "conventions": [
+       "Use current undestroyed quantity."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load rejected/destroyed quantities, validate remainder, submit and render result/refusal."
+     },
+     {
+      "id": "TASK-37",
+      "title": "Waiting decisions S-36",
+      "reqs": [
+       "REQ-1/3: scoped Quality Manager view/refusal.",
+       "REQ-9/44/48: proposal details and returned escalation."
+      ],
+      "fileScope": [
+       "components/screens/s-36/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-32/container.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "conventions": [
+       "Email escalation stays API-side."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load decisions; display returned escalated status, empty/refusal state and approval link."
+     },
+     {
+      "id": "TASK-38",
+      "title": "Decision approval S-37",
+      "reqs": [
+       "REQ-9/44: different manager approval/rejection; no self-approval.",
+       "REQ-43/45/46: budget, justification, identity and downstream signed result."
+      ],
+      "fileScope": [
+       "components/screens/s-37/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-36/container.tsx",
+       "components/screens/s-33/container.tsx"
+      ],
+      "conventions": [
+       "Do not show refusal as signed."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 85,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load proposal/current user, suppress self-approval, validate reason/identity, submit approve/reject and display result."
+     },
+     {
+      "id": "TASK-39",
+      "title": "Recalls list S-38",
+      "reqs": [
+       "REQ-26/49: recall records/start link.",
+       "REQ-53: progress/customers/reminders.",
+       "REQ-27: filtered CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-38/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-32/container.tsx",
+       "components/screens/s-40/container.tsx"
+      ],
+      "conventions": [
+       "Progress values returned by API."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load/filter recalls, render empty/progress, export and link details."
+     },
+     {
+      "id": "TASK-40",
+      "title": "Start recall S-39",
+      "reqs": [
+       "REQ-26/49: product/lots/reason/severity and confirmed identity, with returned result/refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-39/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-38/container.tsx",
+       "components/screens/s-34/container.tsx"
+      ],
+      "conventions": [
+       "Do not display successful start after refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load lots, validate fields, confirm identity and submit recall."
+     },
+     {
+      "id": "TASK-41",
+      "title": "Recall detail S-40",
+      "reqs": [
+       "REQ-26/49: trace/blocked stock and signed close outcome.",
+       "REQ-50: full returned trace and totals.",
+       "REQ-53: outstanding responses, Quality Manager write-off and close block without signed write-off."
+      ],
+      "fileScope": [
+       "components/screens/s-40/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-38/container.tsx",
+       "components/screens/s-49/container.tsx"
+      ],
+      "conventions": [
+       "API controls write-off eligibility and trace."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 95,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load trace/progress; submit signed write-off and close, block close while displayed remainder lacks write-off, render API results/errors."
+     },
+     {
+      "id": "TASK-42",
+      "title": "Customer orders S-41",
+      "reqs": [
+       "REQ-1/3/14/15: customer orders and status.",
+       "REQ-54: own-organization orders/lots/expiry, empty state, no caller organization ID."
+      ],
+      "fileScope": [
+       "components/screens/s-41/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-18/container.tsx",
+       "components/screens/s-45/container.tsx"
+      ],
+      "conventions": [
+       "Authenticated API scope only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load own orders, filter and render empty/refusal/status/lot values."
+     },
+     {
+      "id": "TASK-43",
+      "title": "Place order S-42",
+      "reqs": [
+       "REQ-13/14: shelf life, products/quantities, saved address, API-eligible dates/time zone, fulfillment and summary."
+      ],
+      "fileScope": [
+       "components/screens/s-42/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-44/container.tsx"
+      ],
+      "conventions": [
+       "Only display API-eligible dates."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 80,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load form data/eligible dates, validate lines and positive quantity, block deactivated products, summarize and submit with stable retry key."
+     },
+     {
+      "id": "TASK-44",
+      "title": "Customer order detail S-43",
+      "reqs": [
+       "REQ-6/15/16/54: allocation, status, recalculation, customer controls before Packed and scoped transit."
+      ],
+      "fileScope": [
+       "components/screens/s-43/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-19/container.tsx"
+      ],
+      "conventions": [
+       "Use API-returned state."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load order/allocation, expose eligible controls and render returned mutation/downstream effects."
+     },
+     {
+      "id": "TASK-45",
+      "title": "Change order S-44",
+      "reqs": [
+       "REQ-14/15: validate change and show success/refusal including Packed transition."
+      ],
+      "fileScope": [
+       "components/screens/s-44/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-42/container.tsx",
+       "components/screens/s-43/container.tsx"
+      ],
+      "conventions": [
+       "No invalid requests."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load current order/options, validate and submit; render API outcome."
+     },
+     {
+      "id": "TASK-46",
+      "title": "Deliveries S-45",
+      "reqs": [
+       "REQ-27/54/55: scoped filtered deliveries, transit arrival/temperature and certificate links."
+      ],
+      "fileScope": [
+       "components/screens/s-45/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-46/container.tsx"
+      ],
+      "conventions": [
+       "Never expose another route customer."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load/filter deliveries, show empty/transit data, export filtered list and link detail/certificate."
+     },
+     {
+      "id": "TASK-47",
+      "title": "Delivery detail S-46",
+      "reqs": [
+       "REQ-23/54/55/62: quality case, scoped delivery, certificate/evidence availability."
+      ],
+      "fileScope": [
+       "components/screens/s-46/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-45/container.tsx",
+       "components/screens/s-24/container.tsx"
+      ],
+      "conventions": [
+       "Clear data on 403/404."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load scoped delivery, case and evidence; show transit/unavailable/refusal."
+     },
+     {
+      "id": "TASK-48",
+      "title": "Certificates S-47",
+      "reqs": [
+       "REQ-55/56/57: authorized PDF and retained versions; selected language, RTL and account time zone."
+      ],
+      "fileScope": [
+       "components/screens/s-47/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-46/container.tsx",
+       "components/screens/s-24/container.tsx"
+      ],
+      "conventions": [
+       "PDF generated server-side."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load version list, offer each authorized PDF and handle unavailable/denied states."
+     },
+     {
+      "id": "TASK-49",
+      "title": "Recall notices S-48",
+      "reqs": [
+       "REQ-26/51/54: organization-scoped notices, affected delivery, response link and empty state."
+      ],
+      "fileScope": [
+       "components/screens/s-48/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-49/container.tsx"
+      ],
+      "conventions": [
+       "Email dispatch is API-side."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load notice history/status, render links and no-notices state."
+     },
+     {
+      "id": "TASK-50",
+      "title": "Recall response S-49",
+      "reqs": [
+       "REQ-26/51/52: per-delivery quantity update, accept remainder, reject over-delivery total, display result."
+      ],
+      "fileScope": [
+       "components/screens/s-49/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-48/container.tsx",
+       "components/screens/s-40/container.tsx"
+      ],
+      "conventions": [
+       "Validate before API request."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load delivered/prior quantities, validate nonnegative total within delivered quantity, submit and show unaccounted/result."
+     },
+     {
+      "id": "TASK-51",
+      "title": "Customer account S-50",
+      "reqs": [
+       "REQ-13/28/57: account shelf-life, locale persistence, RTL Arabic and account time zone."
+      ],
+      "fileScope": [
+       "components/screens/s-50/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-51/container.tsx",
+       "components/screens/s-47/container.tsx"
+      ],
+      "conventions": [
+       "Isolate lot identifiers LTR inside RTL."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load/save locale and timezone preference using API; show account details."
+     },
+     {
+      "id": "TASK-52",
+      "title": "Addresses S-51",
+      "reqs": [
+       "REQ-1/3/13: scoped add/edit/remove addresses and display returned result/refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-51/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-52/container.tsx",
+       "components/screens/s-50/container.tsx"
+      ],
+      "conventions": [
+       "No false changed state after refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load addresses, validate form, confirm remove and render API response."
+     },
+     {
+      "id": "TASK-53",
+      "title": "Team S-52",
+      "reqs": [
+       "REQ-3/4: invite/remove organization members and show returned status/errors."
+      ],
+      "fileScope": [
+       "components/screens/s-52/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-51/container.tsx",
+       "components/screens/s-59/container.tsx"
+      ],
+      "conventions": [
+       "API enforces organization scope."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load members, validate invite, submit invite/remove and render outcomes."
+     },
+     {
+      "id": "TASK-54",
+      "title": "Products S-53",
+      "reqs": [
+       "REQ-1/3/5: search products, deactivated status and detail links.",
+       "REQ-27: filtered CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-53/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-54/container.tsx"
+      ],
+      "conventions": [
+       "Previous profile versions read-only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load/filter products, show empty/refused and ordering status, export CSV."
+     },
+     {
+      "id": "TASK-55",
+      "title": "Product detail S-54",
+      "reqs": [
+       "REQ-5/27: maintain/deactivate product, display returned references/status and immutable history; metadata read-only."
+      ],
+      "fileScope": [
+       "components/screens/s-54/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-53/container.tsx",
+       "components/screens/s-55/container.tsx"
+      ],
+      "conventions": [
+       "Use returned product status."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load product, submit updates/deactivation and display API effects/refusal."
+     },
+     {
+      "id": "TASK-56",
+      "title": "Profiles S-55",
+      "reqs": [
+       "REQ-5/6: list immutable versions and returned recalculated stock/decision values."
+      ],
+      "fileScope": [
+       "components/screens/s-55/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-56/container.tsx",
+       "components/screens/s-19/container.tsx"
+      ],
+      "conventions": [
+       "Never mutate signed decisions."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load versions/recalculation results, render reason/date and link new profile."
+     },
+     {
+      "id": "TASK-57",
+      "title": "New profile S-56",
+      "reqs": [
+       "REQ-5: validate complete contiguous tiers, no overlaps/gaps, reason and date today or later; submit and show version/error."
+      ],
+      "fileScope": [
+       "components/screens/s-56/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-55/container.tsx",
+       "components/screens/s-7/container.tsx"
+      ],
+      "conventions": [
+       "Reject local invalid tiers before sending."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement tier/date validation, submit profile and show returned version/recalculation."
+     },
+     {
+      "id": "TASK-58",
+      "title": "Organisations S-57",
+      "reqs": [
+       "REQ-13/27: search/list organization shelf-life data and export filtered rows."
+      ],
+      "fileScope": [
+       "components/screens/s-57/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-53/container.tsx",
+       "components/screens/s-58/container.tsx"
+      ],
+      "conventions": [
+       "Use API values."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load/filter organizations, empty state and CSV."
+     },
+     {
+      "id": "TASK-59",
+      "title": "Organisation detail S-58",
+      "reqs": [
+       "REQ-13/30: set shelf-life rule and display scoped access/account records."
+      ],
+      "fileScope": [
+       "components/screens/s-58/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-57/container.tsx",
+       "components/screens/s-60/container.tsx"
+      ],
+      "conventions": [
+       "Do not expose unreturned organizations."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load organization, validate/save shelf-life value and render status."
+     },
+     {
+      "id": "TASK-60",
+      "title": "Accounts S-59",
+      "reqs": [
+       "REQ-27/30: search/filter accounts by role/status and export."
+      ],
+      "fileScope": [
+       "components/screens/s-59/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-53/container.tsx",
+       "components/screens/s-60/container.tsx"
+      ],
+      "conventions": [
+       "Clear rows on refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load/filter accounts, empty state, CSV and detail link."
+     },
+     {
+      "id": "TASK-61",
+      "title": "Account detail S-60",
+      "reqs": [
+       "REQ-27/29/30: create/deactivate, roles/warehouse/customer access scopes and returned account/reset status."
+      ],
+      "fileScope": [
+       "components/screens/s-60/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-59/container.tsx",
+       "components/screens/s-52/container.tsx"
+      ],
+      "conventions": [
+       "API controls account state."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load/create account, validate role/scope, save/deactivate and display service result/refusal."
+     },
+     {
+      "id": "TASK-62",
+      "title": "Admin audit S-61",
+      "reqs": [
+       "REQ-27/58: read-only audit actor/time/changes/values/reason; filter and export; denial hides data."
+      ],
+      "fileScope": [
+       "components/screens/s-61/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-64/container.tsx",
+       "components/screens/s-63/container.tsx"
+      ],
+      "conventions": [
+       "No write actions."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load/filter audit events, render details and filtered CSV."
+     },
+     {
+      "id": "TASK-63",
+      "title": "Admin reports S-62",
+      "reqs": [
+       "REQ-27/60: date/warehouse reports for requested metrics, scope filters and export displayed figures."
+      ],
+      "fileScope": [
+       "components/screens/s-62/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-66/container.tsx",
+       "components/screens/s-61/container.tsx"
+      ],
+      "conventions": [
+       "Report calculations/thresholds from API."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load/render all reports, loading/no-data/refused and CSV of displayed filter result."
+     },
+     {
+      "id": "TASK-64",
+      "title": "Admin lot history S-63",
+      "reqs": [
+       "REQ-27/59: chronological lot history, read-only metadata and empty state."
+      ],
+      "fileScope": [
+       "components/screens/s-63/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-65/container.tsx"
+      ],
+      "conventions": [
+       "Clear protected values on refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load and render receipt/move/delivery/destruction events chronologically."
+     },
+     {
+      "id": "TASK-65",
+      "title": "Auditor audit S-64",
+      "reqs": [
+       "REQ-1/3/27/58: scoped read-only audit, filters/details/export and denied state without data."
+      ],
+      "fileScope": [
+       "components/screens/s-64/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-61/container.tsx",
+       "components/screens/s-65/container.tsx"
+      ],
+      "conventions": [
+       "No write controls."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load audit events, render read-only detail/filter/export and clear on denial."
+     },
+     {
+      "id": "TASK-66",
+      "title": "Auditor lot history S-65",
+      "reqs": [
+       "REQ-3/59: read-only chronological events or denial without events."
+      ],
+      "fileScope": [
+       "components/screens/s-65/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-63/container.tsx",
+       "components/screens/s-64/container.tsx"
+      ],
+      "conventions": [
+       "No write controls."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load lot history and show chronological, empty or refused state."
+     },
+     {
+      "id": "TASK-67",
+      "title": "Auditor reports S-66",
+      "reqs": [
+       "REQ-3/27/60: authorized read-only reports, filters/export and denied state without figures."
+      ],
+      "fileScope": [
+       "components/screens/s-66/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-62/container.tsx",
+       "components/screens/s-64/container.tsx"
+      ],
+      "conventions": [
+       "Hide figures/export after refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load report figures and filters; render no-data/refused states and filtered CSV."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Generated API contract and one working screen container per slice; first driver slice provides offline store.",
+      "simplest": true,
+      "tradeoffs": "Early criteria are wired without overlapping files; requires contract-first client generation."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Build shared domain services first, then wire screens in a final pass.",
+      "simplest": false,
+      "tradeoffs": "May centralize logic, but delays every UI criterion and creates overlapping scopes."
+     }
+    ],
+    "chosen": "OPTION-1",
+    "adr": "Use generated Next file routes and implement each approved container as a working slice. TASK-26 owns reusable driver IndexedDB storage. Screens call only the generated lib/api client from the shared contract. API-side authorization, persistence, email and enforcement are unchanged; no native app or app-store work.",
+    "protectedPathsDeclared": [
+     "package.json"
+    ],
+    "newDependencies": [],
+    "stubs": [
+     {
+      "path": "lib/driver/offline-store.ts",
+      "content": "export type DriverActionKind = \"loading\" | \"handover\" | \"refusal\";\nexport type DriverActionStatus = \"queued\" | \"syncing\" | \"accepted\" | \"rejected\";\nexport interface DriverRouteCache {\n  driverId: number;\n  workday: string;\n  timeZone: string;\n  route: unknown;\n  savedAt: string;\n}\nexport interface QueuedDriverAction {\n  actionId: string;\n  driverId: number;\n  kind: DriverActionKind;\n  occurredAt: string;\n  payload: unknown;\n  status: DriverActionStatus;\n  result?: unknown;\n}\nexport async function saveRouteCache(cache: DriverRouteCache): Promise<void> {\n  throw new Error(\"not implemented\");\n}\nexport async function loadRouteCache(driverId: number, workday: string): Promise<DriverRouteCache | undefined> {\n  throw new Error(\"not implemented\");\n}\nexport async function enqueueAction(action: QueuedDriverAction): Promise<void> {\n  throw new Error(\"not implemented\");\n}\nexport async function listQueuedActions(driverId: number): Promise<QueuedDriverAction[]> {\n  throw new Error(\"not implemented\");\n}\nexport async function applyActionResult(driverId: number, actionId: string, accepted: boolean, result: unknown): Promise<void> {\n  throw new Error(\"not implemented\");\n}\nexport async function clearRouteCache(driverId: number): Promise<void> {\n  throw new Error(\"not implemented\");\n}\n",
+      "reason": "First-use shared offline store for the driver screens; tests need this seam before implementation."
+     },
+     {
+      "path": "contracts/openapi.yaml",
+      "content": "openapi: 3.0.3\ninfo:\n  title: Meridian Cold Chain Portal API\n  version: 1.0.0\nservers:\n  - url: /api\nsecurity:\n  - bearerAuth: []\npaths:\n  /auth/staff:\n    post:\n      operationId: startStaffSignIn\n      summary: Start configured staff sign-in\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/StaffSignInRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /auth/customer:\n    post:\n      operationId: startCustomerSignIn\n      summary: Submit customer credentials\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/CredentialsRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Challenge\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /auth/code/verify:\n    post:\n      operationId: verifyCustomerCode\n      summary: Verify one-time customer code\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/CodeRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /auth/code/resend:\n    post:\n      operationId: resendCustomerCode\n      summary: Resend one-time customer code\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ChallengeRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /auth/password-reset:\n    post:\n      operationId: requestPasswordReset\n      summary: Request password reset link\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/EmailRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /auth/password-reset/{token}:\n    parameters:\n      - $ref: \"#/components/parameters/Token\"\n    get:\n      operationId: inspectResetToken\n      summary: Check reset token\n      security: []\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    put:\n      operationId: setNewPassword\n      summary: Set password with reset token\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewPasswordRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /receipts:\n    get:\n      operationId: listReceipts\n      summary: List scoped receipts\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/StatusFilter\"\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ReceiptRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: createReceipt\n      summary: Record receipt\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ReceiptRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ReceiptDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /receipts/{receiptId}:\n    parameters:\n      - $ref: \"#/components/parameters/ReceiptId\"\n    get:\n      operationId: getReceipt\n      summary: Get receipt, logger history and budget\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ReceiptDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /receipts/{receiptId}/logger:\n    parameters:\n      - $ref: \"#/components/parameters/ReceiptId\"\n    post:\n      operationId: uploadInboundLogger\n      summary: Upload supplier-format logger file\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/FileRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ReceiptDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /receipts/{receiptId}/evidence:\n    parameters:\n      - $ref: \"#/components/parameters/ReceiptId\"\n    post:\n      operationId: uploadReceiptEvidence\n      summary: Upload receipt evidence file\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/FileRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /stock:\n    get:\n      operationId: listStock\n      summary: List scoped stock and status counts\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/StatusFilter\"\n        - $ref: \"#/components/parameters/WarehouseId\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/StockRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /stock/opening:\n    post:\n      operationId: createOpeningStock\n      summary: Enter opening lot and stock\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/OpeningStockRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/StockDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /stock/units/{unitId}:\n    parameters:\n      - $ref: \"#/components/parameters/UnitId\"\n    get:\n      operationId: getHandlingUnit\n      summary: Get handling unit and temperature history\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/StockDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /stock/units/{unitId}/moves:\n    parameters:\n      - $ref: \"#/components/parameters/UnitId\"\n    post:\n      operationId: moveStock\n      summary: Move stock between locations\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/MovementRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/MovementDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /moves:\n    get:\n      operationId: listMovements\n      summary: List movement records\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/MovementRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /boxes:\n    get:\n      operationId: listBoxes\n      summary: List packed boxes\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/BoxRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: packBox\n      summary: Pack and seal box\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/PackingRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/BoxDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /cold-rooms:\n    get:\n      operationId: listColdRooms\n      summary: List cold rooms and alerts\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ColdRoomRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /cold-rooms/{roomId}/readings:\n    parameters:\n      - $ref: \"#/components/parameters/RoomId\"\n    get:\n      operationId: getColdRoomReadings\n      summary: Get cold room history and alert data\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/TemperatureDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /delivery-dates:\n    get:\n      operationId: listEligibleDeliveryDates\n      summary: List warehouse-eligible delivery dates\n      parameters:\n        - $ref: \"#/components/parameters/AddressIdQuery\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/EligibleDates\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /orders:\n    get:\n      operationId: listOrders\n      summary: List authorized orders\n      parameters:\n        - $ref: \"#/components/parameters/StatusFilter\"\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrderRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: createOrder\n      summary: Place order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/OrderRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrderDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /orders/{orderId}:\n    parameters:\n      - $ref: \"#/components/parameters/OrderId\"\n    get:\n      operationId: getOrder\n      summary: Get order and allocations\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrderDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    patch:\n      operationId: changeOrder\n      summary: Change order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/OrderRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrderDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    delete:\n      operationId: cancelOrder\n      summary: Cancel order\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /orders/{orderId}/allocation-override:\n    parameters:\n      - $ref: \"#/components/parameters/OrderId\"\n    post:\n      operationId: overrideOrderAllocation\n      summary: Override lot allocation with reason\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/OverrideRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrderDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes:\n    get:\n      operationId: listRoutes\n      summary: List routes and stop status\n      parameters:\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RouteRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: createRoute\n      summary: Create route plan\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/RouteRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RouteDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes/{routeId}:\n    parameters:\n      - $ref: \"#/components/parameters/RouteId\"\n    get:\n      operationId: getRoute\n      summary: Get route, stops, boxes and monitoring\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RouteDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    patch:\n      operationId: changeRoute\n      summary: Change route schedule and stop order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/RouteRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RouteDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes/{routeId}/confirm:\n    parameters:\n      - $ref: \"#/components/parameters/RouteId\"\n    post:\n      operationId: confirmRoute\n      summary: Confirm route and qualified duration\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ActionRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes/{routeId}/scans:\n    parameters:\n      - $ref: \"#/components/parameters/RouteId\"\n    post:\n      operationId: scanRouteBox\n      summary: Record loaded box scan\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ScanRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes/{routeId}/departure:\n    parameters:\n      - $ref: \"#/components/parameters/RouteId\"\n    post:\n      operationId: confirmDeparture\n      summary: Confirm driver departure\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ActionRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes/{routeId}/reconcile:\n    parameters:\n      - $ref: \"#/components/parameters/RouteId\"\n    post:\n      operationId: reconcileDriverRoute\n      summary: Reconcile cached route and changes\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ActionRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RouteDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /driver/routes/today:\n    get:\n      operationId: listDriversTodayRoutes\n      summary: List authenticated drivers assigned routes\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RouteRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /routes/{routeId}/stops/{stopId}:\n    parameters:\n      - $ref: \"#/components/parameters/RouteId\"\n      - $ref: \"#/components/parameters/StopId\"\n    get:\n      operationId: getRouteStop\n      summary: Get stop boxes and delivery eligibility\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/StopDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /boxes/{boxId}/temperature:\n    parameters:\n      - $ref: \"#/components/parameters/BoxId\"\n    get:\n      operationId: getBoxTemperatureHistory\n      summary: Get box temperature history and gateway status\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/TemperatureDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /driver/handovers:\n    post:\n      operationId: submitHandover\n      summary: Submit driver handover\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/HandoverRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/HandoverDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /driver/pending:\n    get:\n      operationId: listPendingDriverActions\n      summary: List authenticated drivers pending outcomes\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ActionRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: synchronizeDriverActions\n      summary: Synchronize queued actions for current driver\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/SyncRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ActionRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /deliveries:\n    get:\n      operationId: listDeliveries\n      summary: List scoped deliveries\n      parameters:\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n        - $ref: \"#/components/parameters/StatusFilter\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/DeliveryRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /deliveries/{deliveryId}:\n    parameters:\n      - $ref: \"#/components/parameters/DeliveryId\"\n    get:\n      operationId: getDelivery\n      summary: Get scoped delivery and quality case\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/DeliveryDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /deliveries/{deliveryId}/evidence:\n    parameters:\n      - $ref: \"#/components/parameters/DeliveryId\"\n    get:\n      operationId: getDeliveryEvidence\n      summary: Get authorized handover evidence\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/HandoverDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /deliveries/{deliveryId}/certificates:\n    parameters:\n      - $ref: \"#/components/parameters/DeliveryId\"\n    get:\n      operationId: listDeliveryCertificates\n      summary: List retained certificate versions\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/CertificateRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /deliveries/{deliveryId}/certificates/{certificateId}.pdf:\n    parameters:\n      - $ref: \"#/components/parameters/DeliveryId\"\n      - $ref: \"#/components/parameters/CertificateId\"\n    get:\n      operationId: downloadDeliveryCertificate\n      summary: Download authorized certificate PDF\n      responses:\n        \"200\":\n          description: Certificate file\n          content:\n            application/pdf:\n              schema:\n                type: string\n                format: binary\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /quality/cases:\n    get:\n      operationId: listQualityCases\n      summary: List quality cases and alerts\n      parameters:\n        - $ref: \"#/components/parameters/StatusFilter\"\n        - $ref: \"#/components/parameters/Search\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/CaseRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /quality/cases/{caseId}:\n    parameters:\n      - $ref: \"#/components/parameters/CaseId\"\n    get:\n      operationId: getQualityCase\n      summary: Get review, history, budget and recommendation\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/CaseDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: submitQualityDecision\n      summary: Release, decide or propose disposition\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/DecisionRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /quality/proposals/{proposalId}:\n    parameters:\n      - $ref: \"#/components/parameters/ProposalId\"\n    post:\n      operationId: decideProposal\n      summary: Approve or reject proposal\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ApprovalRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /quality/decisions/{decisionId}:\n    parameters:\n      - $ref: \"#/components/parameters/DecisionId\"\n    get:\n      operationId: getSignedDecision\n      summary: Get signed decision history\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/DecisionDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: supersedeDecision\n      summary: Record signed superseding decision\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/DecisionRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /quality/units/{unitId}/destruction:\n    parameters:\n      - $ref: \"#/components/parameters/UnitId\"\n    post:\n      operationId: recordDestruction\n      summary: Record rejected stock destruction\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/DestructionRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/MovementDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /quality-manager/waiting:\n    get:\n      operationId: listWaitingDecisions\n      summary: List waiting and escalated decisions\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/CaseRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /recalls:\n    get:\n      operationId: listRecalls\n      summary: List recall progress\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/StatusFilter\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecallRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: startRecall\n      summary: Start signed recall\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/RecallRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecallDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /recalls/{recallId}:\n    parameters:\n      - $ref: \"#/components/parameters/RecallId\"\n    get:\n      operationId: getRecall\n      summary: Get recall, progress and trace\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecallDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: closeRecall\n      summary: Sign and close recall\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/SignatureRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /recalls/{recallId}/write-offs:\n    parameters:\n      - $ref: \"#/components/parameters/RecallId\"\n    post:\n      operationId: writeOffRecallRemainder\n      summary: Write off recall remainder\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/WriteOffRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /recalls/{recallId}/deliveries/{deliveryId}/response:\n    parameters:\n      - $ref: \"#/components/parameters/RecallId\"\n      - $ref: \"#/components/parameters/DeliveryId\"\n    get:\n      operationId: getRecallResponse\n      summary: Get delivery recall reconciliation\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecallResponseDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    put:\n      operationId: saveRecallResponse\n      summary: Submit or revise recall quantities\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/RecallResponseRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecallResponseDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /customer/recalls:\n    get:\n      operationId: listCustomerRecallNotices\n      summary: List customer recall notices\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecallRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /customer/account:\n    get:\n      operationId: getCustomerAccount\n      summary: Get customer locale and account\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    patch:\n      operationId: updateCustomerLocale\n      summary: Save account language preference\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/LocaleRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /customer/addresses:\n    get:\n      operationId: listCustomerAddresses\n      summary: List saved addresses\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AddressRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: saveCustomerAddress\n      summary: Add or edit saved address\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/AddressRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AddressDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /customer/addresses/{addressId}:\n    parameters:\n      - $ref: \"#/components/parameters/AddressId\"\n    delete:\n      operationId: removeCustomerAddress\n      summary: Remove saved address\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /customer/team:\n    get:\n      operationId: listCustomerTeam\n      summary: List organization members\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: inviteCustomerTeamMember\n      summary: Invite organization member\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/InviteRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /products:\n    get:\n      operationId: listProducts\n      summary: Search product catalog\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/StatusFilter\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ProductRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /products/{productId}:\n    parameters:\n      - $ref: \"#/components/parameters/ProductId\"\n    get:\n      operationId: getProduct\n      summary: Get product specification\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ProductDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    patch:\n      operationId: updateProduct\n      summary: Update or deactivate product\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ProductRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ProductDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /products/{productId}/profiles:\n    parameters:\n      - $ref: \"#/components/parameters/ProductId\"\n    get:\n      operationId: listProfiles\n      summary: List profile versions and recalculation results\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ProfileRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: createProfile\n      summary: Create versioned temperature profile\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ProfileRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ProfileDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /organisations:\n    get:\n      operationId: listOrganisations\n      summary: List organisations\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrganisationRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /organisations/{orgId}:\n    parameters:\n      - $ref: \"#/components/parameters/OrgId\"\n    get:\n      operationId: getOrganisation\n      summary: Get organisation and access detail\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/OrganisationDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    patch:\n      operationId: setShelfLifeRule\n      summary: Set minimum remaining shelf life\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ShelfLifeRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Result\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /accounts:\n    get:\n      operationId: listAccounts\n      summary: List accounts\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/StatusFilter\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: saveAccount\n      summary: Create account and assign access\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/AccountRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /accounts/{accountId}:\n    parameters:\n      - $ref: \"#/components/parameters/AccountId\"\n    get:\n      operationId: getAccount\n      summary: Get account details\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    patch:\n      operationId: deactivateAccount\n      summary: Update or deactivate account\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/AccountRequest\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AccountDetail\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /audit:\n    get:\n      operationId: listAuditEntries\n      summary: Get filtered audit trail\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n        - $ref: \"#/components/parameters/ActionFilter\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AuditRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /reports:\n    get:\n      operationId: getOperationalReports\n      summary: Get date and warehouse reports\n      parameters:\n        - $ref: \"#/components/parameters/DateFrom\"\n        - $ref: \"#/components/parameters/DateTo\"\n        - $ref: \"#/components/parameters/WarehouseId\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/ReportRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n  /lots/{lotId}/history:\n    parameters:\n      - $ref: \"#/components/parameters/LotId\"\n    get:\n      operationId: getLotHistory\n      summary: Get chronological lot history\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/LotHistoryRows\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n  parameters:\n    Token:\n      name: token\n      in: path\n      required: true\n      schema:\n        type: string\n    ReceiptId:\n      name: receiptId\n      in: path\n      required: true\n      schema:\n        type: integer\n    UnitId:\n      name: unitId\n      in: path\n      required: true\n      schema:\n        type: integer\n    OrderId:\n      name: orderId\n      in: path\n      required: true\n      schema:\n        type: integer\n    RouteId:\n      name: routeId\n      in: path\n      required: true\n      schema:\n        type: integer\n    StopId:\n      name: stopId\n      in: path\n      required: true\n      schema:\n        type: integer\n    BoxId:\n      name: boxId\n      in: path\n      required: true\n      schema:\n        type: integer\n    RoomId:\n      name: roomId\n      in: path\n      required: true\n      schema:\n        type: integer\n    DeliveryId:\n      name: deliveryId\n      in: path\n      required: true\n      schema:\n        type: integer\n    CertificateId:\n      name: certificateId\n      in: path\n      required: true\n      schema:\n        type: integer\n    CaseId:\n      name: caseId\n      in: path\n      required: true\n      schema:\n        type: integer\n    ProposalId:\n      name: proposalId\n      in: path\n      required: true\n      schema:\n        type: integer\n    DecisionId:\n      name: decisionId\n      in: path\n      required: true\n      schema:\n        type: integer\n    RecallId:\n      name: recallId\n      in: path\n      required: true\n      schema:\n        type: integer\n    AddressId:\n      name: addressId\n      in: path\n      required: true\n      schema:\n        type: integer\n    AccountId:\n      name: accountId\n      in: path\n      required: true\n      schema:\n        type: integer\n    ProductId:\n      name: productId\n      in: path\n      required: true\n      schema:\n        type: integer\n    OrgId:\n      name: orgId\n      in: path\n      required: true\n      schema:\n        type: integer\n    LotId:\n      name: lotId\n      in: path\n      required: true\n      schema:\n        type: integer\n    Search:\n      name: search\n      in: query\n      required: false\n      schema:\n        type: string\n    StatusFilter:\n      name: status\n      in: query\n      required: false\n      schema:\n        type: string\n    DateFrom:\n      name: dateFrom\n      in: query\n      required: false\n      schema:\n        type: string\n        format: date\n    DateTo:\n      name: dateTo\n      in: query\n      required: false\n      schema:\n        type: string\n        format: date\n    WarehouseId:\n      name: warehouseId\n      in: query\n      required: false\n      schema:\n        type: integer\n    AddressIdQuery:\n      name: addressId\n      in: query\n      required: false\n      schema:\n        type: integer\n    ActionFilter:\n      name: actionType\n      in: query\n      required: false\n      schema:\n        type: string\n  responses:\n    Result:\n      description: Operation result\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ResultResponse\"\n          example:\n            id: 2101\n            status: saved\n            message: Operation completed\n    Challenge:\n      description: One-time code challenge\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ResultResponse\"\n          example:\n            id: 4401\n            status: challenge\n            message: Verification code sent\n    ReceiptRows:\n      description: Receipt rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 701\n                product: Temperature-sensitive vaccine\n                lotNumber: LOT-2026-041\n                quantity: 240\n                received: 2026-10-12T08:30:00Z\n                warehouse: North Depot\n                status: Quarantined\n    ReceiptDetail:\n      description: Receipt detail and inbound history\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 701\n              product: Temperature-sensitive vaccine\n              lotNumber: LOT-2026-041\n              expiryDate: 2027-03-31\n              quantity: 240\n              supplier: Meridian Biologics\n              location: Cold room C2 shelf B4\n              status: Quarantined\n              readings:\n                - id: 1\n                  timestamp: 2026-10-12T08:30:00Z\n                  temperature: 4.2\n                  flag: valid\n              budgetUsed: Tier 1 15 minutes\n    StockRows:\n      description: Stock records\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 901\n                product: Temperature-sensitive vaccine\n                lotNumber: LOT-2026-041\n                handlingUnit: HU-701-A\n                warehouse: North Depot\n                location: Cold room C2 shelf B4\n                receiptId: 701\n                expiryDate: 2027-03-31\n                onHand: 120\n                available: 72\n                allocated: 24\n                quarantined: 12\n                onHold: 0\n                rejected: 0\n                recalled: 0\n                expired: 12\n                status: Available\n    StockDetail:\n      description: Handling unit result\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 901\n              handlingUnit: HU-701-A\n              lotNumber: LOT-2026-041\n              quantity: 120\n              status: Available\n              tierBudgets:\n                - id: 1\n                  tier: Tier 1\n                  usedMinutes: 22\n                  remainingMinutes: 38\n              gaps: []\n              alerts: []\n    MovementRows:\n      description: Movement rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 301\n                timestamp: 2026-10-12T10:15:00Z\n                actor: Leila Haddad\n                unit: HU-701-A\n                quantity: 12\n                source: Shelf B4\n                destination: Shelf B5\n                status: completed\n    MovementDetail:\n      description: Movement result\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 301\n              timestamp: 2026-10-12T10:15:00Z\n              actor: Leila Haddad\n              source: Shelf B4\n              destination: Shelf B5\n              quantity: 12\n              status: completed\n    BoxRows:\n      description: Box rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 501\n                boxIdentifier: BOX-501\n                boxType: Meridian insulated shipper\n                logger: LOGGER-501\n                compatibility: compatible\n                status: Sealed\n    BoxDetail:\n      description: Box pack and seal result\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 501\n              boxIdentifier: BOX-501\n              logger: LOGGER-501\n              compatibility: compatible\n              sealedAt: 2026-10-12T11:00:00Z\n              operator: Leila Haddad\n              status: Sealed\n    ColdRoomRows:\n      description: Cold room readings and alerts\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 2\n                name: Cold room C2\n                temperature: 4.1\n                lastReadingTime: 2026-10-12T11:05:00Z\n                status: Online\n                alert: none\n    TemperatureDetail:\n      description: Temperature history\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 2\n              name: Cold room C2\n              readings:\n                - id: 1\n                  timestamp: 2026-10-12T11:05:00Z\n                  temperature: 4.1\n                  flag: valid\n              alerts: []\n              gaps: []\n    EligibleDates:\n      description: Warehouse eligible dates\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/EligibleDatesResponse\"\n          example:\n            warehouseTimeZone: Europe/London\n            eligibleDates:\n              - 2026-10-14\n              - 2026-10-15\n    OrderRows:\n      description: Order rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 2101\n                orderNumber: ORD-2101\n                date: 2026-10-12\n                consignee: Cedar Clinic\n                product: Temperature-sensitive vaccine\n                lotNumber: LOT-2026-041\n                allocated: 24\n                outstanding: 0\n                status: Packed\n    OrderDetail:\n      description: Order detail and allocations\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 2101\n              orderNumber: ORD-2101\n              status: Allocated\n              allocated: 24\n              outstanding: 0\n              lots:\n                - id: 901\n                  lotNumber: LOT-2026-041\n                  expiryDate: 2027-03-31\n                  quantity: 24\n                  status: Available\n    RouteRows:\n      description: Route rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 810\n                routeNumber: RT-810\n                date: 2026-10-12\n                vehicle: Van 14\n                driver: Omar Khalil\n                status: Confirmed\n                stops:\n                  - id: 1\n                    name: Cedar Clinic\n                    order: 1\n                    status: Pending\n    RouteDetail:\n      description: Route detail and changes\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 810\n              routeNumber: RT-810\n              status: Confirmed\n              lastUpdated: 2026-10-12T10:00:00Z\n              stops:\n                - id: 1\n                  name: Cedar Clinic\n                  order: 1\n                  plannedArrival: 2026-10-12T13:00:00Z\n                  status: Pending\n              differences: []\n    StopDetail:\n      description: Driver stop detail\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 1\n              name: Cedar Clinic\n              order: 1\n              status: Pending\n              boxes:\n                - id: 501\n                  boxIdentifier: BOX-501\n                  quantity: 24\n                  stockStatus: Available\n                  deliveryEligibility: Eligible\n    HandoverDetail:\n      description: Handover/evidence record\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 6001\n              handoverId: handover-6001\n              receiverName: Samira Nasser\n              acknowledged: true\n              actualTime: 2026-10-12T13:05:00Z\n              locationStatus: unavailable\n              deliveredQuantity: 24\n              outstandingQuantity: 0\n              status: Completed\n    ActionRows:\n      description: Driver action outcomes\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 6001\n                actionId: handover-6001\n                status: accepted\n                message: Handover synchronized\n    DeliveryRows:\n      description: Delivery rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 6001\n                orderId: 2101\n                destination: Cedar Clinic\n                plannedArrival: 2026-10-12T13:00:00Z\n                temperatureStatus: In range\n                status: In transit\n    DeliveryDetail:\n      description: Delivery detail\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 6001\n              orderId: 2101\n              receiver: Samira Nasser\n              handoverTime: 2026-10-12T13:05:00Z\n              status: Completed\n              qualityCaseStatus: none\n    CertificateRows:\n      description: Certificate versions\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 1\n                version: 2\n                createdAt: 2026-10-13T10:00:00Z\n                status: Available\n                downloadUrl: /api/deliveries/6001/certificates/1.pdf\n    CaseRows:\n      description: Quality cases or waiting decisions\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 4001\n                opened: 2026-10-12T09:00:00Z\n                lotNumber: LOT-2026-041\n                reviewStatus: Open\n                status: Awaiting review\n    CaseDetail:\n      description: Quality review data\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 4001\n              status: Awaiting review\n              recommendation: Release\n              history: []\n              tierBudgets:\n                - id: 1\n                  tier: Tier 1\n                  usedMinutes: 22\n                  remainingMinutes: 38\n              gaps: []\n    DecisionDetail:\n      description: Signed decision history\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 7001\n              decision: Release\n              reason: Within allowance\n              signer: Hana Saleh\n              signedAt: 2026-10-12T12:00:00Z\n              status: Signed\n    RecallRows:\n      description: Recall and notice rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 9001\n                product: Temperature-sensitive vaccine\n                lotNumber: LOT-2026-041\n                traced: 240\n                accounted: 216\n                outstanding: 24\n                status: Open\n                reminderStatus: Sent\n    RecallDetail:\n      description: Recall trace and progress\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 9001\n              status: Open\n              receivedQuantity: 240\n              traceTotal: 240\n              outstandingQuantity: 24\n              locations: []\n              boxes: []\n              routes: []\n              deliveries: []\n    RecallResponseDetail:\n      description: Customer recall response\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 6001\n              deliveredQuantity: 24\n              onHand: 8\n              used: 12\n              destroyed: 2\n              unaccounted: 2\n              disposition: Returned to clinic store\n              status: Submitted\n    AccountRows:\n      description: Account and team rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 1001\n                name: Leila Haddad\n                email: leila@example.test\n                role: System Administrator\n                status: Active\n    AccountDetail:\n      description: Account details\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 1001\n              name: Leila Haddad\n              email: leila@example.test\n              role: System Administrator\n              organization: Cedar Health\n              timeZone: Europe/London\n              language: en\n              status: Active\n    AddressRows:\n      description: Saved address rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 11\n                facility: Cedar Clinic\n                street: 14 Cedar Road\n                locality: Bristol\n                contact: Receiving desk\n                status: Active\n    AddressDetail:\n      description: Saved address result\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 11\n              facility: Cedar Clinic\n              street: 14 Cedar Road\n              locality: Bristol\n              contact: Receiving desk\n              status: saved\n    ProductRows:\n      description: Product rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 21\n                name: Temperature-sensitive vaccine\n                code: VAC-21\n                status: Active\n                profileVersion: 4\n                packSize: 12\n    ProductDetail:\n      description: Product detail\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 21\n              name: Temperature-sensitive vaccine\n              code: VAC-21\n              packSize: 12\n              profileVersion: 4\n              status: Active\n    ProfileRows:\n      description: Temperature profile versions\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 4\n                version: 4\n                effectiveDate: 2026-10-12\n                lowerLimit: 2\n                upperLimit: 8\n                reason: Annual review\n                status: Active\n    ProfileDetail:\n      description: Profile version and recalculation\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 5\n              version: 5\n              effectiveDate: 2026-10-15\n              reason: Revised tier allowance\n              recalculatedStock: []\n              status: Created\n    OrganisationRows:\n      description: Organization rows\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 31\n                name: Cedar Health\n                minimumShelfLifeDays: 90\n                primaryAddress: Cedar Clinic\n                status: Active\n    OrganisationDetail:\n      description: Organization detail\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ItemResponse\"\n          example:\n            item:\n              id: 31\n              name: Cedar Health\n              minimumShelfLifeDays: 90\n              accounts: []\n              addresses: []\n              status: Active\n    AuditRows:\n      description: Filtered audit entries\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 3001\n                timestamp: 2026-10-12T10:15:00Z\n                actor: Leila Haddad\n                record: HU-701-A\n                action: Stock moved\n                changedField: location\n                oldValue: Shelf B4\n                newValue: Shelf B5\n                reason: Reorganization\n    ReportRows:\n      description: Operational report values\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 1\n                metric: Delivery in full percent\n                value: 96.5\n                period: 2026-10\n                warehouse: North Depot\n    LotHistoryRows:\n      description: Chronological lot events\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/CollectionResponse\"\n          example:\n            items:\n              - id: 1\n                timestamp: 2026-10-10T08:00:00Z\n                actor: Leila Haddad\n                place: North Depot\n                quantity: 240\n                result: Receipt quarantined\n                status: Quarantined\n    BadRequest:\n      description: Validation error\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ErrorResponse\"\n          example:\n            code: validation_error\n            message: Check the highlighted fields\n    Unauthorized:\n      description: Authentication required\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ErrorResponse\"\n          example:\n            code: unauthorized\n            message: Sign in to continue\n    Forbidden:\n      description: Access refused\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ErrorResponse\"\n          example:\n            code: forbidden\n            message: You do not have access to this record\n    NotFound:\n      description: Record not found\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ErrorResponse\"\n          example:\n            code: not_found\n            message: Requested record was not found\n    Conflict:\n      description: State conflict\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ErrorResponse\"\n          example:\n            code: conflict\n            message: Refresh and try again\n    ServerError:\n      description: Service failure\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ErrorResponse\"\n          example:\n            code: service_error\n            message: Service could not complete request\n  schemas:\n    ErrorResponse:\n      type: object\n      required:\n        - code\n        - message\n      properties:\n        code:\n          type: string\n        message:\n          type: string\n        fieldErrors:\n          type: object\n          additionalProperties:\n            type: string\n    ResultResponse:\n      type: object\n      required:\n        - id\n        - status\n        - message\n      properties:\n        id:\n          type: integer\n        status:\n          type: string\n        message:\n          type: string\n    ItemResponse:\n      type: object\n      required:\n        - item\n      properties:\n        item:\n          $ref: \"#/components/schemas/OperationalRecord\"\n    CollectionResponse:\n      type: object\n      required:\n        - items\n      properties:\n        items:\n          type: array\n          items:\n            $ref: \"#/components/schemas/OperationalRecord\"\n    EligibleDatesResponse:\n      type: object\n      required:\n        - warehouseTimeZone\n        - eligibleDates\n      properties:\n        warehouseTimeZone:\n          type: string\n        eligibleDates:\n          type: array\n          items:\n            type: string\n            format: date\n    OperationalRecord:\n      type: object\n      required:\n        - id\n      properties:\n        id:\n          type: integer\n        status:\n          type: string\n        message:\n          type: string\n        name:\n          type: string\n        product:\n          type: string\n        code:\n          type: string\n        lotNumber:\n          type: string\n        handlingUnit:\n          type: string\n        boxIdentifier:\n          type: string\n        orderNumber:\n          type: string\n        routeNumber:\n          type: string\n        organization:\n          type: string\n        consignee:\n          type: string\n        warehouse:\n          type: string\n        location:\n          type: string\n        source:\n          type: string\n        destination:\n          type: string\n        supplier:\n          type: string\n        facility:\n          type: string\n        street:\n          type: string\n        locality:\n          type: string\n        contact:\n          type: string\n        actor:\n          type: string\n        driver:\n          type: string\n        vehicle:\n          type: string\n        logger:\n          type: string\n        reason:\n          type: string\n        recommendation:\n          type: string\n        decision:\n          type: string\n        receiverName:\n          type: string\n        email:\n          type: string\n        role:\n          type: string\n        language:\n          type: string\n          enum:\n            - en\n            - ar\n        timeZone:\n          type: string\n        compatibility:\n          type: string\n        deliveryEligibility:\n          type: string\n        date:\n          type: string\n          format: date\n        expiryDate:\n          type: string\n          format: date\n        timestamp:\n          type: string\n          format: date-time\n        received:\n          type: string\n          format: date-time\n        lastUpdated:\n          type: string\n          format: date-time\n        plannedArrival:\n          type: string\n          format: date-time\n        actualTime:\n          type: string\n          format: date-time\n        temperature:\n          type: number\n          format: float\n        quantity:\n          type: integer\n        onHand:\n          type: integer\n        available:\n          type: integer\n        allocated:\n          type: integer\n        quarantined:\n          type: integer\n        onHold:\n          type: integer\n        rejected:\n          type: integer\n        recalled:\n          type: integer\n        expired:\n          type: integer\n        outstanding:\n          type: integer\n        outstandingQuantity:\n          type: integer\n        deliveredQuantity:\n          type: integer\n        traced:\n          type: integer\n        accounted:\n          type: integer\n        unaccounted:\n          type: integer\n        acknowledged:\n          type: boolean\n        readings:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - timestamp\n              - temperature\n            properties:\n              id:\n                type: integer\n              timestamp:\n                type: string\n                format: date-time\n              temperature:\n                type: number\n                format: float\n              flag:\n                type: string\n              band:\n                type: string\n        stops:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - name\n              - order\n            properties:\n              id:\n                type: integer\n              name:\n                type: string\n              order:\n                type: integer\n              status:\n                type: string\n              plannedArrival:\n                type: string\n                format: date-time\n        lots:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - lotNumber\n            properties:\n              id:\n                type: integer\n              lotNumber:\n                type: string\n              expiryDate:\n                type: string\n                format: date\n              quantity:\n                type: integer\n              status:\n                type: string\n        tierBudgets:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - tier\n              - usedMinutes\n              - remainingMinutes\n            properties:\n              id:\n                type: integer\n              tier:\n                type: string\n              usedMinutes:\n                type: integer\n              remainingMinutes:\n                type: integer\n        alerts:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - status\n            properties:\n              id:\n                type: integer\n              status:\n                type: string\n              type:\n                type: string\n              message:\n                type: string\n    StaffSignInRequest:\n      type: object\n      required:\n        - provider\n      properties:\n        provider:\n          type: string\n        returnUrl:\n          type: string\n    CredentialsRequest:\n      type: object\n      required:\n        - email\n        - password\n      properties:\n        email:\n          type: string\n          format: email\n        password:\n          type: string\n    CodeRequest:\n      type: object\n      required:\n        - challengeId\n        - code\n      properties:\n        challengeId:\n          type: integer\n        code:\n          type: string\n    ChallengeRequest:\n      type: object\n      required:\n        - challengeId\n      properties:\n        challengeId:\n          type: integer\n    EmailRequest:\n      type: object\n      required:\n        - email\n      properties:\n        email:\n          type: string\n          format: email\n    NewPasswordRequest:\n      type: object\n      required:\n        - password\n      properties:\n        password:\n          type: string\n    ReceiptRequest:\n      type: object\n      required:\n        - productId\n        - lotNumber\n        - expiryDate\n        - quantity\n        - supplier\n        - location\n      properties:\n        productId:\n          type: integer\n        lotNumber:\n          type: string\n        expiryDate:\n          type: string\n          format: date\n        quantity:\n          type: integer\n        supplier:\n          type: string\n        location:\n          type: string\n    FileRequest:\n      type: object\n      required:\n        - fileName\n        - mediaType\n        - contentBase64\n      properties:\n        fileName:\n          type: string\n        mediaType:\n          type: string\n        contentBase64:\n          type: string\n          format: byte\n    OpeningStockRequest:\n      type: object\n      required:\n        - productId\n        - lotNumber\n        - expiryDate\n        - location\n        - quantity\n      properties:\n        productId:\n          type: integer\n        lotNumber:\n          type: string\n        expiryDate:\n          type: string\n          format: date\n        location:\n          type: string\n        quantity:\n          type: integer\n    MovementRequest:\n      type: object\n      required:\n        - source\n        - destination\n        - quantity\n      properties:\n        source:\n          type: string\n        destination:\n          type: string\n        quantity:\n          type: integer\n    PackingRequest:\n      type: object\n      required:\n        - boxType\n        - boxIdentifier\n        - loggerId\n        - contents\n      properties:\n        boxType:\n          type: string\n        boxIdentifier:\n          type: string\n        loggerId:\n          type: string\n        contents:\n          type: array\n          items:\n            type: object\n            required:\n              - handlingUnitId\n              - quantity\n            properties:\n              handlingUnitId:\n                type: integer\n              quantity:\n                type: integer\n        routeId:\n          type: integer\n        orderId:\n          type: integer\n    OrderRequest:\n      type: object\n      required:\n        - lines\n        - addressId\n        - deliveryDate\n        - fulfillmentPreference\n        - idempotencyKey\n      properties:\n        lines:\n          type: array\n          items:\n            type: object\n            required:\n              - productId\n              - quantity\n            properties:\n              productId:\n                type: integer\n              quantity:\n                type: integer\n        addressId:\n          type: integer\n        deliveryDate:\n          type: string\n          format: date\n        fulfillmentPreference:\n          type: string\n          enum:\n            - partial\n            - complete\n        idempotencyKey:\n          type: string\n    OverrideRequest:\n      type: object\n      required:\n        - lotId\n        - quantity\n        - reason\n      properties:\n        lotId:\n          type: integer\n        quantity:\n          type: integer\n        reason:\n          type: string\n    RouteRequest:\n      type: object\n      required:\n        - vehicleId\n        - driverId\n        - date\n        - stops\n      properties:\n        vehicleId:\n          type: integer\n        driverId:\n          type: integer\n        date:\n          type: string\n          format: date\n        stops:\n          type: array\n          items:\n            type: object\n            required:\n              - stopId\n              - order\n              - plannedArrival\n            properties:\n              stopId:\n                type: integer\n              order:\n                type: integer\n              plannedArrival:\n                type: string\n                format: date-time\n    ActionRequest:\n      type: object\n      required:\n        - actionId\n      properties:\n        actionId:\n          type: string\n        reason:\n          type: string\n    ScanRequest:\n      type: object\n      required:\n        - boxIdentifier\n      properties:\n        boxIdentifier:\n          type: string\n        actionId:\n          type: string\n    HandoverRequest:\n      type: object\n      required:\n        - handoverId\n        - routeId\n        - stopId\n        - receiverName\n        - acknowledged\n        - actualTime\n        - boxes\n      properties:\n        handoverId:\n          type: string\n        routeId:\n          type: integer\n        stopId:\n          type: integer\n        receiverName:\n          type: string\n        acknowledged:\n          type: boolean\n        signatureBase64:\n          type: string\n          format: byte\n        photoBase64:\n          type: string\n          format: byte\n        actualTime:\n          type: string\n          format: date-time\n        locationStatus:\n          type: string\n          enum:\n            - available\n            - unavailable\n        latitude:\n          type: number\n          format: float\n        longitude:\n          type: number\n          format: float\n        boxes:\n          type: array\n          items:\n            type: object\n            required:\n              - boxId\n              - deliveredQuantity\n              - refused\n            properties:\n              boxId:\n                type: integer\n              deliveredQuantity:\n                type: integer\n              refused:\n                type: boolean\n              refusalReason:\n                type: string\n    SyncRequest:\n      type: object\n      required:\n        - actions\n      properties:\n        actions:\n          type: array\n          items:\n            $ref: \"#/components/schemas/HandoverRequest\"\n    DecisionRequest:\n      type: object\n      required:\n        - decision\n        - reason\n        - identityConfirmation\n      properties:\n        decision:\n          type: string\n        reason:\n          type: string\n        justification:\n          type: string\n        identityConfirmation:\n          type: string\n    ApprovalRequest:\n      type: object\n      required:\n        - action\n        - identityConfirmation\n      properties:\n        action:\n          type: string\n          enum:\n            - approve\n            - reject\n        reason:\n          type: string\n        identityConfirmation:\n          type: string\n    DestructionRequest:\n      type: object\n      required:\n        - destructionDate\n        - quantity\n        - witness\n      properties:\n        destructionDate:\n          type: string\n          format: date\n        quantity:\n          type: integer\n        witness:\n          type: string\n    RecallRequest:\n      type: object\n      required:\n        - productId\n        - lotIds\n        - reason\n        - severity\n        - identityConfirmation\n      properties:\n        productId:\n          type: integer\n        lotIds:\n          type: array\n          items:\n            type: integer\n        reason:\n          type: string\n        severity:\n          type: string\n        identityConfirmation:\n          type: string\n    SignatureRequest:\n      type: object\n      required:\n        - identityConfirmation\n        - reason\n      properties:\n        identityConfirmation:\n          type: string\n        reason:\n          type: string\n    WriteOffRequest:\n      type: object\n      required:\n        - quantity\n        - category\n        - justification\n        - identityConfirmation\n      properties:\n        quantity:\n          type: integer\n        category:\n          type: string\n        justification:\n          type: string\n        identityConfirmation:\n          type: string\n    RecallResponseRequest:\n      type: object\n      required:\n        - onHand\n        - used\n        - destroyed\n        - disposition\n      properties:\n        onHand:\n          type: integer\n        used:\n          type: integer\n        destroyed:\n          type: integer\n        disposition:\n          type: string\n    LocaleRequest:\n      type: object\n      required:\n        - language\n      properties:\n        language:\n          type: string\n          enum:\n            - en\n            - ar\n    AddressRequest:\n      type: object\n      required:\n        - facility\n        - street\n        - locality\n        - contact\n      properties:\n        id:\n          type: integer\n        facility:\n          type: string\n        street:\n          type: string\n        locality:\n          type: string\n        contact:\n          type: string\n    InviteRequest:\n      type: object\n      required:\n        - email\n        - role\n      properties:\n        email:\n          type: string\n          format: email\n        role:\n          type: string\n    ProductRequest:\n      type: object\n      required:\n        - name\n        - code\n        - status\n      properties:\n        name:\n          type: string\n        code:\n          type: string\n        packSize:\n          type: integer\n        status:\n          type: string\n        reason:\n          type: string\n    ProfileRequest:\n      type: object\n      required:\n        - effectiveDate\n        - lowerLimit\n        - upperLimit\n        - tiers\n        - reason\n      properties:\n        effectiveDate:\n          type: string\n          format: date\n        lowerLimit:\n          type: number\n          format: float\n        upperLimit:\n          type: number\n          format: float\n        tiers:\n          type: array\n          items:\n            type: object\n            required:\n              - order\n              - designation\n              - lowerBoundary\n              - upperBoundary\n              - allowanceMinutes\n            properties:\n              order:\n                type: integer\n              designation:\n                type: string\n              lowerBoundary:\n                type: number\n                format: float\n              upperBoundary:\n                type: number\n                format: float\n              allowanceMinutes:\n                type: integer\n        reason:\n          type: string\n    ShelfLifeRequest:\n      type: object\n      required:\n        - minimumShelfLifeDays\n      properties:\n        minimumShelfLifeDays:\n          type: integer\n    AccountRequest:\n      type: object\n      required:\n        - name\n        - email\n        - role\n      properties:\n        name:\n          type: string\n        email:\n          type: string\n          format: email\n        role:\n          type: string\n        warehouses:\n          type: array\n          items:\n            type: integer\n        organisationIds:\n          type: array\n          items:\n            type: integer\n        status:\n          type: string\n    ErrorResponse:\n      type: object\n      required:\n        - code\n        - message\n      properties:\n        code:\n          type: string\n        message:\n          type: string\n    ItemResponse:\n      type: object\n      required:\n        - item\n      properties:\n        item:\n          $ref: \"#/components/schemas/OperationalRecord\"\n    CollectionResponse:\n      type: object\n      required:\n        - items\n      properties:\n        items:\n          type: array\n          items:\n            $ref: \"#/components/schemas/OperationalRecord\"\n    OperationalRecord:\n      type: object\n      required:\n        - id\n      properties:\n        id:\n          type: integer\n        status:\n          type: string\n        message:\n          type: string\n        name:\n          type: string\n        product:\n          type: string\n        code:\n          type: string\n        lotNumber:\n          type: string\n        handlingUnit:\n          type: string\n        boxIdentifier:\n          type: string\n        orderNumber:\n          type: string\n        routeNumber:\n          type: string\n        organization:\n          type: string\n        consignee:\n          type: string\n        warehouse:\n          type: string\n        location:\n          type: string\n        source:\n          type: string\n        destination:\n          type: string\n        supplier:\n          type: string\n        facility:\n          type: string\n        street:\n          type: string\n        locality:\n          type: string\n        contact:\n          type: string\n        actor:\n          type: string\n        driver:\n          type: string\n        vehicle:\n          type: string\n        logger:\n          type: string\n        reason:\n          type: string\n        recommendation:\n          type: string\n        decision:\n          type: string\n        receiverName:\n          type: string\n        email:\n          type: string\n        role:\n          type: string\n        compatibility:\n          type: string\n        deliveryEligibility:\n          type: string\n        language:\n          type: string\n          enum:\n            - en\n            - ar\n        timeZone:\n          type: string\n        date:\n          type: string\n          format: date\n        expiryDate:\n          type: string\n          format: date\n        timestamp:\n          type: string\n          format: date-time\n        received:\n          type: string\n          format: date-time\n        lastUpdated:\n          type: string\n          format: date-time\n        plannedArrival:\n          type: string\n          format: date-time\n        actualTime:\n          type: string\n          format: date-time\n        temperature:\n          type: number\n          format: float\n        quantity:\n          type: integer\n        onHand:\n          type: integer\n        available:\n          type: integer\n        allocated:\n          type: integer\n        quarantined:\n          type: integer\n        onHold:\n          type: integer\n        rejected:\n          type: integer\n        recalled:\n          type: integer\n        expired:\n          type: integer\n        outstanding:\n          type: integer\n        outstandingQuantity:\n          type: integer\n        deliveredQuantity:\n          type: integer\n        traced:\n          type: integer\n        accounted:\n          type: integer\n        unaccounted:\n          type: integer\n        acknowledged:\n          type: boolean\n        readings:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - timestamp\n              - temperature\n            properties:\n              id:\n                type: integer\n              timestamp:\n                type: string\n                format: date-time\n              temperature:\n                type: number\n                format: float\n              flag:\n                type: string\n              band:\n                type: string\n        stops:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - name\n              - order\n            properties:\n              id:\n                type: integer\n              name:\n                type: string\n              order:\n                type: integer\n              status:\n                type: string\n              plannedArrival:\n                type: string\n                format: date-time\n        lots:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - lotNumber\n            properties:\n              id:\n                type: integer\n              lotNumber:\n                type: string\n              expiryDate:\n                type: string\n                format: date\n              quantity:\n                type: integer\n              status:\n                type: string\n        tierBudgets:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - tier\n              - usedMinutes\n              - remainingMinutes\n            properties:\n              id:\n                type: integer\n              tier:\n                type: string\n              usedMinutes:\n                type: integer\n              remainingMinutes:\n                type: integer\n        alerts:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - status\n            properties:\n              id:\n                type: integer\n              status:\n                type: string\n              type:\n                type: string\n              message:\n                type: string\n    StaffSignInRequest:\n      type: object\n      required:\n        - provider\n      properties:\n        provider:\n          type: string\n        returnUrl:\n          type: string\n    CredentialsRequest:\n      type: object\n      required:\n        - email\n        - password\n      properties:\n        email:\n          type: string\n          format: email\n        password:\n          type: string\n    CodeRequest:\n      type: object\n      required:\n        - challengeId\n        - code\n      properties:\n        challengeId:\n          type: integer\n        code:\n          type: string\n    ChallengeRequest:\n      type: object\n      required:\n        - challengeId\n      properties:\n        challengeId:\n          type: integer\n    EmailRequest:\n      type: object\n      required:\n        - email\n      properties:\n        email:\n          type: string\n          format: email\n    NewPasswordRequest:\n      type: object\n      required:\n        - password\n      properties:\n        password:\n          type: string\n    ReceiptRequest:\n      type: object\n      required:\n        - productId\n        - lotNumber\n        - expiryDate\n        - quantity\n        - supplier\n        - location\n      properties:\n        productId:\n          type: integer\n        lotNumber:\n          type: string\n        expiryDate:\n          type: string\n          format: date\n        quantity:\n          type: integer\n        supplier:\n          type: string\n        location:\n          type: string\n    FileRequest:\n      type: object\n      required:\n        - fileName\n        - mediaType\n        - contentBase64\n      properties:\n        fileName:\n          type: string\n        mediaType:\n          type: string\n        contentBase64:\n          type: string\n          format: byte\n    OpeningStockRequest:\n      type: object\n      required:\n        - productId\n        - lotNumber\n        - expiryDate\n        - location\n        - quantity\n      properties:\n        productId:\n          type: integer\n        lotNumber:\n          type: string\n        expiryDate:\n          type: string\n          format: date\n        location:\n          type: string\n        quantity:\n          type: integer\n    MovementRequest:\n      type: object\n      required:\n        - source\n        - destination\n        - quantity\n      properties:\n        source:\n          type: string\n        destination:\n          type: string\n        quantity:\n          type: integer\n    PackingRequest:\n      type: object\n      required:\n        - boxType\n        - boxIdentifier\n        - loggerId\n        - contents\n      properties:\n        boxType:\n          type: string\n        boxIdentifier:\n          type: string\n        loggerId:\n          type: string\n        contents:\n          type: array\n          items:\n            type: object\n            required:\n              - handlingUnitId\n              - quantity\n            properties:\n              handlingUnitId:\n                type: integer\n              quantity:\n                type: integer\n    OrderRequest:\n      type: object\n      required:\n        - lines\n        - addressId\n        - deliveryDate\n        - fulfillmentPreference\n        - idempotencyKey\n      properties:\n        lines:\n          type: array\n          items:\n            type: object\n            required:\n              - productId\n              - quantity\n            properties:\n              productId:\n                type: integer\n              quantity:\n                type: integer\n        addressId:\n          type: integer\n        deliveryDate:\n          type: string\n          format: date\n        fulfillmentPreference:\n          type: string\n          enum:\n            - partial\n            - complete\n        idempotencyKey:\n          type: string\n    OverrideRequest:\n      type: object\n      required:\n        - lotId\n        - quantity\n        - reason\n      properties:\n        lotId:\n          type: integer\n        quantity:\n          type: integer\n        reason:\n          type: string\n    RouteRequest:\n      type: object\n      required:\n        - vehicleId\n        - driverId\n        - date\n        - stops\n      properties:\n        vehicleId:\n          type: integer\n        driverId:\n          type: integer\n        date:\n          type: string\n          format: date\n        stops:\n          type: array\n          items:\n            type: object\n            required:\n              - stopId\n              - order\n              - plannedArrival\n            properties:\n              stopId:\n                type: integer\n              order:\n                type: integer\n              plannedArrival:\n                type: string\n                format: date-time\n    ActionRequest:\n      type: object\n      required:\n        - actionId\n      properties:\n        actionId:\n          type: string\n        reason:\n          type: string\n    ScanRequest:\n      type: object\n      required:\n        - boxIdentifier\n      properties:\n        boxIdentifier:\n          type: string\n        actionId:\n          type: string\n    HandoverRequest:\n      type: object\n      required:\n        - handoverId\n        - routeId\n        - stopId\n        - receiverName\n        - acknowledged\n        - actualTime\n        - boxes\n      properties:\n        handoverId:\n          type: string\n        routeId:\n          type: integer\n        stopId:\n          type: integer\n        receiverName:\n          type: string\n        acknowledged:\n          type: boolean\n        signatureBase64:\n          type: string\n          format: byte\n        photoBase64:\n          type: string\n          format: byte\n        actualTime:\n          type: string\n          format: date-time\n        locationStatus:\n          type: string\n          enum:\n            - available\n            - unavailable\n        latitude:\n          type: number\n          format: float\n        longitude:\n          type: number\n          format: float\n        boxes:\n          type: array\n          items:\n            type: object\n            required:\n              - boxId\n              - deliveredQuantity\n              - refused\n            properties:\n              boxId:\n                type: integer\n              deliveredQuantity:\n                type: integer\n              refused:\n                type: boolean\n              refusalReason:\n                type: string\n    SyncRequest:\n      type: object\n      required:\n        - actions\n      properties:\n        actions:\n          type: array\n          items:\n            $ref: \"#/components/schemas/HandoverRequest\"\n    DecisionRequest:\n      type: object\n      required:\n        - decision\n        - reason\n        - identityConfirmation\n      properties:\n        decision:\n          type: string\n        reason:\n          type: string\n        justification:\n          type: string\n        identityConfirmation:\n          type: string\n    ApprovalRequest:\n      type: object\n      required:\n        - action\n        - identityConfirmation\n      properties:\n        action:\n          type: string\n          enum:\n            - approve\n            - reject\n        reason:\n          type: string\n        identityConfirmation:\n          type: string\n    DestructionRequest:\n      type: object\n      required:\n        - destructionDate\n        - quantity\n        - witness\n      properties:\n        destructionDate:\n          type: string\n          format: date\n        quantity:\n          type: integer\n        witness:\n          type: string\n    RecallRequest:\n      type: object\n      required:\n        - productId\n        - lotIds\n        - reason\n        - severity\n        - identityConfirmation\n      properties:\n        productId:\n          type: integer\n        lotIds:\n          type: array\n          items:\n            type: integer\n        reason:\n          type: string\n        severity:\n          type: string\n        identityConfirmation:\n          type: string\n    SignatureRequest:\n      type: object\n      required:\n        - identityConfirmation\n        - reason\n      properties:\n        identityConfirmation:\n          type: string\n        reason:\n          type: string\n    WriteOffRequest:\n      type: object\n      required:\n        - quantity\n        - category\n        - justification\n        - identityConfirmation\n      properties:\n        quantity:\n          type: integer\n        category:\n          type: string\n        justification:\n          type: string\n        identityConfirmation:\n          type: string\n    RecallResponseRequest:\n      type: object\n      required:\n        - onHand\n        - used\n        - destroyed\n        - disposition\n      properties:\n        onHand:\n          type: integer\n        used:\n          type: integer\n        destroyed:\n          type: integer\n        disposition:\n          type: string\n    LocaleRequest:\n      type: object\n      required:\n        - language\n      properties:\n        language:\n          type: string\n          enum:\n            - en\n            - ar\n    AddressRequest:\n      type: object\n      required:\n        - facility\n        - street\n        - locality\n        - contact\n      properties:\n        id:\n          type: integer\n        facility:\n          type: string\n        street:\n          type: string\n        locality:\n          type: string\n        contact:\n          type: string\n    InviteRequest:\n      type: object\n      required:\n        - email\n        - role\n      properties:\n        email:\n          type: string\n          format: email\n        role:\n          type: string\n    ProductRequest:\n      type: object\n      required:\n        - name\n        - code\n        - status\n      properties:\n        name:\n          type: string\n        code:\n          type: string\n        status:\n          type: string\n        packSize:\n          type: integer\n        reason:\n          type: string\n    ProfileRequest:\n      type: object\n      required:\n        - effectiveDate\n        - lowerLimit\n        - upperLimit\n        - tiers\n        - reason\n      properties:\n        effectiveDate:\n          type: string\n          format: date\n        lowerLimit:\n          type: number\n          format: float\n        upperLimit:\n          type: number\n          format: float\n        tiers:\n          type: array\n          items:\n            type: object\n            required:\n              - order\n              - designation\n              - lowerBoundary\n              - upperBoundary\n              - allowanceMinutes\n            properties:\n              order:\n                type: integer\n              designation:\n                type: string\n              lowerBoundary:\n                type: number\n                format: float\n              upperBoundary:\n                type: number\n                format: float\n              allowanceMinutes:\n                type: integer\n        reason:\n          type: string\n    ShelfLifeRequest:\n      type: object\n      required:\n        - minimumShelfLifeDays\n      properties:\n        minimumShelfLifeDays:\n          type: integer\n    AccountRequest:\n      type: object\n      required:\n        - name\n        - email\n        - role\n      properties:\n        name:\n          type: string\n        email:\n          type: string\n          format: email\n        role:\n          type: string\n        warehouses:\n          type: array\n          items:\n            type: integer\n        organisationIds:\n          type: array\n          items:\n            type: integer\n        status:\n          type: string\n    ErrorResponse:\n      type: object\n      required:\n        - code\n        - message\n      properties:\n        code:\n          type: string\n        message:\n          type: string\n    ResultResponse:\n      type: object\n      required:\n        - id\n        - status\n        - message\n      properties:\n        id:\n          type: integer\n        status:\n          type: string\n        message:\n          type: string\n    ItemResponse:\n      type: object\n      required:\n        - item\n      properties:\n        item:\n          $ref: \"#/components/schemas/OperationalRecord\"\n    CollectionResponse:\n      type: object\n      required:\n        - items\n      properties:\n        items:\n          type: array\n          items:\n            $ref: \"#/components/schemas/OperationalRecord\"\n    OperationalRecord:\n      type: object\n      required:\n        - id\n      properties:\n        id:\n          type: integer\n        status:\n          type: string\n        message:\n          type: string\n        name:\n          type: string\n        product:\n          type: string\n        code:\n          type: string\n        lotNumber:\n          type: string\n        handlingUnit:\n          type: string\n        boxIdentifier:\n          type: string\n        orderNumber:\n          type: string\n        routeNumber:\n          type: string\n        organization:\n          type: string\n        consignee:\n          type: string\n        warehouse:\n          type: string\n        location:\n          type: string\n        source:\n          type: string\n        destination:\n          type: string\n        supplier:\n          type: string\n        facility:\n          type: string\n        street:\n          type: string\n        locality:\n          type: string\n        contact:\n          type: string\n        actor:\n          type: string\n        driver:\n          type: string\n        vehicle:\n          type: string\n        logger:\n          type: string\n        reason:\n          type: string\n        recommendation:\n          type: string\n        decision:\n          type: string\n        receiverName:\n          type: string\n        email:\n          type: string\n        role:\n          type: string\n        compatibility:\n          type: string\n        deliveryEligibility:\n          type: string\n        language:\n          type: string\n          enum:\n            - en\n            - ar\n        timeZone:\n          type: string\n        date:\n          type: string\n          format: date\n        expiryDate:\n          type: string\n          format: date\n        timestamp:\n          type: string\n          format: date-time\n        received:\n          type: string\n          format: date-time\n        lastUpdated:\n          type: string\n          format: date-time\n        plannedArrival:\n          type: string\n          format: date-time\n        actualTime:\n          type: string\n          format: date-time\n        temperature:\n          type: number\n          format: float\n        quantity:\n          type: integer\n        onHand:\n          type: integer\n        available:\n          type: integer\n        allocated:\n          type: integer\n        quarantined:\n          type: integer\n        onHold:\n          type: integer\n        rejected:\n          type: integer\n        recalled:\n          type: integer\n        expired:\n          type: integer\n        outstanding:\n          type: integer\n        outstandingQuantity:\n          type: integer\n        deliveredQuantity:\n          type: integer\n        traced:\n          type: integer\n        accounted:\n          type: integer\n        unaccounted:\n          type: integer\n        acknowledged:\n          type: boolean\n        readings:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - timestamp\n              - temperature\n            properties:\n              id:\n                type: integer\n              timestamp:\n                type: string\n                format: date-time\n              temperature:\n                type: number\n                format: float\n              flag:\n                type: string\n              band:\n                type: string\n        stops:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - name\n              - order\n            properties:\n              id:\n                type: integer\n              name:\n                type: string\n              order:\n                type: integer\n              status:\n                type: string\n              plannedArrival:\n                type: string\n                format: date-time\n        lots:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - lotNumber\n            properties:\n              id:\n                type: integer\n              lotNumber:\n                type: string\n              expiryDate:\n                type: string\n                format: date\n              quantity:\n                type: integer\n              status:\n                type: string\n        tierBudgets:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - tier\n              - usedMinutes\n              - remainingMinutes\n            properties:\n              id:\n                type: integer\n              tier:\n                type: string\n              usedMinutes:\n                type: integer\n              remainingMinutes:\n                type: integer\n        alerts:\n          type: array\n          items:\n            type: object\n            required:\n              - id\n              - status\n            properties:\n              id:\n                type: integer\n              status:\n                type: string\n              type:\n                type: string\n              message:\n                type: string\n"
+     },
+     "reason"
+    ],
+    "reason": "The contract provides shared API operations and generated client response examples outside task scopes. The offline-store exports are the only new public web seam and have compilable stubs."
+   },
+   "ms": 1,
+   "resultChars": 199,
+   "isError": true,
+   "result": "The result doesn't match the schema: stubs.1.reason: Invalid input: expected string, received undefined; stubs.2: Invalid input: expected object, received string. Fix it and call submit_result again."
+  }
+ ]
+}

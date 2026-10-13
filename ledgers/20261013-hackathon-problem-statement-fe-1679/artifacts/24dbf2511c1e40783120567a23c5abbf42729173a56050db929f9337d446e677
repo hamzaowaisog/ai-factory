@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetRationsResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 36,
+   "resultChars": 559,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetRationsResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:97: export const getGetRationsResponseMock = (): RationsResponse => ({\"permissions\":[\"rations.view\",\"rations.manage\"],\"rations\":[{\"id\":1201,\"name\":\"Grower 90\",\"type\":\"Grower\",\"ingredients\":[{\"ingredient\":\nlib/api/client.msw.ts:413: : getGetRationsResponseMock()),\ntests/acceptance.test.tsx:355: const existing = (await import(\"@/lib/api/client.msw\")).getGetRationsResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

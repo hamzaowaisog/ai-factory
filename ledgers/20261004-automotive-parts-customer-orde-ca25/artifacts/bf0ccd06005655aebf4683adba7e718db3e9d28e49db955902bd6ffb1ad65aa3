@@ -1,0 +1,112 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "data-model",
+      "text": "Payment status is tracked by hand. Who changes it, and what values can it have?",
+      "options": [
+       "Staff and Admin set it on each invoice: Unpaid / Paid",
+       "Staff and Admin set it on each invoice: Unpaid / Part-paid / Paid / Overdue",
+       "Only Admin sets it on each invoice: Unpaid / Paid",
+       "Set on the order rather than the invoice: Unpaid / Paid"
+      ],
+      "recommended": "Staff and Admin set it on each invoice: Unpaid / Paid",
+      "reason": "This is the smallest manual tracking that still matches the 'Payment status' scope item.",
+      "spans": [],
+      "impact": 3,
+      "impactReason": "It decides who can write money-related data and what customers see on their invoices."
+     },
+     {
+      "id": "Q-7",
+      "category": "scope",
+      "text": "Orders can't be amended, but cancellation is in scope. Who can cancel an order, and up to which point?",
+      "options": [
+       "Customer users and Staff can cancel until the order is dispatched; after that only Staff can",
+       "Customer users can cancel only before Staff start processing it; Staff can cancel until dispatch",
+       "Only Staff and Admin can cancel orders"
+      ],
+      "recommended": "Customer users can cancel only before Staff start processing it; Staff can cancel until dispatch",
+      "reason": "Without amendments, cancel-and-reorder is the only way to fix an order, so customers need a safe window to do it.",
+      "spans": [],
+      "impact": 3,
+      "impactReason": "It changes order state and who is allowed to change it."
+     },
+     {
+      "id": "Q-8",
+      "category": "roles",
+      "topic": "roles",
+      "text": "What can Admin do that Staff cannot?",
+      "options": [
+       "Admin only: products, price lists, staff/admin users and the audit view. Staff: orders, customers and customer users",
+       "Admin only: audit view and staff/admin users. Staff can also manage products and price lists",
+       "Staff and Admin are the same except for the audit view"
+      ],
+      "recommended": "Admin only: products, price lists, staff/admin users and the audit view. Staff: orders, customers and customer users",
+      "reason": "This follows the separate 'Staff experience' and 'Admin experience' items and matches earlier answers: staff create customer accounts, and audit is admin-only.",
+      "spans": [],
+      "impact": 3,
+      "impactReason": "It sets permissions on pricing, product data and user data."
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "text": "Data is shared at company level. Can a customer user belong to more than one company?",
+      "options": [
+       "No, each customer user belongs to exactly one company",
+       "Yes, a user can belong to several companies and switches between them"
+      ],
+      "recommended": "No, each customer user belongs to exactly one company",
+      "reason": "This is the simplest model, and it makes customer data isolation easy to enforce and test.",
+      "spans": [],
+      "impact": 3,
+      "impactReason": "It decides which company's prices, orders and invoices a user can see."
+     },
+     {
+      "id": "Q-10",
+      "category": "scope",
+      "topic": "sign-in",
+      "text": "Users sign in with email and password on accounts that Staff or Admin create. How do they set their first password and reset a forgotten one?",
+      "options": [
+       "Invite email with a set-password link, plus self-service 'forgot password' by email",
+       "Staff set a temporary password, plus self-service 'forgot password' by email",
+       "Staff reset passwords on request; no self-service"
+      ],
+      "recommended": "Invite email with a set-password link, plus self-service 'forgot password' by email",
+      "reason": "It reuses the email provider that is already in scope and keeps passwords away from staff.",
+      "spans": [],
+      "impact": 2,
+      "impactReason": "It shapes the sign-in and onboarding flows."
+     },
+     {
+      "id": "Q-11",
+      "category": "existing-data",
+      "topic": "audit",
+      "text": "How long are audit-history entries kept?",
+      "options": [
+       "Seven years, the same as orders and invoices",
+       "Kept indefinitely",
+       "A shorter fixed period, e.g. 2 years"
+      ],
+      "recommended": "Seven years, the same as orders and invoices",
+      "reason": "It matches the retention rule already stated, so there is one policy to follow.",
+      "spans": [],
+      "impact": 2,
+      "impactReason": "It affects what data is stored and deleted over time."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "canViewProfitability|profitability.export|profitability.view",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 586,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;canViewProfitability|profitability.export|profitability.view&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:101: - \"profitability.view\"\ncontracts/openapi.yaml:1942: - \"profitability.view\"\ncontracts/openapi.yaml:1943: - \"profitability.export\"\ncontracts/openapi.yaml:1944: canViewProfitability: true\ncontracts/openapi.yaml:1965: /reports/profitability/export:\ncontracts/openapi.yaml:4291: - canViewProfitability\ncontracts/openapi.yaml:4298: canViewProfitability:\n</untrusted_document>"
+  }
+ ]
+}

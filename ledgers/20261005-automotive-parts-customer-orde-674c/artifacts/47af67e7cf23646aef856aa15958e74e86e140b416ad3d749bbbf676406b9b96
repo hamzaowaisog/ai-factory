@@ -1,0 +1,147 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-37",
+      "ears": "If a Buyer basket line or staff-created order line would have a quantity greater than the product's imported stock quantity or the product is Out of stock, or a staff amendment would raise a line's quantity above the product's imported stock quantity, then the portal shall reject the change with an error stating the available quantity.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-12",
+       "I-13",
+       "I-14",
+       "ASM-4"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-37.1",
+        "given": "Product BP-100 with imported quantity 10",
+        "when": "A Buyer sets the basket quantity to 11",
+        "then": "The response is a rejection status (422/400), the error message states 10 available and the line quantity value stays at its previous value",
+        "level": "api"
+       },
+       {
+        "id": "AC-37.2",
+        "given": "The same product",
+        "when": "A Buyer sets the basket quantity to 10",
+        "then": "The response status is 200 and the returned line quantity is 10",
+        "level": "api"
+       },
+       {
+        "id": "AC-37.3",
+        "given": "Product FL-200 with imported quantity 0",
+        "when": "A Buyer adds FL-200 quantity 1 to the basket",
+        "then": "The response is a rejection status and the basket list does not contain FL-200",
+        "level": "api"
+       },
+       {
+        "id": "AC-37.4",
+        "given": "Product OF-20 with imported quantity 0",
+        "when": "A staff user adds 1 of OF-20 to an order being created for company A",
+        "then": "The response status is 422 and the error message says the product is out of stock",
+        "level": "api"
+       },
+       {
+        "id": "AC-37.5",
+        "given": "A Received order with 5 of OF-20, and a stock import has since set OF-20 to quantity 0",
+        "when": "Staff change the OF-20 line quantity to 2",
+        "then": "The response status is 200 and the returned OF-20 line quantity value is 2",
+        "level": "api"
+       },
+       {
+        "id": "AC-37.6",
+        "given": "A Received order with 2 lines, one of which is OF-20 with imported quantity 0",
+        "when": "Staff remove the OF-20 line",
+        "then": "The response status is 200 and the order record has 1 line, without OF-20",
+        "level": "api"
+       },
+       {
+        "id": "AC-37.7",
+        "given": "A Received order with 2 of BP-100 and BP-100 imported quantity 3",
+        "when": "Staff change the BP-100 line quantity to 4",
+        "then": "The response is a rejection status (422/400), the error message states 3 available and the line quantity value stays 2",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-88",
+      "ears": "If an administrator invites a user with an email address that already belongs to a pending, active or deactivated user account, ignoring letter case, then the portal shall reject the invitation with an error naming the email field, create no account and send no invitation email.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-17"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-88.1",
+        "given": "An active user account buyer@a.test",
+        "when": "An administrator POSTs an invitation for Buyer@A.test as Buyer of company A",
+        "then": "The response status is 409, the error names the email field, the user record count for that email is still 1 and no email is sent",
+        "level": "api"
+       },
+       {
+        "id": "AC-88.2",
+        "given": "A pending user account new.buyer@a.test with an unused invitation link",
+        "when": "An administrator POSTs another invitation for new.buyer@a.test",
+        "then": "The response status is 409, no new user record is created and no invitation email is sent",
+        "level": "api"
+       },
+       {
+        "id": "AC-88.3",
+        "given": "A deactivated user account old.staff@dist.test",
+        "when": "An administrator POSTs an invitation for old.staff@dist.test as Office Staff",
+        "then": "The response status is 409, no new user record is created and the existing record status value stays \"Deactivated\"",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "assumptions": [
+     "There is no existing code, so every requirement is ADDED. Endpoint paths in acceptance criteria only show the contract.",
+     "Payments (decided, not open): the client's own text in request section 32 says the portal takes no online card payments in this phase, and invoice payment tracking (I-16) means staff record the payment date and recording user (REQ-75). ASM-24 came from a default (fromDefault: payments) and is applied as a constraint, not as a new capability: Stripe is the only payment provider allowed if card payments are added in a later phase, cards only, and card data stays with the provider. In this phase the portal therefore makes no calls to Stripe or any other payment provider and stores no card data (AC-75.6, AC-75.7). This is consistent with both sources, so no payments decision is left open.",
+     "Rejection HTTP status codes differ between drafts (e.g. 400 vs 410 for expired links, 400 vs 422 vs 409 for validation errors, 202 vs 200 for reset requests). d3 states codes are examples; the merged ACs use one code where drafts agree on the outcome, and the fixed rule is success or rejection with no record change on rejection.",
+     "The pending invitation status is called \"Pending\" (d1/d2) or \"Invited\" (d3); these are the same state.",
+     "An ERP file fails validation as a whole if it is missing, unreadable, empty, missing a required column, or has any non-numeric or negative quantity. Unknown product identifiers alone do not fail the file (ASM-6).",
+     "Stock import rows are matched by distributor product code until the client supplies the column layout (ASM-7). Products missing from a valid file keep their previous quantity; a product never imported counts as Out of stock.",
+     "Placing or confirming an order does not reduce imported stock; nothing is reserved.",
+     "Price or stock changes at checkout reject the submission and return current values; the order is never silently repriced.",
+     "Repeat order works for an order of any status and adds lines at their original quantity, capped at available stock and flagged when reduced.",
+     "Order and basket totals are net (tax-exclusive); tax and gross appear only on invoices (ASM-9). One currency with 2 decimal places.",
+     "A deactivated price list cannot be newly assigned. If a company has no assigned or an inactive price list, every product shows 'Price on request' (d3).",
+     "Search is a case-insensitive substring match; ranking is not specified.",
+     "Vehicle compatibility entries store a model-year range (from–to) (d1); d3 says model year.",
+     "Confirmation validation means every line is active and within available stock and the delivery address still exists.",
+     "A password reset request returns the same response whether or not the email exists, and whether or not the account is eligible for a reset.",
+     "Password reset is available only to active accounts, including temporarily locked ones (ASM-19), of active companies. Pending invitees must use their invitation link, and deactivated users or users of inactive companies get no reset email; a link issued before deactivation or company deactivation can no longer be used (Q-5).",
+     "Order emails go to the placing Buyer only while that Buyer is active and still linked to the order's company; otherwise they go to the company's contact email, so a deactivated or moved Buyer receives no details of the old company's orders.",
+     "An administrator cannot deactivate or change the role of their own account. Because only an active Administrator can make these changes, this also guarantees at least one active Administrator always remains.",
+     "Customer companies are created and edited by Administrators only (request section 3.4 'Manage customer accounts'); Office Staff can search and view companies (request section 3.3) and manage delivery addresses (Q-7).",
+     "The sales report (REQ-86) is built from non-Cancelled orders whose order date falls in the selected range; the delivered-date basis from the d1 draft is dropped.",
+     "The dashboard failedImports count is the number of failed stock imports since the last successful import (REQ-67); the 7-day variant from another draft is dropped.",
+     "The stock quantity limit (ASM-4) applies to Buyer baskets, staff-created order lines and staff amendments that raise a line's quantity. Staff may always reduce or remove a line on a Received order, even when the product is Out of stock or the reduced quantity is still above stock; confirmation (REQ-57) still rejects any line above available stock.",
+     "Staff removing an order line counts as a quantity change to 0 and triggers the amendment email (ASM-35). Staff cannot add new lines to Received orders.",
+     "User email addresses are unique across all user accounts regardless of status, compared ignoring letter case. To re-invite a pending user the administrator resends the invitation (REQ-15); a deactivated user is reactivated (REQ-16) rather than invited again.",
+     "Product images may be JPEG, PNG or WebP; ASM-29 sets the 10 MB limit.",
+     "Delivery list CSV columns are those in REQ-64 until the client confirms them.",
+     "The invoice date is the date the order became Delivered.",
+     "Management has no separate role; managers use Office Staff or Administrator accounts for the sales report.",
+     "Reactivating a user is allowed only while the user's company is active (d3 reading of 'where permitted').",
+     "Session idle timeout values are draft assumptions; the request only says 'session management'."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

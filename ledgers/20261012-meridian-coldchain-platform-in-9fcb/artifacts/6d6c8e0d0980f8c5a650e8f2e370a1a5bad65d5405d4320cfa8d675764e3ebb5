@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #F7F7F7;
+    --bg-panel: #FFFFFF;
+    --text-primary: #202020;
+    --text-quieter: #626262;
+    --border-rule: #D5D5D5;
+    --accent-primary: #A94B1D;
+    --status-good: #24704B;
+    --status-waiting: #805800;
+    --status-refused: #AE2C2C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: 'Public Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Keyframe animations */
+  @keyframes pageFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes savedHandoff {
+    0% {
+      opacity: 0.6;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes waitingBreathe {
+    0%, 100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .animate-page-enter {
+    animation: pageFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .status-sync-handoff {
+    animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .dot-waiting-pulse {
+    animation: waitingBreathe 6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Header */
+  header {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-rule);
+    height: 56px;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--text-primary);
+  }
+
+  .brand-icon {
+    width: 24px;
+    height: 24px;
+    background: #000000;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 2px;
+  }
+
+  .brand-name {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  nav.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 56px;
+  }
+
+  nav.main-nav a {
+    text-decoration: none;
+    color: var(--text-quieter);
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    height: 56px;
+    border-bottom: 2px solid transparent;
+    transition: color 140ms ease, border-color 140ms ease;
+  }
+
+  nav.main-nav a:hover {
+    color: var(--text-primary);
+  }
+
+  nav.main-nav a:focus-visible {
+    outline: none;
+    border-bottom-color: var(--accent-primary);
+    color: var(--text-primary);
+  }
+
+  nav.main-nav a.selected {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-primary);
+    font-weight: 600;
+  }
+
+  .user-header-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 14px;
+  }
+
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+  }
+
+  .user-avatar {
+    width: 24px;
+    height: 24px;
+    background: #EBEBEB;
+    color: var(--text-primary);
+    font-family: 'Public Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    border: 1px solid var(--border-rule);
+  }
+
+  .lang-divider {
+    color: var(--border-rule);
+  }
+
+  .lang-toggle {
+    color: var(--text-quieter);
+    font-size: 13px;
+  }
+
+  /* Main container */
+  main {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 32px 32px 64px 32px;
+  }
+
+  .page-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+  }
+
+  /* Panels */
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+  }
+
+  .filter-panel {
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+  }
+
+  .filter-control {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-col;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filter-label {
+    font-size: 14px;
+    color: var(--text-quieter);
+    font-weight: 500;
+  }
+
+  .field-input, .field-select {
+    height: 48px;
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font-family: 'Public Sans', sans-serif;
+    font-size: 15px;
+    padding: 0 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .field-input:hover, .field-select:hover {
+    border-color: #A0A0A0;
+  }
+
+  .field-input:focus, .field-select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary);
+  }
+
+  .btn-export {
+    height: 48px;
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font-family: 'Public Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+
+  .btn-export:hover {
+    background: #F2F2F2;
+    border-color: #B5B5B5;
+  }
+
+  .btn-export:focus-visible {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary);
+  }
+
+  .btn-export:active {
+    background: #E8E8E8;
+  }
+
+  /* Table */
+  .ledger-panel {
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+    background: var(--bg-panel);
+    overflow: hidden;
+  }
+
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .ledger-table thead th {
+    height: 48px;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-quieter);
+    border-bottom: 1px solid var(--border-rule);
+    background: #FCFCFC;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ledger-table tbody tr.data-row {
+    height: 52px;
+    border-bottom: 1px solid var(--border-rule);
+    transition: background-color 100ms ease;
+  }
+
+  .ledger-table tbody tr.data-row:hover {
+    background-color: #FAFAFA;
+  }
+
+  .ledger-table td {
+    padding: 10px 16px;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-good {
+    color: var(--status-good);
+  }
+  .status-good .status-dot {
+    background-color: var(--status-good);
+  }
+
+  .status-waiting {
+    color: var(--status-waiting);
+  }
+  .status-waiting .status-dot {
+    background-color: var(--status-waiting);
+  }
+
+  .status-refused {
+    color: var(--status-refused);
+  }
+  .status-refused .status-dot {
+    background-color: var(--status-refused);
+  }
+
+  /* Expand button */
+  .btn-toggle-detail {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+    background: #FFFFFF;
+    color: var(--text-primary);
+    font-family: 'Public Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+
+  .btn-toggle-detail:hover {
+    background: #F5F5F5;
+    border-color: #B5B5B5;
+  }
+
+  .btn-toggle-detail:focus-visible {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary);
+  }
+
+  .btn-toggle-detail:active {
+    background: #ECECEC;
+  }
+
+  /* Expanded Detail Sub-panel */
+  tr.detail-row {
+    background: #FAFAFA;
+    border-bottom: 1px solid var(--border-rule);
+  }
+
+  tr.detail-row td {
+    padding: 16px;
+  }
+
+  .detail-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+    padding: 16px;
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-rule);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .detail-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--text-primary);
+  }
+
+  .detail-meta {
+    color: var(--text-quieter);
+    font-size: 14px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .subtable-diff {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .subtable-diff th {
+    padding: 8px 12px;
+    background: #F8F8F8;
+    border: 1px solid var(--border-rule);
+    font-size: 13px;
+    color: var(--text-quieter);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .subtable-diff td {
+    padding: 8px 12px;
+    border: 1px solid var(--border-rule);
+    background: #FFFFFF;
+    vertical-align: middle;
+  }
+
+  .reason-box {
+    background: #FDFDFD;
+    border: 1px solid var(--border-rule);
+    border-radius: 2px;
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .reason-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-quieter);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .reason-content {
+    color: var(--text-primary);
+    line-height: 1.45;
+  }
+
+  /* Ledger footer */
+  .ledger-summary-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #FCFCFC;
+    border-top: 1px solid var(--border-rule);
+    font-size: 14px;
+    color: var(--text-quieter);
+  }
+
+  .reference-links {
+    display: flex;
+    gap: 16px;
+  }
+
+  .reference-links a {
+    color: var(--accent-primary);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  .reference-links a:hover {
+    color: #8D3A13;
+  }
+
+  .reference-links a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--accent-primary);
+  }
+
+  /* SVG Icons */
+  .icon-export {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    fill: none;
+  }
+</style>
+</head>
+<body class="animate-page-enter">
+
+  <!-- Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-logo">
+        <div class="brand-icon">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="#audit-trail" class="selected">Audit trail</a>
+        <a href="#lot-history">Lot history</a>
+        <a href="#reports">Reports</a>
+      </nav>
+    </div>
+
+    <div class="user-header-profile">
+      <div class="user-pill">
+        <span class="user-avatar font-mono">ER</span>
+        <span>Esha Raman · Auditor</span>
+      </div>
+      <span class="lang-divider">|</span>
+      <span class="lang-toggle">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <h1 class="page-title">Audit trail</h1>
+
+    <!-- Filters Section -->
+    <div class="panel filter-panel" role="region" aria-label="Filters">
+      <div class="filter-control">
+        <label for="filter-record" class="filter-label">Record</label>
+        <input type="text" id="filter-record" class="field-input font-mono" value="All records" readonly>
+      </div>
+
+      <div class="filter-control">
+        <label for="filter-user" class="filter-label">User</label>
+        <select id="filter-user" class="field-select">
+          <option selected>All users</option>
+          <option>Leila Haddad (Warehouse Operator)</option>
+          <option>Omar Saleh (Quality Officer)</option>
+          <option>Nadia Farouk (Quality Manager)</option>
+          <option>Priya Nair (Dispatcher)</option>
+          <option>Tariq Mansour (Driver)</option>
+          <option>Hana Youssef (Cedar Health Buyer)</option>
+        </select>
+      </div>
+
+      <div class="filter-control">
+        <label for="filter-date" class="filter-label">Date range</label>
+        <select id="filter-date" class="field-select font-mono">
+          <option selected>14 May 2026 (Today)</option>
+          <option>13 May 2026</option>
+          <option>12 May 2026</option>
+          <option>All dates</option>
+        </select>
+      </div>
+
+      <div class="filter-control">
+        <label for="filter-action" class="filter-label">Action type</label>
+        <select id="filter-action" class="field-select">
+          <option selected>All action types</option>
+          <option>Record receipt</option>
+          <option>Upload logger</option>
+          <option>Quality release</option>
+          <option>Telemetry breach</option>
+          <option>Order registered</option>
+          <option>Route confirmation</option>
+          <option>Start recall</option>
+          <option>Consignment handover</option>
+        </select>
+      </div>
+
+      <div style="flex: 0 0 auto;">
+        <button type="button" class="btn-export">
+          <svg class="icon-export" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export filtered CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Immutable Audit Ledger Table -->
+    <div class="ledger-panel">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th style="width: 140px;">Date &amp; time</th>
+            <th style="width: 140px;">Record</th>
+            <th style="width: 150px;">Action</th>
+            <th style="width: 200px;">User &amp; role</th>
+            <th>Event summary</th>
+            <th style="width: 160px;">Result status</th>
+            <th style="width: 100px; text-align: right;">Audit detail</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Row 1: Nadia's Recall (Expanded to show changed fields, old/new values, reason, timestamp) -->
+          <tr class="data-row" style="background-color: #FCF9F6;">
+            <td class="font-mono">14 May 2026 10:00</td>
+            <td class="font-mono">RC-12 · IG-2509</td>
+            <td>Start recall</td>
+            <td>Nadia Farouk · Quality Manager</td>
+            <td>Manufacturer defect notice RC-12 initiated on Lot IG-2509; 4 packs quarantined, 20 traced to Cedar Clinic</td>
+            <td>
+              <span class="status-badge status-refused">
+                <span class="status-dot"></span>
+                refused active
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="true">Collapse</button>
+            </td>
+          </tr>
+
+          <!-- Row 1 Expanded Detail Sub-panel -->
+          <tr class="detail-row">
+            <td colspan="7">
+              <div class="detail-card">
+                <div class="detail-header">
+                  <span class="detail-title">Audit event fields &amp; state transition</span>
+                  <div class="detail-meta">
+                    <span>Actor: <strong>Nadia Farouk (Quality Manager)</strong></span>
+                    <span>BST Timestamp: <strong class="font-mono">14 May 2026 10:00:00 BST</strong></span>
+                  </div>
+                </div>
+
+                <table class="subtable-diff">
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Field name</th>
+                      <th>Old value</th>
+                      <th>New value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">recall_status</td>
+                      <td class="font-mono">none</td>
+                      <td class="font-mono" style="color: var(--status-refused); font-weight: 500;">active (RC-12)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">lot_governance_state</td>
+                      <td>good delivered (20 pk) / available (4 pk)</td>
+                      <td style="color: var(--status-refused); font-weight: 500;">refused active (4 on hand quarantined, 20 customer reconciliation)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">quarantine_location</td>
+                      <td>Cold Room C2, Rack 4 (Available)</td>
+                      <td class="font-mono">Cold Room C2, Rack 4 (Isolated rack tray)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">traced_scope_quota</td>
+                      <td class="font-mono">0 / 24 packs</td>
+                      <td class="font-mono" style="font-weight: 600;">24 / 24 packs traced (100% physically accounted)</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="reason-box">
+                  <div class="reason-label">Supplied reason</div>
+                  <div class="reason-content">
+                    Manufacturer defect notice RC-12 received for Lot IG-2509. Mandatory physical quarantine applied to 4 remaining North Quay units; electronic consignment alert transmitted to Cedar Clinic recipient and buyer for remaining 20 delivered packs pending physical reconciliation.
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 2: Priya's Route Confirmation (Expanded/Showcased with changed fields and reason) -->
+          <tr class="data-row" style="background-color: #FCF9F6;">
+            <td class="font-mono">14 May 2026 09:30</td>
+            <td class="font-mono">Route R-204</td>
+            <td>Route confirmation</td>
+            <td>Priya Nair · Dispatcher</td>
+            <td>Confirmed departure schedule for R-204 to Cedar Clinic (15:00 BST); VAN-27 Tariq Mansour, boxes B-701 &amp; B-702</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good confirmed
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="true">Collapse</button>
+            </td>
+          </tr>
+
+          <!-- Row 2 Expanded Detail Sub-panel -->
+          <tr class="detail-row">
+            <td colspan="7">
+              <div class="detail-card">
+                <div class="detail-header">
+                  <span class="detail-title">Audit event fields &amp; state transition</span>
+                  <div class="detail-meta">
+                    <span>Actor: <strong>Priya Nair (Dispatcher)</strong></span>
+                    <span>BST Timestamp: <strong class="font-mono">14 May 2026 09:30:00 BST</strong></span>
+                  </div>
+                </div>
+
+                <table class="subtable-diff">
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Field name</th>
+                      <th>Old value</th>
+                      <th>New value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">route_status</td>
+                      <td>waiting scheduling</td>
+                      <td style="color: var(--status-good); font-weight: 500;">good confirmed</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">departure_schedule</td>
+                      <td class="font-mono">14:45 BST</td>
+                      <td class="font-mono" style="font-weight: 600;">15:00 BST (+15 min buffer)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">consigned_shipper_boxes</td>
+                      <td class="font-mono">B-701 (12 packs)</td>
+                      <td class="font-mono">B-701 (12 pk) + B-702 (8 pk) — 20 packs consolidated</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">assigned_driver_vehicle</td>
+                      <td>unassigned</td>
+                      <td class="font-mono">Tariq Mansour · VAN-27 (plate MTR-482)</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="reason-box">
+                  <div class="reason-label">Supplied reason</div>
+                  <div class="reason-content">
+                    Consolidated 20 packs of Order O-299 into shipper boxes B-701 and B-702. Adjusted departure to 15:00 BST to allow cold-chain box seal verification and datalogger handshake at North Quay Bay 12.
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 3: Hana's Order -->
+          <tr class="data-row">
+            <td class="font-mono">14 May 2026 09:00</td>
+            <td class="font-mono">Order O-301</td>
+            <td>Order registered</td>
+            <td>Hana Youssef · Cedar Health buyer</td>
+            <td>Placed consignment order for 30 packs Insulin Glargine to Cedar Clinic; 20 packs allocated from HU-81, 10 outstanding</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot dot-waiting-pulse"></span>
+                waiting allocation
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="false">Details</button>
+            </td>
+          </tr>
+
+          <!-- Row 4: Telemetry breach HU-82 -->
+          <tr class="data-row">
+            <td class="font-mono">14 May 2026 08:30</td>
+            <td class="font-mono">HU-82 · Q-88</td>
+            <td>Telemetry breach</td>
+            <td>North Quay logger (Datalogger)</td>
+            <td>Reported HU-82 at 9.1°C for 22 minutes (first upper tier; 22m used / 8m remaining). Quality case Q-88 opened</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot dot-waiting-pulse"></span>
+                waiting review
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="false">Details</button>
+            </td>
+          </tr>
+
+          <!-- Row 5: Omar's Release (Expanded/Showcased with changed fields, old/new values, reason) -->
+          <tr class="data-row" style="background-color: #FCF9F6;">
+            <td class="font-mono">14 May 2026 08:19</td>
+            <td class="font-mono">HU-81 · IG-2511</td>
+            <td>Quality release</td>
+            <td>Omar Saleh · Quality Officer</td>
+            <td>Released 100 packs in HU-81 to Available stock following compliant steady temperature verification (4.4°C)</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good available
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="true">Collapse</button>
+            </td>
+          </tr>
+
+          <!-- Row 5 Expanded Detail Sub-panel -->
+          <tr class="detail-row">
+            <td colspan="7">
+              <div class="detail-card">
+                <div class="detail-header">
+                  <span class="detail-title">Audit event fields &amp; state transition</span>
+                  <div class="detail-meta">
+                    <span>Actor: <strong>Omar Saleh (Quality Officer)</strong></span>
+                    <span>BST Timestamp: <strong class="font-mono">14 May 2026 08:19:00 BST</strong></span>
+                  </div>
+                </div>
+
+                <table class="subtable-diff">
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Field name</th>
+                      <th>Old value</th>
+                      <th>New value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">quarantine_state</td>
+                      <td>waiting quarantine</td>
+                      <td style="color: var(--status-good); font-weight: 500;">good released</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">handling_unit_availability</td>
+                      <td class="font-mono">0 available / 100 quarantined</td>
+                      <td class="font-mono" style="font-weight: 600;">60 available / 40 allocated (100 total)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">thermal_verification</td>
+                      <td>inbound transit parsing</td>
+                      <td style="color: var(--status-good);">4.4°C steady safe maintenance verified</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="reason-box">
+                  <div class="reason-label">Supplied reason</div>
+                  <div class="reason-content">
+                    Inbound datalogger audit file LOG-994102 verified steady thermal compliance within Profile v3 core band (2.0°C–8.0°C) with zero excursion charge. Released 100 packs in HU-81 from intake quarantine to Cold Room C2 Rack 4 available stock.
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 6: Leila's Logger Upload (Expanded/Showcased with changed fields, old/new values, reason) -->
+          <tr class="data-row" style="background-color: #FCF9F6;">
+            <td class="font-mono">14 May 2026 08:11</td>
+            <td class="font-mono">LOG-994102</td>
+            <td>Upload logger</td>
+            <td>Leila Haddad · Warehouse Operator</td>
+            <td>Uploaded inbound supplier datalogger file for IG-2511; 480 points parsed, steady baseline 4.6°C</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good parsed
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="true">Collapse</button>
+            </td>
+          </tr>
+
+          <!-- Row 6 Expanded Detail Sub-panel -->
+          <tr class="detail-row">
+            <td colspan="7">
+              <div class="detail-card">
+                <div class="detail-header">
+                  <span class="detail-title">Audit event fields &amp; state transition</span>
+                  <div class="detail-meta">
+                    <span>Actor: <strong>Leila Haddad (Warehouse Operator)</strong></span>
+                    <span>BST Timestamp: <strong class="font-mono">14 May 2026 08:11:04 BST</strong></span>
+                  </div>
+                </div>
+
+                <table class="subtable-diff">
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Field name</th>
+                      <th>Old value</th>
+                      <th>New value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">telemetry_payload_status</td>
+                      <td>unattached</td>
+                      <td style="color: var(--status-good); font-weight: 500;">good parsed (480 data points)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">datalogger_file_reference</td>
+                      <td>none</td>
+                      <td class="font-mono">LOGGER_IG2511_SANOFI_0800.csv (48.2 KB)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">baseline_inbound_reading</td>
+                      <td>pending docking scan</td>
+                      <td class="font-mono">4.6°C steady</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="reason-box">
+                  <div class="reason-label">Supplied reason</div>
+                  <div class="reason-content">
+                    Manufacturer datalogger harvested at North Quay intake dock. Successfully processed 480 continuous 10-minute telemetry records from supplier Sanofi Pasteur UK.
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 7: Leila's 14 May Receipt (Expanded/Showcased with changed fields, old/new values, reason) -->
+          <tr class="data-row" style="background-color: #FCF9F6;">
+            <td class="font-mono">14 May 2026 08:00</td>
+            <td class="font-mono">Lot IG-2511</td>
+            <td>Record receipt</td>
+            <td>Leila Haddad · Warehouse Operator</td>
+            <td>Received 120 packs Insulin Glargine from Sanofi Pasteur UK into Cold Room C2 Rack 4; quarantined awaiting logger parse</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot dot-waiting-pulse"></span>
+                waiting quarantine
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="true">Collapse</button>
+            </td>
+          </tr>
+
+          <!-- Row 7 Expanded Detail Sub-panel -->
+          <tr class="detail-row">
+            <td colspan="7">
+              <div class="detail-card">
+                <div class="detail-header">
+                  <span class="detail-title">Audit event fields &amp; state transition</span>
+                  <div class="detail-meta">
+                    <span>Actor: <strong>Leila Haddad (Warehouse Operator)</strong></span>
+                    <span>BST Timestamp: <strong class="font-mono">14 May 2026 08:00:00 BST</strong></span>
+                  </div>
+                </div>
+
+                <table class="subtable-diff">
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Field name</th>
+                      <th>Old value</th>
+                      <th>New value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">intake_inventory_balance</td>
+                      <td class="font-mono">0 packs</td>
+                      <td class="font-mono" style="font-weight: 600;">120 packs (HU-81: 100, HU-82: 20)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">quarantine_state</td>
+                      <td>unrecorded</td>
+                      <td style="color: var(--status-waiting); font-weight: 500;">waiting quarantine (intake hold)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">physical_location</td>
+                      <td>inbound transit</td>
+                      <td class="font-mono">North Quay Warehouse, Cold Room C2, Rack 4</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">expiry_date</td>
+                      <td>unspecified</td>
+                      <td class="font-mono">31 March 2027 (321 days remaining &gt; 90d minimum)</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="reason-box">
+                  <div class="reason-label">Supplied reason</div>
+                  <div class="reason-content">
+                    Dock intake verification for supplier shipment Sanofi Pasteur UK. Inbound seal intact, 120 packs partitioned into primary handling unit HU-81 (100 packs) and secondary unit HU-82 (20 packs). Mandatory quarantine hold enforced prior to datalogger telemetry extraction.
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 8: Tariq's Consignment handover O-290 -->
+          <tr class="data-row">
+            <td class="font-mono">13 May 2026 10:14</td>
+            <td class="font-mono">Order O-290</td>
+            <td>Consignment handover</td>
+            <td>Tariq Mansour · Driver</td>
+            <td>Handed 20 packs Lot IG-2509 to Rania Karim at Cedar Clinic via route R-201 (VAN-27); signature captured</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good delivered
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="false">Details</button>
+            </td>
+          </tr>
+
+          <!-- Row 9: Omar's Release IG-2509 (12 May) -->
+          <tr class="data-row">
+            <td class="font-mono">12 May 2026 10:05</td>
+            <td class="font-mono">Lot IG-2509</td>
+            <td>Quality release</td>
+            <td>Omar Saleh · Quality Officer</td>
+            <td>Authorized release of 24 packs Lot IG-2509 to available picking inventory in Cold Room C2 Rack 4</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good released
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="false">Details</button>
+            </td>
+          </tr>
+
+          <!-- Row 10: Leila's Receipt IG-2509 (12 May) -->
+          <tr class="data-row">
+            <td class="font-mono">12 May 2026 09:10</td>
+            <td class="font-mono">Lot IG-2509</td>
+            <td>Record receipt</td>
+            <td>Leila Haddad · Warehouse Operator</td>
+            <td>Dock receipt of 24 packs Lot IG-2509 from Sanofi Pasteur UK; inbound quarantine hold assigned</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot dot-waiting-pulse"></span>
+                waiting quarantine
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <button type="button" class="btn-toggle-detail" aria-expanded="false">Details</button>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <!-- Summary Footer -->
+      <div class="ledger-summary-footer">
+        <div>
+          Showing <span class="font-mono" style="font-weight: 600;">10</span> immutable events recorded across active cold chain operations · North Quay Warehouse scope
+        </div>
+        <div class="reference-links">
+          <span>Cross-reference: <a href="#lot-history">Lot history</a></span>
+          <span>Prototype date: <strong class="font-mono">14 May 2026</strong> · Europe/London (BST)</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

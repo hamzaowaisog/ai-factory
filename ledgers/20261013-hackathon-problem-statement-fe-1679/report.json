@@ -1,0 +1,647 @@
+{
+  "runId": "20261013-hackathon-problem-statement-fe-1679",
+  "status": "parked",
+  "parkedReason": "A locked test failed twice and the test-or-code check did not settle it: tests/acceptance.test.tsx::approved web acceptance criteria > AC_2_2_SubmitsSelectedSourceRecordsAndShowsImportResult (AC-2.2): the test was judged wrong (Line 203 waits for the response through `expectValues`, whose `findByText` at line 83 uses the default 1-second timeout; the locked import mock itself delays 1 second before responding (`client.msw.ts:193–198`), making the assertion time out before a correct result can reliably render. Increase the wait timeout; the asserted status, record, counts, and selected-ID payload all match AC-2.2.), but its rewrite was not accepted: AC-2.2: its test AC_2_2_SubmitsSelectedSourceRecordsAndShowsImportResult does not prove the criterion (Assert the 0 and 1 values under their corresponding created and updated labels (and verify all records when selecting more than one), since the current presence-only checks can pass with misattributed counts or a truncated selection.). Tighten the test so it asserts what the criterion says.. Read the test and the last attempt's change, then resume or stop the run.",
+  "request": "Hackathon Problem Statement: Feedlot Management Solution\n\nA feedlot is a specialized livestock operation focused on transforming young cattle (300–500 lbs)\ninto market-ready livestock (1,200–1,400 lbs",
+  "costUsd": 1.3812028600000001,
+  "activeMin": 194.04753333333332,
+  "firstTimePassRate": 0.8235294117647058,
+  "topCost": [
+    {
+      "step": "specify",
+      "costUsd": 0.6621316800000001
+    },
+    {
+      "step": "author-tests",
+      "costUsd": 0.2819319200000001
+    },
+    {
+      "step": "implement/TASK-3",
+      "costUsd": 0.22026093500000005
+    }
+  ],
+  "steps": [
+    {
+      "step": "discover",
+      "stage": "discover",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.088,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 2532,
+        "output": 356,
+        "cached": 0
+      },
+      "costUsd": 0.0004312,
+      "activeSec": 4.19,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 4,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.013,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 33631,
+        "output": 20307,
+        "cached": 0
+      },
+      "costUsd": 0.0135166,
+      "activeSec": 155.115,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ],
+        "questionsAsked": 5,
+        "answersChanged": 0
+      },
+      "time": {
+        "modelSec": 215,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 7468,
+        "output": 6473,
+        "cached": 0
+      },
+      "costUsd": 0.0039833,
+      "activeSec": 75.096,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ],
+        "questionsAsked": 3,
+        "answersChanged": 0
+      },
+      "time": {
+        "modelSec": 75,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "drafts",
+      "stage": "drafts",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 22626,
+        "output": 38639,
+        "cached": 2616
+      },
+      "costUsd": 0.02160826,
+      "activeSec": 159.922,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 408,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "merge",
+      "stage": "merge",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 22469,
+        "output": 9581,
+        "cached": 0
+      },
+      "costUsd": 0.007037399999999999,
+      "activeSec": 78.061,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 78,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "specify",
+      "stage": "specify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-sol"
+      ],
+      "tokens": {
+        "input": 242909,
+        "output": 87108,
+        "cached": 5228
+      },
+      "costUsd": 0.6621316800000001,
+      "activeSec": 1017.685,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 2,
+        "decisions": [
+          "answer",
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 1084,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "design",
+      "stage": "design",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna",
+        "stitch"
+      ],
+      "tokens": {
+        "input": 15136,
+        "output": 39226,
+        "cached": 0
+      },
+      "costUsd": 0.021126600000000002,
+      "activeSec": 2321.968,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 354,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "design-baseline",
+      "stage": "design-baseline",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 126.721,
+      "gates": {
+        "passed": 1,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "design-export",
+      "stage": "design-export",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 1.378,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "plan",
+      "stage": "plan",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures"
+      ],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 77889,
+        "output": 44489,
+        "cached": 0
+      },
+      "costUsd": 0.030033400000000002,
+      "activeSec": 343.663,
+      "gates": {
+        "passed": 1,
+        "failed": 1,
+        "failedIds": [
+          "plan.checks"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 327,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "approve",
+      "stage": "approve",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.32499999999999996,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "stub-commit",
+      "stage": "stub-commit",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 589.129,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "author-tests",
+      "stage": "author-tests",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 3,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Same failure again; escalating"
+      ],
+      "highestRung": 1,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 142044,
+        "output": 212486,
+        "cached": 11672177
+      },
+      "costUsd": 0.2819319200000001,
+      "activeSec": 3311.716,
+      "gates": {
+        "passed": 3,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 754,
+        "agentSec": 1746,
+        "labSec": 765
+      }
+    },
+    {
+      "step": "implement/TASK-1",
+      "stage": "implement",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 21,
+        "output": 1000,
+        "cached": 88814
+      },
+      "costUsd": 0.00336499,
+      "activeSec": 175.206,
+      "gates": {
+        "passed": 7,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 44,
+        "labSec": 123
+      }
+    },
+    {
+      "step": "implement/TASK-2",
+      "stage": "implement",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 5,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Safety check failed: secret:Possible secret (password-assignment) in components/screens/s-#/container.tsx:# | secret:Possible secret (password-assignment) in co",
+        "Safety check failed twice: secret:Possible secret (password-assignment) in components/screens/s-#/container.tsx:# | secret:Possible secret (password-assignment)",
+        "Safety check failed twice: design-fidelity:lint: tokens only: # hex colour(s), # arbitrary value(s) the building blocks don't already use, # inline style(s) | s"
+      ],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 345,
+        "output": 80345,
+        "cached": 4138020
+      },
+      "costUsd": 0.11577657499999999,
+      "activeSec": 1786.086,
+      "gates": {
+        "passed": 31,
+        "failed": 5,
+        "failedIds": [
+          "design.fidelity-lint",
+          "secrets.none",
+          "secrets.none",
+          "secrets.none",
+          "design.fidelity-lint"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 1621,
+        "labSec": 131
+      }
+    },
+    {
+      "step": "implement/TASK-3",
+      "stage": "implement",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 4,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Escalating after repeated failures",
+        "Retrying with the failures"
+      ],
+      "highestRung": 1,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 54581,
+        "output": 162094,
+        "cached": 8890346
+      },
+      "costUsd": 0.22026093500000005,
+      "activeSec": 2692.9190000000003,
+      "gates": {
+        "passed": 21,
+        "failed": 3,
+        "failedIds": [
+          "design.fidelity-lint",
+          "tests.expectations",
+          "tests.expectations"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 108,
+        "agentSec": 2107,
+        "labSec": 383
+      }
+    }
+  ],
+  "createdAt": "2026-10-13T13:49:01.199Z",
+  "humanCards": [
+    "question",
+    "question",
+    "question",
+    "question",
+    "design-approval",
+    "approval"
+  ]
+}

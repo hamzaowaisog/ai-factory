@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 190,
+    "end": 230
+   },
+   "ms": 1,
+   "resultChars": 1748,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:190,&quot;end&quot;:230}\">\ncontracts/openapi.yaml lines 190-230\n190\t      responses:\n191\t        \"200\":\n192\t          $ref: \"#/components/responses/RecordResult\"\n193\t        \"401\":\n194\t          $ref: \"#/components/responses/Unauthorized\"\n195\t        \"403\":\n196\t          $ref: \"#/components/responses/Forbidden\"\n197\t        \"404\":\n198\t          $ref: \"#/components/responses/NotFound\"\n199\t        \"500\":\n200\t          $ref: \"#/components/responses/ServerError\"\n201\t  /warehouse/receipts/{receiptId}/logger:\n202\t    post:\n203\t      operationId: uploadReceiptLogger\n204\t      summary: \"Upload an inbound logger export for supplier-format processing.\"\n205\t      parameters:\n206\t        - $ref: \"#/components/parameters/ReceiptId\"\n207\t      requestBody:\n208\t        required: true\n209\t        content:\n210\t          multipart/form-data:\n211\t            schema:\n212\t              $ref: \"#/components/schemas/FileUpload\"\n213\t      responses:\n214\t        \"200\":\n215\t          $ref: \"#/components/responses/RecordResult\"\n216\t        \"400\":\n217\t          $ref: \"#/components/responses/BadRequest\"\n218\t        \"401\":\n219\t          $ref: \"#/components/responses/Unauthorized\"\n220\t        \"403\":\n221\t          $ref: \"#/components/responses/Forbidden\"\n222\t        \"404\":\n223\t          $ref: \"#/components/responses/NotFound\"\n224\t        \"500\":\n225\t          $ref: \"#/components/responses/ServerError\"\n226\t  /warehouse/receipts/{receiptId}/evidence:\n227\t    post:\n228\t      operationId: uploadReceiptEvidence\n229\t      summary: \"Upload separate receipt evidence.\"\n230\t      parameters:\n… (2684 lines total; ask for start=231)\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,173 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "Provide a web front end backed by an API and database, so request listing, creation, retrieval, status changes, and persistence operate on the same request records.",
+        "kind": "data"
+       },
+       {
+        "text": "The signed-in demo user Sam Carter can use the app without a sign-in screen; there are no other user roles or permission differences.",
+        "kind": "permission"
+       }
+      ],
+      "readingChosen": "Treat this as the specified single-user web app with an API and database, not as a request for additional infrastructure or user-management features."
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "On initial app data setup, provide exactly 8 seed requests: 4 Open (including one Urgent), 2 In progress, and 2 Done; collectively, their areas include Kitchen, Meeting room, Open desk, Washroom, and Reception.",
+        "kind": "data"
+       }
+      ],
+      "readingChosen": "“Ships with exactly 8 requests” means the initial seeded dataset has eight requests; users may subsequently create more."
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When a request is created or its status changes, store the resulting request in the database; after a page reload or application restart, listing or retrieving it returns the persisted values rather than losing the record or reverting its status.",
+        "kind": "data"
+       },
+       {
+        "text": "If database-backed loading or saving fails, do not present the failed operation as successful; show the corresponding load or update failure state.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "Expose exactly four API operations: list requests, create a request, get one request by ID, and change one request's status; do not expose other request operations, including editing request fields or deleting requests.",
+        "kind": "data"
+       },
+       {
+        "text": "List accepts an optional single status filter, returns all matching requests (or all requests if unfiltered), and orders results newest first.",
+        "kind": "data"
+       },
+       {
+        "text": "Create accepts a title, area, priority, and optional description; reject a title outside 3–80 characters, a missing or invalid area, a missing or invalid priority, or a description longer than 500 characters, with an error naming the offending field. For valid input, generate the ID and creation time, set status to Open, persist the request, and return it.",
+        "kind": "error"
+       },
+       {
+        "text": "Get by ID returns the matching request; for an unknown ID, return a not-found result.",
+        "kind": "error"
+       },
+       {
+        "text": "Change status accepts only Open → In progress, In progress → Done, or Done → Open; persist and return the new status for an allowed transition. Reject any other transition without changing the stored status.",
+        "kind": "error"
+       },
+       {
+        "text": "The API enforces validation, status-transition rules, and immutability of title, area, priority, and description; clients cannot change those fields after creation.",
+        "kind": "permission"
+       }
+      ],
+      "readingChosen": "Interpret “no others” as limiting the request API to these four operations, while allowing normal error responses for invalid input, invalid transitions, and unknown IDs."
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "Show a Requests home screen with the Hive Works wordmark and Sam Carter's initials, and a status filter with All, Open, In progress, and Done; exactly one choice is selected, initially All. Selecting a status loads and displays all matching requests newest first.",
+        "kind": "happy"
+       },
+       {
+        "text": "For each list row, show title, area, priority badge, status badge, and created date. Selecting a row opens that request's detail screen.",
+        "kind": "happy"
+       },
+       {
+        "text": "Show “Loading requests…” while the list is loading; if the selected filter has no matching requests, show “No requests here.” If loading fails, show “Could not load requests.” and a Retry control that retries loading.",
+        "kind": "error"
+       },
+       {
+        "text": "Selecting New request opens a dialog with labeled Title, Area, Priority, and Description fields; Priority defaults to Normal, and Area and Priority offer their allowed values. Create and Cancel controls are available.",
+        "kind": "happy"
+       },
+       {
+        "text": "On Create, reject invalid title, area, priority, or description values with a field-specific message beneath the field; keep the dialog open and do not create a request. In particular, a title shorter than 3 or longer than 80 characters, missing required values, an invalid choice, or a description over 500 characters is rejected.",
+        "kind": "error"
+       },
+       {
+        "text": "While a create request is being sent, disable Create so repeated clicks cannot create duplicate requests. On successful creation, close the dialog and show the new Open request at the top of the list. On a failed creation, do not show it as successfully created and keep the dialog available for correction or retry.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "Opening an existing request displays a back link and its title, area, priority badge, status badge, created date, and description; if description is absent, display “No description.”",
+        "kind": "happy"
+       },
+       {
+        "text": "Show exactly one status action appropriate to the current status: Open shows Start work, In progress shows Mark done, and Done shows Reopen. After the API confirms an allowed change, update the displayed status badge and action to match the new status; do not change the screen optimistically before the response.",
+        "kind": "happy"
+       },
+       {
+        "text": "If the status change fails, display “Could not update the request.” and leave the displayed status as it was.",
+        "kind": "error"
+       },
+       {
+        "text": "If the requested ID does not exist, display “Request not found.” and a link back to the Requests screen.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "Render the app in a clean light theme with a neutral background, near-black text, one brand color for primary buttons, and one sans-serif font; provide no dark-mode theme and require no animation.",
+        "kind": "happy"
+       },
+       {
+        "text": "At 375 px viewport width, display list rows stacked as cards; at 1280 px, display them as a table. Keep the page free of horizontal scrolling.",
+        "kind": "happy"
+       },
+       {
+        "text": "Give status badges both text and color: Open blue, In progress amber, Done green. Give Urgent priority a red badge and Low and Normal neutral badges, with text always visible so color is not the only status or priority signal.",
+        "kind": "happy"
+       },
+       {
+        "text": "Label every field, make every control keyboard reachable, and use text and control presentation with WCAG AA contrast.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "Automated business-rule tests verify that valid creation produces an Open request; missing or too-short title, missing area, and overlong description are rejected; each of the three allowed status transitions succeeds; and a transition outside the allowed order is rejected without changing status.",
+        "kind": "data"
+       },
+       {
+        "text": "Automated business-rule tests verify that a status-filtered list contains only that status and is newest-first, and that an unknown ID is answered as not found.",
+        "kind": "data"
+       },
+       {
+        "text": "Provide an end-to-end test that opens the list, creates a request, sees it at the top, opens it, uses Start work and Mark done, then filters by Done and sees the request.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

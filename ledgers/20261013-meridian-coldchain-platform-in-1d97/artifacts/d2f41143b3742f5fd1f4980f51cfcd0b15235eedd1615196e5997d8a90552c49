@@ -1,0 +1,71 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "For every operation declared in the locked OpenAPI contract, the API accepts the contract-defined method, path, parameters, headers and request body, and returns the contract-defined status, content type and response shape for successful requests.",
+        "kind": "happy"
+       },
+       {
+        "text": "Requests that violate a contract-defined constraint, refer to missing resources, or fail a contract-defined authorization requirement receive the corresponding contract-defined error response; they do not produce a successful operation result.",
+        "kind": "error"
+       },
+       {
+        "text": "Operations with contract-defined security requirements are unavailable to callers who do not satisfy those requirements.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Treat “each table” as every persisted table in the application data model; seed believable example-derived rows for each, including data usable by list operations.",
+      "behaviours": [
+       {
+        "text": "When demo seeding runs, it writes a small set of believable sample rows derived from examples in the contract for every persisted table, so list operations have sample data to return. Include the contract’s Cedar Clinic receipt example where applicable.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "With Seed:Demo set to true, application startup runs the sample-data seeder.",
+        "kind": "happy"
+       },
+       {
+        "text": "With Seed:Demo absent or false, startup does not run the sample-data seeder and the seeder adds no demo rows.",
+        "kind": "data"
+       },
+       {
+        "text": "Tests remain valid without demo rows: they do not assume or require seeded sample records to exist.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "This project provides API behavior only; it does not provide or render web-app screens.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

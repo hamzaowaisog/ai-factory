@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-2",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-2 covers previewing available mock records and displaying a completed import, but specifies no visible state when the adapter returns no records, fails to load, or rejects the import."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "REQ-6 promises inventory-item maintenance but its mutation criterion covers only editing an existing item, leaving no specified way to create the first feed item needed for rations, receipts, and stock-controlled feeding."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-6.2 specifies only successful inventory changes, with no error or retained-state behavior if an item edit, receipt, adjustment, or wastage change is rejected or times out."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-8 omits any ration-approval action or permission path even though Q-6 authorizes ration managers to approve definitions and Q-13 removes only the requirement to approve before assignment."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "AC-8.1 checks ration-entry fields and AC-8.3 checks an unsaved optimization result, but no criterion covers submitting a new or revised ration and displaying it as a saved ration available for planning."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-11.14 rejects only lot allocations whose sum differs from the pen total, so negative per-lot quantities such as −10 and 110 pounds for a 100-pound delivery pass its stated validation."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-13 defines an unavailable projected date for nonpositive ADG but no displayed unavailable state for FCR or cost of gain when a new lot has no gain or feeding data."
+     },
+     {
+      "reqId": "REQ-14",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "REQ-14 permits an authorized planner to act on a sale-timing suggestion and refers to changing a sale date, but no requirement defines an editable sale-date field, its save result, or how it relates to the derived projected ship date."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-18.2 says the global sex filter is unavailable 'for records without sex data' without specifying how it behaves when a report contains both known-sex and unknown-sex lots or how those lots appear in filtered exports."
+     },
+     {
+      "reqId": "REQ-20",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "REQ-6 requires displaying returned inventory stock values while AC-20.7 requires operational-only inventory totals from a response containing sample and operational records, without specifying an operational-only returned total or reconciling that requirement with the API-authoritative calculation rule."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

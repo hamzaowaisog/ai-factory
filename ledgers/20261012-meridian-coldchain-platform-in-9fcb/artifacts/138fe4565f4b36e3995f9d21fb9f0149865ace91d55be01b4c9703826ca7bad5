@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — Empty State</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base Rules */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Typography tokens */
+    h1, .h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      color: #202020;
+    }
+
+    h2, .h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    h3, .h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quiet {
+      color: #626262;
+    }
+
+    /* Semantic status tokens */
+    .status-good {
+      color: #24704B;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-good::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-waiting::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-refused::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+    }
+
+    /* Keyframes and Transitions */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .page-container {
+      animation: pageEntrance 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Global Header */
+    header.site-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 2px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      color: #202020;
+      letter-spacing: -0.01em;
+    }
+
+    nav.main-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 56px;
+    }
+
+    .nav-link {
+      font-size: 15px;
+      font-weight: 500;
+      color: #202020;
+      text-decoration: none;
+      height: 56px;
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #A94B1D;
+    }
+
+    .nav-link.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .nav-link.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .avatar-initials {
+      width: 28px;
+      height: 28px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 20px;
+    }
+
+    /* Main Layout */
+    main.content-area {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-header {
+      margin-bottom: 24px;
+    }
+
+    /* Search & Filter Panel */
+    .filter-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-group.flex-1 {
+      flex: 1;
+    }
+
+    .field-group.w-200 {
+      width: 220px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    .input-field, .select-field {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      width: 100%;
+      transition: border-color 150ms ease;
+    }
+
+    .input-field::placeholder {
+      color: #626262;
+    }
+
+    .input-field:focus, .select-field:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: -1px;
+      border-color: #A94B1D;
+    }
+
+    .select-field {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23202020' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 120ms ease, border-color 120ms ease, transform 90ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.99);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #B5B5B5;
+    }
+
+    /* Empty State Panel */
+    .table-container {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .table-header-row {
+      display: grid;
+      grid-template-columns: 100px 2.2fr 1.2fr 1.2fr 1.2fr 120px;
+      height: 48px;
+      align-items: center;
+      padding: 0 16px;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+    }
+
+    .empty-state-card {
+      padding: 80px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-state-icon {
+      width: 48px;
+      height: 48px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      background-color: #FFFFFF;
+      color: #626262;
+    }
+
+    .empty-state-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .empty-state-description {
+      font-size: 15px;
+      color: #626262;
+      max-width: 480px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Inline Add Product Form Section */
+    .inline-form-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-top: 32px;
+    }
+
+    .inline-form-header {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #D5D5D5;
+    }
+
+    .field-hint {
+      font-size: 13px;
+      color: #626262;
+      margin-top: 4px;
+    }
+
+    /* Prefers reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .page-container, .btn, .nav-link, .input-field, .select-field {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header: exact specification -->
+  <header class="site-header">
+    <div class="header-left">
+      <a href="#" class="brand">
+        <div class="brand-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="main-nav">
+        <a href="#" class="nav-link active">Products</a>
+        <a href="#" class="nav-link">Organisations</a>
+        <a href="#" class="nav-link">Accounts</a>
+        <a href="#" class="nav-link">Audit trail</a>
+        <a href="#" class="nav-link">Reports</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials">MV</div>
+        <span>Marcus Vale · System Administrator</span>
+      </div>
+      <div class="lang-switcher">
+        <span>EN / العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="content-area page-container">
+    <div class="page-header">
+      <h1>Products</h1>
+    </div>
+
+    <!-- Search, Filter & CSV Export Panel -->
+    <section class="filter-panel">
+      <div class="field-group flex-1">
+        <label for="product-search">Search products</label>
+        <input 
+          type="text" 
+          id="product-search" 
+          class="input-field" 
+          placeholder="Filter by product name, specification or profile..."
+        />
+      </div>
+
+      <div class="field-group w-200">
+        <label for="status-filter">Status</label>
+        <select id="status-filter" class="select-field">
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <button type="button" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#202020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        CSV export
+      </button>
+    </section>
+
+    <!-- Empty State Dense Table Skeleton & Message -->
+    <section class="table-container">
+      <div class="table-header-row">
+        <div>Photo</div>
+        <div>Product name</div>
+        <div>Pack size</div>
+        <div>Thermal profile</div>
+        <div>Status</div>
+        <div>Action</div>
+      </div>
+
+      <div class="empty-state-card">
+        <div class="empty-state-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#626262" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <h2 class="empty-state-title">No products recorded</h2>
+        <p class="empty-state-description">
+          No pharmaceutical cold-chain products have been registered for distribution yet. Complete the inline form below to register your first product.
+        </p>
+      </div>
+    </section>
+
+    <!-- Primary Add Product inline form state -->
+    <section class="inline-form-panel">
+      <div class="inline-form-header">
+        <div>
+          <h2>Add product</h2>
+          <p class="quiet" style="font-size: 14px; margin-top: 4px;">Configure a validated cold-chain medicinal product and assign its baseline thermal parameters.</p>
+        </div>
+        <span class="status-waiting">waiting submission</span>
+      </div>
+
+      <form action="#" method="post" onsubmit="event.preventDefault();">
+        <div class="form-grid">
+          <div class="field-group">
+            <label for="prod-name">Product trade name</label>
+            <input 
+              type="text" 
+              id="prod-name" 
+              class="input-field" 
+              placeholder="e.g. Insulin Glargine 100 units/mL"
+            />
+          </div>
+
+          <div class="field-group">
+            <label for="prod-pack">Pack size & configuration</label>
+            <input 
+              type="text" 
+              id="prod-pack" 
+              class="input-field" 
+              placeholder="e.g. pack of 10 pens"
+            />
+          </div>
+
+          <div class="field-group">
+            <label for="prod-profile">Effective thermal profile</label>
+            <select id="prod-profile" class="select-field">
+              <option value="v3">Profile v3 (Permitted 2.0°C–8.0°C, upper tier >8–10°C, 30m allowance)</option>
+              <option value="v4">Profile v4 (Proposed future release)</option>
+            </select>
+            <span class="field-hint">Profile v3 is the current read-only active release standard.</span>
+          </div>
+
+          <div class="field-group">
+            <label for="prod-status">Initial product status</label>
+            <select id="prod-status" class="select-field">
+              <option value="active">Active (available for intake & allocation)</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="reset" class="btn btn-secondary">Clear fields</button>
+          <button type="submit" class="btn btn-primary">Add product</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

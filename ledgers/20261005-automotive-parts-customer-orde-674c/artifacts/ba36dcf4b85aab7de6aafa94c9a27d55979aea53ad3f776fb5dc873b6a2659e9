@@ -1,0 +1,346 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "User",
+     "subtitle": "Ruth Okafor · ruth.okafor@brennansautocare.co.uk",
+     "crumbs": [
+      "Admin",
+      "Users",
+      "Ruth Okafor"
+     ],
+     "badge": "Pending",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Account",
+       "rows": [
+        {
+         "label": "Role",
+         "value": "Buyer"
+        },
+        {
+         "label": "Customer company",
+         "value": "Brennan's Autocare (C-10482)"
+        },
+        {
+         "label": "Company status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Account status",
+         "value": "Pending",
+         "badge": true
+        },
+        {
+         "label": "Invitation sent",
+         "value": "9 Mar 2026, 15:17"
+        },
+        {
+         "label": "Invitation expires",
+         "value": "16 Mar 2026, 15:17"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Role",
+         "kind": "radio",
+         "options": [
+          "Buyer",
+          "Office Staff",
+          "Administrator"
+         ],
+         "value": "Buyer",
+         "required": true
+        },
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Brennan's Autocare (C-10482)",
+         "placeholder": "Type a company name or account no.",
+         "help": "Buyers only. Orders and prices follow this company.",
+         "error": "Choose a customer company for a Buyer"
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Resend invitation",
+         "variant": "primary",
+         "icon": "send"
+        },
+        {
+         "label": "Deactivate user",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "View company",
+         "variant": "ghost"
+        },
+        {
+         "label": "View in audit log",
+         "variant": "link"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "text": "Deactivating stops sign-in but keeps every order and invoice. A user can't be reactivated while their customer company is inactive."
+      },
+      {
+       "type": "detail",
+       "title": "Record history",
+       "rows": [
+        {
+         "label": "Created by",
+         "value": "Daniel Hart (Administrator)"
+        },
+        {
+         "label": "Created",
+         "value": "3 Mar 2026, 08:42"
+        },
+        {
+         "label": "Last changed by",
+         "value": "Sana Mirza (Administrator)"
+        },
+        {
+         "label": "Last changed",
+         "value": "9 Mar 2026, 15:17"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View company",
+       "to": "S-21"
+      },
+      {
+       "from": "View in audit log",
+       "to": "S-36"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Resend invitation",
+       "title": "Send a new invitation?",
+       "text": "Every earlier invitation link for Ruth Okafor stops working, and a new email goes to ruth.okafor@brennansautocare.co.uk.",
+       "actions": [
+        {
+         "label": "Send new invitation",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Deactivate user",
+       "title": "Deactivate Ruth Okafor?",
+       "text": "She won't be able to sign in or use her invitation. Brennan's Autocare orders and invoices are kept.",
+       "actions": [
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Send new invitation",
+       "text": "New invitation sent. Earlier links no longer work.",
+       "tone": "ok"
+      },
+      {
+       "after": "Save changes",
+       "text": "Role and company saved",
+       "tone": "ok"
+      },
+      {
+       "after": "Deactivate",
+       "text": "Ruth Okafor deactivated",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "error": "Can't reactivate this user: Brennan's Autocare is inactive. Reactivate the company first.",
+      "success": "Changes saved. Ruth Okafor's role and company are up to date.",
+      "validation": "Choose a customer company before saving a Buyer."
+     }
+    },
+    "mockFull": {
+     "title": "User",
+     "subtitle": "Ruth Okafor · ruth.okafor@brennansautocare.co.uk",
+     "crumbs": [
+      "Admin",
+      "Users",
+      "Ruth Okafor"
+     ],
+     "badge": "Pending",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Account",
+       "rows": [
+        {
+         "label": "Role",
+         "value": "Buyer"
+        },
+        {
+         "label": "Customer company",
+         "value": "Brennan's Autocare (C-10482)"
+        },
+        {
+         "label": "Company status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B · 2026"
+        },
+        {
+         "label": "Account status",
+         "value": "Pending",
+         "badge": true
+        },
+        {
+         "label": "Invitations sent",
+         "value": "3 (2 earlier links invalidated)"
+        },
+        {
+         "label": "Invitation sent",
+         "value": "9 Mar 2026, 15:17"
+        },
+        {
+         "label": "Invitation expires",
+         "value": "16 Mar 2026, 15:17"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Role",
+         "kind": "radio",
+         "options": [
+          "Buyer",
+          "Office Staff",
+          "Administrator"
+         ],
+         "value": "Buyer",
+         "required": true
+        },
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Brennan's Autocare (C-10482)",
+         "placeholder": "Type a company name or account no.",
+         "help": "Buyers only. Orders and prices follow this company.",
+         "error": "Choose a customer company for a Buyer"
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Resend invitation",
+         "variant": "primary",
+         "icon": "send"
+        },
+        {
+         "label": "Deactivate user",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "View company",
+         "variant": "ghost"
+        },
+        {
+         "label": "View in audit log",
+         "variant": "link"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "text": "Deactivating stops sign-in but keeps every order and invoice. A user can't be reactivated while their customer company is inactive."
+      },
+      {
+       "type": "detail",
+       "title": "Record history",
+       "rows": [
+        {
+         "label": "Created by",
+         "value": "Daniel Hart (Administrator)"
+        },
+        {
+         "label": "Created",
+         "value": "3 Mar 2026, 08:42"
+        },
+        {
+         "label": "First invitation",
+         "value": "3 Mar 2026, 08:42 · invalidated"
+        },
+        {
+         "label": "Second invitation",
+         "value": "6 Mar 2026, 11:05 · invalidated"
+        },
+        {
+         "label": "Company changed",
+         "value": "Halden Motors Ltd → Brennan's Autocare"
+        },
+        {
+         "label": "Last changed by",
+         "value": "Sana Mirza (Administrator)"
+        },
+        {
+         "label": "Last changed",
+         "value": "9 Mar 2026, 15:17"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "Can't reactivate this user: Brennan's Autocare is inactive. Reactivate the company first.",
+      "success": "Changes saved. Ruth Okafor's role and company are up to date.",
+      "validation": "Choose a customer company before saving a Buyer."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

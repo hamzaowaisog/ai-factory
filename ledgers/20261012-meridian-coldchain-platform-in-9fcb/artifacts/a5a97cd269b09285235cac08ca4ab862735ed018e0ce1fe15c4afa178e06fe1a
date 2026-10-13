@@ -1,0 +1,1 @@
+{"commit":"95edc0d842fef9d8b389be1feb620df61ffc95e9","design":{"designSha":"4837a6a5ee2667e2564d1a6ca8811f17ed1d6fe92819df466aa91a3ed3a2193a","line":"20261012-meridian-coldchain-platform-in-9fcb","version":1},"files":["contracts/openapi.yaml","components/screens/s-25/route-cache.ts","components/screens/s-27/driver-work-store.ts"]}

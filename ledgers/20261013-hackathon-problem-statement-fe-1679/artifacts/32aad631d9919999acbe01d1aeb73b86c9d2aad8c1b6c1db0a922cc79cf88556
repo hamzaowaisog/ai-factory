@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+
+<html class="bg-[#F5F5F5] text-[#262626]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Feed plans - Range Ledger</title>
+<!-- Typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "paper": "#F5F5F5",
+            "work-white": "#FFFFFF",
+            "graphite": "#262626",
+            "measured": "#626262",
+            "ledger-rule": "#D8D8D8",
+            "yard-coral": "#B3473D",
+            "good-green": "#286143",
+            "waiting-ochre": "#805600",
+            "refused-red": "#A13D36",
+            "outline-variant": "#ddc0bc",
+            "on-tertiary-fixed": "#00201b",
+            "on-tertiary-container": "#a1fdeb",
+            "on-primary-fixed": "#410001",
+            "error-container": "#ffdad6",
+            "surface-container-high": "#e8e8e8",
+            "secondary-fixed-dim": "#fcb5ac",
+            "surface-bright": "#f9f9f9",
+            "on-error-container": "#93000a",
+            "secondary": "#865049",
+            "on-secondary-fixed-variant": "#6b3933",
+            "tertiary-fixed-dim": "#7bd7c6",
+            "tertiary": "#005d52",
+            "on-background": "#1a1c1c",
+            "on-tertiary-fixed-variant": "#005046",
+            "on-primary-fixed-variant": "#83241e",
+            "on-tertiary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "surface-variant": "#e2e2e2",
+            "primary-fixed-dim": "#ffb4aa",
+            "background": "#F5F5F5",
+            "tertiary-container": "#00786a",
+            "surface-container-low": "#f3f3f3",
+            "secondary-container": "#ffb8af",
+            "on-secondary-fixed": "#350f0b",
+            "error": "#ba1a1a",
+            "surface-container": "#eeeeee",
+            "primary": "#B3473D",
+            "secondary-fixed": "#ffdad5",
+            "on-secondary-container": "#7b4640",
+            "inverse-primary": "#ffb4aa",
+            "outline": "#8a716e",
+            "on-surface-variant": "#57423f",
+            "tertiary-fixed": "#97f3e2",
+            "primary-fixed": "#ffdad5",
+            "on-primary-container": "#ffe6e3",
+            "inverse-on-surface": "#f1f1f1",
+            "surface-tint": "#a33c33",
+            "surface": "#ffffff",
+            "on-surface": "#262626",
+            "surface-container-lowest": "#ffffff",
+            "inverse-surface": "#2f3131",
+            "surface-dim": "#dadada",
+            "on-error": "#ffffff",
+            "surface-container-highest": "#e2e2e2",
+            "on-primary": "#ffffff",
+            "primary-container": "#b3473d"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: 12px;
+    }
+
+    body {
+      background-color: #F5F5F5;
+      color: #262626;
+      font-family: "Source Sans 3", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @keyframes settle-in {
+      from { opacity: 0.78; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes sequence-fill {
+      from { transform: scaleX(0.12); }
+      to { transform: scaleX(1); }
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 0.82; }
+      50% { opacity: 0.86; }
+    }
+
+    .page-entry {
+      animation: settle-in var(--dur-slow) var(--ease-out) both;
+      animation-delay: var(--stagger, 0ms);
+    }
+
+    .sequence-track {
+      transform-origin: left;
+    }
+
+    @supports (animation-timeline: view()) {
+      .sequence-track {
+        animation: sequence-fill 420ms var(--ease-out) both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 55%;
+      }
+    }
+
+    .live-state-dot {
+      animation: live-breathe 8s var(--ease-inout) infinite;
+    }
+
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-entry { animation: none; opacity: 1; transform: none; }
+      .sequence-track, .live-state-dot { animation: none; }
+      *, *::before, *::after { transition-duration: 120ms !important; scroll-behavior: auto !important; }
+    }
+
+    /* Focus and tap states */
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+    button:active, a:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] flex flex-col items-center justify-start p-0 m-0">
+<!-- Mobile Viewport Container 390px -->
+<div class="w-full max-w-[390px] min-h-[100dvh] bg-[#F5F5F5] flex flex-col relative pb-12 selection:bg-[#ffdad5] selection:text-[#410001]">
+<!-- Header: Strict Plain Mobile Shell -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D8D8D8] px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 bg-[#B3473D] rounded-[4px] flex items-center justify-center text-white font-headline font-bold text-sm leading-none tracking-tight">
+          R
+        </div>
+<span class="font-headline font-bold text-[17px] text-[#262626] tracking-tight">
+          Range Ledger
+        </span>
+</div>
+<!-- Header actions: Drawer toggle button -->
+<button aria-controls="mobile-menu-drawer" aria-expanded="false" aria-label="Open navigation menu" class="w-11 h-11 flex items-center justify-center text-[#262626] border border-[#D8D8D8] rounded-[4px] hover:bg-[#F5F5F5] transition-colors" id="menu-toggle-btn" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu">menu</span>
+</button>
+</header>
+<!-- Slide-over / Drawer Mobile Menu (Strict ordered list, filtered per permissions) -->
+<div aria-hidden="true" class="fixed inset-0 z-50 bg-[#262626]/40 backdrop-blur-[1px] hidden transition-opacity duration-200" id="mobile-menu-drawer">
+<div class="w-[300px] h-full bg-[#FFFFFF] border-r border-[#D8D8D8] flex flex-col justify-between overflow-y-auto transform -translate-x-full transition-transform duration-260 ease-out p-4" id="mobile-menu-panel">
+<div>
+<!-- Close Bar -->
+<div class="flex items-center justify-between pb-3 border-b border-[#D8D8D8] mb-3">
+<span class="font-headline font-bold text-sm tracking-tight text-[#262626]">Navigation</span>
+<button aria-label="Close menu" class="w-9 h-9 flex items-center justify-center text-[#262626] border border-[#D8D8D8] rounded-[4px]" id="menu-close-btn" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Signed-in User Profile Context -->
+<div class="flex items-center gap-3 p-2.5 mb-4 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+<img alt="Maya Chen portrait" class="w-10 h-10 rounded-[4px] object-cover border border-[#D8D8D8] flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG"/>
+<div class="min-w-0">
+<div class="font-headline font-semibold text-[14px] text-[#262626] truncate">Maya Chen</div>
+<div class="font-body text-[12px] text-[#626262] leading-tight">Yard manager</div>
+</div>
+</div>
+<!-- Menu Items in STRICT order with RBAC enforcement -->
+<nav class="flex flex-col space-y-0.5">
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Yard</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Imports</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Allocations</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Lots</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Inventory</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Feed outlook</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Rations</a>
+<!-- Active Item: Feed plans -->
+<a aria-current="page" class="px-3 py-2 text-[14px] font-semibold text-[#B3473D] bg-[#F5F5F5] border-l-2 border-[#B3473D] rounded-r-[4px]" href="#">Feed plans</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Feeding</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Reports</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Feed-to-gain</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Profitability</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Sample data</a>
+<a class="px-3 py-2 text-[14px] font-body text-[#262626] hover:bg-[#F5F5F5] rounded-[4px]" href="#">Delivery brief</a>
+</nav>
+</div>
+<div class="pt-4 border-t border-[#D8D8D8] text-[12px] text-[#626262] font-mono">
+          Role ID: YM-7041 (Authorized Planner)
+        </div>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="px-4 pt-4 pb-8 flex flex-col space-y-4">
+<!-- Operational Header & Metadata -->
+<section class="page-entry flex flex-col space-y-1.5" style="--stagger: 0ms;">
+<div class="flex items-center justify-between">
+<h1 class="font-headline font-extrabold text-[24px] text-[#262626] tracking-tight leading-tight">
+            Feed plans
+          </h1>
+<span class="inline-flex items-center gap-1.5 font-mono text-[11px] text-[#626262] bg-[#FFFFFF] border border-[#D8D8D8] px-2 py-0.5 rounded-[4px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143] live-state-dot"></span>
+            ACTIVE JUN 19
+          </span>
+</div>
+<!-- Location & Timezone Details -->
+<div class="flex items-center text-[13px] text-[#626262] font-body">
+<span>Red Mesa Yard</span>
+<span class="mx-1.5 text-[#D8D8D8]">•</span>
+<span>America/Denver (Mountain Time)</span>
+</div>
+</section>
+<!-- Ledger Summary Metric Card -->
+<section class="page-entry bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-3.5" style="--stagger: 50ms;">
+<div class="flex justify-between items-baseline mb-1">
+<span class="font-body text-[13px] text-[#626262]">Total Planned Delivered Feed</span>
+<span class="font-mono text-[11px] text-[#626262]">TARGET</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div class="flex items-baseline gap-1">
+<span class="font-mono text-[24px] font-semibold text-[#262626] tracking-tight">8,384</span>
+<span class="font-mono text-[13px] text-[#626262]">lb/day</span>
+</div>
+<span class="font-mono text-[12px] text-[#626262]">Exact: 8,383.8 lb</span>
+</div>
+<!-- Feeding-sequence progress rule track -->
+<div class="w-full bg-[#F5F5F5] h-1.5 rounded-none mt-3 relative overflow-hidden border border-[#D8D8D8]">
+<div class="sequence-track bg-[#286143] h-full w-[33%]"></div>
+</div>
+<div class="flex justify-between text-[11px] font-mono text-[#626262] mt-1.5">
+<span>Fed: 2,772 lb (1/3 pens)</span>
+<span>Remaining: 5,612 lb</span>
+</div>
+</section>
+<!-- Primary Action: Generate Plan Button within thumb reach -->
+<section class="page-entry" style="--stagger: 100ms;">
+<button class="w-full h-12 bg-[#B3473D] text-white font-headline font-semibold text-[15px] rounded-[4px] flex items-center justify-center gap-2 transition-transform duration-90 active:scale-[0.97] hover:brightness-95 cursor-pointer shadow-none" id="btn-trigger-recalc" type="button">
+<span class="material-symbols-outlined text-[19px]" data-icon="refresh">refresh</span>
+<span>Generate plan</span>
+</button>
+<p class="text-[12px] text-[#626262] font-body mt-1.5 px-0.5">
+          Recalculates batches based on live pen muster counts. Requires planner confirmation.
+        </p>
+</section>
+<!-- Section: Worklist Header -->
+<div class="page-entry flex items-center justify-between pt-2" style="--stagger: 150ms;">
+<span class="font-headline font-bold text-[15px] text-[#262626] tracking-tight">Saved Jun 19 plan worklist</span>
+<span class="font-mono text-[12px] text-[#626262]">3 pens scheduled</span>
+</div>
+<!-- 2px Major Group Ledger Rule -->
+<div class="w-full h-[2px] bg-[#D8D8D8] -mt-1"></div>
+<!-- WORKLIST RECORD 1: Pen P-04 (Needs Review) -->
+<article class="page-entry bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] overflow-hidden" style="--stagger: 200ms;">
+<!-- Header Strip -->
+<div class="p-3.5 border-b border-[#D8D8D8] flex items-start justify-between bg-[#FFFFFF]">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-mono text-[17px] font-semibold text-[#262626]">Pen P-04</span>
+<span class="font-body text-[13px] text-[#626262] bg-[#F5F5F5] px-1.5 py-0.5 rounded-[4px] border border-[#D8D8D8]">Grower</span>
+</div>
+<div class="text-[12px] text-[#626262] font-body mt-0.5">
+              Assigned: <span class="text-[#262626] font-medium">Eli Navarro</span> (Pen operator)
+            </div>
+</div>
+<!-- Status Chip: Review needed (Waiting Ochre #805600) -->
+<div class="flex items-center gap-1.5 px-2 py-1 bg-[#FFFFFF] border border-[#805600] rounded-[4px]">
+<span class="w-2 h-2 rounded-full bg-[#805600]"></span>
+<span class="font-body font-semibold text-[11px] text-[#805600] leading-none">Review needed</span>
+</div>
+</div>
+<!-- Plan Specifications Grid -->
+<div class="p-3.5 space-y-3 font-body text-[13px]">
+<div class="grid grid-cols-2 gap-2 text-[13px]">
+<div>
+<span class="text-[#626262] block text-[11px] uppercase tracking-wider font-label">Saved plan total</span>
+<span class="font-mono font-semibold text-[15px] text-[#262626]">3,337 lb</span>
+</div>
+<div>
+<span class="text-[#626262] block text-[11px] uppercase tracking-wider font-label">Ration rate</span>
+<span class="font-mono text-[14px] text-[#262626]">23.5 lb/head/day</span>
+</div>
+</div>
+<div class="p-2.5 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px] space-y-1.5">
+<div class="flex justify-between items-baseline">
+<span class="text-[12px] font-medium text-[#262626]">Head Count Discrepancy</span>
+<span class="font-mono text-[12px] text-[#805600] font-medium">142 saved vs 140 live</span>
+</div>
+<p class="text-[12px] text-[#626262] leading-snug">
+              Live muster counts 140 head: <span class="font-mono text-[#262626]">L-2407</span> (80 head, 82 mapped conflict) + <span class="font-mono text-[#262626]">L-2411</span> (60 head).
+            </p>
+</div>
+<!-- Audit Policy Note -->
+<div class="flex items-start gap-1.5 text-[12px] text-[#626262] pt-0.5">
+<span class="material-symbols-outlined text-[16px] text-[#805600] flex-shrink-0 mt-0.5" data-icon="info">info</span>
+<span>Retain the saved 3,337 lb until an authorized planner explicitly confirms an update or regenerates it.</span>
+</div>
+</div>
+<!-- Inline Preview & Recalculation Section (Interactive Toggle) -->
+<div class="border-t border-[#D8D8D8] p-3.5 bg-[#FFFFFF]" id="p04-preview-box">
+<div class="flex items-center justify-between mb-2">
+<span class="font-headline font-semibold text-[13px] text-[#262626]">Recalculation Preview (140 head)</span>
+<span class="font-mono text-[11px] text-[#B3473D] font-medium bg-[#F5F5F5] px-1.5 py-0.5 border border-[#D8D8D8] rounded-[4px]">-47 lb variance</span>
+</div>
+<div class="grid grid-cols-3 gap-1.5 p-2 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px] text-center mb-3">
+<div>
+<span class="text-[10px] text-[#626262] uppercase tracking-wide block font-label">Saved</span>
+<span class="font-mono text-[13px] text-[#262626]">3,337 lb</span>
+</div>
+<div>
+<span class="text-[10px] text-[#626262] uppercase tracking-wide block font-label">Proposed</span>
+<span class="font-mono text-[13px] font-semibold text-[#262626]">3,290 lb</span>
+</div>
+<div>
+<span class="text-[10px] text-[#626262] uppercase tracking-wide block font-label">Delta</span>
+<span class="font-mono text-[13px] font-semibold text-[#B3473D]">-47 lb</span>
+</div>
+</div>
+<!-- Formula explainer -->
+<div class="text-[12px] text-[#626262] font-mono mb-3">
+            Calculation: 140 head × 23.5 lb/day = 3,290.0 lb
+          </div>
+<!-- Confirmation Controls (Planner Authorized: Maya Chen) -->
+<div class="flex gap-2">
+<button class="flex-1 h-11 bg-[#B3473D] text-white font-headline text-[13px] font-semibold rounded-[4px] transition-transform duration-90 active:scale-[0.97] flex items-center justify-center gap-1.5" id="btn-confirm-recalc" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="check">check</span>
+              Confirm &amp; Save 3,290 lb
+            </button>
+<button class="h-11 px-3 bg-transparent border border-[#D8D8D8] text-[#262626] font-body text-[13px] rounded-[4px] hover:bg-[#F5F5F5] transition-colors" id="btn-dismiss-recalc" type="button">
+              Keep 3,337 lb
+            </button>
+</div>
+</div>
+<!-- Execution & Operator Status Row (Touch target 56px, disabled execution for non-operator) -->
+<div class="border-t border-[#D8D8D8] p-3.5 bg-[#F5F5F5] flex flex-col space-y-2">
+<div class="flex items-center justify-between min-h-[44px]">
+<div class="flex flex-col">
+<span class="text-[11px] text-[#626262] font-label uppercase tracking-wide">Execution state</span>
+<span class="text-[13px] font-medium text-[#262626]">Scheduled • Pending feeding</span>
+</div>
+<!-- Service Refusal / Inactive state explanation -->
+<button class="h-11 px-3 bg-[#FFFFFF] border border-[#D8D8D8] text-[#626262] font-body text-[12px] rounded-[4px] opacity-70 cursor-not-allowed flex items-center gap-1.5" disabled="" title="Execution actions reserved for assigned pen operator Eli Navarro" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="lock">lock</span>
+<span>Operator action</span>
+</button>
+</div>
+<!-- Service Refusal Notice -->
+<div class="flex items-center gap-1.5 text-[12px] text-[#A13D36] bg-[#FFFFFF] border border-[#A13D36] p-2 rounded-[4px]">
+<span class="material-symbols-outlined text-[16px]" data-icon="cancel">cancel</span>
+<span class="font-body">Refused: unauthorized operator (Signed in as Yard manager Maya Chen; assigned to Eli Navarro)</span>
+</div>
+</div>
+</article>
+<!-- WORKLIST RECORD 2: Pen P-07 (Fed Nominal) -->
+<article class="page-entry bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] overflow-hidden" style="--stagger: 250ms;">
+<div class="p-3.5 border-b border-[#D8D8D8] flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-mono text-[17px] font-semibold text-[#262626]">Pen P-07</span>
+<span class="font-body text-[13px] text-[#626262] bg-[#F5F5F5] px-1.5 py-0.5 rounded-[4px] border border-[#D8D8D8]">Grower</span>
+</div>
+<div class="text-[12px] text-[#626262] font-body mt-0.5">
+              Lot: <span class="font-mono text-[#262626]">L-2409</span> • 126 head
+            </div>
+</div>
+<!-- Status Chip: Nominal (Good Green #286143) -->
+<div class="flex items-center gap-1.5 px-2 py-1 bg-[#FFFFFF] border border-[#286143] rounded-[4px]">
+<span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+<span class="font-body font-semibold text-[11px] text-[#286143] leading-none">Nominal / Saved</span>
+</div>
+</div>
+<div class="p-3.5 space-y-2.5 font-body text-[13px]">
+<div class="grid grid-cols-2 gap-2">
+<div>
+<span class="text-[#626262] block text-[11px] uppercase tracking-wider font-label">Saved plan</span>
+<span class="font-mono font-semibold text-[15px] text-[#262626]">2,772 lb</span>
+</div>
+<div>
+<span class="text-[#626262] block text-[11px] uppercase tracking-wider font-label">Rate target</span>
+<span class="font-mono text-[14px] text-[#262626]">22.0 lb/head/day</span>
+</div>
+</div>
+<div class="text-[12px] text-[#626262]">
+            Assigned to morning run (Completed 07:42 MDT).
+          </div>
+</div>
+<!-- Execution Result Row -->
+<div class="border-t border-[#D8D8D8] p-3.5 bg-[#F5F5F5] flex items-center justify-between min-h-[56px]">
+<div>
+<span class="text-[11px] text-[#626262] font-label uppercase tracking-wide block">Execution status</span>
+<div class="flex items-center gap-2">
+<span class="font-body font-medium text-[13px] text-[#286143]">Fed</span>
+<span class="font-mono text-[12px] text-[#626262]">2,772 lb delivered</span>
+</div>
+</div>
+<span class="font-mono text-[12px] text-[#626262] bg-[#FFFFFF] border border-[#D8D8D8] px-2 py-1 rounded-[4px]">
+            var: −18 lb
+          </span>
+</div>
+</article>
+<!-- WORKLIST RECORD 3: Pen P-12 (Finisher Scheduled) -->
+<article class="page-entry bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] overflow-hidden" style="--stagger: 300ms;">
+<div class="p-3.5 border-b border-[#D8D8D8] flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-mono text-[17px] font-semibold text-[#262626]">Pen P-12</span>
+<span class="font-body text-[13px] text-[#626262] bg-[#F5F5F5] px-1.5 py-0.5 rounded-[4px] border border-[#D8D8D8]">Finisher</span>
+</div>
+<div class="text-[12px] text-[#626262] font-body mt-0.5">
+              Lot: <span class="font-mono text-[#262626]">L-2413</span> • 94 head
+            </div>
+</div>
+<!-- Status Chip: Nominal (Good Green #286143) -->
+<div class="flex items-center gap-1.5 px-2 py-1 bg-[#FFFFFF] border border-[#286143] rounded-[4px]">
+<span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+<span class="font-body font-semibold text-[11px] text-[#286143] leading-none">Nominal / Saved</span>
+</div>
+</div>
+<div class="p-3.5 space-y-2.5 font-body text-[13px]">
+<div class="grid grid-cols-2 gap-2">
+<div>
+<span class="text-[#626262] block text-[11px] uppercase tracking-wider font-label">Saved plan</span>
+<span class="font-mono font-semibold text-[15px] text-[#262626]">2,274.8 lb</span>
+</div>
+<div>
+<span class="text-[#626262] block text-[11px] uppercase tracking-wider font-label">Rate target</span>
+<span class="font-mono text-[14px] text-[#262626]">24.2 lb/head/day</span>
+</div>
+</div>
+<div class="text-[12px] text-[#626262]">
+            High-moisture corn finish formulation. Staged in Batch Silo #3.
+          </div>
+</div>
+<!-- Execution Status Row -->
+<div class="border-t border-[#D8D8D8] p-3.5 bg-[#F5F5F5] flex flex-col space-y-2">
+<div class="flex items-center justify-between min-h-[44px]">
+<div>
+<span class="text-[11px] text-[#626262] font-label uppercase tracking-wide block">Execution status</span>
+<span class="font-body font-medium text-[13px] text-[#262626]">Scheduled (Afternoon Drop)</span>
+</div>
+<button class="h-11 px-3 bg-[#FFFFFF] border border-[#D8D8D8] text-[#626262] font-body text-[12px] rounded-[4px] opacity-70 cursor-not-allowed flex items-center gap-1.5" disabled="" title="Execution actions reserved for assigned pen operator" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="lock">lock</span>
+<span>Operator action</span>
+</button>
+</div>
+<!-- Service Refusal / System State Example -->
+<div class="flex items-center gap-1.5 text-[12px] text-[#A13D36] bg-[#FFFFFF] border border-[#A13D36] p-2 rounded-[4px]">
+<span class="material-symbols-outlined text-[16px]" data-icon="error">error</span>
+<span class="font-body">Refused: bunk tare required prior to drop registration</span>
+</div>
+</div>
+</article>
+<!-- Ledger Audit Timestamp Footer Bar (No generic footer) -->
+<section class="page-entry pt-3 text-center" style="--stagger: 350ms;">
+<div class="inline-block px-3 py-1 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[11px] font-mono text-[#626262]">
+          LEDGER AUDIT: 2025-06-19 11:34:02 MDT • YM-7041
+        </div>
+</section>
+</main>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuBtn = document.getElementById('menu-toggle-btn');
+      const closeBtn = document.getElementById('menu-close-btn');
+      const drawer = document.getElementById('mobile-menu-drawer');
+      const panel = document.getElementById('mobile-menu-panel');
+
+      function openMenu() {
+        drawer.classList.remove('hidden');
+        menuBtn.setAttribute('aria-expanded', 'true');
+        setTimeout(() => {
+          panel.classList.remove('-translate-x-full');
+        }, 10);
+      }
+
+      function closeMenu() {
+        panel.classList.add('-translate-x-full');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        setTimeout(() => {
+          drawer.classList.add('hidden');
+        }, 260);
+      }
+
+      if (menuBtn && closeBtn && drawer) {
+        menuBtn.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        drawer.addEventListener('click', (e) => {
+          if (e.target === drawer) closeMenu();
+        });
+      }
+
+      // Inline preview confirm interaction
+      const confirmBtn = document.getElementById('btn-confirm-recalc');
+      const dismissBtn = document.getElementById('btn-dismiss-recalc');
+      const previewBox = document.getElementById('p04-preview-box');
+
+      if (confirmBtn && previewBox) {
+        confirmBtn.addEventListener('click', () => {
+          confirmBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">check_circle</span> Plan Saved (3,290 lb)`;
+          confirmBtn.classList.add('bg-[#286143]', 'border-[#286143]');
+          confirmBtn.classList.remove('bg-[#B3473D]');
+          setTimeout(() => {
+            previewBox.style.opacity = '0.7';
+          }, 600);
+        });
+      }
+
+      if (dismissBtn && previewBox) {
+        dismissBtn.addEventListener('click', () => {
+          dismissBtn.innerText = 'Preserved saved plan';
+          dismissBtn.disabled = true;
+        });
+      }
+
+      // Generate plan trigger
+      const recalcTrigger = document.getElementById('btn-trigger-recalc');
+      if (recalcTrigger) {
+        recalcTrigger.addEventListener('click', () => {
+          const original = recalcTrigger.innerHTML;
+          recalcTrigger.innerHTML = `<span class="material-symbols-outlined text-[19px]">sync</span><span>Evaluating muzzles...</span>`;
+          recalcTrigger.style.opacity = '0.9';
+          setTimeout(() => {
+            recalcTrigger.innerHTML = original;
+            recalcTrigger.style.opacity = '1';
+            // Scroll to preview
+            if (previewBox) {
+              previewBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 500);
+        });
+      }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "operationId:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2799,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;operationId:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:13: operationId: signIn\ncontracts/openapi.yaml:52: operationId: getSession\ncontracts/openapi.yaml:79: operationId: getDashboard\ncontracts/openapi.yaml:156: operationId: previewSourceRecords\ncontracts/openapi.yaml:197: operationId: importSelectedRecords\ncontracts/openapi.yaml:256: operationId: getAllocations\ncontracts/openapi.yaml:297: operationId: saveAllocations\ncontracts/openapi.yaml:349: operationId: getLots\ncontracts/openapi.yaml:406: operationId: getLotForecast\ncontracts/openapi.yaml:446: operationId: updateYardForecastSettings\ncontracts/openapi.yaml:476: operationId: updateLotForecastSettings\ncontracts/openapi.yaml:514: operationId: getLotMetrics\ncontracts/openapi.yaml:554: operationId: getLotInsights\ncontracts/openapi.yaml:590: operationId: actOnLotInsight\ncontracts/openapi.yaml:632: operationId: getWeightHistory\ncontracts/openapi.yaml:671: operationId: addWeightMeasurement\ncontracts/openapi.yaml:718: operationId: getInventory\ncontracts/openapi.yaml:772: operationId: createInventoryItem\ncontracts/openapi.yaml:818: operationId: updateInventoryItem\ncontracts/openapi.yaml:872: operationId: recordInventoryMovement\ncontracts/openapi.yaml:928: operationId: getInventoryProjections\ncontracts/openapi.yaml:984: operationId: exportInventory\ncontracts/openapi.yaml:1005: operationId: getRations\ncontracts/openapi.yaml:1040: operationId: createRation\ncontracts/openapi.yaml:1085: operationId: updateRation\ncontracts/openapi.yaml:1138: operationId: optimizeRation\ncontracts/openapi.yaml:1177: operationId: approveRation\ncontracts/openapi.yaml:1210: operationId: getFeedPlans\ncontracts/openapi.yaml:1250: operationId: createFeedPlan\ncontracts/openapi.yaml:1300: operationId: reviewFeedPlan\ncontracts/openapi.yaml:1358: operationId: updateFeedPlanStatus\ncontracts/openapi.yaml:1416: operationId: getFeedingEvents\ncontracts/openapi.yaml:1463: operationId: createFeedingEvent\ncontracts/openapi.yaml:1525: operationId: correctFeedingEvent\ncontracts/openapi.yaml:1595: operationId: voidFeedingEvent\ncontracts/openapi.yaml:1657: operationId: getOperationalReport\ncontracts/openapi.yaml:1739: operationId: exportOperationalReport\ncontracts/openapi.yaml:1783: operationId: getFeedToGainReport\ncontracts/openapi.yaml:1851: operationId: exportFeedToGainReport\ncontracts/openapi.yaml:1910: operationId: getProfitability\ncontracts/openapi.yaml:1967: operationId: exportProfitability\ncontracts/openapi.yaml:2009: operationId: getSampleData\ncontracts/openapi.yaml:2039: operationId: loadSampleData\ncontracts/openapi.yaml:2071: operationId: resetSampleData\ncontracts/openapi.yaml:2105: operationId: replaceSampleData\n</untrusted_document>"
+  }
+ ]
+}

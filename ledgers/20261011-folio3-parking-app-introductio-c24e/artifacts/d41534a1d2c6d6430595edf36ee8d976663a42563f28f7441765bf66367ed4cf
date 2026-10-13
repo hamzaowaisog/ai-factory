@@ -1,0 +1,275 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Sign-in with Folio3 Google Workspace (S-1). If the directory lookup fails, the user lands on the access error page (S-2). Non-dedicated employees with no plate go to vehicle registration (S-3) and then to the claim dashboard (S-4). Dedicated holders land on the holder dashboard (S-5), where they can release today's space, and can schedule future releases (S-6). Every employee can view their own profile and vehicles (S-7). Security guards use only the entry verification console (S-8). Administrators manage parking spaces (S-9), employees and vehicles (S-10, S-11), roles (S-12), the Daily Parking Release Time (S-13), report recipients (S-14), weekly utilization reports (S-15) and the claim and entry audit log (S-16).",
+    "screens": [
+     {
+      "id": "S-1",
+      "title": "Sign in",
+      "route": "/sign-in",
+      "file": "src/pages/SignIn.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-26"
+      ],
+      "states": [
+       "loading",
+       "error"
+      ],
+      "prompt": "Sign-in page for the Folio3 Parking System, used by employees, security guards and parking administrators. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Centered card with the product name 'Folio3 Parking System' and the subtitle 'Claim released parking spaces at the Folio3 office'. 2) One primary button 'Sign in with Google' and the helper text 'Use your @folio3.com Google Workspace account'. 3) Small footer note: 'Access is limited to authorized Folio3 accounts. Roles are assigned by your parking administrator.' Loading state: the button shows a spinner and the label 'Verifying your Folio3 account…'. Error state: an inline red alert reading 'ahmed.raza@gmail.com is not a Folio3 Workspace account. Personal Gmail and other providers are not accepted.' with a 'Try another account' button."
+     },
+     {
+      "id": "S-2",
+      "title": "Access error – profile not found",
+      "route": "/access-error",
+      "file": "src/pages/AccessError.tsx",
+      "reqs": [
+       "REQ-4"
+      ],
+      "states": [
+       "loading"
+      ],
+      "prompt": "Error page shown when Google sign-in worked but the employee profile could not be found in, or loaded from, the Folio3 corporate directory. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Warning icon and the heading 'We couldn't load your employee profile'. 2) Explanation: 'You signed in as sana.khalid@folio3.com, but your employee ID and name could not be retrieved from the corporate directory. You can't use the parking app until this is fixed.' 3) Primary button 'Try again' and secondary button 'Sign out'. 4) Contact box: 'Still not working? Contact Parking Administration at parking-admin@folio3.com or IT Helpdesk ext. 2210.' with reference code 'DIR-404 · 10 Jun 2025 08:12 PKT'. Loading state: 'Try again' shows a spinner and the text 'Checking directory…'."
+     },
+     {
+      "id": "S-3",
+      "title": "Register your vehicle",
+      "route": "/onboarding/vehicle",
+      "file": "src/pages/onboarding/RegisterVehicle.tsx",
+      "reqs": [
+       "REQ-3",
+       "REQ-2"
+      ],
+      "states": [
+       "validation",
+       "loading"
+      ],
+      "prompt": "Required vehicle registration step for an employee without dedicated parking who has no saved plate. The dashboard stays locked until at least one plate is saved. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Register your vehicle to continue' and a read-only identity strip from the directory: 'Bilal Ahmed · Employee ID F3-1187 · bilal.ahmed@folio3.com'. 2) Info banner for a returning user with an incomplete profile: 'Your profile has no registered plate. Add one to access parking.' 3) Form: License plate (required, example 'BKX-482'), Make (optional, 'Toyota'), Model (optional, 'Corolla'), Color (optional, 'White'). 4) A link 'Add another vehicle', showing a second filled row: 'LEA-19-7731 · Honda City · Grey'. 5) Primary button 'Save and continue to dashboard'. Validation state: the plate field is outlined in red with 'Enter at least one license plate to continue.' Loading state: the button reads 'Saving…'."
+     },
+     {
+      "id": "S-4",
+      "title": "Employee dashboard – claim parking",
+      "route": "/dashboard",
+      "file": "src/pages/dashboard/ClaimDashboard.tsx",
+      "reqs": [
+       "REQ-14",
+       "REQ-15",
+       "REQ-16",
+       "REQ-5"
+      ],
+      "states": [
+       "empty",
+       "success",
+       "error",
+       "loading"
+      ],
+      "prompt": "Dashboard for an employee without dedicated parking, showing only their own data. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Header 'Good morning, Bilal' with the date 'Tuesday, 10 June 2025'. 2) Large availability card: '3 spaces available now', the note 'Updated 08:02 PKT', and a primary button 'Claim a space for today'. Below it: 'One claim per day. Claims can't be cancelled.' 3) Notification permission tile: 'Push notifications on — we'll alert you when spaces are released.' 4) 'My vehicles' summary: 'BKX-482 · Toyota Corolla · White' with a link to the profile. Success state: the card changes to 'You're parked for today — Space B2-14, Floor B2', 'Claimed 08:02:41 PKT', 'Plate on record: BKX-482'. Error state: an alert reading 'Someone claimed the last space first. 0 spaces available now.' with the refreshed count. Empty state: '0 spaces available — we'll notify you if a space is released.' with the claim button disabled. Loading state: the button reads 'Claiming…'."
+     },
+     {
+      "id": "S-5",
+      "title": "Dedicated holder dashboard",
+      "route": "/dashboard/holder",
+      "file": "src/pages/dashboard/HolderDashboard.tsx",
+      "reqs": [
+       "REQ-10",
+       "REQ-12",
+       "REQ-5"
+      ],
+      "states": [
+       "success",
+       "error",
+       "loading"
+      ],
+      "prompt": "Dashboard for an employee with a dedicated parking space. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Header 'Hello, Ayesha Siddiqui' with 'Your space: B1-03 · Floor B1'. 2) Today's card for 'Tuesday, 10 June 2025' with a status badge. Normal state: badge 'Not released' and a primary button 'Release today's space', plus the note 'Releases made before 08:00 PKT become claimable at 08:00. Releases at or after 08:00 are claimable immediately.' 3) Upcoming releases list: 'Thu 12 Jun 2025 — Reserved', 'Mon 16 Jun 2025 — Reserved', and a link 'Schedule releases'. Success state: a toast 'Released'; today's badge shows 'Reserved' with 'Claimable at 08:00 PKT' (if released at 07:15), and the release button is replaced by 'Released for today'. Show status badge variants: 'Reserved', 'Claimable', 'Claimed — by an employee at 08:03 PKT'. Error state: 'You've already released 10 Jun 2025.' Loading state: the button reads 'Releasing…'."
+     },
+     {
+      "id": "S-6",
+      "title": "Schedule future releases",
+      "route": "/releases/schedule",
+      "file": "src/pages/releases/ScheduleReleases.tsx",
+      "reqs": [
+       "REQ-11",
+       "REQ-12",
+       "REQ-10"
+      ],
+      "states": [
+       "success",
+       "validation",
+       "loading"
+      ],
+      "prompt": "Page where a dedicated holder picks one or more future dates to release their space, up to 30 calendar days ahead. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Schedule releases for Space B1-03' and the note 'Scheduled releases become claimable at 08:00 PKT on each date.' 2) A multi-select calendar from 11 Jun 2025 to 10 Jul 2025, with dates after 10 Jul greyed out. Selected: 12 Jun, 16 Jun, 17 Jun, 24 Jun. Already-released dates are marked and can't be selected again. 3) Summary panel 'Selected: 4 dates' listing each date. 4) Primary button 'Release 4 dates'. Success state: 'Released' confirmation, with the dates added to the 'Scheduled releases' list showing status 'Reserved'. Validation state: 'Dates can be at most 30 days ahead (until 10 Jul 2025).' Loading state: 'Saving releases…'."
+     },
+     {
+      "id": "S-7",
+      "title": "My profile and vehicles",
+      "route": "/profile",
+      "file": "src/pages/profile/MyProfile.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-3",
+       "REQ-5"
+      ],
+      "states": [
+       "validation"
+      ],
+      "prompt": "Employee's own profile page. It shows only that employee's records. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Identity card from the corporate directory (read-only): 'Bilal Ahmed', 'Employee ID F3-1187', 'bilal.ahmed@folio3.com'. 2) Parking details: 'Dedicated parking: No', 'Assigned floor: —'. 3) Registered vehicles table with columns Plate, Make, Model, Color. Rows: 'BKX-482 · Toyota · Corolla · White', 'LEA-19-7731 · Honda · City · Grey'. 4) An 'Add vehicle' form: plate required; make, model and color optional. Validation state: 'License plate is required.' under the plate field, and 'You must keep at least one plate' when the user tries to remove the last vehicle."
+     },
+     {
+      "id": "S-8",
+      "title": "Guard entry verification console",
+      "route": "/guard/verifications",
+      "file": "src/pages/guard/VerificationConsole.tsx",
+      "reqs": [
+       "REQ-18",
+       "REQ-19",
+       "REQ-20",
+       "REQ-21",
+       "REQ-22",
+       "REQ-5"
+      ],
+      "states": [
+       "empty",
+       "error"
+      ],
+      "prompt": "Security guard console at the gate. It shows only what is needed to verify an entry. Use off-black (#18181B) for text, not pure black. Sections in order: 1) System health bar: 'Camera: Online · Authorization service: Online · Gate indicator: Online' and the date 'Tue 10 Jun 2025, office time 08:21 PKT'. 2) Latest detection card: plate 'BKX-482', result 'Authorized — temporary claim for 10 Jun 2025', green indicator 'Activated', and two buttons 'Vehicle entered' and 'Did not enter'. 3) Attempt log table with columns Time, Detected plate, Type, Result, Actual entry. Rows: '08:21:05 · BKX-482 · Temporary · Authorized · Entered'; '08:18:40 · LEB-22-1904 · Permanent sticker · Bypassed — recorded as utilized · —'; '08:15:12 · Unreadable · Temporary · No automated authorization · Did not enter'; '08:12:30 · KHI-5531 · Temporary · Not verified — no claim today · Pending'. 4) Note: 'Motorcycles and pedestrians are ignored.' Error state: a red outage banner 'Camera offline since 08:25 — no automated authorization, green indicator disabled. Outage event recorded.' Empty state: 'No car detections yet today.'"
+     },
+     {
+      "id": "S-9",
+      "title": "Admin – parking space inventory",
+      "route": "/admin/spaces",
+      "file": "src/pages/admin/Spaces.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-5"
+      ],
+      "states": [
+       "empty",
+       "validation"
+      ],
+      "prompt": "Admin page for entering and maintaining the parking-space inventory. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Parking spaces' with the count '42 spaces · 3 floors' and buttons 'Add space' and 'Import launch records (CSV)'. 2) Filters: Floor (B1, B2, B3) and Holder (Assigned / Unassigned). 3) Table with columns Space, Floor, Dedicated holder, Actions. Rows: 'B1-03 · B1 · Ayesha Siddiqui (F3-0921) · Edit'; 'B2-14 · B2 · — (pool) · Edit'; 'B3-07 · B3 · Usman Tariq (F3-0455) · Edit'. 4) Side panel form 'Edit space B1-03' with fields Space code, Floor, Dedicated holder (employee search). Validation state: 'Space code B1-03 already exists.' Empty state: 'No spaces yet — add your first space or import launch records.'"
+     },
+     {
+      "id": "S-10",
+      "title": "Admin – employees and assignments",
+      "route": "/admin/employees",
+      "file": "src/pages/admin/Employees.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-2",
+       "REQ-3"
+      ],
+      "states": [
+       "empty"
+      ],
+      "prompt": "Admin list of employees with their parking assignments and vehicles. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Employees' with a search box 'Search name, email or employee ID' and a button 'Import launch records'. 2) Filters: Dedicated / Non-dedicated, and 'Missing plate'. 3) Table with columns Name, Employee ID, Email, Dedicated, Floor, Plates. Rows: 'Ayesha Siddiqui · F3-0921 · ayesha.siddiqui@folio3.com · Yes · B1 · LEC-18-3320'; 'Bilal Ahmed · F3-1187 · bilal.ahmed@folio3.com · No · — · BKX-482, LEA-19-7731'; 'Hamza Qureshi · F3-1302 · hamza.qureshi@folio3.com · No · — · Missing plate (red tag)'. Clicking a row opens the employee detail. Empty state: 'No employees match your filters.'"
+     },
+     {
+      "id": "S-11",
+      "title": "Admin – employee detail",
+      "route": "/admin/employees/:id",
+      "file": "src/pages/admin/EmployeeDetail.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-2"
+      ],
+      "states": [
+       "success",
+       "validation"
+      ],
+      "prompt": "Admin page for maintaining one employee's parking assignment and vehicles. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Directory identity (read-only): 'Ayesha Siddiqui · F3-0921 · ayesha.siddiqui@folio3.com'. 2) Parking assignment form: Dedicated parking toggle (on), Assigned floor 'B1', Space 'B1-03'. 3) Registered vehicles table with Edit and Remove actions: 'LEC-18-3320 · Suzuki · Swift · Red'. 4) An edit-plate dialog with the notice 'Plate changes apply from 11 Jun 2025 onward. Existing claims keep the plate recorded at claim time (e.g. 10 Jun 2025 claim keeps LEC-18-3320).' 5) A 'Save changes' button. Success state: toast 'Employee record updated'. Validation state: 'Space B1-03 is already held by another employee.'"
+     },
+     {
+      "id": "S-12",
+      "title": "Admin – user roles",
+      "route": "/admin/roles",
+      "file": "src/pages/admin/Roles.tsx",
+      "reqs": [
+       "REQ-26",
+       "REQ-5",
+       "REQ-1"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "prompt": "Admin page for assigning roles to authorized Folio3 accounts. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Roles and access' with an info note 'First administrator provisioned from deployment config: it-admin@folio3.com'. 2) Assign role form: Folio3 email field 'kamran.ali@folio3.com', a role selector (Employee, Security guard, Administrator), and a button 'Assign role'. 3) Table with columns User, Email, Role, Assigned by, Date. Rows: 'Kamran Ali · kamran.ali@folio3.com · Security guard · it-admin@folio3.com · 02 Jun 2025'; 'Nadia Hussain · nadia.hussain@folio3.com · Administrator · it-admin@folio3.com · 28 May 2025'; 'Bilal Ahmed · bilal.ahmed@folio3.com · Employee · — · 01 Jun 2025'. Validation state: 'Only @folio3.com Workspace accounts can be assigned roles.' Success state: toast 'Kamran Ali is now a Security guard'."
+     },
+     {
+      "id": "S-13",
+      "title": "Admin – release time settings",
+      "route": "/admin/settings",
+      "file": "src/pages/admin/Settings.tsx",
+      "reqs": [
+       "REQ-12"
+      ],
+      "states": [
+       "success",
+       "validation"
+      ],
+      "prompt": "Admin settings page for the Daily Parking Release Time. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Parking release settings'. 2) Time field 'Daily Parking Release Time' with value '08:00', the label 'Office-local time (PKT, Asia/Karachi)', and the note 'Default 08:00'. 3) An explanation card: 'Pre-scheduled releases and same-day releases made before this time become claimable at this time. Same-day releases made at or after this time are claimable immediately.' 4) A 'Save' button. Success state: 'Release time updated to 07:45 PKT.' Validation state: 'Enter a valid time in HH:MM format.'"
+     },
+     {
+      "id": "S-14",
+      "title": "Admin – report recipients",
+      "route": "/admin/reports/recipients",
+      "file": "src/pages/admin/ReportRecipients.tsx",
+      "reqs": [
+       "REQ-24"
+      ],
+      "states": [
+       "empty",
+       "validation",
+       "success"
+      ],
+      "prompt": "Admin page for managing who receives the weekly utilization report email. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Weekly report recipients' and the note 'Sent every Monday morning (PKT). Any email address can be added.' 2) Add form: email field 'facilities@folio3.com' and an 'Add recipient' button. 3) Recipient list with Edit and Remove actions: 'facilities@folio3.com', 'hr.ops@folio3.com', 'omar.farooq@folio3.com', 'buildingmgmt@dolmen.pk'. Empty state: 'No recipients — the weekly report won't be sent until you add one.' Validation state: 'Enter a valid email address.' Success state: toast 'Recipient removed'."
+     },
+     {
+      "id": "S-15",
+      "title": "Admin – weekly utilization reports",
+      "route": "/admin/reports",
+      "file": "src/pages/admin/Reports.tsx",
+      "reqs": [
+       "REQ-23",
+       "REQ-22",
+       "REQ-5"
+      ],
+      "states": [
+       "empty"
+      ],
+      "prompt": "Admin page for viewing the weekly utilization reports emailed every Monday. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Week selector 'Week of 2–8 Jun 2025', with 'Emailed Mon 9 Jun 2025, 09:00 PKT to 4 recipients'. 2) KPI cards: 'Overall utilization 87%', 'Released spaces 38', 'Temporary claims 35', 'Dedicated entries 162'. 3) A daily utilization bar chart for Mon–Fri with values 91%, 88%, 85%, 84%, 87%. 4) Table 'Unused dedicated parking (not released, no entry)': 'Usman Tariq · B3-07 · Wed 4 Jun'; 'Ayesha Siddiqui · B1-03 · Fri 6 Jun'. 5) Table 'Unused temporary claims (claimed, no recorded entry)': 'Hamza Qureshi · B2-14 · Tue 3 Jun'. Footnote: 'Temporary entries are based on guard-recorded outcomes; sticker vehicles are based on LPR entries.' Empty state: 'No report yet — the first report is sent next Monday.'"
+     },
+     {
+      "id": "S-16",
+      "title": "Admin – claim and entry audit log",
+      "route": "/admin/audit",
+      "file": "src/pages/admin/AuditLog.tsx",
+      "reqs": [
+       "REQ-16",
+       "REQ-21",
+       "REQ-20",
+       "REQ-15"
+      ],
+      "states": [
+       "empty"
+      ],
+      "prompt": "Admin audit log of temporary claims and verification events. Use off-black (#18181B) for text, not pure black. Sections in order: 1) Heading 'Audit log' with filters for Date range (10 Jun 2025), Event type (Claim, Verification, Unreadable, Unverifiable, Outage) and Employee. 2) Claims table with columns Date, Time, Employee, Space, Floor, Plate on record. Rows: '10 Jun 2025 · 08:02:41 · Bilal Ahmed · B2-14 · B2 · BKX-482'; '10 Jun 2025 · 08:02:43 · Sara Malik · B1-03 · B1 · LED-20-6612'. 3) Verification events table with columns Time, Detected plate, Result, Guard-recorded entry. Rows: '08:21:05 · BKX-482 · Authorized · Entered'; '08:15:12 · Unreadable · No authorization · Did not enter'; '08:25:00 · — · Outage: camera offline · —'. Empty state: 'No events for the selected filters.'"
+     }
+    ],
+    "brand": {
+     "colours": [],
+     "fonts": []
+    },
+    "noScreen": []
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,58 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement only the operations and behavior defined in `contracts/openapi.yaml`, retaining the root health, OpenAPI-document, and Swagger UI routes; ensure responses, filtering, and scope enforcement conform to the contract."
+     },
+     {
+      "n": 2,
+      "text": "Persist contract-operation business changes to the configured PostgreSQL database; apply only contract-defined lifecycle constraints, use `EnsureCreated` only when the database has no tables, and leave schema changes to reviewed migrations that preserve existing data."
+     },
+     {
+      "n": 3,
+      "text": "Run `SeedData.Run` at startup when `Seed:Demo` is true."
+     },
+     {
+      "n": 4,
+      "text": "Make `SeedData.Run` add two to five contract-example-based rows only to each empty contract-backed table, preserve existing rows, and create references to existing related rows."
+     },
+     {
+      "n": 5,
+      "text": "When `Seed:Demo` is false or unset, do not run the demo seeder or create demo rows."
+     },
+     {
+      "n": 6,
+      "text": "Return an empty list, not unpersisted sample records, when a contract collection operation has no matching persisted records."
+     },
+     {
+      "n": 7,
+      "text": "Use the organization's existing staff identity provider, obtain its authorization URL and token-validation settings from deployment configuration, and use valid nonproduction settings in test and factory configurations."
+     },
+     {
+      "n": 8,
+      "text": "Fail application startup with an error identifying the affected setting when a required staff identity-provider authorization URL or token-validation setting is missing or invalid; keep the existing health test and factory checks able to reach the health, OpenAPI-document, and Swagger UI routes with valid nonproduction settings."
+     },
+     {
+      "n": 9,
+      "text": "Implement customer and staff authentication and authorization only through the locked contract; store customer passwords using a standard salted password hash; authorize only by contract-stated roles and scopes, without a separate role-to-operation permission table; match staff token email claims to enabled account emails; deny unmatched or disabled accounts; and add no lockout or one-time-code policies beyond the contract."
+     },
+     {
+      "n": 10,
+      "text": "Provision the initial PostgreSQL account through deployment, outside the API, rather than through an API bootstrap flow."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

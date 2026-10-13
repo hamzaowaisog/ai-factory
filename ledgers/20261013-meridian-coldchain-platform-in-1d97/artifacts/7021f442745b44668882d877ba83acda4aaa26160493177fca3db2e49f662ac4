@@ -1,0 +1,2764 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Wire the API shell, authentication, and shared conventions",
+      "reqs": [
+       "REQ-2: preserve `/`, `/openapi/v1.json`, and `/swagger`; discover endpoint modules by convention so this task and later slices are wired without later edits to Program.cs.",
+       "REQ-4: implement the contracted staff authorization URL and customer sign-in/code/resend/password-reset routes.",
+       "REQ-18: validate database startup configuration and return contract-shaped storage errors.",
+       "REQ-19: retain the existing health/OpenAPI/Swagger routes and establish `/api` endpoint-module routing.",
+       "REQ-20: retain EnsureCreated only for a genuinely table-free database; do not change a nonempty schema at startup."
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/App.Api.csproj",
+       "App.Api/appsettings.json",
+       "App.Api/appsettings.Development.json",
+       "App.Api/Endpoints/IEndpointModule.cs",
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Auth/**",
+       "App.Api/Models/Identity/**",
+       "App.Api/Infrastructure/**",
+       "App.Api/Seeding/IDemoSeedModule.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs"
+      ],
+      "dependsOn": [],
+      "plannedLoc": 1250,
+      "complexity": "external-dependency",
+      "approach": "Keep the root health and generated-doc routes intact. Add assembly-discovered endpoint modules and demo-seed modules, with `/api` as the group prefix; later tasks add only their own module and entity/configuration files. Add identity, organization, warehouse, account-scope, address, authentication challenge/session/reset-token, and audit entities through assembly-scanned EF configurations so AppDb needs no later edits. Implement customer password hashing and opaque persisted sessions, and put staff-token validation and email delivery behind IStaffIdentityProvider and IEmailSender. Map only the locked auth operations and their declared statuses/response fields. Declare every new provider/email setting in appsettings.json with an empty value; provide valid nonproduction Development settings separately, without touching tests. SeedData.Run invokes discovered seed modules."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Implement catalog and system-administration operations",
+      "reqs": [
+       "REQ-1: implement the `/admin/products`, `/admin/organizations`, and `/admin/accounts` operations with contract paths, methods, parameters, fields, and statuses.",
+       "REQ-6: persist products and immutable versioned temperature profiles; validate tier boundaries and governance data.",
+       "REQ-16: implement organization shelf-life, account assignment, and account/product administration operations."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/AdminEndpoints.cs",
+       "App.Api/Models/Admin/**",
+       "App.Api/Seeding/AdminDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Models/Identity/Account.cs"
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1050,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement each contracted admin operation in this module; the first task's convention loader wires it automatically. Add product, profile-version, tier, and admin query/configuration entities with explicit EF mappings and required foreign keys. Keep profile versions immutable, validate effective dates and continuous nonoverlapping tiers, and use the account/organization entities from TASK-1. Seed only empty tables and reference existing or deterministically seeded parents."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Implement warehouse receipts, stock, and movements",
+      "reqs": [
+       "REQ-1: implement receipt list/create/detail/logger/evidence, stock list/detail/move, opening stock, and box-list operations where defined by the contract.",
+       "REQ-3 and REQ-20: persist warehouse records and uploaded evidence across restart using PostgreSQL-backed records.",
+       "REQ-7: create separate quarantined receipts, preserve lot traceability, validate expiry, process receipt files, and record stock movement/opening-stock history."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Warehouse/**",
+       "App.Api/Seeding/WarehouseDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Models/Admin/Product.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 1450,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement the contracted warehouse routes in one module, with no later Program.cs change. Persist distinct receipts and handling units, receipt file metadata/content, movements, and opening-stock records; store file bytes as Base64 text in PostgreSQL rather than reaching a file store directly. Enforce declared statuses and input validation, include warehouse scope, and keep list filters contract-shaped. Seed the warehouse tables only when empty."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Implement temperature history, cold rooms, and excursion processing",
+      "reqs": [
+       "REQ-1: implement cold-room list/detail and temperature-history operations with the locked contract query names and response envelopes.",
+       "REQ-12: persist and recalculate receipt-upload readings, gaps, excursions, tier budgets, and cold-room history; run the configured silence/alert checks and send alerts through IEmailSender.",
+       "REQ-12 gateway limitation: implement only contract-backed receipt logger upload/history behavior; do not add the absent gateway operation."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/TemperatureEndpoints.cs",
+       "App.Api/Models/Temperature/**",
+       "App.Api/Seeding/TemperatureDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Warehouse/HandlingUnit.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3"
+      ],
+      "plannedLoc": 1700,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add the contracted cold-room/history endpoints and a hosted processing service in this slice. Normalize readings by occurred time, deduplicate, exclude future/pre-sealing readings from calculations, recalculate excursions and per-tier budgets after late data, expose explicit gaps, and send configured email alerts via the existing seam. Keep device and reading processing transactional so malformed batches are not partially persisted. Do not create an uncontracted gateway route: REQ-12 AC-12.8–12.10 need a contract change before they can be delivered."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Implement customer orders, allocation, and expiry processing",
+      "reqs": [
+       "REQ-1: implement customer order list/create/detail/change/cancel and dispatch-order list/detail/allocation-override operations as allocated between this and TASK-6.",
+       "REQ-9: persist customer orders, idempotency, configured delivery date rules, and pre-pack change/cancel behavior.",
+       "REQ-10: allocate only eligible Released stock, implement partial/complete rules and stable earliest-expiry allocation, prevent concurrent over-allocation, and handle back orders.",
+       "REQ-8: run the scheduled local-day expiry check, remove expired allocations, apply replacement rules, record audit events, and send dispatcher alerts."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/CustomerOrderEndpoints.cs",
+       "App.Api/Models/Orders/**",
+       "App.Api/Seeding/OrderDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Warehouse/HandlingUnit.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3"
+      ],
+      "plannedLoc": 1700,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement the contracted customer-order operations and order persistence in this slice. Use transactions/appropriate locking around idempotency and stock allocation; persist the organization-scoped idempotency key and payload digest, reject conflicting reuse, and do not over-allocate. Apply warehouse calendar/time-zone/cut-off and organization shelf-life configuration. Add the expiry hosted check here because it must update both inventory and order allocations; use the shared audit and email seams. Allocation override and dispatch-order operations are implemented in TASK-6."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Implement packing and dispatcher route/order operations",
+      "reqs": [
+       "REQ-1: implement box packing/listing, dispatch order list/detail/allocation override, and dispatcher route list/create/detail/update/confirm operations.",
+       "REQ-11: enforce packing compatibility/logger uniqueness, route assignment conflicts, planned-time qualification and safety margin; record route changes and notifications."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/DispatchEndpoints.cs",
+       "App.Api/Models/Dispatch/**",
+       "App.Api/Seeding/DispatchDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/WarehouseEndpoints.cs",
+       "App.Api/Models/Orders/Order.cs"
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5"
+      ],
+      "plannedLoc": 1750,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement the dispatch and packing operations in this module, using order allocations, stock, and profile qualification data from prior slices. Persist boxes, box contents, route stops and planned times; enforce one logger per box, compatible storage bands, nonconflicting driver/vehicle assignments, and configured safety margins. Return declared 409 conflicts without partial mutations, and audit consequential changes."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Implement driver route, scan, sync, and handover operations",
+      "reqs": [
+       "REQ-1: implement all `/driver` route, scan, departure, synchronization, and handover operations and authorized delivery-evidence retrieval.",
+       "REQ-11: scope driver operations to the authenticated driver's routes, persist idempotent queued actions and evidence, and reject inconsistent handover quantities."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/DriverEndpoints.cs",
+       "App.Api/Models/Driver/**",
+       "App.Api/Seeding/DriverDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/DispatchEndpoints.cs",
+       "App.Api/Models/Dispatch/Route.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-6"
+      ],
+      "plannedLoc": 1400,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement driver operations and their persistence together. Query routes by authenticated account and reject access to another driver's route; persist scans, departure checks, unique action IDs, handover signatures/photos, delivery quantities, and refusal reasons. Apply actions transactionally and return contract-declared conflict/not-found responses for invalid state or duplicate actions."
+     },
+     {
+      "id": "TASK-8",
+      "title": "Implement quality cases and governed dispositions",
+      "reqs": [
+       "REQ-1: implement quality case list/detail, proposal, approval, supersede, waiting-decision, destruction, and other contracted quality operations in this domain.",
+       "REQ-13: persist proposals and decision history, enforce the two-person approval rule for proposals, apply current dispositions to extant stock, and record witnessed destruction."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/QualityEndpoints.cs",
+       "App.Api/Models/Quality/**",
+       "App.Api/Seeding/QualityDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/TemperatureEndpoints.cs",
+       "App.Api/Models/Temperature/TemperatureExcursion.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3",
+       "TASK-4"
+      ],
+      "plannedLoc": 1500,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement the contracted quality endpoints and tables for cases, proposals, decisions, and destruction. Prevent proposal self-approval; require a distinct eligible Quality Manager for the approval operation; preserve superseded decisions; refuse conflicting changes to destroyed/delivered quantities; and apply eligible disposition changes to extant stock and allocations in a transaction. Include tier-budget and telemetry details by querying temperature records."
+     },
+     {
+      "id": "TASK-9",
+      "title": "Implement signed recalls and lot trace",
+      "reqs": [
+       "REQ-1: implement recall list/start/detail/trace/close/write-off, customer recall notice/response operations where assigned, and lot-history support as coordinated with TASK-11.",
+       "REQ-14: persist signed recall selection, trace affected inventory through boxes/routes/deliveries, record scoped customer responses, and enforce accounted-quantity closure/write-off rules."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/RecallEndpoints.cs",
+       "App.Api/Models/Recall/**",
+       "App.Api/Seeding/RecallDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/QualityEndpoints.cs",
+       "App.Api/Models/Quality/QualityDecision.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3",
+       "TASK-5",
+       "TASK-7",
+       "TASK-8"
+      ],
+      "plannedLoc": 1450,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement recall starts and signed actions with immutable trace links to selected lots and affected stock/delivery records. Block recalled stock from new allocation, scope customer responses to the authenticated organization and delivery, validate quantities against delivered totals, and require accounted quantities or a valid signed write-off before closure. Expose the contracted recall trace; TASK-11 separately implements the general lot-history operation."
+     },
+     {
+      "id": "TASK-10",
+      "title": "Implement customer organization operations and certificates",
+      "reqs": [
+       "REQ-1: implement customer delivery list/detail, certificates/list/download, recall notices/responses, account preferences, and customer-admin address/team operations not already implemented in TASK-5 or TASK-9.",
+       "REQ-15: scope customer data and mutations to the authenticated organization; enforce customer-administrator access for address/team management and persist account language."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/CustomerEndpoints.cs",
+       "App.Api/Models/Customer/**",
+       "App.Api/Seeding/CustomerDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/CustomerOrderEndpoints.cs",
+       "App.Api/Models/Identity/Address.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-5",
+       "TASK-7",
+       "TASK-9"
+      ],
+      "plannedLoc": 1550,
+      "complexity": "standard",
+      "approach": "Add the remaining contracted customer and customer-admin screens-as-API operations in this slice. Persist delivery certificate versions and PDF bytes, invitations, and organization addresses; route invitation email through IEmailSender. Ensure every customer read/mutation is organization-scoped, only Customer Administrators manage addresses/team, and language values match the contract enum."
+     },
+     {
+      "id": "TASK-11",
+      "title": "Implement audit queries, operational reports, and lot history",
+      "reqs": [
+       "REQ-1: implement audit-event listing, operational reports, and general lot history using the exact contract filters and envelopes.",
+       "REQ-16: return authorized report values and chronological receipt/movement/delivery/destruction history.",
+       "REQ-17: expose immutable retained audit events with actor, event time, action type, affected record, and contract-defined filters."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ReportingEndpoints.cs",
+       "App.Api/Models/Reporting/**",
+       "App.Api/Seeding/ReportingDemoSeed.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/RecallEndpoints.cs",
+       "App.Api/Infrastructure/AuditWriter.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-5",
+       "TASK-6",
+       "TASK-7",
+       "TASK-8",
+       "TASK-9",
+       "TASK-10"
+      ],
+      "plannedLoc": 1550,
+      "complexity": "standard",
+      "approach": "Implement the read-only contracted audit/report/history routes. Query the shared immutable audit table and business event sources with caller-scope and date filters; order lot events chronologically and calculate report figures from persisted records. Do not map audit write routes or add uncontracted API operations. Confirm every consequential mutation module uses the TASK-1 audit writer."
+     },
+     {
+      "id": "TASK-12",
+      "title": "Add the reviewed deployment schema migration",
+      "reqs": [
+       "REQ-20: supply a reviewed migration that adds the contract-backed schema to existing databases without changing existing row values; keep startup non-mutating for nonempty databases.",
+       "REQ-3: align the deployed PostgreSQL schema with the EF model built by the slices."
+      ],
+      "fileScope": [
+       "App.Api/Migrations/**"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/Models/Warehouse/Receipt.cs"
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6",
+       "TASK-7",
+       "TASK-8",
+       "TASK-9",
+       "TASK-10",
+       "TASK-11"
+      ],
+      "plannedLoc": 600,
+      "complexity": "standard",
+      "approach": "After all entity configurations are present, provide a reviewed, idempotent PostgreSQL deployment migration for the complete model, including keys, unique constraints, indexes, and foreign keys. Keep migration execution out of startup: an empty database uses the existing EnsureCreated path; a nonempty database is left untouched until deployment applies this migration. Verify the resulting schema matches the supplied data model."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Convention-discovered Minimal API modules, with each domain delivered as a wired endpoint-and-persistence slice.",
+      "simplest": false,
+      "tradeoffs": "Chosen. Keeps the first startup wiring stable, allows independent endpoint slices and clear ownership, and avoids a shared router file changing in every task. Requires the endpoint-module convention to be established carefully."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Put all handlers, persistence, and route mappings in Program.cs and AppDb.cs.",
+      "simplest": true,
+      "tradeoffs": "Initially simplest and fewest files, but creates a very large shared file, forces overlapping edits across slices, and delays useful route-level integration until late."
+     },
+     {
+      "id": "OPTION-3",
+      "summary": "Generate controllers and models from the OpenAPI document, then add business services behind them.",
+      "simplest": false,
+      "tradeoffs": "Can improve contract parity, but introduces a generator/tooling workflow and generated-code ownership/build configuration; it also does not solve the missing gateway operation or unspecified role policy."
+     }
+    ],
+    "chosen": "OPTION-1",
+    "adr": "Use convention-discovered Minimal API modules and EF configuration/seed modules so each task adds its own complete wired slice without later Program.cs edits.\nKeep the locked OpenAPI file unchanged and map only its operations; preserve the existing health, OpenAPI, and Swagger routes as explicit shell exceptions.\nUse the existing PostgreSQL provider, and introduce only the staff-identity and email seams needed for external systems.\nRequest a contract change for the claimed authenticated logger-gateway operation: no such operation exists in the locked document, so AC-12.8–12.10 cannot be implemented compatibly.\nRole-to-operation policy and the named identity-provider vendor are not specified consistently; enforce explicit contract/spec scopes and named-role workflows, and seek clarification rather than inventing a policy table or vendor.",
+    "protectedPathsDeclared": [
+     "App.Api/App.Api.csproj",
+     "App.Api/Migrations/**"
+    ],
+    "newDependencies": [
+     {
+      "name": "Microsoft.AspNetCore.Authentication.JwtBearer",
+      "version": "9.0.0",
+      "registry": "nuget.org"
+     }
+    ],
+    "stubs": [
+     {
+      "path": "App.Api/Auth/ExternalSeams.cs",
+      "reason": "New external email and staff-identity systems must be replaceable by test stand-ins before implementation.",
+      "content": "using System.Security.Claims;\n\nnamespace App.Api.Auth;\n\npublic interface IEmailSender\n{\n    Task SendAsync(string recipient, string subject, string body, CancellationToken cancellationToken = default)\n        => throw new NotImplementedException();\n}\n\npublic interface IStaffIdentityProvider\n{\n    Task<ClaimsPrincipal?> ValidateAsync(string bearerToken, CancellationToken cancellationToken = default)\n        => throw new NotImplementedException();\n}\n"
+     }
+    ],
+    "dataModel": {
+     "tables": [
+      {
+       "name": "Accounts",
+       "purpose": "Staff and customer identities, credentials, status, and language preference.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "FullName",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Email",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "PasswordHash",
+         "type": "text",
+         "required": false
+        },
+        {
+         "name": "IsEnabled",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "Language",
+         "type": "enum",
+         "required": false,
+         "values": [
+          "en",
+          "ar"
+         ]
+        }
+       ]
+      },
+      {
+       "name": "Organizations",
+       "purpose": "Customer organizations and their minimum remaining shelf-life policy.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "MinimumRemainingDays",
+         "type": "int",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Warehouses",
+       "purpose": "Warehouse identity and deployment-managed calendar, timezone, cutoff, and safety settings.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "TimeZoneId",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CutoffLocalTime",
+         "type": "time",
+         "required": true
+        },
+        {
+         "name": "WorkingDays",
+         "type": "json",
+         "required": true
+        },
+        {
+         "name": "HolidayDates",
+         "type": "json",
+         "required": true
+        },
+        {
+         "name": "SafetyMarginMinutes",
+         "type": "decimal",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "AccountRoles",
+       "purpose": "Many-to-many account role assignments.",
+       "columns": [
+        {
+         "name": "AccountId",
+         "type": "int",
+         "required": true,
+         "pk": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Role",
+         "type": "enum",
+         "required": true,
+         "pk": true,
+         "values": [
+          "Driver",
+          "Dispatcher",
+          "Quality Officer",
+          "Quality Manager",
+          "Auditor",
+          "System Administrator",
+          "Customer Administrator",
+          "Customer"
+         ]
+        }
+       ]
+      },
+      {
+       "name": "AccountWarehouses",
+       "purpose": "Many-to-many staff warehouse access assignments.",
+       "columns": [
+        {
+         "name": "AccountId",
+         "type": "int",
+         "required": true,
+         "pk": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "WarehouseId",
+         "type": "int",
+         "required": true,
+         "pk": true,
+         "references": {
+          "table": "Warehouses",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        }
+       ]
+      },
+      {
+       "name": "AccountOrganizations",
+       "purpose": "Many-to-many customer organization assignments.",
+       "columns": [
+        {
+         "name": "AccountId",
+         "type": "int",
+         "required": true,
+         "pk": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "OrganizationId",
+         "type": "int",
+         "required": true,
+         "pk": true,
+         "references": {
+          "table": "Organizations",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        }
+       ]
+      },
+      {
+       "name": "Addresses",
+       "purpose": "Saved delivery addresses belonging to customer organizations.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OrganizationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Organizations",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "FacilityName",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "StreetAddress",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Locality",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ReceivingContact",
+         "type": "string",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "AuthChallenges",
+       "purpose": "Hashed, expiring one-time customer sign-in challenges.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "uuid",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "AccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "CodeHash",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ExpiresAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "UsedAt",
+         "type": "datetime",
+         "required": false
+        },
+        {
+         "name": "AttemptCount",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "ResendCount",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "CustomerSessions",
+       "purpose": "Hashed opaque customer bearer sessions and expiry state.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "uuid",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "AccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "TokenHash",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "ExpiresAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "RevokedAt",
+         "type": "datetime",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "PasswordResetTokens",
+       "purpose": "Single-use hashed customer password-reset tokens.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "uuid",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "AccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "TokenHash",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "ExpiresAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ConsumedAt",
+         "type": "datetime",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "Products",
+       "purpose": "Searchable ordering products and their current profile reference.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "PackSpecification",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CurrentProfileId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "TemperatureProfiles",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "DefaultLocation",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "HandlingNotes",
+         "type": "text",
+         "required": false
+        },
+        {
+         "name": "IsActive",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "TemperatureProfiles",
+       "purpose": "Immutable effective-dated product temperature profile versions and governance records.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ProductId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Products",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "EffectiveDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "Label",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "LowerLimit",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "UpperLimit",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Reason",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ],
+       "uniques": [
+        [
+         "ProductId",
+         "EffectiveDate"
+        ]
+       ]
+      },
+      {
+       "name": "TemperatureProfileTiers",
+       "purpose": "Ordered stability-budget tiers belonging to a profile version.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ProfileId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "TemperatureProfiles",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Sequence",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "LowerBoundary",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "UpperBoundary",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Allowance",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Designation",
+         "type": "string",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "ProfileId",
+         "Sequence"
+        ]
+       ]
+      },
+      {
+       "name": "Receipts",
+       "purpose": "Separate inbound receipt records initially quarantined at a warehouse.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ProductId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Products",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "WarehouseId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Warehouses",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "LotNumber",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ExpiryDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "Supplier",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Location",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ReceivedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ]
+      },
+      {
+       "name": "HandlingUnits",
+       "purpose": "Persisted stock lots, quantities, status, location, and profile provenance.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ReceiptId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "Receipts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ProductId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Products",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "WarehouseId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Warehouses",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ProfileId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "TemperatureProfiles",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "LotNumber",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ExpiryDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "Location",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "ReceiptFiles",
+       "purpose": "Uploaded logger and evidence file content/metadata associated with a receipt.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ReceiptId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Receipts",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "FileKind",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "logger",
+          "evidence"
+         ]
+        },
+        {
+         "name": "FileName",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ContentType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ContentBase64",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "UploadedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ]
+      },
+      {
+       "name": "StockMovements",
+       "purpose": "Chronological stock move, receipt, and inventory trace events.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "SourceLocation",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "DestinationLocation",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "EventType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "OccurredAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "OpeningStocks",
+       "purpose": "Submitted opening-lot records linked to created handling units.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "ColdRooms",
+       "purpose": "Warehouse cold-room identity and configured operating status.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "WarehouseId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Warehouses",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "LowerLimit",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "UpperLimit",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "WarehouseId",
+         "Name"
+        ]
+       ]
+      },
+      {
+       "name": "LoggerDevices",
+       "purpose": "Logger/device identities and their optional cold-room or box association.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "DeviceIdentifier",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "ColdRoomId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "ColdRooms",
+          "column": "Id",
+          "onDelete": "set-null"
+         }
+        },
+        {
+         "name": "LastReadingAt",
+         "type": "datetime",
+         "required": false
+        },
+        {
+         "name": "IsActive",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "TemperatureReadings",
+       "purpose": "Deduplicated timestamped telemetry used for history and excursion calculations.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "long",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "DeviceId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "LoggerDevices",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "EntityType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "EntityId",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "OccurredAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ReceivedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "Temperature",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "ExcludedReason",
+         "type": "string",
+         "required": false
+        }
+       ],
+       "uniques": [
+        [
+         "DeviceId",
+         "OccurredAt",
+         "Temperature"
+        ]
+       ]
+      },
+      {
+       "name": "TemperatureExcursions",
+       "purpose": "Persisted excursions and their start/end state for traceable recalculation.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "EntityType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "EntityId",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "StartedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "EndedAt",
+         "type": "datetime",
+         "required": false
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CorrectedAt",
+         "type": "datetime",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "TemperatureBudgets",
+       "purpose": "Per-handling-unit, per-tier used and remaining stability allowances.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "ProfileTierId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "TemperatureProfileTiers",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Used",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Remaining",
+         "type": "decimal",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "HandlingUnitId",
+         "ProfileTierId"
+        ]
+       ]
+      },
+      {
+       "name": "Orders",
+       "purpose": "Organization-scoped customer orders and fulfillment lifecycle state.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OrganizationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Organizations",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "AddressId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Addresses",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "RequestedDeliveryDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "FulfillmentPreference",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "partial",
+          "complete"
+         ]
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "SubmittedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "PackedAt",
+         "type": "datetime",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "OrderLines",
+       "purpose": "Product quantity requests belonging to an order.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OrderId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Orders",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "ProductId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Products",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Allocations",
+       "purpose": "Stock quantities committed to order lines.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OrderLineId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "OrderLines",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "OrderLineId",
+         "HandlingUnitId"
+        ]
+       ]
+      },
+      {
+       "name": "OrderIdempotencyRecords",
+       "purpose": "Organization-owned idempotency keys and request digests for customer order creation.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OrganizationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Organizations",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Key",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "PayloadHash",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "OrderId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Orders",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "OrganizationId",
+         "Key"
+        ]
+       ]
+      },
+      {
+       "name": "Boxes",
+       "purpose": "Packed shippers, identifiers, associated logger, and qualification status.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "BoxType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "BoxIdentifier",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "LoggerId",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "SealedAt",
+         "type": "datetime",
+         "required": false
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ]
+      },
+      {
+       "name": "BoxItems",
+       "purpose": "Packed handling-unit quantities and source allocations inside boxes.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "BoxId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Boxes",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "AllocationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Allocations",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "BoxId",
+         "HandlingUnitId"
+        ]
+       ]
+      },
+      {
+       "name": "DispatchRoutes",
+       "purpose": "Driver and vehicle assignments with planned route date and status.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RouteDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "VehicleId",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "DriverAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ConfirmedAt",
+         "type": "datetime",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "RouteStops",
+       "purpose": "Ordered stops and planned arrivals belonging to a dispatch route.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RouteId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "DispatchRoutes",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "StopId",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "Sequence",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "PlannedArrival",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "RouteId",
+         "Sequence"
+        ]
+       ]
+      },
+      {
+       "name": "RouteBoxes",
+       "purpose": "Boxes assigned to route stops for expected loading and delivery.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RouteId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "DispatchRoutes",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "BoxId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Boxes",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "StopId",
+         "type": "int",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "RouteScans",
+       "purpose": "Driver box scans and queued action history.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RouteId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "DispatchRoutes",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "BoxIdentifier",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ActionId",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "OccurredAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ]
+      },
+      {
+       "name": "RouteDepartures",
+       "purpose": "Driver departure confirmations for routes.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RouteId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "DispatchRoutes",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "DepartedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "RouteId"
+        ]
+       ]
+      },
+      {
+       "name": "Deliveries",
+       "purpose": "Organization-scoped delivery records created by route handovers.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RouteId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "DispatchRoutes",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "StopId",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "OrganizationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Organizations",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CompletedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "DeliveryHandovers",
+       "purpose": "Retained receiver, acknowledgement, signature, location, and photo handover evidence.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "HandoverId",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "DeliveryId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Deliveries",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "ReceiverName",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Acknowledged",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "Signature",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "PhotoBase64",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "LocationAvailable",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "Latitude",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "Longitude",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "CompletedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "DeliveryBoxResults",
+       "purpose": "Delivered/refused quantities and refusal reasons for each delivery box.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "DeliveryId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Deliveries",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "BoxId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Boxes",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "DeliveredQuantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "Refused",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "RefusalReason",
+         "type": "text",
+         "required": false
+        }
+       ],
+       "uniques": [
+        [
+         "DeliveryId",
+         "BoxId"
+        ]
+       ]
+      },
+      {
+       "name": "Certificates",
+       "purpose": "Versioned retained PDF certificates associated with deliveries.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "DeliveryId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Deliveries",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Version",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "FileName",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ContentBase64",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "DeliveryId",
+         "Version"
+        ]
+       ]
+      },
+      {
+       "name": "QualityCases",
+       "purpose": "Quality investigations linked to affected units and temperature telemetry.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ExcursionId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "TemperatureExcursions",
+          "column": "Id",
+          "onDelete": "set-null"
+         }
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Recommendation",
+         "type": "text",
+         "required": false
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "DispositionProposals",
+       "purpose": "Signed quality disposition proposals and their proposing actor.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "CaseId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "QualityCases",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Disposition",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Reason",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "Justification",
+         "type": "text",
+         "required": false
+        },
+        {
+         "name": "IdentityConfirmation",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "ProposerAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "QualityDecisions",
+       "purpose": "Append-only quality approval, return, or superseding decision history.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "CaseId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "QualityCases",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ProposalId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "DispositionProposals",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "SupersedesDecisionId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "QualityDecisions",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Decision",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Reason",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "IdentityConfirmation",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "DestructionRecords",
+       "purpose": "Witnessed destruction quantity and date for rejected stock.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "DestructionDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "Witness",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ]
+      },
+      {
+       "name": "RecallCampaigns",
+       "purpose": "Signed recall campaigns and severity/progress state.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ProductId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Products",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Reason",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "Severity",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "IdentityConfirmation",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "RecallLots",
+       "purpose": "Many-to-many lot selections for recall campaigns.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RecallId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "RecallCampaigns",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "HandlingUnitId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "HandlingUnits",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ],
+       "uniques": [
+        [
+         "RecallId",
+         "HandlingUnitId"
+        ]
+       ]
+      },
+      {
+       "name": "RecallResponses",
+       "purpose": "Organization delivery quantities and stated disposition for a recall.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RecallId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "RecallCampaigns",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "DeliveryId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Deliveries",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "OnHandQuantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "UsedQuantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "DestroyedQuantity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "StatedDisposition",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "SubmittedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "RecallId",
+         "DeliveryId"
+        ]
+       ]
+      },
+      {
+       "name": "RecallActions",
+       "purpose": "Append-only signed recall closure and write-off actions.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RecallId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "RecallCampaigns",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ActionType",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "closure",
+          "write-off"
+         ]
+        },
+        {
+         "name": "Quantity",
+         "type": "int",
+         "required": false
+        },
+        {
+         "name": "Category",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "Justification",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "IdentityConfirmation",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "CustomerInvitations",
+       "purpose": "Organization-scoped customer team invitations and invitation role.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OrganizationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Organizations",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Email",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Role",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "InvitedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "AcceptedAt",
+         "type": "datetime",
+         "required": false
+        }
+       ],
+       "uniques": [
+        [
+         "OrganizationId",
+         "Email"
+        ]
+       ]
+      },
+      {
+       "name": "AuditEvents",
+       "purpose": "Append-only retained consequential-operation audit records.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "long",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ActorAccountId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "Accounts",
+          "column": "Id",
+          "onDelete": "set-null"
+         }
+        },
+        {
+         "name": "Actor",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ActionType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "AffectedRecordType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "AffectedRecordId",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "EventTime",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "Details",
+         "type": "json",
+         "required": false
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 8,
+   "resultChars": 793,
+   "isError": true,
+   "result": "The result doesn't match the schema: tasks.0.conventions: Invalid input: expected array, received undefined; tasks.1.conventions: Invalid input: expected array, received undefined; tasks.2.conventions: Invalid input: expected array, received undefined; tasks.3.conventions: Invalid input: expected array, received undefined; tasks.4.conventions: Invalid input: expected array, received undefined; tasks.5.conventions: Invalid input: expected array, received undefined; tasks.6.conventions: Invalid input: expected array, received undefined; tasks.7.conventions: Invalid input: expected array, received undefined; tasks.8.conventions: Invalid input: expected array, received undefined; tasks.9.conventions: Invalid input: expected array, received undefined. Fix it and call submit_result again."
+  }
+ ]
+}

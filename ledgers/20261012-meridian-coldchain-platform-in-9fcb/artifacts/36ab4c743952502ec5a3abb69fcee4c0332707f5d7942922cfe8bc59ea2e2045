@@ -1,0 +1,124 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-8",
+      "ears": "When the service or an offline cache reports a scanned box as Recalled, the Meridian web app shall display “Do not deliver” and prevent handover of that box.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "A driver is online and the service reports a scanned box as Recalled",
+        "when": "the driver opens that box's handover controls",
+        "then": "the screen displays “Do not deliver” and no enabled handover control for that box",
+        "level": "ui"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "The browser is offline and the cached status for a scanned box is Recalled",
+        "when": "the driver opens that box's handover controls",
+        "then": "the screen displays “Do not deliver” and no enabled handover control for that box",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-12",
+      "ears": "While the browser is offline, the Meridian web app shall retain loading, handover, and refusal work locally across session expiry or sign-out, isolate queued work to the originating account so another signed-in user cannot view or send it, require the originating user to re-authenticate before syncing, automatically send queued work when connectivity returns, preserve handover occurrence time and identifier on retries, clear queued payload only after successful service acknowledgement, show an error without reporting work as queued when local storage cannot retain the complete payload, retain permanently rejected payloads and show the returned error while requiring user review before retry, and keep another account's queued payload inaccessible and unsent until the originating account re-authenticates.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-5",
+       "ASM-11",
+       "I-7",
+       "I-8",
+       "I-9",
+       "I-14",
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "The browser is offline",
+        "when": "the driver records loading, handover, or refusal work",
+        "then": "the screen shows each action in the pending queue and retains its entered values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "Queued work exists and connectivity returns",
+        "when": "the web app reconnects",
+        "then": "the screen shows queued work being sent without requiring resubmission, and displays the returned sync status",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.3",
+        "given": "A handover was recorded offline",
+        "when": "the web app sends it or retries an interrupted send",
+        "then": "the request contains the original handover time and the same handover identifier as the original request",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.4",
+        "given": "Loading, handover, or refusal work, including handover signature and photo values, is queued while offline and the driver session expires or the driver signs out",
+        "when": "the driver re-authenticates and the connection returns",
+        "then": "the screen lists the retained queued work and its entered values, and the request sends the work without requiring re-entry",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.5",
+        "given": "Driver A has queued work on a browser and Driver B signs in on that browser",
+        "when": "Driver B opens the pending-work view and connectivity returns",
+        "then": "the screen displays no values from Driver A's queued work and no request sends Driver A's work under Driver B's account",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.6",
+        "given": "The service has acknowledged successful synchronization of queued work",
+        "when": "the driver reloads the web app and connectivity returns again",
+        "then": "the screen shows no pending payload for that work and the request count for resending that work is zero",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.7",
+        "given": "The browser is offline and local storage cannot retain the complete payload for a loading, handover, or refusal action",
+        "when": "the driver attempts to save the action",
+        "then": "the screen displays a storage error, does not show the action as queued or completed, and the request count for sending that action is zero",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.8",
+        "given": "The service permanently rejects queued work and returns an error",
+        "when": "the web app processes the synchronization response",
+        "then": "the screen displays the returned error and identifies the retained work as requiring review, the entered values remain available, and no automatic retry request is sent before user review",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.9",
+        "given": "Driver A has queued work, signs out, Driver B signs in on the same browser, and Driver A does not re-authenticate",
+        "when": "connectivity returns and Driver B opens the pending-work view",
+        "then": "the screen displays no values from Driver A's queued work, the request count for sending Driver A's work is zero, and the queued work remains available after Driver A re-authenticates",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

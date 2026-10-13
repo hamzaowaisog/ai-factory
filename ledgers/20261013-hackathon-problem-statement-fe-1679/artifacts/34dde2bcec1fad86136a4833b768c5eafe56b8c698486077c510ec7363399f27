@@ -1,0 +1,173 @@
+diff --git a/components/screens/s-1/container.tsx b/components/screens/s-1/container.tsx
+index 48c7f06..e7e38f1 100644
+--- a/components/screens/s-1/container.tsx
++++ b/components/screens/s-1/container.tsx
+@@ -1,13 +1,102 @@
+ "use client";
+ 
+-// S-1 Sign in (/sign-in): the approved Stitch page, built by the coding task in this file.
+-// Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;
+-// match its layout, sections and words. Fixture mode (?fixture=S-1:<state>) must show the approved sample content in
+-// that state with no backend; the states the design drew: Submitting credentials, Successful sign-in routes to the returned landing page, Authentication error returned by the sign-in service.
++import { useState, type FormEvent } from "react";
++import { Button } from "@/components/ui/button";
++import { Card, CardContent } from "@/components/ui/card";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import { Notice, NoticeDescription } from "@/components/ui/notice";
++import { signIn } from "@/lib/api/client";
++import { writeSession } from "@/lib/auth/session";
++import { useNav } from "@/lib/nav";
++
++const SUBMITTING_FIXTURE = "submitting-credentials";
++const SUCCESS_FIXTURE = "successful-sign-in-routes-to-the-returned-landing-page";
++const ERROR_FIXTURE = "authentication-error-returned-by-the-sign-in-service";
++
+ export function SignInContainer({ fixture }: { fixture?: string }) {
++  const { go } = useNav();
++  const [isSubmitting, setIsSubmitting] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++  const isFixture = fixture !== undefined;
++  const fixtureSubmitting = fixture === SUBMITTING_FIXTURE;
++  const fixtureSuccess = fixture === SUCCESS_FIXTURE;
++  const fixtureError = fixture === ERROR_FIXTURE;
++
++  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (isFixture || isSubmitting) return;
++
++    setError(null);
++    setIsSubmitting(true);
++    const fields = new FormData(event.currentTarget);
++    const email = fields.get("email");
++    const credential = fields.get("password");
++    if (typeof email !== "string" || !email.trim() || typeof credential !== "string" || !credential) {
++      setError("Enter your email and password to continue.");
++      setIsSubmitting(false);
++      return;
++    }
++    const credentials = Object.fromEntries(fields) as unknown as Parameters<typeof signIn>[0];
++
++    try {
++      const response = await signIn(credentials);
++      if (response.status !== 200) {
++        setError(response.data.message);
++        return;
++      }
++
++      writeSession({ ...response.data.user, accessToken: response.data.accessToken });
++      go(response.data.user.landingPage);
++    } catch {
++      setError("We couldn't sign you in. Please try again.");
++    } finally {
++      setIsSubmitting(false);
++    }
++  }
++
++  const state = fixture ?? (isSubmitting ? SUBMITTING_FIXTURE : error ? ERROR_FIXTURE : "default");
++  const visibleError = fixtureError ? "Please sign in again." : error;
++
+   return (
+-    <main data-screen="S-1" data-state={fixture ?? "default"}>
+-      <h1>Sign in</h1>
++    <main data-screen="S-1" data-state={state} className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
++      <div className="w-full max-w-sm">
++        <header className="mb-7 text-center">
++          <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground">Range Ledger</h2>
++        </header>
++        <Card className="border-border bg-card shadow-raised">
++          <CardContent className="p-6 sm:p-8">
++            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">Sign in</h1>
++            <p className="mt-2 text-sm text-muted-foreground">Use your work account to open your yard.</p>
++
++            {visibleError && (
++              <Notice tone="bad" className="mt-5">
++                <NoticeDescription>{visibleError}</NoticeDescription>
++              </Notice>
++            )}
++
++            {fixtureSuccess && (
++              <Notice tone="ok" className="mt-5">
++                <NoticeDescription>Sign in successful. Your landing page is Yard (/yard).</NoticeDescription>
++              </Notice>
++            )}
++
++            <form className="mt-6 grid gap-5" onSubmit={handleSubmit}>
++              <div className="grid gap-2">
++                <Label htmlFor="email">Email</Label>
++                <Input id="email" name="email" type="email" autoComplete="username" required />
++              </div>
++              <div className="grid gap-2">
++                <Label htmlFor="password">Password</Label>
++                <Input id="password" name="password" type="password" autoComplete="current-password" required />
++              </div>
++              <Button type="submit" className="mt-1 w-full" disabled={isSubmitting || fixtureSubmitting}>
++                {isSubmitting || fixtureSubmitting ? "Signing in…" : "Sign in"}
++              </Button>
++            </form>
++          </CardContent>
++        </Card>
++      </div>
+     </main>
+   );
+ }
+diff --git a/lib/auth/session.ts b/lib/auth/session.ts
+index 3fed714..65e5779 100644
+--- a/lib/auth/session.ts
++++ b/lib/auth/session.ts
+@@ -1,28 +1,42 @@
+-export type SessionState = {
+-  id: number;
+-  name: string;
+-  email: string;
+-  landingPage: string;
+-  permissions: string[];
+-  authorizedYards: Array<{ id: number; name: string }>;
+-};
++import type { SessionUser } from "@/lib/api/client.schemas";
++
++const SESSION_KEY = "range-ledger-session";
++
++export type SessionState = SessionUser & { accessToken: string };
+ 
+ export function readSession(): SessionState | null {
+-  throw new Error("not implemented");
++  if (typeof window === "undefined") return null;
++
++  try {
++    const stored = window.localStorage.getItem(SESSION_KEY);
++    if (!stored) return null;
++    const session = JSON.parse(stored) as SessionState;
++    if (typeof session.accessToken !== "string" || !Array.isArray(session.permissions)) return null;
++    return session;
++  } catch {
++    return null;
++  }
+ }
+ 
+ export function writeSession(session: SessionState): void {
+-  throw new Error("not implemented");
++  if (typeof window === "undefined") return;
++  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+ }
+ 
+ export function clearSession(): void {
+-  throw new Error("not implemented");
++  if (typeof window === "undefined") return;
++  window.localStorage.removeItem(SESSION_KEY);
+ }
+ 
+ export function hasPermission(session: SessionState | null, permission: string): boolean {
+-  throw new Error("not implemented");
++  return session?.permissions.includes(permission) ?? false;
+ }
+ 
+ export function updatePermissions(permissions: string[]): SessionState | null {
+-  throw new Error("not implemented");
++  const session = readSession();
++  if (!session) return null;
++
++  const updated = { ...session, permissions };
++  writeSession(updated);
++  return updated;
+ }

@@ -1,0 +1,521 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "errors",
+      "text": "How specific should the message be when a sign-in fails?",
+      "options": [
+       "A generic 'invalid email or password' message that doesn't say which field was wrong",
+       "A message that says whether the email or the password was wrong"
+      ],
+      "recommended": "A generic 'invalid email or password' message that doesn't say which field was wrong",
+      "reason": "This is standard security practice and fits section 49. It doesn't reveal which accounts exist.",
+      "spans": [
+       "52-error-handling",
+       "49-security"
+      ],
+      "impact": 1,
+      "impactReason": "Only the wording of one error message changes.",
+      "difference": "D-1.52",
+      "topic": "sign-in"
+     },
+     {
+      "id": "Q-7",
+      "category": "errors",
+      "text": "While an order or checkout is being submitted, should the submit button be disabled to stop the same order going in twice?",
+      "options": [
+       "Disable the submit button while the request is in progress and show a loading indicator",
+       "Only show a loading indicator",
+       "Disable the button and also reject a repeated submission on the server using a one-time submission key"
+      ],
+      "recommended": "Disable the submit button while the request is in progress and show a loading indicator",
+      "reason": "This is the smallest change that covers the 'duplicate submission prevention' test in section 71.",
+      "spans": [
+       "54-loading-states",
+       "71-testing-requirements"
+      ],
+      "impact": 3,
+      "impactReason": "Without it, the same order could be created twice.",
+      "difference": "D-2.54"
+     },
+     {
+      "id": "Q-8",
+      "category": "roles",
+      "text": "Is staff sign-in a separate screen and route from customer sign-in?",
+      "options": [
+       "One shared sign-in screen; after sign-in, users go to the customer, staff or admin area based on their role",
+       "A separate staff sign-in route that uses the same account system"
+      ],
+      "recommended": "One shared sign-in screen; after sign-in, users go to the customer, staff or admin area based on their role",
+      "reason": "One sign-in flow is less to build. Roles still separate what each user can access.",
+      "spans": [
+       "56-main-staff-screens",
+       "55-main-customer-screens"
+      ],
+      "impact": 2,
+      "impactReason": "It changes the sign-in flow and the routes.",
+      "difference": "D-3.56",
+      "topic": "sign-in"
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "text": "When is the invoice PDF generated?",
+      "options": [
+       "Once, when the invoice is created; the stored file is reused for every download",
+       "Freshly each time someone downloads it"
+      ],
+      "recommended": "Once, when the invoice is created; the stored file is reused for every download",
+      "reason": "The issued document never changes afterwards, which suits the 7-year retention rule.",
+      "spans": [
+       "64-pdf-generation",
+       "63-file-storage"
+      ],
+      "impact": 2,
+      "impactReason": "It affects storage, and whether a downloaded invoice can differ from the one first issued.",
+      "difference": "D-6.64"
+     },
+     {
+      "id": "Q-10",
+      "category": "scope",
+      "text": "What counts as revenue in the reports?",
+      "options": [
+       "Order line totals excluding VAT for orders that weren't cancelled, dated by order submission date",
+       "Invoiced amounts excluding VAT, dated by invoice date",
+       "Invoiced amounts including VAT, dated by invoice date"
+      ],
+      "recommended": "Order line totals excluding VAT for orders that weren't cancelled, dated by order submission date",
+      "reason": "This matches 'Orders per Day' and prices that are shown without VAT, and it needs no extra data.",
+      "spans": [
+       "39-reporting",
+       "69-open-questions"
+      ],
+      "impact": 3,
+      "impactReason": "It changes the money figures that staff see and export.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q-11",
+      "category": "roles",
+      "text": "Who can see audit history, and how long is it kept?",
+      "options": [
+       "Admins only, through the Audit history screen; kept for 7 years, the same as orders and invoices",
+       "Admins only; kept indefinitely",
+       "Admins and staff; kept for 7 years"
+      ],
+      "recommended": "Admins only, through the Audit history screen; kept for 7 years, the same as orders and invoices",
+      "reason": "The audit screen is only listed among the admin screens, and 7 years matches the existing retention rule.",
+      "spans": [
+       "42-audit-history",
+       "57-main-admin-screens"
+      ],
+      "impact": 3,
+      "impactReason": "It decides who can see audit data and when it is deleted.",
+      "topic": "audit"
+     },
+     {
+      "id": "Q-12",
+      "category": "external",
+      "text": "How should the app connect to the client's email provider while the provider is still unknown?",
+      "options": [
+       "Generic SMTP, with host, credentials, sender and reply-to address set in configuration",
+       "A specific provider's API, to be named later",
+       "Build both SMTP and API options"
+      ],
+      "recommended": "Generic SMTP, with host, credentials, sender and reply-to address set in configuration",
+      "reason": "Almost every provider supports SMTP, so this works without knowing the provider.",
+      "spans": [
+       "43-notifications",
+       "44-email-provider"
+      ],
+      "impact": 2,
+      "impactReason": "It decides how the integration is built and what has to be configured.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q-13",
+      "category": "errors",
+      "text": "What happens if an email fails to send?",
+      "options": [
+       "Record the failure against the notification record and show it on the admin system/import status screen; the business action still succeeds",
+       "Retry automatically several times and then record the failure",
+       "Roll back the action that triggered the email"
+      ],
+      "recommended": "Record the failure against the notification record and show it on the admin system/import status screen; the business action still succeeds",
+      "reason": "Failures stay visible without adding retry machinery, and orders aren't blocked by email problems.",
+      "spans": [
+       "43-notifications",
+       "52-error-handling",
+       "62-background-jobs"
+      ],
+      "impact": 2,
+      "impactReason": "It decides whether order and status changes go through when email is down.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q-14",
+      "category": "terminology",
+      "text": "When is the 'Order confirmation' email sent?",
+      "options": [
+       "When staff change the order to Confirmed (business rule 11)",
+       "When the customer submits the order (status Received)",
+       "Both: an 'order received' email on submission and a 'confirmed' email on confirmation"
+      ],
+      "recommended": "When staff change the order to Confirmed (business rule 11)",
+      "reason": "Business rule 11 says customers are notified when an order is confirmed.",
+      "spans": [
+       "43-notifications",
+       "67-business-rules-summary"
+      ],
+      "impact": 2,
+      "impactReason": "It changes which emails customers get and when.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q-15",
+      "category": "roles",
+      "text": "Who receives order emails for a customer company?",
+      "options": [
+       "Only the user who placed the order",
+       "Every active user of that customer company"
+      ],
+      "recommended": "Only the user who placed the order",
+      "reason": "This is the simplest choice and doesn't send email to people who didn't order.",
+      "spans": [
+       "43-notifications"
+      ],
+      "impact": 2,
+      "impactReason": "It changes who gets email about an order.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q-16",
+      "category": "roles",
+      "text": "Can customer users see orders and invoices placed by other users in the same company?",
+      "options": [
+       "Yes, all users of a customer company see all of that company's orders and invoices",
+       "No, each user sees only their own orders; invoices are visible to the whole company"
+      ],
+      "recommended": "Yes, all users of a customer company see all of that company's orders and invoices",
+      "reason": "Business rule 1 says customers see their own company's data.",
+      "spans": [
+       "50-data-isolation",
+       "67-business-rules-summary",
+       "69-open-questions"
+      ],
+      "impact": 3,
+      "impactReason": "It changes who can see orders and invoices.",
+      "topic": "roles"
+     },
+     {
+      "id": "Q-17",
+      "category": "scope",
+      "text": "Can a customer order more than the quantity currently in stock?",
+      "options": [
+       "No; the quantity is limited to the stock from the last import, and staff can override this when editing",
+       "Yes; stock is shown for information only",
+       "No, with no staff override"
+      ],
+      "recommended": "No; the quantity is limited to the stock from the last import, and staff can override this when editing",
+      "reason": "It prevents overselling but keeps staff able to adjust, which fits 'staff can edit orders'.",
+      "spans": [
+       "45-erp-stock-integration",
+       "69-open-questions"
+      ],
+      "impact": 3,
+      "impactReason": "It changes which orders can be placed."
+     },
+     {
+      "id": "Q-18",
+      "category": "external",
+      "text": "How does the nightly ERP stock CSV reach the portal, and when does the import run?",
+      "options": [
+       "The ERP drops the file in a configured folder or storage location; the import runs at a time set in configuration",
+       "The portal fetches the file from the ERP's SFTP server",
+       "An admin uploads the file by hand"
+      ],
+      "recommended": "The ERP drops the file in a configured folder or storage location; the import runs at a time set in configuration",
+      "reason": "Configuring the location and time means nothing is hard-coded until the ERP details are known.",
+      "spans": [
+       "45-erp-stock-integration",
+       "62-background-jobs"
+      ],
+      "impact": 2,
+      "impactReason": "It decides how the import is built and how it is run."
+     },
+     {
+      "id": "Q-19",
+      "category": "errors",
+      "text": "When some rows in the stock CSV are invalid (unknown product, a quantity that isn't a number, a duplicate), what happens to the rest of the file?",
+      "options": [
+       "Import the valid rows, reject the invalid ones, and report both counts and the errors",
+       "Reject the whole file if any row is invalid"
+      ],
+      "recommended": "Import the valid rows, reject the invalid ones, and report both counts and the errors",
+      "reason": "Section 65's report of records received, processed and rejected implies rows are handled one by one.",
+      "spans": [
+       "65-csv-import-requirements",
+       "45-erp-stock-integration"
+      ],
+      "impact": 3,
+      "impactReason": "It decides which stock levels get written."
+     },
+     {
+      "id": "Q-20",
+      "category": "existing-data",
+      "text": "What happens to the stock of a product that is missing from the nightly file?",
+      "options": [
+       "Its stock is left unchanged",
+       "Its stock is set to zero"
+      ],
+      "recommended": "Its stock is left unchanged",
+      "reason": "This avoids wiping stock by mistake when a file is incomplete.",
+      "spans": [
+       "45-erp-stock-integration"
+      ],
+      "impact": 3,
+      "impactReason": "It changes stock data and whether products can be ordered."
+     },
+     {
+      "id": "Q-21",
+      "category": "errors",
+      "text": "How are admins told that a stock import failed?",
+      "options": [
+       "The failure is shown on the admin system/import status screen",
+       "The status screen shows it and an email goes to admins"
+      ],
+      "recommended": "The failure is shown on the admin system/import status screen",
+      "reason": "That screen is already required, and it avoids depending on email.",
+      "spans": [
+       "45-erp-stock-integration",
+       "57-main-admin-screens"
+      ],
+      "impact": 2,
+      "impactReason": "It changes how admins learn about failures."
+     },
+     {
+      "id": "Q-22",
+      "category": "identifiers",
+      "text": "Who issues invoice numbers, and in what format?",
+      "options": [
+       "The portal issues sequential numbers with a prefix set in configuration",
+       "An external accounting system or the ERP supplies them"
+      ],
+      "recommended": "The portal issues sequential numbers with a prefix set in configuration",
+      "reason": "No external system for this is described.",
+      "spans": [
+       "64-pdf-generation",
+       "59-invoice-lifecycle"
+      ],
+      "impact": 3,
+      "impactReason": "Invoice numbers are legal and financial identifiers."
+     },
+     {
+      "id": "Q-23",
+      "category": "identifiers",
+      "text": "How are working days and public holidays defined for the 14:00 delivery rule?",
+      "options": [
+       "Monday to Friday, minus a list of public holidays that admins maintain; the 14:00 cut-off is set in configuration",
+       "Monday to Friday with no holidays; the cut-off is fixed at 14:00"
+      ],
+      "recommended": "Monday to Friday, minus a list of public holidays that admins maintain; the 14:00 cut-off is set in configuration",
+      "reason": "Delivery dates on holidays would be wrong without a holiday list.",
+      "spans": [
+       "67-business-rules-summary",
+       "72-acceptance-criteria-examples"
+      ],
+      "impact": 2,
+      "impactReason": "It changes the delivery dates offered to customers."
+     },
+     {
+      "id": "Q-24",
+      "category": "existing-data",
+      "text": "When staff edit an order before it is confirmed, which prices do newly added lines use?",
+      "options": [
+       "Newly added lines use the customer's current price list; existing lines keep their original price",
+       "All lines are repriced from the current price list"
+      ],
+      "recommended": "Newly added lines use the customer's current price list; existing lines keep their original price",
+      "reason": "This matches the rule that prices already on an order are kept.",
+      "spans": [
+       "72-acceptance-criteria-examples",
+       "67-business-rules-summary"
+      ],
+      "impact": 3,
+      "impactReason": "It changes order totals."
+     },
+     {
+      "id": "Q-25",
+      "category": "existing-data",
+      "text": "Can user accounts be deleted completely, or only deactivated?",
+      "options": [
+       "Only deactivated; the user stays in the database and remains linked to historical records",
+       "Personal details are anonymised and the linked records are kept",
+       "Fully deleted, with historical records keeping a copy of the name"
+      ],
+      "recommended": "Only deactivated; the user stays in the database and remains linked to historical records",
+      "reason": "This is the simplest way to meet the rule that history stays after deactivation.",
+      "spans": [
+       "46-data-retention"
+      ],
+      "impact": 3,
+      "impactReason": "It changes what happens to stored data.",
+      "topic": "admin"
+     },
+     {
+      "id": "Q-26",
+      "category": "scope",
+      "text": "Which format should the staff 'Delivery export' produce?",
+      "options": [
+       "A CSV of confirmed orders for a chosen delivery date, with customer, address and items",
+       "A printable PDF delivery list"
+      ],
+      "recommended": "A CSV of confirmed orders for a chosen delivery date, with customer, address and items",
+      "reason": "It reuses the CSV export conventions from section 66.",
+      "spans": [
+       "56-main-staff-screens"
+      ],
+      "impact": 2,
+      "impactReason": "It shapes a staff workflow."
+     },
+     {
+      "id": "Q-27",
+      "category": "scope",
+      "text": "What format should CSV report exports use?",
+      "options": [
+       "Columns in the same order as the on-screen report, ISO dates (YYYY-MM-DD), dot as the decimal separator, UTF-8",
+       "Columns in report order, UK date format (DD/MM/YYYY)"
+      ],
+      "recommended": "Columns in the same order as the on-screen report, ISO dates (YYYY-MM-DD), dot as the decimal separator, UTF-8",
+      "reason": "This is consistent and opens cleanly in spreadsheet tools.",
+      "spans": [
+       "41-report-export",
+       "66-csv-export-requirements"
+      ],
+      "impact": 1,
+      "impactReason": "Only the format changes.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q-28",
+      "category": "scope",
+      "text": "What accessibility level is required?",
+      "options": [
+       "WCAG 2.1 AA",
+       "Best effort, with no formal target"
+      ],
+      "recommended": "WCAG 2.1 AA",
+      "reason": "It is the usual target and covers the practices listed in section 51.",
+      "spans": [
+       "51-accessibility"
+      ],
+      "impact": 2,
+      "impactReason": "It affects the UI work throughout.",
+      "topic": "accessibility"
+     },
+     {
+      "id": "Q-29",
+      "category": "scope",
+      "text": "Which browsers are supported?",
+      "options": [
+       "The latest two versions of Chrome, Safari (including iOS), Edge and Firefox",
+       "Chrome and Safari only"
+      ],
+      "recommended": "The latest two versions of Chrome, Safari (including iOS), Edge and Firefox",
+      "reason": "It covers mobile buyers and desktop staff.",
+      "spans": [
+       "47-responsive-design"
+      ],
+      "impact": 1,
+      "impactReason": "It affects the amount of testing.",
+      "topic": "browsers"
+     },
+     {
+      "id": "Q-30",
+      "category": "external",
+      "text": "Where is the system hosted?",
+      "options": [
+       "The client's cloud account, provider to be confirmed",
+       "Our managed cloud hosting"
+      ],
+      "recommended": "The client's cloud account, provider to be confirmed",
+      "reason": "The request suggests the client's cloud may be required.",
+      "spans": [
+       "70-environments",
+       "69-open-questions"
+      ],
+      "impact": 2,
+      "impactReason": "It affects infrastructure and deployment.",
+      "topic": "hosting"
+     },
+     {
+      "id": "Q-31",
+      "category": "roles",
+      "text": "How do customer accounts get created, and what is the account lockout rule?",
+      "options": [
+       "By invitation only; an account locks for 15 minutes after 5 failed sign-ins",
+       "By invitation only; an account stays locked after 5 failed sign-ins until an admin unlocks it",
+       "Customers can register themselves"
+      ],
+      "recommended": "By invitation only; an account locks for 15 minutes after 5 failed sign-ins",
+      "reason": "Invitations are already required, and a timed lockout needs no admin work.",
+      "spans": [
+       "49-security",
+       "71-testing-requirements"
+      ],
+      "impact": 3,
+      "impactReason": "It decides who can get access.",
+      "topic": "sign-in"
+     },
+     {
+      "id": "Q-32",
+      "category": "scope",
+      "text": "What product image files can admins upload?",
+      "options": [
+       "JPEG, PNG or WebP, up to 5 MB each",
+       "Any image type, with no size limit"
+      ],
+      "recommended": "JPEG, PNG or WebP, up to 5 MB each",
+      "reason": "It meets the upload validation required in section 49.",
+      "spans": [
+       "63-file-storage",
+       "49-security"
+      ],
+      "impact": 1,
+      "impactReason": "Validation rules only.",
+      "topic": "file-uploads"
+     },
+     {
+      "id": "Q-33",
+      "category": "scope",
+      "text": "Is light mode only enough?",
+      "options": [
+       "Light mode only",
+       "Both light and dark mode"
+      ],
+      "recommended": "Light mode only",
+      "reason": "Dark mode isn't requested.",
+      "spans": [
+       "47-responsive-design"
+      ],
+      "impact": 1,
+      "impactReason": "Visual only.",
+      "topic": "colour-modes"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

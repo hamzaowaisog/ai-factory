@@ -1,0 +1,372 @@
+diff --git a/App.Api/AppDb.cs b/App.Api/AppDb.cs
+index 4217959..73fc363 100644
+--- a/App.Api/AppDb.cs
++++ b/App.Api/AppDb.cs
+@@ -4,4 +4,23 @@ namespace App.Api;
+ 
+ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
+ {
++    public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
++
++    protected override void OnModelCreating(ModelBuilder modelBuilder)
++    {
++        modelBuilder.Entity<MaintenanceRequest>(e =>
++        {
++            e.ToTable("MaintenanceRequests");
++            e.HasKey(r => r.Id);
++            // stored as UTC without a zone; read back as UTC so it is written with a trailing Z
++            e.Property(r => r.CreatedAt).HasColumnType("timestamp without time zone")
++                .HasConversion(v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
++            e.Property(r => r.Title).HasMaxLength(80).IsRequired();
++            e.Property(r => r.Area).HasMaxLength(40).IsRequired();
++            e.Property(r => r.Priority).HasMaxLength(20).IsRequired();
++            e.Property(r => r.Status).HasMaxLength(20).IsRequired();
++            e.Property(r => r.Description).HasColumnType("text");
++            e.Property(r => r.IsDemo).IsRequired();
++        });
++    }
+ }
+diff --git a/App.Api/EndpointRegistration.cs b/App.Api/EndpointRegistration.cs
+new file mode 100644
+index 0000000..6f9563f
+--- /dev/null
++++ b/App.Api/EndpointRegistration.cs
+@@ -0,0 +1,63 @@
++using System.Text.Json.Serialization;
++using System.Text.Json.Serialization.Metadata;
++using Microsoft.AspNetCore.OpenApi;
++using Microsoft.OpenApi.Any;
++using Microsoft.OpenApi.Models;
++
++namespace App.Api;
++
++// Every class that implements this and sits in this assembly is found and mapped under /api at startup.
++public interface IEndpointRegistrar
++{
++    void Map(RouteGroupBuilder api);
++}
++
++public static class EndpointRegistration
++{
++    public static void MapEndpointRegistrars(this WebApplication app)
++    {
++        var api = app.MapGroup("/api");
++        var registrars = typeof(IEndpointRegistrar).Assembly.GetTypes()
++            .Where(t => t is { IsClass: true, IsAbstract: false } && typeof(IEndpointRegistrar).IsAssignableFrom(t))
++            .OrderBy(t => t.FullName, StringComparer.Ordinal);
++        foreach (var type in registrars) ((IEndpointRegistrar)Activator.CreateInstance(type)!).Map(api);
++    }
++}
++
++// Makes the generated OpenAPI document say what contracts/openapi.yaml says where the C# types cannot.
++public static class ContractOpenApi
++{
++    private static readonly Dictionary<string, string[]> Enums = new()
++    {
++        ["area"] = ["Kitchen", "Meeting room", "Open desk", "Washroom", "Reception"],
++        ["priority"] = ["Low", "Normal", "Urgent"],
++        ["status"] = ["Open", "In progress", "Done"],
++    };
++
++    private static List<IOpenApiAny> EnumValues(string name) => Enums[name].Select(v => (IOpenApiAny)new OpenApiString(v)).ToList();
++
++    private static bool OmittedWhenNull(JsonPropertyInfo p) =>
++        p.AttributeProvider?.GetCustomAttributes(typeof(JsonIgnoreAttribute), true)
++            .OfType<JsonIgnoreAttribute>().Any(a => a.Condition == JsonIgnoreCondition.WhenWritingNull) == true;
++
++    public static Task Schema(OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken ct)
++    {
++        if (context.JsonPropertyInfo is { } property)
++        {
++            if (OmittedWhenNull(property)) { schema.Nullable = false; schema.Default = null; }
++            if (property.DeclaringType == typeof(MaintenanceRequestResource) && Enums.ContainsKey(property.Name)) schema.Enum = EnumValues(property.Name);
++        }
++        else if (context.JsonTypeInfo.Kind == JsonTypeInfoKind.Object)
++        {
++            foreach (var property2 in context.JsonTypeInfo.Properties.Where(OmittedWhenNull)) schema.Required.Remove(property2.Name);
++        }
++        return Task.CompletedTask;
++    }
++
++    public static Task Operation(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken ct)
++    {
++        foreach (var parameter in operation.Parameters.Where(p => p.In == ParameterLocation.Query && p.Name == "status"))
++            parameter.Schema.Enum = EnumValues("status");
++        return Task.CompletedTask;
++    }
++}
+diff --git a/App.Api/Endpoints/ListRequestsEndpoint.cs b/App.Api/Endpoints/ListRequestsEndpoint.cs
+new file mode 100644
+index 0000000..deb766e
+--- /dev/null
++++ b/App.Api/Endpoints/ListRequestsEndpoint.cs
+@@ -0,0 +1,38 @@
++using Microsoft.EntityFrameworkCore;
++
++namespace App.Api.Endpoints;
++
++public class ListRequestsEndpoint : IEndpointRegistrar
++{
++    private static readonly string[] Statuses = ["Open", "In progress", "Done"];
++
++    public void Map(RouteGroupBuilder api) =>
++        api.MapGet("/requests", List)
++            .WithName("listRequests")
++            .Produces<RequestListResource>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
++
++    private static async Task<IResult> List(AppDb db, string? status, CancellationToken ct)
++    {
++        if (status is not null && !Statuses.Contains(status))
++            return Results.Json(
++                new ErrorResponse("Status must be Open, In progress, or Done.",
++                    new() { ["status"] = ["Unsupported status filter."] }),
++                statusCode: StatusCodes.Status400BadRequest);
++        try
++        {
++            var query = db.MaintenanceRequests.AsNoTracking();
++            if (status is not null) query = query.Where(r => r.Status == status);
++            var requests = await query
++                .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
++                .Select(r => new MaintenanceRequestResource(r.Id, r.CreatedAt, r.Title, r.Area, r.Priority, r.Status, r.Description))
++                .ToListAsync(ct);
++            return Results.Ok(new RequestListResource(requests));
++        }
++        catch (Exception) when (!ct.IsCancellationRequested)
++        {
++            return Results.Json(new ErrorResponse("Could not load requests."), statusCode: StatusCodes.Status500InternalServerError);
++        }
++    }
++}
+diff --git a/App.Api/MaintenanceRequest.cs b/App.Api/MaintenanceRequest.cs
+new file mode 100644
+index 0000000..1d7544f
+--- /dev/null
++++ b/App.Api/MaintenanceRequest.cs
+@@ -0,0 +1,13 @@
++namespace App.Api;
++
++public class MaintenanceRequest
++{
++    public long Id { get; set; }
++    public DateTime CreatedAt { get; set; }
++    public string Title { get; set; } = "";
++    public string Area { get; set; } = "";
++    public string Priority { get; set; } = "";
++    public string Status { get; set; } = "";
++    public string? Description { get; set; }
++    public bool IsDemo { get; set; }
++}
+diff --git a/App.Api/MaintenanceRequestResource.cs b/App.Api/MaintenanceRequestResource.cs
+new file mode 100644
+index 0000000..7131047
+--- /dev/null
++++ b/App.Api/MaintenanceRequestResource.cs
+@@ -0,0 +1,19 @@
++using System.Text.Json.Serialization;
++
++namespace App.Api;
++
++// What the API returns for a request: the internal demo marker is not part of it.
++public record MaintenanceRequestResource(
++    long Id,
++    DateTime CreatedAt,
++    string Title,
++    string Area,
++    string Priority,
++    string Status,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Description);
++
++public record RequestListResource(List<MaintenanceRequestResource> Requests);
++
++public record ErrorResponse(
++    string Message,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Dictionary<string, string[]>? Errors = null);
+diff --git a/App.Api/Program.cs b/App.Api/Program.cs
+index eb64afd..b64df20 100644
+--- a/App.Api/Program.cs
++++ b/App.Api/Program.cs
+@@ -2,7 +2,7 @@ using App.Api;
+ using Microsoft.EntityFrameworkCore;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+-builder.Services.AddOpenApi();
++builder.Services.AddOpenApi(o => o.AddSchemaTransformer(ContractOpenApi.Schema).AddOperationTransformer(ContractOpenApi.Operation));
+ // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is
+ // not given one stops when it first needs the database, so it can never run on a password that is written in the code.
+ builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App")
+@@ -26,6 +26,7 @@ if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != "GetDocumen
+ }
+ app.UseCors();
+ app.MapGet("/", () => "API is up").ExcludeFromDescription();
++app.MapEndpointRegistrars();
+ 
+ app.Run();
+ 
+diff --git a/App.Api/openapi/built.json b/App.Api/openapi/built.json
+new file mode 100644
+index 0000000..0a57921
+--- /dev/null
++++ b/App.Api/openapi/built.json
+@@ -0,0 +1,159 @@
++{
++  "openapi": "3.0.1",
++  "info": {
++    "title": "App.Api | v1",
++    "version": "1.0.0"
++  },
++  "paths": {
++    "/api/requests": {
++      "get": {
++        "tags": [
++          "ListRequestsEndpoint"
++        ],
++        "operationId": "listRequests",
++        "parameters": [
++          {
++            "name": "status",
++            "in": "query",
++            "schema": {
++              "enum": [
++                "Open",
++                "In progress",
++                "Done"
++              ],
++              "type": "string"
++            }
++          }
++        ],
++        "responses": {
++          "200": {
++            "description": "OK",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/RequestListResource"
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Bad Request",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ErrorResponse"
++                }
++              }
++            }
++          },
++          "500": {
++            "description": "Internal Server Error",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ErrorResponse"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "ErrorResponse": {
++        "required": [
++          "message"
++        ],
++        "type": "object",
++        "properties": {
++          "message": {
++            "type": "string"
++          },
++          "errors": {
++            "type": "object",
++            "additionalProperties": {
++              "type": "array",
++              "items": {
++                "type": "string"
++              }
++            }
++          }
++        }
++      },
++      "MaintenanceRequestResource": {
++        "required": [
++          "id",
++          "createdAt",
++          "title",
++          "area",
++          "priority",
++          "status"
++        ],
++        "type": "object",
++        "properties": {
++          "id": {
++            "type": "integer",
++            "format": "int64"
++          },
++          "createdAt": {
++            "type": "string",
++            "format": "date-time"
++          },
++          "title": {
++            "type": "string"
++          },
++          "area": {
++            "enum": [
++              "Kitchen",
++              "Meeting room",
++              "Open desk",
++              "Washroom",
++              "Reception"
++            ],
++            "type": "string"
++          },
++          "priority": {
++            "enum": [
++              "Low",
++              "Normal",
++              "Urgent"
++            ],
++            "type": "string"
++          },
++          "status": {
++            "enum": [
++              "Open",
++              "In progress",
++              "Done"
++            ],
++            "type": "string"
++          },
++          "description": {
++            "type": "string"
++          }
++        }
++      },
++      "RequestListResource": {
++        "required": [
++          "requests"
++        ],
++        "type": "object",
++        "properties": {
++          "requests": {
++            "type": "array",
++            "items": {
++              "$ref": "#/components/schemas/MaintenanceRequestResource"
++            }
++          }
++        }
++      }
++    }
++  },
++  "tags": [
++    {
++      "name": "ListRequestsEndpoint"
++    }
++  ]
++}
+\ No newline at end of file

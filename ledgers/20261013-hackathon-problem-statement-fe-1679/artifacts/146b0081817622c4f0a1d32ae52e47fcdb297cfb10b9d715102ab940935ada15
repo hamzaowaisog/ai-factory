@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Ledger — Feed-to-gain (Empty State)</title>
+  <!-- Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design System Constraints & Exact Tokens */
+    body {
+      background-color: #F5F5F5;
+      color: #262626;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-numbers {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-live-breathe {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Controls Styling */
+    .btn-primary {
+      background-color: #B3473D;
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 4px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      border: 1px solid transparent;
+      transition: opacity 160ms ease, transform 90ms ease;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #262626;
+      height: 44px;
+      border-radius: 4px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      border: 1px solid #D8D8D8;
+      transition: background-color 160ms ease, transform 90ms ease, border-color 160ms ease;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background-color: #F5F5F5;
+      border-color: #BFBFBF;
+    }
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .form-control {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      height: 44px;
+      padding: 0 12px;
+      color: #262626;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      transition: border-color 160ms ease;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #B3473D;
+      box-shadow: 0 0 0 2px #B3473D;
+    }
+
+    .nav-item {
+      color: #626262;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 14px 10px;
+      white-space: nowrap;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .nav-item:hover {
+      color: #262626;
+    }
+    .nav-item.active {
+      color: #B3473D;
+      border-bottom-color: #B3473D;
+      font-weight: 600;
+    }
+    .nav-item:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: -2px;
+    }
+
+    /* Table & Card specific */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+    }
+
+    th {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #626262;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid #D8D8D8;
+      height: 44px;
+      padding: 0 16px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header (exact specifications, identical on every page) -->
+  <header class="bg-white border-b border-[#D8D8D8] sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+      <!-- Brand & Menu -->
+      <div class="flex items-center space-x-6 overflow-x-auto">
+        <a href="#" class="flex items-center gap-2.5 flex-shrink-0 text-[#262626] font-heading font-bold text-lg tracking-tight focus-visible:outline-2 focus-visible:outline-[#B3473D]">
+          <div class="w-6 h-6 bg-[#262626] rounded-[4px] flex items-center justify-center text-white text-xs font-bold leading-none">
+            R
+          </div>
+          <span>Range Ledger</span>
+        </a>
+
+        <!-- Shared Menu (exact sequence) -->
+        <nav class="flex items-center space-x-1" aria-label="Main Navigation">
+          <a href="#" class="nav-item">Yard</a>
+          <a href="#" class="nav-item">Imports</a>
+          <a href="#" class="nav-item">Allocations</a>
+          <a href="#" class="nav-item">Lots</a>
+          <a href="#" class="nav-item">Inventory</a>
+          <a href="#" class="nav-item">Feed outlook</a>
+          <a href="#" class="nav-item">Rations</a>
+          <a href="#" class="nav-item">Feed plans</a>
+          <a href="#" class="nav-item">Feeding</a>
+          <a href="#" class="nav-item">Reports</a>
+          <a href="#" class="nav-item active" aria-current="page">Feed-to-gain</a>
+          <a href="#" class="nav-item">Profitability</a>
+          <a href="#" class="nav-item">Sample data</a>
+          <a href="#" class="nav-item">Delivery brief</a>
+        </nav>
+      </div>
+
+      <!-- User Profile (Maya Chen, Yard manager) -->
+      <div class="flex items-center gap-3 pl-4 flex-shrink-0">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen portrait" class="w-8 h-8 rounded-[4px] object-cover border border-[#D8D8D8]">
+        <div class="flex flex-col text-left leading-tight">
+          <span class="text-sm font-semibold text-[#262626]">Maya Chen</span>
+          <span class="text-xs text-[#626262]">Yard manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto p-6 animate-entrance space-y-6">
+
+    <!-- Page Title & Export Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-[32px] font-[650] leading-tight text-[#262626] m-0">Feed-to-gain</h1>
+        <p class="text-sm text-[#626262] mt-1 m-0">
+          Red Mesa Yard &bull; America/Denver (Mountain Time) &bull; Service-returned lot performance and conversion ledger
+        </p>
+      </div>
+
+      <!-- Export actions (disabled / conditioned on authorized filtered rows) -->
+      <div class="flex items-center gap-3">
+        <button type="button" class="btn-secondary text-sm" disabled aria-disabled="true" title="No authorized filtered results to export">
+          <svg class="w-4 h-4 mr-2 text-[#626262]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Export CSV
+        </button>
+        <button type="button" class="btn-secondary text-sm" disabled aria-disabled="true" title="No authorized filtered results to export">
+          <svg class="w-4 h-4 mr-2 text-[#626262]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+          Export PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar (Immediate-apply filters, no Apply button) -->
+    <div class="panel p-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        
+        <!-- Date range from -->
+        <div class="flex flex-col gap-1.5">
+          <label for="date-start" class="text-xs font-semibold uppercase tracking-wider text-[#626262]">Date range start</label>
+          <input type="date" id="date-start" value="2025-03-20" class="form-control font-mono-numbers text-sm w-full">
+        </div>
+
+        <!-- Date range to -->
+        <div class="flex flex-col gap-1.5">
+          <label for="date-end" class="text-xs font-semibold uppercase tracking-wider text-[#626262]">Date range end</label>
+          <input type="date" id="date-end" value="2025-06-19" class="form-control font-mono-numbers text-sm w-full">
+        </div>
+
+        <!-- Breed filter -->
+        <div class="flex flex-col gap-1.5">
+          <label for="filter-breed" class="text-xs font-semibold uppercase tracking-wider text-[#626262]">Breed</label>
+          <select id="filter-breed" class="form-control text-sm w-full">
+            <option value="all">All breeds</option>
+            <option value="angus">Angus</option>
+            <option value="hereford">Hereford</option>
+            <option value="charolais">Charolais-cross</option>
+          </select>
+        </div>
+
+        <!-- Sex filter -->
+        <div class="flex flex-col gap-1.5">
+          <label for="filter-sex" class="text-xs font-semibold uppercase tracking-wider text-[#626262]">Sex</label>
+          <select id="filter-sex" class="form-control text-sm w-full">
+            <option value="all">All sexes</option>
+            <option value="steers">Steers</option>
+            <option value="heifers">Heifers</option>
+          </select>
+        </div>
+
+        <!-- Pen filter -->
+        <div class="flex flex-col gap-1.5">
+          <label for="filter-pen" class="text-xs font-semibold uppercase tracking-wider text-[#626262]">Yard pen</label>
+          <select id="filter-pen" class="form-control text-sm w-full">
+            <option value="all">All pens (P-04, P-07, P-12)</option>
+            <option value="P-04">Pen P-04 (140 head)</option>
+            <option value="P-07">Pen P-07 (126 head)</option>
+            <option value="P-12">Pen P-12 (94 head)</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-[#D8D8D8] flex flex-wrap items-center justify-between text-xs text-[#626262] gap-2">
+        <div class="flex items-center gap-2">
+          <span>Active yard filter context: <strong class="text-[#262626]">Red Mesa Yard</strong></span>
+          <span>&bull;</span>
+          <span>Evaluation interval: <span class="font-mono-numbers text-[#262626]">2025-03-20</span> to <span class="font-mono-numbers text-[#262626]">2025-06-19 MT</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>Permissions: <strong class="text-[#262626]">Maya Chen (Authorized)</strong></span>
+          <span>&bull;</span>
+          <span>Matching records: <span class="font-mono-numbers text-[#262626]">0</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Table (Formal, sortable headers, Empty State) -->
+    <div class="panel overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left" aria-label="Feed-to-gain performance comparison table">
+          <thead class="bg-[#FFFFFF]">
+            <tr>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors">
+                <span class="inline-flex items-center gap-1">Lot ID</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors">
+                <span class="inline-flex items-center gap-1">Breed & Class</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors">
+                <span class="inline-flex items-center gap-1">Pen</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Head</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Days on feed</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Arrival wt (lb)</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Current wt (lb)</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">ADG (lb/day)</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Total feed (lb)</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">FCR</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Cost of gain ($/lb)</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Feed cost</span>
+              </th>
+              <th scope="col" class="cursor-pointer hover:text-[#262626] transition-colors text-right">
+                <span class="inline-flex items-center justify-end gap-1">Net energy (Mcal)</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="13" class="p-16 text-center">
+                <div class="max-w-md mx-auto flex flex-col items-center justify-center">
+                  <!-- Empty state icon (clean minimal line mark) -->
+                  <div class="w-12 h-12 mb-4 rounded-[4px] border border-[#D8D8D8] flex items-center justify-center text-[#626262]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-[18px] font-[600] text-[#262626] m-0 mb-2">No feed-to-gain records yet</h3>
+                  <p class="text-sm text-[#626262] leading-normal m-0 mb-6">
+                    There are currently no conversion records or feeding logs matching this filter criteria in Red Mesa Yard. Record your first pen feeding delivery or import cattle lot receipts to begin computing conversion efficiency.
+                  </p>
+                  <!-- The one action that adds the first -->
+                  <a href="#" class="btn-primary">
+                    Record feeding delivery
+                  </a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Red Mesa Yard Ledger Context Notice -->
+    <div class="panel p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-[#626262] gap-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#805600] animate-live-breathe"></span>
+        <span>Awaiting operational feed delivery or weight recording events for Red Mesa Yard.</span>
+      </div>
+      <div class="font-mono-numbers">
+        YARD CAP: 490 HEAD &bull; ACTIVE: 360 HEAD (P-04, P-07, P-12)
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

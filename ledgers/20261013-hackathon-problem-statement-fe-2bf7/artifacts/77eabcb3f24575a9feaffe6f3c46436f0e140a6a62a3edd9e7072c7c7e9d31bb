@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Unauthorized:|responses:|401:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 2037,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Unauthorized:|responses:|401:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:22: responses:\ncontracts/openapi.yaml:54: responses:\ncontracts/openapi.yaml:91: responses:\ncontracts/openapi.yaml:158: responses:\ncontracts/openapi.yaml:205: responses:\ncontracts/openapi.yaml:258: responses:\ncontracts/openapi.yaml:305: responses:\ncontracts/openapi.yaml:372: responses:\ncontracts/openapi.yaml:414: responses:\ncontracts/openapi.yaml:454: responses:\ncontracts/openapi.yaml:490: responses:\ncontracts/openapi.yaml:522: responses:\ncontracts/openapi.yaml:562: responses:\ncontracts/openapi.yaml:604: responses:\ncontracts/openapi.yaml:640: responses:\ncontracts/openapi.yaml:685: responses:\ncontracts/openapi.yaml:720: responses:\ncontracts/openapi.yaml:780: responses:\ncontracts/openapi.yaml:832: responses:\ncontracts/openapi.yaml:880: responses:\ncontracts/openapi.yaml:943: responses:\ncontracts/openapi.yaml:986: responses:\ncontracts/openapi.yaml:1007: responses:\ncontracts/openapi.yaml:1048: responses:\ncontracts/openapi.yaml:1099: responses:\ncontracts/openapi.yaml:1146: responses:\ncontracts/openapi.yaml:1185: responses:\ncontracts/openapi.yaml:1212: responses:\ncontracts/openapi.yaml:1258: responses:\ncontracts/openapi.yaml:1314: responses:\ncontracts/openapi.yaml:1372: responses:\ncontracts/openapi.yaml:1418: responses:\ncontracts/openapi.yaml:1471: responses:\ncontracts/openapi.yaml:1539: responses:\ncontracts/openapi.yaml:1603: responses:\ncontracts/openapi.yaml:1682: responses:\ncontracts/openapi.yaml:1764: responses:\ncontracts/openapi.yaml:1813: responses:\ncontracts/openapi.yaml:1889: responses:\ncontracts/openapi.yaml:1933: responses:\ncontracts/openapi.yaml:1990: responses:\ncontracts/openapi.yaml:2011: responses:\ncontracts/openapi.yaml:2041: responses:\ncontracts/openapi.yaml:2079: responses:\ncontracts/openapi.yaml:2113: responses:\ncontracts/openapi.yaml:2149: responses:\ncontracts/openapi.yaml:2159: Unauthorized:\n</untrusted_document>"
+  }
+ ]
+}

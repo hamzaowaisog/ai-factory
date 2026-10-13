@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getOptimizeRationResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 469,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getOptimizeRationResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:103: export const getOptimizeRationResponseMock = (): OptimizationResponse => ({\"permissions\":[\"rations.manage\"],\"qualifyingMixFound\":true,\"candidate\":{\"id\":71,\"corn\":62,\"distillers\":18,\"alfalfa\":15,\"premi\nlib/api/client.msw.ts:449: : getOptimizeRationResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

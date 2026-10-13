@@ -1,0 +1,35 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-2",
+      "topic": "Which API data must be persisted in PostgreSQL",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "All application data read or changed by API operations is stored in PostgreSQL."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Only API data that the contract requires to be stored must be read from and written to PostgreSQL."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

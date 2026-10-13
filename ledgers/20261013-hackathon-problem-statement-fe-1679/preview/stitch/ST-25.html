@@ -1,0 +1,793 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Reports — Range Ledger</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+    /* Strict CSS reset & token definitions */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F5F5F5;
+      color: #262626;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography rules */
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #262626;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+    }
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+    }
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .num-data, .code-data, .time-data {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quieter-text {
+      color: #626262;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-pulse {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Component styles */
+    .top-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D8D8D8;
+      height: 56px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #262626;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 14px;
+      border-radius: 4px;
+      user-select: none;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      color: #262626;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      list-style: none;
+      margin-left: 28px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-menu::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      white-space: nowrap;
+    }
+
+    .nav-link {
+      color: #626262;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 400;
+      padding: 16px 0;
+      display: inline-block;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+    .nav-link:hover {
+      color: #262626;
+    }
+    .nav-link.active {
+      color: #B3473D;
+      border-bottom: 2px solid #B3473D;
+      font-weight: 600;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      margin-left: 16px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1 / 1;
+      border: 1px solid #D8D8D8;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: #262626;
+      white-space: nowrap;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: #626262;
+      white-space: nowrap;
+    }
+
+    /* Main Layout */
+    .main-container {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      flex: 1;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+    }
+
+    .page-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .yard-meta {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .btn-primary {
+      background-color: #B3473D;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      height: 44px;
+      padding: 0 20px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: opacity 120ms ease;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:focus {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+    .btn-primary:active {
+      opacity: 0.84;
+    }
+
+    /* Workbench Layout */
+    .workbench-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Filter Rail */
+    .filter-rail {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .filter-input, .filter-select {
+      height: 44px;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      padding: 0 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      color: #262626;
+      background-color: #FFFFFF;
+      width: 100%;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+    .filter-input.num-data {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+    }
+    .filter-input:focus, .filter-select:focus {
+      border-color: #B3473D;
+      box-shadow: 0 0 0 1px #B3473D;
+    }
+
+    .filter-helper {
+      font-size: 13px;
+      color: #626262;
+      line-height: 18px;
+    }
+
+    .filter-divider {
+      height: 1px;
+      background-color: #D8D8D8;
+      width: 100%;
+      margin: 4px 0;
+    }
+
+    /* Results Panel */
+    .results-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #D8D8D8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #FFFFFF;
+    }
+
+    .panel-title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .record-count-badge {
+      font-size: 13px;
+      color: #626262;
+    }
+
+    .sample-status-box {
+      background-color: #F5F5F5;
+      border-bottom: 1px solid #D8D8D8;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #626262;
+    }
+
+    .sample-pill {
+      border: 1px solid #D8D8D8;
+      background-color: #FFFFFF;
+      color: #626262;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    /* Dense Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .dense-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #626262;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D8D8D8;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .dense-table th.sortable {
+      cursor: pointer;
+    }
+    .dense-table th.sortable:hover {
+      color: #262626;
+    }
+
+    .dense-table td {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      color: #262626;
+      border-bottom: 1px solid #D8D8D8;
+      white-space: nowrap;
+    }
+
+    .dense-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .dense-table tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Status indicators */
+    .status-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #286143;
+    }
+    .status-good .status-dot {
+      background-color: #286143;
+    }
+
+    .status-waiting {
+      color: #805600;
+    }
+    .status-waiting .status-dot {
+      background-color: #805600;
+    }
+
+    .status-failed {
+      color: #A13D36;
+    }
+    .status-failed .status-dot {
+      background-color: #A13D36;
+    }
+
+    /* Sub-rows & Lot Performance Reference */
+    .table-section-title {
+      padding: 16px 24px 8px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #262626;
+      background-color: #FBFBFB;
+      border-top: 2px solid #D8D8D8;
+      border-bottom: 1px solid #D8D8D8;
+    }
+
+    .conflict-badge {
+      display: inline-block;
+      font-size: 12px;
+      color: #805600;
+      margin-left: 6px;
+    }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .workbench-layout {
+        grid-template-columns: 1fr;
+      }
+      .filter-rail {
+        padding: 16px;
+      }
+      .filter-input, .filter-select, .btn-primary {
+        height: 48px;
+      }
+      .dense-table td, .dense-table th {
+        height: 56px;
+      }
+      .main-container {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+<!-- Plain Header as specified -->
+<header class="top-header">
+<div class="brand-section">
+<div class="brand-mark">R</div>
+<a class="brand-title" href="#">Range Ledger</a>
+<nav aria-label="Main Navigation">
+<ul class="nav-menu">
+<li class="nav-item"><a class="nav-link" href="#">Yard</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Imports</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Allocations</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Lots</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Inventory</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Feed outlook</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Rations</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Feed plans</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Feeding</a></li>
+<li class="nav-item"><a class="nav-link active" href="#">Reports</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Feed-to-gain</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Profitability</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Sample data</a></li>
+<li class="nav-item"><a class="nav-link" href="#">Delivery brief</a></li>
+</ul>
+</nav>
+</div>
+<!-- Signed-in User: Maya Chen with real photograph -->
+<div class="user-profile">
+<img alt="Maya Chen portrait" class="user-avatar" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG">
+<div class="user-info">
+<span class="user-name">Maya Chen</span>
+<span class="user-role">Yard manager</span>
+</div>
+</div>
+</header>
+<!-- Main Content Workbench Area -->
+<main class="main-container animate-entrance">
+<div class="header-row">
+<div class="page-title-block">
+<h1>Reports</h1>
+<div class="yard-meta">
+          Red Mesa Yard • America/Denver (Mountain Time) • Operational scope: 3 active pens (P-04, P-07, P-12)
+        </div>
+</div>
+<button aria-label="Export report as CSV" class="btn-primary" type="button">
+        Export CSV
+      </button>
+</div>
+<div class="workbench-layout">
+<!-- Narrow Filter Rail (Applies immediately) -->
+<aside aria-label="Operational report filters" class="filter-rail">
+<div class="filter-group">
+<label class="filter-label" for="report-view-select">Report view</label>
+<select class="filter-select" id="report-view-select">
+<option selected="" value="feeding">Feeding &amp; plan variance</option>
+<option value="inventory">Inventory movements</option>
+<option value="lots">Lot performance</option>
+<option value="profitability">Profitability ledger</option>
+</select>
+</div>
+<div class="filter-group">
+<label class="filter-label" for="date-start">Date range</label>
+<div style="display: flex; gap: 8px;">
+<input class="filter-input num-data" id="date-start" style="width: 50%;" type="text" value="2025-06-01">
+<input aria-label="End date" class="filter-input num-data" id="date-end" style="width: 50%;" type="text" value="2025-06-19">
+</div>
+<span class="filter-helper">Local yard time (Mountain Time)</span>
+</div>
+<div class="filter-divider"></div>
+<div class="filter-group">
+<label class="filter-label" for="pen-select">Pen</label>
+<select class="filter-select" id="pen-select">
+<option selected="" value="all">All pens (P-04, P-07, P-12)</option>
+<option value="p-04">Pen P-04 (140 head)</option>
+<option value="p-07">Pen P-07 (126 head)</option>
+<option value="p-12">Pen P-12 (94 head)</option>
+</select>
+</div>
+<div class="filter-group">
+<label class="filter-label" for="lot-select">Lot</label>
+<select class="filter-select" id="lot-select">
+<option selected="" value="all">All active lots (4)</option>
+<option value="l-2407">Lot L-2407 (Angus steers)</option>
+<option value="l-2409">Lot L-2409 (Hereford steers)</option>
+<option value="l-2411">Lot L-2411 (Angus heifers)</option>
+<option value="l-2413">Lot L-2413 (Charolais-cross)</option>
+</select>
+</div>
+<div class="filter-group">
+<label class="filter-label" for="ration-select">Ration formulation</label>
+<select class="filter-select" id="ration-select">
+<option selected="" value="all">All formulations</option>
+<option value="grower">Grower ($0.145/lb)</option>
+<option value="finisher">Finisher ($0.151/lb)</option>
+</select>
+</div>
+<div class="filter-divider"></div>
+<div class="filter-group">
+<span class="filter-label">Yard authorization</span>
+<span class="quieter-text" style="font-size: 13px; line-height: 18px;">
+            Display restricted to authorized Red Mesa Yard records for signed-in Yard manager. Changing credentials updates row population and export output immediately.
+          </span>
+</div>
+</aside>
+<!-- Broad Results Table -->
+<section aria-label="Report results" class="results-panel">
+<div class="panel-header">
+<div class="panel-title-area">
+<h3>Feeding Deliveries &amp; Plan Variance</h3>
+<span class="record-count-badge num-data">2 operational records</span>
+</div>
+<div class="status-cell status-good">
+<span class="status-dot status-dot-pulse"></span>
+<span>Operational normal</span>
+</div>
+</div>
+<div class="sample-status-box">
+<div style="display: flex; align-items: center; gap: 8px;">
+<span class="sample-pill">SAMPLE EXCLUDED</span>
+<span>Sample and calibration probe records are excluded from operational results, feed summaries and CSV exports.</span>
+</div>
+<span class="quieter-text num-data">1 sample entry omitted</span>
+</div>
+<!-- Feeding Deliveries Table -->
+<div class="table-container">
+<table aria-label="Feeding events report" class="dense-table">
+<thead>
+<tr>
+<th class="sortable">Date &amp; time (MT)</th>
+<th class="sortable">Pen</th>
+<th class="sortable">Lots fed</th>
+<th class="sortable">Ration</th>
+<th class="sortable">Planned</th>
+<th class="sortable">Delivered</th>
+<th class="sortable">Variance</th>
+<th class="sortable">Gross cost</th>
+<th class="sortable">Net energy</th>
+<th class="sortable">Cost of gain</th>
+<th class="sortable">Delivery status</th>
+</tr>
+</thead>
+<tbody>
+<!-- Jun 17 P-07 event from shared log -->
+<tr>
+<td class="time-data">2025-06-17 06:25</td>
+<td class="code-data">Pen P-07</td>
+<td>L-2409 <span class="quieter-text">(126 hd)</span></td>
+<td>Grower</td>
+<td class="num-data">2,790 lb</td>
+<td class="num-data">2,772 lb</td>
+<td class="num-data status-good" style="font-weight: 600;">-18 lb</td>
+<td class="num-data">$402.00</td>
+<td class="num-data">4,100 Mcal</td>
+<td class="num-data">$1.14/lb</td>
+<td>
+<span class="status-cell status-good">
+<span class="status-dot"></span>
+<span>Delivered</span>
+</span>
+</td>
+</tr>
+<!-- Jun 14 P-04 event from shared log -->
+<tr>
+<td class="time-data">2025-06-14 06:20</td>
+<td class="code-data">Pen P-04</td>
+<td>
+                  L-2407 <span class="quieter-text">(1,927 lb)</span>, L-2411 <span class="quieter-text">(1,410 lb)</span>
+</td>
+<td>Grower</td>
+<td class="num-data">3,293 lb</td>
+<td class="num-data">3,337 lb</td>
+<td class="num-data status-waiting" style="font-weight: 600;">+44 lb</td>
+<td class="num-data">$484.87</td>
+<td class="num-data">4,941 Mcal</td>
+<td class="num-data">$1.07/lb</td>
+<td>
+<span class="status-cell status-good">
+<span class="status-dot"></span>
+<span>Delivered</span>
+</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Lot Performance & Traceability Section within Report Workbench -->
+<div class="table-section-title">
+<span>Current Lot Performance &amp; Allocation Status</span>
+</div>
+<div class="table-container">
+<table aria-label="Lot performance metrics" class="dense-table">
+<thead>
+<tr>
+<th class="sortable">Lot</th>
+<th class="sortable">Breed &amp; class</th>
+<th class="sortable">Pen</th>
+<th class="sortable">Active head</th>
+<th class="sortable">Days on feed</th>
+<th class="sortable">Current wt</th>
+<th class="sortable">ADG (lb/d)</th>
+<th class="sortable">FCR</th>
+<th class="sortable">Cost of gain</th>
+<th class="sortable">Feed cost</th>
+<th class="sortable">Energy</th>
+<th class="sortable">ROI</th>
+<th class="sortable">Projected ship</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="code-data">L-2407</td>
+<td>Angus steers</td>
+<td class="code-data">P-04</td>
+<td class="num-data">
+                  80 <span class="conflict-badge status-waiting">(82 mapped conflict)</span>
+</td>
+<td class="num-data">84 d</td>
+<td class="num-data">1,146 lb</td>
+<td class="num-data">3.12</td>
+<td class="num-data">7.35</td>
+<td class="num-data">$1.07/lb</td>
+<td class="num-data">$22,330</td>
+<td class="num-data">227,920 Mcal</td>
+<td class="num-data">8.4%</td>
+<td class="time-data">2025-07-16</td>
+</tr>
+<tr>
+<td class="code-data">L-2409</td>
+<td>Hereford steers</td>
+<td class="code-data">P-07</td>
+<td class="num-data">126</td>
+<td class="num-data">72 d</td>
+<td class="num-data">1,098 lb</td>
+<td class="num-data">3.00</td>
+<td class="num-data">7.38</td>
+<td class="num-data">$1.14/lb</td>
+<td class="num-data">$29,145</td>
+<td class="num-data">233,600 Mcal</td>
+<td class="num-data">6.7%</td>
+<td class="quieter-text">Projected steady</td>
+</tr>
+<tr>
+<td class="code-data">L-2411</td>
+<td>Angus heifers</td>
+<td class="code-data">P-04</td>
+<td class="num-data">60</td>
+<td class="num-data">90 d</td>
+<td class="num-data">1,108 lb</td>
+<td class="num-data">2.68</td>
+<td class="num-data">7.75</td>
+<td class="num-data">$1.21/lb</td>
+<td class="num-data">$16,240</td>
+<td class="num-data">160,160 Mcal</td>
+<td class="quieter-text">Unavailable</td>
+<td class="quieter-text">Unavailable</td>
+</tr>
+<tr>
+<td class="code-data">L-2413</td>
+<td>Charolais-cross steers</td>
+<td class="code-data">P-12</td>
+<td class="num-data">94</td>
+<td class="num-data">43 d</td>
+<td class="num-data">1,056 lb</td>
+<td class="num-data">3.28</td>
+<td class="num-data">7.17</td>
+<td class="num-data">$1.04/lb</td>
+<td class="num-data">$14,345</td>
+<td class="num-data">142,500 Mcal</td>
+<td class="num-data">9.1%</td>
+<td class="quieter-text">High efficiency</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</main>
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-12";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

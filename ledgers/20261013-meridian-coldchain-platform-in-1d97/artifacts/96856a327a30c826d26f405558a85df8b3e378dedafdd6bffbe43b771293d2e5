@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Tests/AcceptanceFixture.cs",
+    "start": 330,
+    "end": 390
+   },
+   "ms": 0,
+   "resultChars": 2264,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Tests/AcceptanceFixture.cs&quot;,&quot;start&quot;:330,&quot;end&quot;:390}\">\nApp.Tests/AcceptanceFixture.cs lines 330-370\n330\t        Assert.Equal(HttpStatusCode.OK, complete.StatusCode);\n331\t        Email.Calls.Clear();\n332\t    }\n333\t    public static async Task<JsonElement> JsonAsync(HttpResponseMessage response)\n334\t    {\n335\t        Assert.Equal(\"application/json\", response.Content.Headers.ContentType?.MediaType);\n336\t        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());\n337\t        return document.RootElement.Clone();\n338\t    }\n339\t    public static JsonElement Field(JsonElement record, string name) => record.TryGetProperty(name, out var direct) ? direct : record.GetProperty(\"details\").GetProperty(name);\n340\t    public static async Task<JsonElement> RecordAsync(HttpResponseMessage response)\n341\t    {\n342\t        Assert.Equal(HttpStatusCode.OK, response.StatusCode);\n343\t        var json = await JsonAsync(response);\n344\t        var record = json.GetProperty(\"record\");\n345\t        Assert.Equal(JsonValueKind.Number, record.GetProperty(\"id\").ValueKind);\n346\t        Assert.Equal(JsonValueKind.String, record.GetProperty(\"status\").ValueKind);\n347\t        return record;\n348\t    }\n349\t    public static async Task<JsonElement> ItemsAsync(HttpResponseMessage response)\n350\t    {\n351\t        Assert.Equal(HttpStatusCode.OK, response.StatusCode);\n352\t        var items = (await JsonAsync(response)).GetProperty(\"items\");\n353\t        Assert.Equal(JsonValueKind.Array, items.ValueKind);\n354\t        return items;\n355\t    }\n356\t    public static async Task ProblemAsync(HttpResponseMessage response, params HttpStatusCode[] statuses)\n357\t    {\n358\t        Assert.Contains(response.StatusCode, statuses);\n359\t        var json = await JsonAsync(response);\n360\t        Assert.False(string.IsNullOrWhiteSpace(json.GetProperty(\"code\").GetString()));\n361\t        Assert.False(string.IsNullOrWhiteSpace(json.GetProperty(\"message\").GetString()));\n362\t    }\n363\t    public ValueTask DisposeAsync()\n364\t    {\n365\t        _client.Dispose();\n366\t        _host.Dispose();\n367\t        return ValueTask.CompletedTask;\n368\t    }\n369\t}\n370\t\n</untrusted_document>"
+  }
+ ]
+}

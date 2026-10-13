@@ -1,0 +1,270 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Sign in with a Folio3 Google Workspace account (S-1). If the directory lookup fails, access is denied and a retry and contact path are shown. A non-dedicated employee with no plate on file goes to vehicle registration (S-2) before reaching a dashboard. Dedicated holders land on My Parking (S-3): they see today's status (Reserved / Claimable / Claimed), can release today, and can go to Schedule Releases (S-4). Non-dedicated employees land on Claim Parking (S-5), where they see the live available-space count, claim a space and get their assigned space and floor. Both can open My Profile & Vehicles (S-6). Security guards land on the Entry Verification console (S-7), which shows LPR checks and lets them record actual entry. Administrators use the admin area: Parking Spaces (S-8), Employees (S-9) leading to Employee Detail (S-10), Users & Roles (S-11), Release Settings (S-12), Utilization Reports (S-13) leading to Report Recipients (S-14), and the Audit Log (S-15).",
+    "screens": [
+     {
+      "id": "S-1",
+      "title": "Sign In",
+      "route": "/sign-in",
+      "file": "src/pages/SignIn.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-4"
+      ],
+      "states": [
+       "error: personal or non-Folio3 account rejected",
+       "error: directory profile not found (retryable)",
+       "loading"
+      ],
+      "prompt": "Sign-in page for the Folio3 Parking System. Purpose: let employees, security guards and parking administrators sign in only with their Folio3 Google Workspace account. Sections in order: 1) Product name 'Folio3 Parking System' with a short line 'Office parking for Folio3 staff'. 2) A single 'Sign in with Google' button and helper text 'Use your @folio3.com work account. Personal Gmail and other accounts are not accepted.' 3) Footer link 'Need help? Contact Parking Admin – parking-admin@folio3.com'. Error state for a rejected account: inline alert 'ahmed.raza92@gmail.com is not a Folio3 Workspace account. Please sign in with your @folio3.com email.' Directory error state: full-width alert 'We signed you in with Google as sana.khan@folio3.com, but couldn't find your employee profile in the Folio3 directory. You can't use the app until this is fixed.' with a 'Try again' button and a 'Contact Parking Admin' link (parking-admin@folio3.com). Loading state: button shows a spinner and 'Verifying your Folio3 account…'."
+     },
+     {
+      "id": "S-2",
+      "title": "Register Your Vehicle",
+      "route": "/onboarding/vehicle",
+      "file": "src/pages/onboarding/RegisterVehicle.tsx",
+      "reqs": [
+       "REQ-3",
+       "REQ-2"
+      ],
+      "states": [
+       "validation: plate required",
+       "loading",
+       "success"
+      ],
+      "prompt": "Required vehicle registration page for a non-dedicated employee who has no plate on file. It appears before the dashboard on first sign-in and again for a returning employee whose profile is incomplete. Sections in order: 1) Heading 'Register your vehicle' with the note 'You need at least one licence plate before you can claim parking.' 2) Read-only identity card from the corporate directory: Name 'Bilal Ahmed', Employee ID 'F3-01284', Email 'bilal.ahmed@folio3.com', Parking status 'No dedicated parking'. 3) Vehicle form: Licence plate (required, example 'BKR-482'), Make (optional, 'Toyota'), Model (optional, 'Corolla'), Color (optional, 'White'). 4) '+ Add another vehicle' link that adds a second row (example plate 'LEB-7731', 'Honda Civic', 'Grey'). 5) Primary button 'Save and continue'. Validation state: plate field outlined in red with 'Enter at least one licence plate to continue.' Success state: 'Vehicle BKR-482 saved', then the employee goes on to the dashboard."
+     },
+     {
+      "id": "S-3",
+      "title": "My Parking (Dedicated Holder)",
+      "route": "/dashboard",
+      "file": "src/pages/dashboard/DedicatedDashboard.tsx",
+      "reqs": [
+       "REQ-10",
+       "REQ-12"
+      ],
+      "states": [
+       "success: Released",
+       "status: Reserved",
+       "status: Claimable",
+       "status: Claimed",
+       "error: already released for this date"
+      ],
+      "prompt": "Home page for an employee with dedicated parking. Only dedicated holders see the option to release their space. Sections in order: 1) Greeting 'Good morning, Hira Siddiqui' with today's date 'Tuesday, 14 May 2024'. 2) My space card: Space 'B1-17', Floor 'Basement B1', Plate 'KHI-2290'. 3) Today's status card with a large status pill. Reserved state: 'Reserved – you are using your space today.' 4) A primary 'Release today's parking' button with the note 'Daily Parking Release Time: 08:00 office time. If you release before 08:00 your space becomes claimable at 08:00. If you release at or after 08:00 it becomes claimable right away.' 5) Upcoming releases list: 'Thu, 16 May 2024 – Scheduled', 'Mon, 20 May 2024 – Scheduled', with a 'Schedule releases' link. Success state: confirmation toast 'Released', and the status pill reads 'Reserved – claimable at 08:00' when released before the release time, or 'Claimable' when released after it. Claimable state: 'Claimable – waiting for a colleague to claim.' Claimed state: 'Claimed – allocated to a colleague for today.' Duplicate state: the button is disabled with 'You already released 14 May 2024.'"
+     },
+     {
+      "id": "S-4",
+      "title": "Schedule Releases",
+      "route": "/releases/schedule",
+      "file": "src/pages/releases/ScheduleReleases.tsx",
+      "reqs": [
+       "REQ-11",
+       "REQ-12"
+      ],
+      "states": [
+       "validation: date beyond 30 days or already released",
+       "success"
+      ],
+      "prompt": "Page where a dedicated holder picks one or more future dates to release their space. Sections in order: 1) Heading 'Schedule releases' with the subtext 'Space B1-17 · Basement B1. You can pick dates up to 30 days ahead.' 2) Calendar covering 15 May to 13 June 2024. Selectable range is highlighted, dates after 13 June are greyed out, and dates already scheduled (16 May, 20 May) are marked. 3) Selected dates as removable chips: 'Wed, 22 May', 'Thu, 23 May', 'Fri, 24 May'. 4) Note: 'Scheduled releases become claimable at 08:00 office time on each date.' 5) Primary button 'Release 3 dates'. Validation state: 'You can only schedule up to 13 June 2024' or '16 May is already released.' Success state: banner '3 dates released: 22, 23 and 24 May 2024', and the scheduled list below updates."
+     },
+     {
+      "id": "S-5",
+      "title": "Claim Parking (Non-Dedicated Employee)",
+      "route": "/parking",
+      "file": "src/pages/dashboard/ClaimParking.tsx",
+      "reqs": [
+       "REQ-14",
+       "REQ-15",
+       "REQ-16"
+      ],
+      "states": [
+       "empty: no spaces available",
+       "loading: claim in progress",
+       "success: space assigned",
+       "error: space taken, availability refreshed",
+       "already claimed today"
+      ],
+      "prompt": "Home page for an employee without dedicated parking. Sections in order: 1) Greeting 'Hi Bilal Ahmed' and date 'Tuesday, 14 May 2024'. 2) Large live availability counter '3 spaces available today', with the note 'You'll get a notification when spaces become claimable.' 3) Primary button 'Claim a space'. 4) Note: 'One claim per day. Claims can't be cancelled once made.' 5) Vehicle used for the claim: 'BKR-482 · Toyota Corolla, White'. Success state: card 'Your space for 14 May 2024: B1-17, Basement B1. Claimed at 08:01.' and the claim button is hidden. Error state, when someone else got there first: 'That space was just taken. 2 spaces are still available.' with the claim button active again. Empty state: '0 spaces available. We'll notify you when a colleague releases a space.' Already-claimed state: the assigned-space card is shown and claiming is disabled for the rest of the day."
+     },
+     {
+      "id": "S-6",
+      "title": "My Profile & Vehicles",
+      "route": "/profile",
+      "file": "src/pages/profile/MyProfile.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-5"
+      ],
+      "states": [],
+      "prompt": "Page where an employee views their own record only. Sections in order: 1) Identity from the Folio3 directory (read-only): Name 'Hira Siddiqui', Employee ID 'F3-00412', Email 'hira.siddiqui@folio3.com'. 2) Parking details maintained by admins: Dedicated parking 'Yes', Space 'B1-17', Assigned floor 'Basement B1'. 3) Registered vehicles table with columns Plate, Make, Model, Color: 'KHI-2290 · Suzuki · Cultus · Silver', 'AFR-118 · Honda · City · Black'. 4) Note: 'Need a change to your parking assignment? Contact parking-admin@folio3.com.' No other employees' data is shown."
+     },
+     {
+      "id": "S-7",
+      "title": "Entry Verification Console (Security Guard)",
+      "route": "/guard/entry",
+      "file": "src/pages/guard/EntryConsole.tsx",
+      "reqs": [
+       "REQ-18",
+       "REQ-19",
+       "REQ-20",
+       "REQ-21",
+       "REQ-5"
+      ],
+      "states": [
+       "authorized: green indicator on",
+       "unverifiable plate",
+       "unreadable plate",
+       "outage: camera, authorization service or indicator unavailable",
+       "permanent sticker bypass"
+      ],
+      "prompt": "Gate console for security guards. It shows only what they need to verify entry. Sections in order: 1) Header 'Gate – Entry Verification' with the date 'Tue, 14 May 2024' and system health chips 'Camera: Online', 'Authorization: Online', 'Green indicator: Online'. 2) Latest detection card: plate 'BKR-482', time '08:42', result 'Authorized – temporary claim for 14 May 2024', green-light indicator 'ON', claimant 'Bilal Ahmed', space 'B1-17, Basement B1'. 3) Buttons 'Vehicle entered' and 'Did not enter' to record what actually happened. 4) Recent attempts list with columns Time, Plate, Result, Actual entry: '08:42 · BKR-482 · Authorized · Entered', '08:37 · Unreadable · Unreadable plate · Not recorded', '08:31 · LHR-5521 · Unverifiable – no claim today · Did not enter', '08:25 · KHI-2290 · Permanent sticker – verification skipped · Entry logged'. Non-car detections (pedestrians, motorcycles) never appear. Unverifiable and unreadable states: amber card 'No automatic authorization. Green light not activated.' Outage state: red banner 'Camera offline since 08:50 – no automatic authorizations. Outage event recorded.'"
+     },
+     {
+      "id": "S-8",
+      "title": "Parking Spaces (Admin)",
+      "route": "/admin/spaces",
+      "file": "src/pages/admin/ParkingSpaces.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-5"
+      ],
+      "states": [
+       "empty: no spaces entered yet",
+       "validation"
+      ],
+      "prompt": "Admin page for entering and maintaining the parking-space inventory. Sections in order: 1) Heading 'Parking spaces' with the summary '42 spaces · 38 dedicated · 4 unassigned' and buttons 'Add space' and 'Import launch records'. 2) Filters: Floor (All, Basement B1, Basement B2, Level P1) and a search box. 3) Table with columns Space, Floor, Dedicated holder, Actions: 'B1-17 · Basement B1 · Hira Siddiqui', 'B1-18 · Basement B1 · Usman Tariq', 'B2-04 · Basement B2 · Unassigned', 'P1-09 · Level P1 · Ayesha Malik'. 4) Add/edit side panel with fields Space number, Floor, and Dedicated holder (search by name or employee ID). Empty state: 'No parking spaces yet. Add your first space or import launch records.' Validation state: 'Space B1-17 already exists.'"
+     },
+     {
+      "id": "S-9",
+      "title": "Employees (Admin)",
+      "route": "/admin/employees",
+      "file": "src/pages/admin/Employees.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-2",
+       "REQ-5"
+      ],
+      "states": [
+       "empty search results"
+      ],
+      "prompt": "Admin list of employee parking records. Sections in order: 1) Heading 'Employees' with a search box (name, employee ID, email or plate) and the filter 'Dedicated / Non-dedicated / Missing plate'. 2) Table with columns Name, Employee ID, Email, Dedicated, Floor, Plates: 'Hira Siddiqui · F3-00412 · hira.siddiqui@folio3.com · Yes · Basement B1 · KHI-2290, AFR-118', 'Bilal Ahmed · F3-01284 · bilal.ahmed@folio3.com · No · – · BKR-482', 'Zainab Qureshi · F3-01530 · zainab.qureshi@folio3.com · No · – · Missing plate'. 3) Each row links to the employee detail page. Empty search state: 'No employees match \"LEB-9\".'"
+     },
+     {
+      "id": "S-10",
+      "title": "Employee Detail (Admin)",
+      "route": "/admin/employees/:employeeId",
+      "file": "src/pages/admin/EmployeeDetail.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-2"
+      ],
+      "states": [
+       "success: saved",
+       "validation"
+      ],
+      "prompt": "Admin page for editing one employee's parking assignment and vehicles. Sections in order: 1) Directory identity (read-only): 'Usman Tariq · F3-00877 · usman.tariq@folio3.com'. 2) Parking assignment: Dedicated parking toggle (On), Space 'B1-18', Assigned floor 'Basement B1'. 3) Registered vehicles table with columns Plate, Make, Model, Color, Effective from, and edit/remove actions: 'KHT-6610 · Toyota · Yaris · Red · from 1 Apr 2024'. 4) An 'Add vehicle' form. A plate change shows the notice 'New plate applies from 15 May 2024. Existing claims keep the plate recorded when they were made.' 5) Save button. Success state: toast 'Usman Tariq's record updated.' Validation state: 'Space B1-18 is already assigned to another holder.'"
+     },
+     {
+      "id": "S-11",
+      "title": "Users & Roles (Admin)",
+      "route": "/admin/roles",
+      "file": "src/pages/admin/UserRoles.tsx",
+      "reqs": [
+       "REQ-26",
+       "REQ-1",
+       "REQ-5"
+      ],
+      "states": [
+       "validation: non-Folio3 account",
+       "success"
+      ],
+      "prompt": "Admin page for assigning roles to Folio3 accounts. Sections in order: 1) Heading 'Users & roles' with the note 'First administrator set at deployment: it.admin@folio3.com'. 2) Assign form: Folio3 email (example 'kamran.ali@folio3.com'), Role dropdown (Employee, Security guard, Parking administrator), and an 'Assign role' button. 3) Table with columns Name, Email, Role, Assigned on: 'Kamran Ali · kamran.ali@folio3.com · Security guard · 2 May 2024', 'Nadia Hussain · nadia.hussain@folio3.com · Parking administrator · 29 Apr 2024', 'Hira Siddiqui · hira.siddiqui@folio3.com · Employee · 29 Apr 2024'. Each row has a change-role action. Validation state: 'kamran@gmail.com is not an authorized Folio3 account.' Success state: 'Kamran Ali is now a Security guard.'"
+     },
+     {
+      "id": "S-12",
+      "title": "Release Settings (Admin)",
+      "route": "/admin/settings",
+      "file": "src/pages/admin/ReleaseSettings.tsx",
+      "reqs": [
+       "REQ-12"
+      ],
+      "states": [
+       "success: saved"
+      ],
+      "prompt": "Admin settings page for the Daily Parking Release Time. Sections in order: 1) Heading 'Release settings'. 2) Time picker 'Daily Parking Release Time' set to 08:00, labelled 'office-local time', with a 'Default: 08:00' hint. 3) Rules shown as text: 'Scheduled releases and same-day releases made before this time become claimable at this time. Same-day releases made at or after this time become claimable immediately.' 4) Save button. Success state: 'Release time updated to 08:30. Applies from tomorrow, 15 May 2024.'"
+     },
+     {
+      "id": "S-13",
+      "title": "Utilization Reports (Admin)",
+      "route": "/admin/reports",
+      "file": "src/pages/admin/UtilizationReports.tsx",
+      "reqs": [
+       "REQ-22",
+       "REQ-23",
+       "REQ-5"
+      ],
+      "states": [
+       "empty: no report generated yet"
+      ],
+      "prompt": "Admin page showing weekly utilization reports. These are emailed every Monday morning, office-local time. Sections in order: 1) Heading 'Utilization reports' with the week selector 'Week of 6–10 May 2024', the note 'Next email: Mon, 13 May 2024, morning' and a 'Manage recipients' link. 2) KPI tiles: 'Overall utilization 81%', 'Released spaces 27', 'Temporary claims 24'. 3) Daily utilization table with columns Day, Used, Total, %: 'Mon 6 May · 36/42 · 86%', 'Tue 7 May · 33/42 · 79%', 'Wed 8 May · 35/42 · 83%', 'Thu 9 May · 32/42 · 76%', 'Fri 10 May · 34/42 · 81%', plus a weekly total row. 4) Unused dedicated parking (not released and no entry): 'Ayesha Malik · P1-09 · 8 May', 'Faisal Shah · B2-11 · 9 May'. 5) Unused temporary claims (claimed but no entry recorded by a guard): 'Zainab Qureshi · B1-17 · 7 May'. 6) Note: 'Sticker vehicles count as used when the camera detects them. Temporary parking counts as used only when a guard records the entry.' Empty state: 'The first report will be generated on Monday, 13 May 2024.'"
+     },
+     {
+      "id": "S-14",
+      "title": "Report Recipients (Admin)",
+      "route": "/admin/reports/recipients",
+      "file": "src/pages/admin/ReportRecipients.tsx",
+      "reqs": [
+       "REQ-24"
+      ],
+      "states": [
+       "empty: no recipients",
+       "validation: invalid email",
+       "success"
+      ],
+      "prompt": "Admin page for managing who receives the weekly utilization report email. Sections in order: 1) Heading 'Report recipients' with the note 'Any email address can be added. No pre-approval needed.' 2) Add form: Name ('Imran Butt') and Email ('imran.butt@folio3.com'), with an 'Add recipient' button. 3) Recipient list with edit and remove actions: 'Imran Butt · imran.butt@folio3.com', 'Facilities Team · facilities@folio3.com', 'Sarah Lee · sarah.lee@buildingmgmt.com'. Empty state: 'No recipients yet. Weekly reports won't be emailed until you add one.' Validation state: 'Enter a valid email address.' Success state: 'Imran Butt added to weekly report recipients.'"
+     },
+     {
+      "id": "S-15",
+      "title": "Audit Log (Admin)",
+      "route": "/admin/audit",
+      "file": "src/pages/admin/AuditLog.tsx",
+      "reqs": [
+       "REQ-16",
+       "REQ-21",
+       "REQ-20",
+       "REQ-5"
+      ],
+      "states": [
+       "empty: no events for the selected date"
+      ],
+      "prompt": "Admin audit page for claims and entry verification events. Sections in order: 1) Heading 'Audit log' with a date filter (14 May 2024) and tabs 'Claims' and 'Verification attempts'. 2) Claims tab table with columns Date, Time, Employee, Space, Floor, Plate: '14 May 2024 · 08:01 · Bilal Ahmed · B1-17 · Basement B1 · BKR-482', '14 May 2024 · 08:03 · Zainab Qureshi · B2-04 · Basement B2 · LEB-7731'. 3) Verification attempts tab table with columns Date, Time, Plate, Result, Actual entry (guard): '14 May · 08:42 · BKR-482 · Authorized · Entered', '14 May · 08:37 · Unreadable · Unreadable · –', '14 May · 08:31 · LHR-5521 · Unverifiable · Did not enter', '14 May · 08:50 · – · Outage: camera offline · –'. Empty state: 'No events recorded for 12 May 2024.'"
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-14",
+      "reason": "The push notification to non-dedicated employees is sent by the system, not shown on a page. The available-space count it relates to is on S-5."
+     },
+     {
+      "req": "REQ-23",
+      "reason": "The weekly report is generated and emailed automatically on Monday mornings. Its content is shown in the app on S-13, and its recipients are managed on S-14."
+     }
+    ],
+    "brand": {
+     "colours": [],
+     "fonts": []
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

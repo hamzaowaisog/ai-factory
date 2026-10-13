@@ -1,0 +1,132 @@
+{
+ "model": "claude-haiku-4-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I'll analyze each restated sentence and map it to the original intent spans (I-n) and answers (Q-n).",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "I-1"
+      ],
+      "answers": [
+       "Q-6"
+      ]
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 3,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 4,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 5,
+      "spans": [
+       "I-2"
+      ],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 6,
+      "spans": [
+       "I-2"
+      ],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 7,
+      "spans": [
+       "I-1"
+      ],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 8,
+      "spans": [
+       "I-3"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 9,
+      "spans": [
+       "I-3"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 10,
+      "spans": [
+       "I-7"
+      ],
+      "answers": [
+       "Q-7",
+       "Q-8"
+      ]
+     },
+     {
+      "n": 11,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-8"
+      ]
+     },
+     {
+      "n": 12,
+      "spans": [
+       "I-2",
+       "I-5"
+      ],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 13,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

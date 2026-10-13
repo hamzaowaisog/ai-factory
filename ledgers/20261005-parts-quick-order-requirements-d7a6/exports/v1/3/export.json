@@ -1,0 +1,334 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261005-parts-quick-order-requirements-d7a6",
+  "version": 1,
+  "designSha": "690b3d070482ab2a539d1d601be6b4d39085c8e30af19f641b89a24aaa735275",
+  "at": "2026-10-05T16:49:54.234Z",
+  "options": {
+    "formats": [
+      "png"
+    ]
+  },
+  "files": [
+    {
+      "format": "png",
+      "path": "png/S-1_default_phone.png",
+      "sha256": "e9265fdca47f98284c5ca85fa189b9bf3fe0a089c687c77840cc3da6f70c2702",
+      "bytes": 232885
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_success_phone.png",
+      "sha256": "6af7ab28ac7d8616e249d1ee14435f755bd72f723a0693a27bf31766ffcfe081",
+      "bytes": 239386
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_loading_phone.png",
+      "sha256": "6b59df83a3291b93bff7baae25fa8b753d5ac86a8d7d331277c88f3335518908",
+      "bytes": 174036
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_empty_phone.png",
+      "sha256": "eb67a3a71811319c5ac0db7fa61bfdbca2cf784ff2284e9147ef92880217de9a",
+      "bytes": 243586
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_error_phone.png",
+      "sha256": "12bee3762970685ff95379b04bf43628ebb2d9e267836dff550a1e48f28f8a9e",
+      "bytes": 236159
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_full-data_phone.png",
+      "sha256": "20971e4aa6952259b03c4c8d54beba8542ba493a34d6c2752325c1669ad07032",
+      "bytes": 290580
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_phone.png",
+      "sha256": "974336d2e0ca963fb6f25034f1325597c70348561945bf3a34b5dbde26241018",
+      "bytes": 235443
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_success_phone.png",
+      "sha256": "9b2e1f988adb0e2d48fa57891648f48b72a3b247c79fa042b5f632bb3fc2e10e",
+      "bytes": 242070
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_validation_phone.png",
+      "sha256": "e2e87b27578377df946152b12d61fcd8a2fc0399fa3c3d8f2e98afd2078a7988",
+      "bytes": 251714
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_loading_phone.png",
+      "sha256": "e2a8e9d63cccf9d56b5af543104bbdd2ed248d16331cad35f123406346c625ee",
+      "bytes": 205935
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_empty_phone.png",
+      "sha256": "79ac297b6f4261c5f9abf2b576efdef519b179d5d120521de313b1c0b7201b97",
+      "bytes": 199382
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_error_phone.png",
+      "sha256": "fb402192c7a9be5a739288db26cb2395260170158625874921a7c01714c0832c",
+      "bytes": 243003
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_toast-order-ord-004127-placed_phone.png",
+      "sha256": "c87d88b9cdc8f6d765bece72be3aae215210ea21535d9335b5190dd2505b7082",
+      "bytes": 238516
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_full-data_phone.png",
+      "sha256": "6e7b0833ed148400afd418785289b495434d51114af5f09d404150bb70ace646",
+      "bytes": 254029
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_phone.png",
+      "sha256": "5b7b89231b66c16777b7675e126b3dc88713acbb856b58dd06a5fd5b89cd269a",
+      "bytes": 270813
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_success_phone.png",
+      "sha256": "d6bee0c546acc42edffd996c247347deefb7d061e1ee8ad2f828516b90f849ac",
+      "bytes": 276358
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_validation_phone.png",
+      "sha256": "ee1d05f60222621e5fa59c45bb9833105d68ac9286daebd45e5a94309993e3bb",
+      "bytes": 279071
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_loading_phone.png",
+      "sha256": "97cb5fc3807a1aa27a5aa8f35694d5351daaef823e147b95e7d9fda2a1bea27d",
+      "bytes": 206474
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_empty_phone.png",
+      "sha256": "f81499466c37a33ff4f0bcf09fdb0e8aaf052db4d648f3b8dcd97daa601bb332",
+      "bytes": 210486
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_error_phone.png",
+      "sha256": "aa2de7ff448be7fc7d9ba5d0dfdb3083a86e49832484faecccccb1e71afe1156",
+      "bytes": 271595
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_confirm-cancel-ord-10482_phone.png",
+      "sha256": "9c740d2e955663bf585619facff87f6cd4dbcea8c6596d9d1b452443ef3dc0e0",
+      "bytes": 308015
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_toast-ord-10482-cancelled_phone.png",
+      "sha256": "78d98daea9cebe45cdd3d658d63cfbb4df1e8a56ba62adf3956bd55f02fed0a2",
+      "bytes": 276681
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_full-data_phone.png",
+      "sha256": "f04300eea284674784e374785338d6a1ea895f32886e2a063f19c421d62090a8",
+      "bytes": 324373
+    },
+    {
+      "format": "png",
+      "path": "png/components_all-states_phone.png",
+      "sha256": "d2b1d2fd6f571baba0b40cced5f640bcc22fecb76ce8a118db403fd08b8e0b8b",
+      "bytes": 319750
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_default_desktop.png",
+      "sha256": "e232a445c26d63f451edff62463cbffcb134b295c7e2131f94af8f91a4d848ee",
+      "bytes": 314470
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_success_desktop.png",
+      "sha256": "4b0914c9cc520a7b35369c647661ef15c166bec715e6d115c6db459b97631f86",
+      "bytes": 319925
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_loading_desktop.png",
+      "sha256": "ff709d8f799cbf09593160dd4fcb1d063219d4f5aa239f6f0d045912bab5805e",
+      "bytes": 240005
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_empty_desktop.png",
+      "sha256": "2a68f198961c64a9cb968b8a704e9dc101ecc996b26bf0495160b80f80efd225",
+      "bytes": 329147
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_error_desktop.png",
+      "sha256": "513e02e65c2a1ca502e63c15c100cdc76b36e11ace8473582ec74e55959101a0",
+      "bytes": 317610
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_full-data_desktop.png",
+      "sha256": "eb860943f3165f67c14a019c86ffe10926454a24e63ffbbb07435125d9ae7f99",
+      "bytes": 378274
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_desktop.png",
+      "sha256": "4c54d8efb3203d97bdd0f576e9893229bdb1e88666117c4e216b8bf2e68a91fd",
+      "bytes": 318491
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_success_desktop.png",
+      "sha256": "e9e833f124c1c20709ae8d5d8c4f5155fb82b11a932576076b545b7cee64684b",
+      "bytes": 325677
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_validation_desktop.png",
+      "sha256": "50dbe042647f00fa7d31ee927de446bdc106a2e5ecda33827ee9c59d237e39f8",
+      "bytes": 335992
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_loading_desktop.png",
+      "sha256": "186e93e0d8f947690674865b2e9d7b6620e8cd37b0c770621fae9e9dcce83cbc",
+      "bytes": 276039
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_empty_desktop.png",
+      "sha256": "32b9490a65cdb2038bb4b782bd8d3d43db6a120b2fd1e3b63747d0aae7296d33",
+      "bytes": 283752
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_error_desktop.png",
+      "sha256": "1e05cf2a0497c8df00328b46ffdee69a50f6bc3bf1f9c11b0a753617aea1330d",
+      "bytes": 325045
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_toast-order-ord-004127-placed_desktop.png",
+      "sha256": "2571fce45c48dd5cd19ecc3abc6dd397f0a2dd0c1cf2bde090edaad35c9d337b",
+      "bytes": 325979
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_full-data_desktop.png",
+      "sha256": "647270ac60b1fa45017345f25013d31ee2b2d97f008d552ba734f4eccdc2770b",
+      "bytes": 356339
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_desktop.png",
+      "sha256": "4c0399d47206b71f9ca14947a5e7086aea1949f1583a9603393101ac7e407920",
+      "bytes": 350245
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_success_desktop.png",
+      "sha256": "48d8c35c20fcc1ff68165e61b7cf438fafb18b6a391bd6c50d13a23f9aa02def",
+      "bytes": 356925
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_validation_desktop.png",
+      "sha256": "a6ac8d4ff17f4c93b24c07e7eedfb658d8971976dd1135998ea51ea5f2918ca9",
+      "bytes": 358610
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_loading_desktop.png",
+      "sha256": "98841d885ecf5bfc2ed4f1c82fb532462ad711833950a788cf558eab39adc0aa",
+      "bytes": 276851
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_empty_desktop.png",
+      "sha256": "54a8532a9fa488a748bb176ecb6ec4cc02202eadd5cc1d9b169b60c94f020bc3",
+      "bytes": 293779
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_error_desktop.png",
+      "sha256": "313772310ffb8f45d960b64d287263f31c301e4533e556252937e098aa2fd0a0",
+      "bytes": 353099
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_confirm-cancel-ord-10482_desktop.png",
+      "sha256": "8708656da5ced3914310454a5bfc0a73ad0aefe09d63be76c31b998a64c0df1c",
+      "bytes": 426786
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_toast-ord-10482-cancelled_desktop.png",
+      "sha256": "d4efaf0cccbba08cb539fcbc47cf288a411394f695deb55fb50b8ca838e9fb0e",
+      "bytes": 357572
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_full-data_desktop.png",
+      "sha256": "c7d6512ca9e35cdc219e553be49ca3726a28368ee12b64e8790f8132bb93b100",
+      "bytes": 423725
+    },
+    {
+      "format": "png",
+      "path": "png/components_all-states_desktop.png",
+      "sha256": "88bda9c2f16e591260cc1ebf06b7a43e07589962e58a2639dbc4a8771d959635",
+      "bytes": 439589
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_default_tablet.png",
+      "sha256": "8169dd064b5ff37b237f47858260f4bbf3ef8a7a7569ba2260b1a900958e5988",
+      "bytes": 288076
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_tablet.png",
+      "sha256": "053aed4b518bce67186e8e7df224589d16abcba19867b88163935a633ffb59d6",
+      "bytes": 300941
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_tablet.png",
+      "sha256": "4db87ba6607384fd5df9eef09af681fcc34c54070c4618df7a6de08d1632b772",
+      "bytes": 341858
+    },
+    {
+      "format": "png",
+      "path": "png/components_all-states_tablet.png",
+      "sha256": "73259cdc7c712a7ac10e81f71d4ddbc1a3691c081582e828a051fe347afa8975",
+      "bytes": 395900
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "png.count",
+      "status": "PASS",
+      "detail": "52 PNG(s) cover all 23 screen states (screens × states)"
+    }
+  ]
+}

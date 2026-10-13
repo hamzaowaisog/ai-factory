@@ -1,0 +1,364 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Edit customer",
+     "subtitle": "Hartley Motors Ltd · Account HM-20417",
+     "crumbs": [
+      "Customers",
+      "Hartley Motors Ltd"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Company name",
+         "kind": "text",
+         "value": "Hartley Motors Ltd",
+         "required": true,
+         "error": "Enter the company name"
+        },
+        {
+         "label": "Account number",
+         "kind": "text",
+         "value": "HM-20417",
+         "required": true,
+         "help": "Must be unique across all customers",
+         "error": "Account number HM-20417 is already in use"
+        },
+        {
+         "label": "Primary contact",
+         "kind": "text",
+         "value": "Dean Hartley",
+         "required": true,
+         "error": "Enter a primary contact"
+        },
+        {
+         "label": "Contact email",
+         "kind": "email",
+         "value": "parts@hartleymotors.co.uk",
+         "required": true,
+         "error": "Enter a valid email address"
+        },
+        {
+         "label": "Contact phone",
+         "kind": "phone",
+         "value": "+44 1632 960418"
+        },
+        {
+         "label": "Billing address",
+         "kind": "textarea",
+         "value": "Unit 4, Brookfield Trading Estate, Leeds LS11 8PL",
+         "required": true,
+         "error": "Enter a billing address"
+        }
+       ],
+       "submit": "Save details"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Price list",
+         "kind": "select",
+         "value": "Trade B — Independent garages",
+         "options": [
+          "Trade A — Fleet",
+          "Trade B — Independent garages",
+          "Trade C — Body shops",
+          "List price"
+         ],
+         "required": true,
+         "help": "Only active price lists can be assigned",
+         "hint": "Sets the prices this company's buyers see in the catalogue"
+        },
+        {
+         "label": "Status",
+         "kind": "radio",
+         "value": "Active",
+         "options": [
+          "Active",
+          "Inactive"
+         ],
+         "help": "Inactive companies' buyers cannot sign in or order"
+        }
+       ],
+       "submit": "Save customer"
+      },
+      {
+       "type": "detail",
+       "title": "Record history",
+       "rows": [
+        {
+         "label": "Created by",
+         "value": "Priya Natarajan"
+        },
+        {
+         "label": "Created",
+         "value": "14 Mar 2024, 09:12"
+        },
+        {
+         "label": "Last changed by",
+         "value": "Tom Briggs"
+        },
+        {
+         "label": "Last changed",
+         "value": "02 Jun 2026, 16:47"
+        },
+        {
+         "label": "Status",
+         "value": "Active",
+         "badge": true
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        },
+        {
+         "label": "Manage price lists",
+         "variant": "link"
+        },
+        {
+         "label": "Deactivate customer",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Cancel",
+       "to": "S-21"
+      },
+      {
+       "from": "Manage price lists",
+       "to": "S-30"
+      },
+      {
+       "from": "Save customer",
+       "to": "S-21"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Deactivate customer",
+       "title": "Deactivate Hartley Motors Ltd?",
+       "text": "Its 6 buyers can no longer sign in or place orders. Open orders and invoices stay as they are.",
+       "actions": [
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep active",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save customer",
+       "text": "Hartley Motors Ltd saved",
+       "tone": "ok"
+      },
+      {
+       "after": "Save details",
+       "text": "Company details saved",
+       "tone": "ok"
+      },
+      {
+       "after": "Deactivate",
+       "text": "Hartley Motors Ltd deactivated",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "success": "Hartley Motors Ltd saved. New prices apply from the next order.",
+      "validation": "Check the highlighted fields before saving.",
+      "error": "We couldn't save this customer. Your changes are still here — try again."
+     }
+    },
+    "mockFull": {
+     "title": "Edit customer",
+     "subtitle": "Hartley Motors Ltd · Account HM-20417",
+     "crumbs": [
+      "Customers",
+      "Hartley Motors Ltd"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Company name",
+         "kind": "text",
+         "value": "Hartley Motors Ltd",
+         "required": true,
+         "error": "Enter the company name"
+        },
+        {
+         "label": "Account number",
+         "kind": "text",
+         "value": "HM-20417",
+         "required": true,
+         "help": "Must be unique across all customers",
+         "error": "Account number HM-20417 is already in use"
+        },
+        {
+         "label": "Primary contact",
+         "kind": "text",
+         "value": "Dean Hartley",
+         "required": true,
+         "error": "Enter a primary contact"
+        },
+        {
+         "label": "Contact email",
+         "kind": "email",
+         "value": "parts@hartleymotors.co.uk",
+         "required": true,
+         "error": "Enter a valid email address"
+        },
+        {
+         "label": "Contact phone",
+         "kind": "phone",
+         "value": "+44 1632 960418"
+        },
+        {
+         "label": "Billing address",
+         "kind": "text",
+         "value": "Unit 4, Brookfield Trading Estate",
+         "required": true,
+         "error": "Enter a billing address"
+        },
+        {
+         "label": "Town or city",
+         "kind": "text",
+         "value": "Leeds",
+         "required": true
+        },
+        {
+         "label": "Postcode",
+         "kind": "text",
+         "value": "LS11 8PL",
+         "required": true,
+         "error": "Enter a valid UK postcode"
+        }
+       ],
+       "submit": "Save details"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Price list",
+         "kind": "select",
+         "value": "Trade B — Independent garages",
+         "options": [
+          "Trade A — Fleet",
+          "Trade B — Independent garages",
+          "Trade C — Body shops",
+          "Trade D — Motor factors",
+          "List price"
+         ],
+         "required": true,
+         "help": "Only active price lists can be assigned",
+         "hint": "Sets the prices this company's buyers see in the catalogue"
+        },
+        {
+         "label": "Status",
+         "kind": "radio",
+         "value": "Active",
+         "options": [
+          "Active",
+          "Inactive"
+         ],
+         "help": "Inactive companies' buyers cannot sign in or order"
+        }
+       ],
+       "submit": "Save customer"
+      },
+      {
+       "type": "detail",
+       "title": "Record history",
+       "rows": [
+        {
+         "label": "Record ID",
+         "value": "CUS-00812"
+        },
+        {
+         "label": "Created by",
+         "value": "Priya Natarajan"
+        },
+        {
+         "label": "Created",
+         "value": "14 Mar 2024, 09:12"
+        },
+        {
+         "label": "Last changed by",
+         "value": "Tom Briggs"
+        },
+        {
+         "label": "Last changed",
+         "value": "02 Jun 2026, 16:47"
+        },
+        {
+         "label": "Price list since",
+         "value": "02 Jun 2026 (was Trade C — Body shops)"
+        },
+        {
+         "label": "Status",
+         "value": "Active",
+         "badge": true
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        },
+        {
+         "label": "Manage price lists",
+         "variant": "link"
+        },
+        {
+         "label": "Deactivate customer",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "success": "Hartley Motors Ltd saved. New prices apply from the next order.",
+      "validation": "Check the highlighted fields before saving.",
+      "error": "We couldn't save this customer. Your changes are still here — try again."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

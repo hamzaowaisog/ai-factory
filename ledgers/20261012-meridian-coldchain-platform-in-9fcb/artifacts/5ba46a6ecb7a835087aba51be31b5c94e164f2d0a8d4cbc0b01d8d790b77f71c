@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Products</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+    :root {
+      --bg-page: #F7F7F7;
+      --bg-surface: #FFFFFF;
+      --text-main: #202020;
+      --text-muted: #626262;
+      --border-color: #D5D5D5;
+      --primary-color: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+
+      /* Motion tokens */
+      --motion-duration-fast: 150ms;
+      --motion-duration-base: 250ms;
+      --motion-duration-slow: 400ms;
+      --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Keyframe animations */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* Staggered entrance animations */
+    .animate-header {
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) forwards;
+    }
+
+    .animate-title {
+      opacity: 0;
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 40ms forwards;
+    }
+
+    .animate-toolbar {
+      opacity: 0;
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 80ms forwards;
+    }
+
+    .animate-table {
+      opacity: 0;
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 120ms forwards;
+    }
+
+    .animate-form {
+      opacity: 0;
+      animation: entranceFadeIn var(--motion-duration-base) var(--motion-ease-out) 160ms forwards;
+    }
+
+    .status-dot-waiting {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    /* Standard Interactive States */
+    button, a, input, select {
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  border-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  color var(--motion-duration-fast) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform 90ms var(--motion-ease-standard);
+    }
+
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    button:active, a:active {
+      transform: scale(0.98);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+<!-- Application Header -->
+<header class="bg-[#FFFFFF] border-b border-[#D5D5D5] w-full animate-header">
+<div class="max-w-[1360px] mx-auto px-6 h-16 flex items-center justify-between">
+<!-- Left: Logo & Nav -->
+<div class="flex items-center space-x-8">
+<div class="flex items-center space-x-3">
+<div class="w-7 h-7 bg-[#202020] rounded-[2px] flex items-center justify-center font-bold text-white text-sm">
+            M
+          </div>
+<span class="font-heading font-[650] text-lg text-[#202020] tracking-tight">Meridian</span>
+</div>
+<nav aria-label="Main Navigation" class="flex items-center space-x-6 text-[15px]">
+<span class="text-[#A94B1D] font-medium border-b-2 border-[#A94B1D] py-5">Products</span>
+<a class="text-[#626262] hover:text-[#202020] py-5 transition-colors" href="#">Organisations</a>
+<a class="text-[#626262] hover:text-[#202020] py-5 transition-colors" href="#">Accounts</a>
+<a class="text-[#626262] hover:text-[#202020] py-5 transition-colors" href="#">Audit trail</a>
+<a class="text-[#626262] hover:text-[#202020] py-5 transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<!-- Right: User & Language -->
+<div class="flex items-center space-x-6 text-sm">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-[2px] bg-[#EAEAEA] text-[#202020] font-mono-num font-medium text-xs flex items-center justify-center border border-[#D5D5D5]">
+            MV
+          </div>
+<span class="text-[#202020] font-normal">Marcus Vale · System Administrator</span>
+</div>
+<div class="h-4 w-[1px] bg-[#D5D5D5]"></div>
+<div class="text-[#626262] space-x-1">
+<span class="text-[#202020] font-medium">EN</span>
+<span>/</span>
+<button aria-label="Switch language to Arabic" class="hover:text-[#202020] cursor-pointer bg-transparent border-0 p-0 text-[#626262] inline" type="button">العربية</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Container -->
+<main class="max-w-[1360px] mx-auto px-6 pt-8">
+<!-- Title Section -->
+<div class="mb-8 animate-title">
+<h1 class="text-[28px] font-[650] text-[#202020] tracking-tight leading-tight">Products</h1>
+</div>
+<!-- Filter & Toolbar Panel -->
+<div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 mb-6 animate-toolbar">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<!-- Search & Instant Filters -->
+<div class="flex flex-1 items-center gap-4">
+<div class="relative flex-1 max-w-md">
+<label class="sr-only" for="product-search">Search product name, formulation or code</label>
+<input aria-label="Search product name, formulation or code" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] placeholder-[#626262] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="product-search" placeholder="Search product name, formulation or code..." type="text" value="Insulin Glargine"/>
+</div>
+<div class="flex items-center space-x-2 text-sm text-[#626262]">
+<label class="font-medium text-[#202020]" for="status-filter">Status filter:</label>
+<select aria-label="Status filter" class="h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="status-filter" name="status_filter">
+<option selected="">All records (active &amp; inactive)</option>
+<option>Active only</option>
+<option>Inactive only</option>
+</select>
+</div>
+</div>
+<!-- CSV Export -->
+<div>
+<button class="h-12 px-5 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] text-[#202020] font-medium hover:bg-[#F7F7F7] flex items-center space-x-2 active:scale-[0.98]" type="button">
+<svg aria-hidden="true" class="w-4 h-4 text-[#626262]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>CSV export</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Products Table Panel -->
+<div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] mb-8 overflow-hidden animate-table">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-[#D5D5D5] bg-[#FFFFFF] text-xs font-semibold text-[#626262] uppercase tracking-wider h-12">
+<th class="px-4 w-28" scope="col">Item photograph</th>
+<th class="px-4" scope="col">Product name</th>
+<th class="px-4" scope="col">Pack specification</th>
+<th class="px-4" scope="col">Assigned profile</th>
+<th class="px-4" scope="col">Catalog status</th>
+<th class="px-4 text-right" scope="col">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D5D5D5] text-[15px]">
+<!-- Primary sample row -->
+<tr class="h-12 hover:bg-[#F7F7F7] transition-colors">
+<td class="px-4 py-2">
+<img alt="Insulin Glargine 100 units/mL pack of 10 pens" class="w-20 h-[60px] object-cover rounded-[2px] border border-[#D5D5D5]" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+</td>
+<td class="px-4 font-medium text-[#202020]">
+                Insulin Glargine 100 units/mL
+              </td>
+<td class="px-4 text-[#202020]">
+                pack of <span class="font-mono-num font-medium">10</span> pens
+              </td>
+<td class="px-4 text-[#202020]">
+<span class="font-mono-num text-sm bg-[#F7F7F7] px-2 py-1 rounded-[2px] border border-[#D5D5D5]">profile v3</span>
+<span class="text-xs text-[#626262] ml-1">(permitted <span class="font-mono-num">2–8°C</span>)</span>
+</td>
+<td class="px-4">
+<span class="inline-flex items-center text-sm font-medium text-[#24704B]">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-[#24704B] mr-1.5"></span>
+                  good active
+                </span>
+</td>
+<td class="px-4 text-right">
+<a class="inline-flex items-center justify-center h-9 px-3 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] text-sm font-medium text-[#202020] hover:bg-[#F7F7F7] active:scale-[0.98]" href="#">
+                  Product detail
+                </a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Inline Add Product Section -->
+<div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-6 mb-8 animate-form">
+<div class="border-b border-[#D5D5D5] pb-4 mb-6">
+<h2 class="text-[20px] font-[650] text-[#202020] tracking-tight">Add product</h2>
+<p class="text-sm text-[#626262] mt-1">Configure new pharmaceutical line item and assign cold-chain thermal profile.</p>
+</div>
+<form class="space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Product Name -->
+<div>
+<label class="block text-sm font-medium text-[#202020] mb-2" for="product-name">Product name</label>
+<input aria-label="Product name" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] placeholder-[#626262] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="product-name" name="product_name" placeholder="e.g. Insulin Glargine 100 units/mL" type="text"/>
+</div>
+<!-- Pack Size -->
+<div>
+<label class="block text-sm font-medium text-[#202020] mb-2" for="pack-size">Pack size &amp; presentation</label>
+<input aria-label="Pack size &amp; presentation" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] placeholder-[#626262] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="pack-size" name="pack_size" placeholder="e.g. pack of 10 pens" type="text"/>
+</div>
+<!-- Thermal Profile -->
+<div>
+<label class="block text-sm font-medium text-[#202020] mb-2" for="thermal-profile">Thermal profile</label>
+<select aria-label="Thermal profile" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="thermal-profile" name="thermal_profile">
+<option selected="">profile v3 (permitted 2–8°C, first upper tier &gt;8–10°C, 30m allowance)</option>
+<option>profile v4 (proposed, takes effect 14 May 2026 or later)</option>
+</select>
+</div>
+<!-- Minimum Shelf Life -->
+<div>
+<label class="block text-sm font-medium text-[#202020] mb-2" for="shelf-life">Contractual shelf life threshold (days)</label>
+<input aria-describedby="shelf-life-hint" aria-label="Contractual shelf life threshold (days)" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 font-mono-num text-[#202020] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="shelf-life" name="shelf_life" type="text" value="90"/>
+<span class="text-xs text-[#626262] mt-1 block" id="shelf-life-hint">Contractual minimum remaining shelf-life threshold</span>
+</div>
+<!-- Catalog Status -->
+<div>
+<label class="block text-sm font-medium text-[#202020] mb-2" for="initial-status">Initial status</label>
+<select aria-label="Initial status" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="initial-status" name="initial_status">
+<option selected="">Active</option>
+<option>Inactive</option>
+</select>
+</div>
+<!-- Storage Location Default -->
+<div>
+<label class="block text-sm font-medium text-[#202020] mb-2" for="storage-location">Default storage location</label>
+<input aria-label="Default storage location" class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 text-[#202020] focus:border-[#A94B1D] focus:ring-1 focus:ring-[#A94B1D]" id="storage-location" name="storage_location" type="text" value="Cold Room C2, Rack 4"/>
+</div>
+</div>
+<div class="pt-4 border-t border-[#D5D5D5] flex items-center justify-end space-x-3">
+<button class="h-12 px-6 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] text-[#202020] font-medium hover:bg-[#F7F7F7] active:scale-[0.98]" type="button">
+            Cancel
+          </button>
+<button class="h-12 px-6 bg-[#A94B1D] text-white rounded-[2px] font-medium hover:brightness-95 active:scale-[0.98]" type="button">
+            Save product
+          </button>
+</div>
+</form>
+</div>
+</main>
+</body></html>

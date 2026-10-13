@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Unavailable — Folio3 Parking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #2BA8D6;
+      --color-primary-hover: #228ab1;
+      --color-primary-active: #1c7293;
+      --color-bg: #F4F6F8;
+      --color-card-bg: #FFFFFF;
+      --color-border: #E2E8F0;
+      --color-border-subtle: #EDF2F7;
+      --color-text-main: #0F172A;
+      --color-text-muted: #475569;
+      --color-text-dim: #64748B;
+      --ease-spring: linear(
+        0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%,
+        0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%,
+        1.017 60.7%, 1.01 71.5%, 1.001 85.5%, 1
+      );
+      --ease-out-cubic: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-breathe: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--color-bg);
+      color: var(--color-text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Entrance animation sequence */
+    @keyframes cardEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(16px) scale(0.99);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes iconPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      70% {
+        transform: scale(1.05);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* Ambient live breathing dot animation */
+    @keyframes breatheRing {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.25);
+        opacity: 0.95;
+      }
+    }
+
+    /* Signature motion: rule underline expansion */
+    @keyframes drawRule {
+      0% {
+        transform: scaleX(0);
+      }
+      100% {
+        transform: scaleX(1);
+      }
+    }
+
+    /* Signature motion: digit roll */
+    @keyframes digitRoll {
+      0% {
+        transform: translateY(0%);
+      }
+      100% {
+        transform: translateY(-80%); /* rolls from 0 down to target digit */
+      }
+    }
+
+    .animate-entrance {
+      animation: cardEntrance 550ms var(--ease-out-cubic) forwards;
+    }
+
+    .animate-icon {
+      animation: iconPop 600ms var(--ease-spring) 120ms forwards;
+      opacity: 0;
+    }
+
+    .live-dot-ring {
+      animation: breatheRing 6s var(--ease-breathe) infinite;
+    }
+
+    .signature-rule {
+      transform-origin: left center;
+      animation: drawRule 260ms var(--ease-out-cubic) 620ms forwards;
+      transform: scaleX(0);
+    }
+
+    .digit-strip {
+      animation: digitRoll 600ms var(--ease-spring) 100ms forwards;
+    }
+
+    /* Interactive button styles with hover, focus, active */
+    .btn-primary {
+      background-color: #0F172A;
+      color: #FFFFFF;
+      transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-primary:hover {
+      background-color: #1E293B;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    .btn-primary:active {
+      background-color: #020617;
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #1E293B;
+      border: 1px solid #CBD5E1;
+      transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-secondary:hover {
+      background-color: #F8FAFC;
+      border-color: #94A3B8;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    .btn-secondary:active {
+      background-color: #F1F5F9;
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn-link {
+      color: #64748B;
+      transition: all 150ms ease;
+    }
+    .btn-link:hover {
+      color: #0F172A;
+      text-decoration: underline;
+    }
+    .btn-link:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    .btn-link:active {
+      color: #334155;
+    }
+
+    /* Accessibility: prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .signature-rule {
+        transform: scaleX(1) !important;
+      }
+      .digit-strip {
+        transform: translateY(-80%) !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F4F6F8]">
+
+  <!-- Centred Error Card: about 520px wide with generous empty space around it -->
+  <main class="w-full max-w-[520px] bg-white rounded-xl border border-slate-200/90 shadow-[0_12px_36px_-6px_rgba(15,23,42,0.08),0_4px_16px_-4px_rgba(15,23,42,0.04)] p-8 sm:p-9 animate-entrance relative overflow-hidden" role="alert" aria-live="assertive">
+
+    <!-- Top Status Bar: subtle context and live indicator dot -->
+    <header class="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold tracking-wider uppercase text-slate-500 font-mono">Folio3 Parking</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-xs font-medium text-slate-500">Bay Control</span>
+      </div>
+
+      <!-- Live status dot indicator -->
+      <div class="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200/70" title="Entrance check status">
+        <div class="relative flex items-center justify-center w-2.5 h-2.5">
+          <span class="live-dot-ring absolute inline-flex w-full h-full rounded-full border border-[#2BA8D6] opacity-90"></span>
+          <span class="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#2BA8D6]"></span>
+        </div>
+        <span class="font-mono text-[11px] text-slate-700 tracking-wide font-medium">Live</span>
+      </div>
+    </header>
+
+    <!-- Outlined Warning Symbol: what the eye meets first -->
+    <div class="mb-5 animate-icon" aria-hidden="true">
+      <div class="w-14 h-14 rounded-xl bg-amber-50/80 border border-amber-200 flex items-center justify-center text-amber-600 shadow-sm">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Precise geometric outlined triangle warning -->
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <circle cx="12" cy="17" r="0.8" fill="currentColor"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Heading: 'We couldn't load your employee profile', set large -->
+    <h1 class="text-[26px] leading-tight font-bold text-slate-900 tracking-[-0.015em] mb-3">
+      We couldn't load your employee profile
+    </h1>
+
+    <!-- Exact Body Copy verbatim -->
+    <p class="text-[15px] leading-relaxed text-slate-600 mb-6">
+      Signed in as <span class="font-medium text-slate-900">hamza.qureshi@folio3.com</span>. The corporate directory didn't return your record at <span class="font-mono text-sm text-slate-700 font-medium">08:42 AM, Tue 14 Oct 2025</span>, so parking actions are unavailable for now.
+    </p>
+
+    <!-- Telemetry & Bay Meter Context strip showing signature motion -->
+    <div class="mb-7 p-4 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-between">
+      <div class="flex flex-col">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Bay Status</span>
+        <span class="text-xs font-medium text-slate-700">Dashboard Locked</span>
+      </div>
+
+      <!-- Signature Motion: Rolling Mono Digits & Expanding Bay Cyan Rule -->
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Directory Resp</span>
+        <div class="flex items-center gap-1 font-mono text-sm font-semibold text-slate-800">
+          <span class="text-xs text-slate-400 font-normal">HTTP</span>
+          <div class="relative h-5 overflow-hidden inline-block w-8 text-right">
+            <div class="digit-strip flex flex-col">
+              <span class="h-5 flex items-center justify-end">000</span>
+              <span class="h-5 flex items-center justify-end">200</span>
+              <span class="h-5 flex items-center justify-end">400</span>
+              <span class="h-5 flex items-center justify-end">404</span>
+              <span class="h-5 flex items-center justify-end text-amber-700">404</span>
+            </div>
+          </div>
+        </div>
+        <!-- 1px Bay Cyan (#2BA8D6) rule beneath draws from scaleX(0) to scaleX(1) -->
+        <div class="w-24 h-[1px] bg-[#2BA8D6] signature-rule mt-1"></div>
+      </div>
+    </div>
+
+    <!-- 'What you can do' list -->
+    <section class="mb-8" aria-labelledby="recommendations-heading">
+      <h2 id="recommendations-heading" class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3.5 flex items-center gap-2 font-mono">
+        <span>What you can do</span>
+      </h2>
+      <div class="space-y-3 bg-white rounded-lg text-[14px] leading-relaxed text-slate-600">
+        <div class="flex items-start gap-3 p-3 bg-slate-50/60 rounded-md border border-slate-100/80">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-mono font-medium flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+          <p class="text-slate-700">Try again in a minute; the directory may be busy.</p>
+        </div>
+        <div class="flex items-start gap-3 p-3 bg-slate-50/60 rounded-md border border-slate-100/80">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-mono font-medium flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+          <p class="text-slate-700">
+            If this keeps happening, email <a href="mailto:parking@folio3.com" class="text-[#2BA8D6] hover:underline font-medium">parking@folio3.com</a> or call extension <span class="font-mono font-medium text-slate-900">2140</span> and quote reference <span class="font-mono font-semibold text-slate-900 px-1.5 py-0.5 bg-slate-100 rounded text-[13px] border border-slate-200">PRF-20251014-0842</span>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions row: primary 'Try again', secondary 'Contact parking support', quiet text link 'Sign out' -->
+    <footer class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+        <!-- Primary Button: Try again (retries on this page) -->
+        <button type="button" class="btn-primary w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2 focus:outline-none">
+          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Try again</span>
+        </button>
+
+        <!-- Secondary Button: Contact parking support (opens an email) -->
+        <a href="mailto:parking@folio3.com?subject=Profile%20Retrieval%20Error%20%5BPRF-20251014-0842%5D" class="btn-secondary w-full sm:w-auto px-4 py-2.5 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2 focus:outline-none">
+          <svg class="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          <span>Contact parking support</span>
+        </a>
+      </div>
+
+      <!-- Quiet text link 'Sign out' (sole control that navigates elsewhere) -->
+      <a href="#signout" class="btn-link text-sm font-medium py-1 px-1 focus:outline-none self-center sm:self-auto">
+        Sign out
+      </a>
+    </footer>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,738 @@
+<!DOCTYPE html><html class="h-full bg-[#F7F7F8]" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Schedule releases for Space B1-03 · Folio3 Parking</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-tertiary-fixed-variant": "#72352a",
+            "secondary-fixed": "#cbe9dd",
+            "on-primary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-container-highest": "#e0e3e0",
+            "secondary": "#49645b",
+            "on-secondary": "#ffffff",
+            "inverse-on-surface": "#eef1ee",
+            "primary-container": "#1f6f5c",
+            "on-tertiary-fixed": "#3a0a05",
+            "error": "#ba1a1a",
+            "on-error-container": "#93000a",
+            "primary": "#005645",
+            "on-primary-container": "#a3efd7",
+            "on-error": "#ffffff",
+            "on-background": "#181c1b",
+            "surface-container-high": "#e6e9e6",
+            "surface-variant": "#e0e3e0",
+            "surface": "#f7faf7",
+            "inverse-primary": "#8ad5be",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-surface": "#181c1b",
+            "on-secondary-container": "#4d685f",
+            "tertiary-fixed": "#ffdad4",
+            "tertiary-container": "#945044",
+            "outline": "#6f7975",
+            "tertiary": "#77392e",
+            "on-surface-variant": "#3f4945",
+            "inverse-surface": "#2d312f",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "on-tertiary-container": "#ffd7d0",
+            "surface-tint": "#186a57",
+            "outline-variant": "#bec9c4",
+            "on-secondary-fixed-variant": "#314c44",
+            "background": "#f7faf7",
+            "surface-container-low": "#f1f4f1",
+            "surface-bright": "#f7faf7",
+            "primary-fixed-dim": "#8ad5be",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#d8dbd8",
+            "surface-container-lowest": "#ffffff",
+            "primary-fixed": "#a5f2d9",
+            "on-primary-fixed-variant": "#005141",
+            "surface-container": "#ecefeb",
+            "on-secondary-fixed": "#042019",
+            "secondary-container": "#c8e6db",
+            "on-primary-fixed": "#002019"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16,1,0.3,1);
+      --ease-spring: linear(0,0.009,0.035 2.1%,0.141,0.281 6.7%,0.723 12.9%,0.938 16.7%,1.017,1.077 21.4%,1.121 24%,1.149 27%,1.159,1.154 33%,1.051 43.2%,1.013 49.5%,0.996 57%,1.001 72%,1);
+    }
+    body {
+      color: #18181B;
+      font-family: 'Public Sans', sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 2px 8px;
+      background: #FFFFFF;
+      color: #18181B;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 2px 8px;
+      background: #FFFFFF;
+      color: #1F6F5C;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .calendar-cell {
+      aspect-ratio: 1;
+      transition: background-color var(--dur-quick) ease, border-color var(--dur-quick) ease;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#F7F7F8] text-[#18181B] antialiased flex flex-col font-body selection:bg-[#E6F0ED] selection:text-[#1F6F5C]">
+<!-- TOP PREVIEW STATE SWITCHER BAR -->
+<aside aria-label="Screen testing controls" class="bg-[#18181B] text-white text-xs px-6 py-2 flex items-center justify-between border-b border-[#3F3F46] z-50">
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center gap-1.5 font-mono text-[11px] text-[#A5F2D9] uppercase tracking-wider font-semibold">
+<span class="w-2 h-2 rounded-full bg-[#2F7D4A] animate-pulse"></span>
+        UI State Simulator
+      </span>
+<span class="text-[#71717A]">|</span>
+<span class="text-[#bec9c4]">Simulate design system states:</span>
+</div>
+<div class="flex items-center gap-1.5 bg-[#27272A] p-1 rounded border border-[#3F3F46]">
+<button class="px-2.5 py-1 rounded text-xs font-medium transition-colors bg-[#1F6F5C] text-white" id="btn-state-default">Default (4 dates)</button>
+<button class="px-2.5 py-1 rounded text-xs font-medium transition-colors text-[#bec9c4] hover:text-white" id="btn-state-loading">Loading</button>
+<button class="px-2.5 py-1 rounded text-xs font-medium transition-colors text-[#bec9c4] hover:text-white" id="btn-state-success">Success ('Released')</button>
+<button class="px-2.5 py-1 rounded text-xs font-medium transition-colors text-[#bec9c4] hover:text-white" id="btn-state-error">Validation Error ('Over 30 days')</button>
+</div>
+</aside>
+<!-- TopNavBar (Matches Shared JSON Schema) -->
+<header class="flex justify-between items-center w-full h-16 pl-64 pr-8 border-b border-outline-variant bg-surface-container-lowest sticky top-0 z-30">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-sm text-[#71717A]">
+<span class="font-headline font-bold text-base text-on-surface tracking-tight">Folio3 Parking</span>
+<span>/</span>
+<span class="text-[#18181B] font-medium">Claim &amp; Release</span>
+<span>/</span>
+<span class="text-[#71717A]">Schedule releases</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary hover:bg-[#E6F0ED] rounded border border-[#1F6F5C]/30 transition-colors">
+<span class="material-symbols-outlined text-[16px]" data-icon="local_parking">local_parking</span>
+        Release today
+      </button>
+<div class="h-4 w-px bg-outline-variant"></div>
+<button aria-label="Notifications" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Help and documentation" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="flex items-center gap-2.5 pl-2 border-l border-outline-variant">
+<div class="w-8 h-8 rounded-full bg-[#EFEFF1] text-[#3F3F46] font-semibold text-xs flex items-center justify-center border border-outline-variant" title="Bilal Ahmed (F3-1187)">
+          BA
+        </div>
+<div class="text-left leading-tight hidden lg:block">
+<div class="text-xs font-semibold text-[#18181B]">Bilal Ahmed</div>
+<div class="text-[11px] font-mono text-[#71717A]">F3-1187 · Core Eng</div>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden relative">
+<!-- SideNavBar (Matches Shared JSON Schema) -->
+<aside class="fixed left-0 top-0 h-full w-58 flex flex-col justify-between py-6 px-3 z-40 bg-surface-container-lowest border-r border-outline-variant">
+<div>
+<!-- Brand Header -->
+<div class="flex items-center gap-3 px-3 pb-6 border-b border-outline-variant">
+<div class="w-8 h-8 rounded bg-[#1F6F5C] text-white flex items-center justify-center font-bold text-sm tracking-wider">
+            F3
+          </div>
+<div>
+<div class="font-headline text-base font-bold text-on-surface tracking-tight">Folio3 Parking</div>
+<div class="font-label text-[11px] uppercase tracking-wider text-outline font-semibold">Bay Management</div>
+</div>
+</div>
+<!-- Primary CTA inside Sidenav -->
+<div class="pt-4 pb-2 px-1">
+<button class="w-full h-10 rounded-[6px] bg-[#1F6F5C] hover:bg-[#195C4C] active:scale-[0.97] transition-all text-white text-sm font-medium flex items-center justify-center gap-2 shadow-none">
+<span class="material-symbols-outlined text-[18px]" data-icon="add_circle">add_circle</span>
+            Claim space
+          </button>
+</div>
+<!-- Sidenav Links (5 standard tabs) -->
+<nav class="space-y-1 mt-4">
+<!-- Active: Claim & Release -->
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-surface font-medium border-l-2 border-primary rounded-r" href="#">
+<span class="material-symbols-outlined text-primary" data-icon="local_parking">local_parking</span>
+<span class="text-sm">Claim &amp; Release</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="calendar_today">calendar_today</span>
+<span class="text-sm">Daily Allocations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="security">security</span>
+<span class="text-sm">Guard Console</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="directions_car">directions_car</span>
+<span class="text-sm">Vehicle Roster</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="receipt_long">receipt_long</span>
+<span class="text-sm">Audit Log</span>
+</a>
+</nav>
+</div>
+<!-- Sidenav Footer -->
+<div class="pt-4 border-t border-outline-variant space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="help_outline">help_outline</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="logout">logout</span>
+<span>Sign out</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas (Columns 1 to 12) -->
+<main class="flex-1 ml-58 p-8 overflow-y-auto max-w-[1400px]">
+<!-- VALIDATION BANNER (Interactive State Controlled) -->
+<div class="hidden mb-6 bg-[#FBEAE8] border-l-4 border-[#B42318] p-4 rounded-r-[6px] text-sm text-[#18181B] flex items-start justify-between" id="validation-error-banner">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-[#B42318] mt-0.5" data-icon="error">error</span>
+<div>
+<div class="font-semibold text-[#B42318]">Invalid Release Window (Over 30 days)</div>
+<p class="text-xs text-[#3F3F46] mt-0.5 leading-relaxed">
+              Selected date <span class="font-mono font-medium">18 Jul 2025</span> exceeds the allowed forward reservation policy. Releases can only be scheduled up to 30 calendar days in advance (maximum date: <strong class="font-mono">10 Jul 2025</strong>).
+            </p>
+</div>
+</div>
+<button class="text-[#71717A] hover:text-[#18181B] p-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- SUCCESS CONFIRMATION MODAL/PANEL (Interactive State Controlled) -->
+<div class="hidden mb-6 bg-[#E6F0ED] border border-[#1F6F5C]/40 border-l-4 border-l-[#1F6F5C] p-5 rounded-r-[8px] text-[#18181B] transition-all" id="success-state-container">
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-3.5">
+<div class="w-8 h-8 rounded-full bg-[#1F6F5C] text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-semibold text-base text-[#18181B]">Releases Successfully Scheduled</h3>
+<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2F7D4A] text-white uppercase tracking-wider">Released</span>
+</div>
+<p class="text-xs text-[#3F3F46] mt-1 max-w-2xl leading-relaxed">
+                4 dates for <span class="space-chip text-[12px] py-0 px-1.5">B1-03</span> have been placed into the Folio3 office pool. Colleagues can book them starting at 08:00 PKT on each scheduled morning. You received +4 Hybrid Credits.
+              </p>
+<div class="mt-3 flex flex-wrap gap-2 text-xs">
+<span class="bg-white border border-[#bec9c4] px-2.5 py-1 rounded text-[#18181B] font-mono">Thu, 12 Jun 2025 · Pool Open</span>
+<span class="bg-white border border-[#bec9c4] px-2.5 py-1 rounded text-[#18181B] font-mono">Mon, 16 Jun 2025 · Pool Open</span>
+<span class="bg-white border border-[#bec9c4] px-2.5 py-1 rounded text-[#18181B] font-mono">Tue, 17 Jun 2025 · Pool Open</span>
+<span class="bg-white border border-[#bec9c4] px-2.5 py-1 rounded text-[#18181B] font-mono">Tue, 24 Jun 2025 · Pool Open</span>
+</div>
+</div>
+</div>
+<button class="text-xs font-medium text-[#1F6F5C] hover:underline flex items-center gap-1">
+<span>Dismiss banner</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<!-- SECTION 1: HEADING & SUBTEXT -->
+<section class="mb-8">
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[#E4E4E7]">
+<div>
+<div class="flex items-center gap-2.5 mb-1.5">
+<span class="space-chip text-sm font-semibold">B1-03</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#EFEFF1] text-[#3F3F46] border border-[#E4E4E7]">
+                Dedicated Bay Holder · Zone B1
+              </span>
+<span class="text-xs text-[#71717A] flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+                Active Lease
+              </span>
+</div>
+<h1 class="font-headline font-bold text-[28px] leading-[1.2] text-[#18181B] tracking-[-0.02em]">
+              Schedule releases for Space B1-03
+            </h1>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<span class="text-xs text-[#71717A]">Today: <strong class="font-mono text-[#18181B]">Tue, 10 Jun 2025</strong></span>
+<button class="h-9 px-3.5 rounded-[6px] border border-[#E4E4E7] bg-white hover:bg-[#EFEFF1] text-[#3F3F46] text-xs font-medium flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_back">arrow_back</span>
+              Back to Bay
+            </button>
+</div>
+</div>
+<!-- Policy Reminder Banner / Info Strip -->
+<div class="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+<div class="lg:col-span-8 bg-white border border-[#E4E4E7] rounded-[8px] p-4 flex items-start gap-3.5">
+<div class="w-8 h-8 rounded bg-[#E6F0ED] text-[#1F6F5C] flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]" data-icon="event_available">event_available</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-[#18181B]">Release Timing &amp; Activation Protocol</p>
+<p class="text-xs text-[#3F3F46] mt-0.5 leading-relaxed">
+                Scheduled releases become claimable at <strong class="font-mono font-semibold text-[#18181B]">08:00 PKT</strong> on each date. If unbooked by 10:00 PKT, the space remains in the emergency on-demand pool for office visitors and field staff.
+              </p>
+</div>
+</div>
+<div class="lg:col-span-4 bg-[#F7F7F8] border border-[#E4E4E7] rounded-[8px] p-4 flex items-start gap-3">
+<div class="w-7 h-7 rounded bg-[#F1F4F1] text-[#49645b] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="stars">stars</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-[#18181B]">Hybrid Credits Award</p>
+<p class="text-[11px] text-[#71717A] mt-0.5 leading-relaxed">
+                Releasing your spot awards hybrid credit and lets colleagues book unreserved spots on days you work remotely.
+              </p>
+</div>
+</div>
+</div>
+</section>
+<!-- 12-COLUMN MAIN CONTENT GRID -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- SECTION 2: MULTI-SELECT CALENDAR (COLUMNS 1-8) -->
+<div class="lg:col-span-8 space-y-4">
+<div class="bg-white border border-[#E4E4E7] rounded-[8px] p-6 shadow-none">
+<!-- Calendar Navigation Header -->
+<div class="flex items-center justify-between pb-4 border-b border-[#E4E4E7]">
+<div>
+<h2 class="font-headline font-semibold text-base text-[#18181B]">Select Release Dates</h2>
+<p class="text-xs text-[#71717A]">Multi-select eligible working days within the permissible 30-day window (11 Jun – 10 Jul 2025).</p>
+</div>
+<!-- Month Range Indicator -->
+<div class="flex items-center gap-2 bg-[#EFEFF1] p-1 rounded-[6px] border border-[#E4E4E7]">
+<button class="w-7 h-7 flex items-center justify-center rounded text-[#71717A] hover:text-[#18181B] hover:bg-white transition-colors" title="Previous Window (Disabled - Past)">
+<span class="material-symbols-outlined text-[16px]" data-icon="chevron_left">chevron_left</span>
+</button>
+<span class="font-mono text-xs px-2 font-medium text-[#18181B]">Jun 2025 – Jul 2025</span>
+<button class="w-7 h-7 flex items-center justify-center rounded text-[#71717A] hover:text-[#18181B] hover:bg-white transition-colors" title="Next Month">
+<span class="material-symbols-outlined text-[16px]" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Calendar Key / Legend -->
+<div class="flex flex-wrap items-center gap-4 py-3 text-xs border-b border-[#EFEFF1]">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-[#71717A]">Legend:</span>
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded border border-[#E4E4E7] bg-white"></span>
+<span class="text-[#3F3F46]">Available</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded bg-[#1F6F5C] text-white flex items-center justify-center text-[9px]">✓</span>
+<span class="text-[#18181B] font-medium">Selected (<span id="legend-selected-count">4</span>)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded bg-[#EFEFF1] border border-[#D4D4D8] text-[#71717A] line-through text-[9px] flex items-center justify-center">13</span>
+<span class="text-[#71717A]">Already Released</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded bg-[#F7F7F8] border border-dashed border-[#D4D4D8]"></span>
+<span class="text-[#71717A]">Restricted / Beyond 30 Days</span>
+</div>
+</div>
+<!-- Dual Month View Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-5">
+<!-- MONTH 1: JUNE 2025 -->
+<div>
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-headline font-bold text-sm text-[#18181B]">June 2025</span>
+<span class="text-[11px] font-mono text-[#71717A]">Today: 10 Jun</span>
+</div>
+<!-- Days of Week Header -->
+<div class="grid grid-cols-7 gap-1 text-center font-label text-[11px] uppercase tracking-wider font-semibold text-[#71717A] mb-1.5">
+<div>Su</div>
+<div>Mo</div>
+<div>Tu</div>
+<div>We</div>
+<div>Th</div>
+<div>Fr</div>
+<div>Sa</div>
+</div>
+<!-- June Grid -->
+<!-- June 2025 starts on Sunday June 1 -->
+<div class="grid grid-cols-7 gap-1 text-xs">
+<!-- 1 Jun (Past) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">1</div>
+<!-- 2-9 Jun (Past) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">2</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">3</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">4</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">5</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">6</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">7</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">8</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed text-[11px] font-mono">9</div>
+<!-- 10 Jun: Today -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded border border-[#18181B] bg-white font-semibold font-mono text-[#18181B] relative cursor-not-allowed" title="Today (Already active day)">
+<span>10</span>
+<span class="text-[8px] uppercase tracking-tighter text-[#1F6F5C] font-sans -mt-1 font-bold">Today</span>
+</div>
+<!-- 11 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-11" data-label="Wed, 11 Jun 2025" type="button">
+<span>11</span>
+</button>
+<!-- 12 Jun (Selected) -->
+<button class="cal-day calendar-cell selected flex flex-col items-center justify-center rounded bg-[#1F6F5C] text-white font-mono font-medium relative shadow-sm" data-date="2025-06-12" data-label="Thu, 12 Jun 2025" type="button">
+<span>12</span>
+<span class="material-symbols-outlined text-[12px] -mt-0.5" data-icon="check">check</span>
+</button>
+<!-- 13 Jun (Already Released / Claimed) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded bg-[#EFEFF1] text-[#71717A] border border-[#D4D4D8] cursor-not-allowed font-mono relative line-through" title="Already Released / In Pool">
+<span>13</span>
+<span class="text-[7px] no-underline uppercase tracking-tighter text-[#71717A] font-sans -mt-0.5">Pool</span>
+</div>
+<!-- 14 Jun (Weekend) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">14</div>
+<!-- 15 Jun (Weekend) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">15</div>
+<!-- 16 Jun (Selected) -->
+<button class="cal-day calendar-cell selected flex flex-col items-center justify-center rounded bg-[#1F6F5C] text-white font-mono font-medium relative shadow-sm" data-date="2025-06-16" data-label="Mon, 16 Jun 2025" type="button">
+<span>16</span>
+<span class="material-symbols-outlined text-[12px] -mt-0.5" data-icon="check">check</span>
+</button>
+<!-- 17 Jun (Selected) -->
+<button class="cal-day calendar-cell selected flex flex-col items-center justify-center rounded bg-[#1F6F5C] text-white font-mono font-medium relative shadow-sm" data-date="2025-06-17" data-label="Tue, 17 Jun 2025" type="button">
+<span>17</span>
+<span class="material-symbols-outlined text-[12px] -mt-0.5" data-icon="check">check</span>
+</button>
+<!-- 18 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-18" data-label="Wed, 18 Jun 2025" type="button">
+<span>18</span>
+</button>
+<!-- 19 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-19" data-label="Thu, 19 Jun 2025" type="button">
+<span>19</span>
+</button>
+<!-- 20 Jun (Already Released / Claimed) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded bg-[#EFEFF1] text-[#71717A] border border-[#D4D4D8] cursor-not-allowed font-mono relative line-through" title="Already Released / Claimed">
+<span>20</span>
+<span class="text-[7px] no-underline uppercase tracking-tighter text-[#71717A] font-sans -mt-0.5">Pool</span>
+</div>
+<!-- 21-22 Jun (Weekend) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">21</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">22</div>
+<!-- 23 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-23" data-label="Mon, 23 Jun 2025" type="button">
+<span>23</span>
+</button>
+<!-- 24 Jun (Selected) -->
+<button class="cal-day calendar-cell selected flex flex-col items-center justify-center rounded bg-[#1F6F5C] text-white font-mono font-medium relative shadow-sm" data-date="2025-06-24" data-label="Tue, 24 Jun 2025" type="button">
+<span>24</span>
+<span class="material-symbols-outlined text-[12px] -mt-0.5" data-icon="check">check</span>
+</button>
+<!-- 25 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-25" data-label="Wed, 25 Jun 2025" type="button">
+<span>25</span>
+</button>
+<!-- 26 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-26" data-label="Thu, 26 Jun 2025" type="button">
+<span>26</span>
+</button>
+<!-- 27 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-27" data-label="Fri, 27 Jun 2025" type="button">
+<span>27</span>
+</button>
+<!-- 28-29 Jun (Weekend) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">28</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">29</div>
+<!-- 30 Jun (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-06-30" data-label="Mon, 30 Jun 2025" type="button">
+<span>30</span>
+</button>
+</div>
+</div>
+<!-- MONTH 2: JULY 2025 -->
+<div>
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-headline font-bold text-sm text-[#18181B]">July 2025</span>
+<span class="text-[11px] font-mono text-[#9A6700]">Max window: 10 Jul</span>
+</div>
+<!-- Days of Week Header -->
+<div class="grid grid-cols-7 gap-1 text-center font-label text-[11px] uppercase tracking-wider font-semibold text-[#71717A] mb-1.5">
+<div>Su</div>
+<div>Mo</div>
+<div>Tu</div>
+<div>We</div>
+<div>Th</div>
+<div>Fr</div>
+<div>Sa</div>
+</div>
+<!-- July Grid (Starts Tuesday 1 Jul) -->
+<div class="grid grid-cols-7 gap-1 text-xs">
+<!-- Empty Sun, Mon offsets -->
+<div class="calendar-cell"></div>
+<div class="calendar-cell"></div>
+<!-- 1 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-01" data-label="Tue, 1 Jul 2025" type="button">
+<span>1</span>
+</button>
+<!-- 2 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-02" data-label="Wed, 2 Jul 2025" type="button">
+<span>2</span>
+</button>
+<!-- 3 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-03" data-label="Thu, 3 Jul 2025" type="button">
+<span>3</span>
+</button>
+<!-- 4 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-04" data-label="Fri, 4 Jul 2025" type="button">
+<span>4</span>
+</button>
+<!-- 5-6 Jul (Weekend) -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">5</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">6</div>
+<!-- 7 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-07" data-label="Mon, 7 Jul 2025" type="button">
+<span>7</span>
+</button>
+<!-- 8 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-08" data-label="Tue, 8 Jul 2025" type="button">
+<span>8</span>
+</button>
+<!-- 9 Jul (Available) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#E4E4E7] hover:border-[#1F6F5C] hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-09" data-label="Wed, 9 Jul 2025" type="button">
+<span>9</span>
+</button>
+<!-- 10 Jul (Last permitted day: 30-day cutoff) -->
+<button class="cal-day calendar-cell flex flex-col items-center justify-center rounded border border-[#1F6F5C]/60 bg-[#E6F0ED]/30 hover:bg-[#E6F0ED] font-mono transition-colors" data-date="2025-07-10" data-label="Thu, 10 Jul 2025" title="Day 30 (Cutoff)" type="button">
+<span class="font-semibold text-[#1F6F5C]">10</span>
+</button>
+<!-- 11 Jul onward: GREYED OUT / DISABLED / BEYOND 30 DAYS -->
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]" title="Exceeds 30-day release window">11</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]">12</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]">13</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]">14</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]">15</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]">16</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px] border border-dashed border-[#E4E4E7]">17</div>
+<!-- Trigger for Testing Validation Error: 18 Jul -->
+<button class="calendar-cell flex flex-col items-center justify-center rounded text-[#9A6700] bg-[#FBF3DE]/50 hover:bg-[#FBF3DE] cursor-pointer font-mono text-[11px] border border-dashed border-[#9A6700]/50" title="Click to test >30 day restriction error" type="button">
+<span>18</span>
+<span class="text-[7px] text-[#9A6700] uppercase font-sans">Lock</span>
+</button>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">19</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">20</div>
+<div class="calendar-cell flex flex-col items-center justify-center rounded text-[#bec9c4] bg-[#F7F7F8] cursor-not-allowed font-mono text-[11px]">21</div>
+</div>
+</div>
+</div>
+<!-- Calendar Helper Footer -->
+<div class="mt-6 pt-4 border-t border-[#E4E4E7] flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-[#71717A] gap-2">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#1F6F5C]" data-icon="info">info</span>
+                Releasing a space does not forfeit ownership of Bay B1-03.
+              </span>
+<span class="font-mono text-[11px]">Office Timezone: Asia/Karachi (PKT GMT+5)</span>
+</div>
+</div>
+</div>
+<!-- SECTION 3: SUMMARY PANEL & SECTION 4: ACTIONS (COLUMNS 9-12) -->
+<div class="lg:col-span-4 space-y-4">
+<!-- Summary Panel -->
+<div class="bg-white border border-[#E4E4E7] rounded-[8px] p-5 shadow-none space-y-5">
+<!-- Panel Header -->
+<div class="flex items-center justify-between pb-3 border-b border-[#E4E4E7]">
+<div>
+<span class="font-label text-[11px] uppercase tracking-wider font-semibold text-[#71717A]">Release Batch</span>
+<h3 class="font-headline font-bold text-lg text-[#18181B]" id="summary-header-count">Selected: 4 dates</h3>
+</div>
+<button class="text-xs text-[#1F6F5C] hover:underline font-medium hover:text-[#195C4C]">
+                Deselect all
+              </button>
+</div>
+<!-- List of Selected Dates -->
+<div class="space-y-2.5" id="selected-dates-list">
+<!-- Item 1: Thu, 12 Jun 2025 -->
+<div class="p-3 rounded-[6px] bg-[#F7F7F8] border border-[#E4E4E7] flex items-center justify-between group hover:border-[#1F6F5C]/40 transition-colors" data-item-date="2025-06-12">
+<div>
+<div class="font-headline font-semibold text-xs text-[#18181B] flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+                    Thu, 12 Jun 2025
+                  </div>
+<div class="text-[11px] font-mono text-[#71717A] mt-0.5">Space opens at 08:00 PKT</div>
+</div>
+<button aria-label="Remove 12 Jun 2025" class="w-6 h-6 rounded flex items-center justify-center text-[#71717A] hover:text-[#B42318] hover:bg-white transition-colors" title="Remove date">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Item 2: Mon, 16 Jun 2025 -->
+<div class="p-3 rounded-[6px] bg-[#F7F7F8] border border-[#E4E4E7] flex items-center justify-between group hover:border-[#1F6F5C]/40 transition-colors" data-item-date="2025-06-16">
+<div>
+<div class="font-headline font-semibold text-xs text-[#18181B] flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+                    Mon, 16 Jun 2025
+                  </div>
+<div class="text-[11px] font-mono text-[#71717A] mt-0.5">Space opens at 08:00 PKT</div>
+</div>
+<button aria-label="Remove 16 Jun 2025" class="w-6 h-6 rounded flex items-center justify-center text-[#71717A] hover:text-[#B42318] hover:bg-white transition-colors" title="Remove date">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Item 3: Tue, 17 Jun 2025 -->
+<div class="p-3 rounded-[6px] bg-[#F7F7F8] border border-[#E4E4E7] flex items-center justify-between group hover:border-[#1F6F5C]/40 transition-colors" data-item-date="2025-06-17">
+<div>
+<div class="font-headline font-semibold text-xs text-[#18181B] flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+                    Tue, 17 Jun 2025
+                  </div>
+<div class="text-[11px] font-mono text-[#71717A] mt-0.5">Space opens at 08:00 PKT</div>
+</div>
+<button aria-label="Remove 17 Jun 2025" class="w-6 h-6 rounded flex items-center justify-center text-[#71717A] hover:text-[#B42318] hover:bg-white transition-colors" title="Remove date">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Item 4: Tue, 24 Jun 2025 -->
+<div class="p-3 rounded-[6px] bg-[#F7F7F8] border border-[#E4E4E7] flex items-center justify-between group hover:border-[#1F6F5C]/40 transition-colors" data-item-date="2025-06-24">
+<div>
+<div class="font-headline font-semibold text-xs text-[#18181B] flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+                    Tue, 24 Jun 2025
+                  </div>
+<div class="text-[11px] font-mono text-[#71717A] mt-0.5">Space opens at 08:00 PKT</div>
+</div>
+<button aria-label="Remove 24 Jun 2025" class="w-6 h-6 rounded flex items-center justify-center text-[#71717A] hover:text-[#B42318] hover:bg-white transition-colors" title="Remove date">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<!-- Empty Selection State (Hidden initially) -->
+<div class="hidden py-6 text-center border border-dashed border-[#E4E4E7] rounded-[6px]" id="empty-selection-placeholder">
+<span class="material-symbols-outlined text-[#71717A] text-2xl" data-icon="event_busy">event_busy</span>
+<p class="text-xs text-[#71717A] mt-1">No dates currently selected.</p>
+<p class="text-[11px] text-[#bec9c4]">Click available dates on the calendar.</p>
+</div>
+<!-- Space Details Summary Box -->
+<div class="pt-4 border-t border-[#E4E4E7] space-y-2.5">
+<span class="font-label text-[11px] uppercase tracking-wider font-semibold text-[#71717A] block">Space &amp; Vehicle Details</span>
+<div class="p-3 rounded-[6px] bg-[#EFEFF1]/60 border border-[#E4E4E7] space-y-2 text-xs">
+<div class="flex items-center justify-between">
+<span class="text-[#71717A]">Assigned Space:</span>
+<div class="flex items-center gap-1.5">
+<span class="space-chip text-xs">B1-03</span>
+<span class="text-[11px] text-[#3F3F46]">Basement 1, Pillar 14</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 border-t border-[#E4E4E7]/60">
+<span class="text-[#71717A]">Primary Vehicle:</span>
+<div class="flex items-center gap-1.5">
+<span class="plate-chip text-xs">BKX-482</span>
+<span class="text-[11px] text-[#3F3F46]">Toyota Corolla</span>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 4: PRIMARY ACTIONS & VALIDATION NOTE -->
+<div class="pt-2 space-y-3">
+<!-- Validation Note Banner -->
+<div class="bg-[#FBF3DE] border-l-2 border-[#9A6700] p-2.5 rounded-r text-[11px] text-[#3F3F46] flex items-start gap-2">
+<span class="material-symbols-outlined text-[#9A6700] text-[16px] shrink-0" data-icon="schedule">schedule</span>
+<span>Dates can be at most 30 days ahead (until <strong class="font-mono">10 Jul 2025</strong>).</span>
+</div>
+<!-- Primary Button with hover and active tokens -->
+<button class="w-full h-10 rounded-[6px] bg-[#1F6F5C] hover:bg-[#195C4C] active:scale-[0.97] transition-all text-white text-sm font-medium flex items-center justify-center gap-2 shadow-none focus-visible:outline-2 focus-visible:outline-[#1F6F5C] focus-visible:outline-offset-2" id="primary-release-btn">
+<span class="material-symbols-outlined text-[18px]" data-icon="done_all">done_all</span>
+<span id="primary-action-text">Release 4 dates</span>
+</button>
+<!-- Secondary Cancel Action -->
+<button class="w-full h-9 rounded-[6px] border border-[#E4E4E7] bg-white hover:bg-[#EFEFF1] text-[#3F3F46] text-xs font-medium transition-colors">
+                Cancel and return to dashboard
+              </button>
+</div>
+</div>
+<!-- Quick Guidelines Panel -->
+<div class="bg-white border border-[#E4E4E7] rounded-[8px] p-4 text-xs text-[#71717A] space-y-2">
+<div class="font-semibold text-[#18181B] flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#1F6F5C]" data-icon="rule">rule</span>
+              Cancellation &amp; Reclaim Terms
+            </div>
+<p class="leading-relaxed text-[11px]">
+              You can reclaim your space anytime up until <strong>20:00 PKT</strong> the evening before the released date, provided no colleague has booked it.
+            </p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- LOADING MODAL OVERLAY (Controlled by State switcher / form submit) -->
+<div class="hidden fixed inset-0 z-50 bg-[#18181B]/40 backdrop-blur-[1px] flex items-center justify-center transition-opacity" id="loading-modal">
+<div class="bg-white border border-[#E4E4E7] rounded-[8px] p-6 max-w-sm w-full mx-4 shadow-xl text-center space-y-4 animate-[rise_260ms_ease-out]">
+<div class="w-12 h-12 mx-auto rounded-full bg-[#E6F0ED] flex items-center justify-center text-[#1F6F5C]">
+<!-- Shimmering indicator ring without raw spinning SVG bloat -->
+<div class="w-6 h-6 rounded-full border-2 border-[#1F6F5C] border-t-transparent animate-spin"></div>
+</div>
+<div>
+<h4 class="font-headline font-semibold text-base text-[#18181B]">Saving releases…</h4>
+<p class="text-xs text-[#71717A] mt-1">Updating allocation matrix for Space B1-03 across 4 selected dates in June &amp; July 2025.</p>
+</div>
+<div class="bg-[#F7F7F8] p-2.5 rounded font-mono text-xs text-[#3F3F46] flex items-center justify-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#1F6F5C] animate-pulse"></span>
+        Submitting to Karachi Parking Cluster
+      </div>
+</div>
+</div>
+<!-- Vanilla JavaScript for Real-Time Multi-Select & Screen State Switching -->
+
+<script>(function(){var T=[{"id":"S-1","names":["folio3 parking system","sign in"],"words":["sign"]},{"id":"S-2","names":["we couldn t load your employee profile","access error"],"words":["access"]},{"id":"S-3","names":["register your vehicle to continue","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-4","names":["good morning bilal","dashboard"],"words":["dashboard"]},{"id":"S-5","names":["hello ayesha siddiqui","holder","dashboard holder"],"words":["dashboard","holder"]},{"id":"S-7","names":["my profile vehicles","profile"],"words":["profile"]},{"id":"S-8","names":["critical hardware alert","verifications","guard verifications"],"words":["guard","verification"]},{"id":"S-9","names":["parking spaces","spaces","admin spaces"],"words":["space"]},{"id":"S-10","names":["employees","admin employees"],"words":["employee"]},{"id":"S-11","names":["employee parking vehicle maintenance","employees","admin employees"],"words":["employee"]},{"id":"S-12","names":["roles and access","roles","admin roles"],"words":["role"]},{"id":"S-13","names":["parking release settings","settings","admin settings"],"words":["setting"]},{"id":"S-14","names":["weekly report recipients","recipients","admin reports recipients"],"words":["report","recipient"]},{"id":"S-15","names":["weekly utilization report","reports","admin reports"],"words":["report"]},{"id":"S-16","names":["audit log","audit","admin audit"],"words":["audit"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"];
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
+var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

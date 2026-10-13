@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 18,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "imports/source|adapters|source-records|preview-source",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 763,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;imports/source|adapters|source-records|preview-source&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:59: export const getPreviewSourceRecordsResponseMock = (): ImportPreviewResponse => ({\"permissions\":[\"imports.manage\"],\"records\":[{\"id\":701,\"vendor\":\"Prairie Livestock\",\"sourceIdentifier\":\"PO-8831-L1\",\"co\nlib/api/client.msw.ts:61: export const getImportSelectedRecordsResponseMock = (): ImportResult => ({\"permissions\":[\"imports.manage\"],\"status\":\"completed_with_matches\",\"createdCount\":0,\"updatedCount\":1,\"records\":[{\"id\":701,\"ven\nlib/api/client.msw.ts:181: return http.get('*/imports/source-records', async (info) => {await delay(1000);\n</untrusted_document>"
+  }
+ ]
+}

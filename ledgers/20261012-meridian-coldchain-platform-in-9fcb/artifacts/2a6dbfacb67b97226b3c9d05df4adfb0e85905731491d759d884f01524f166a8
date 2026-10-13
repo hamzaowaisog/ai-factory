@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meridian — Stock (Empty State)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design System Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Page Entrance Sequence */
+    .animate-entrance {
+      animation: entranceFadeUp 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Fonts */
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Header styling */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-icon {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-link {
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      border-bottom: 2px solid transparent;
+      transition: color 180ms ease, border-color 180ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link.active {
+      color: #A94B1D;
+      border-bottom: 2px solid #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    .lang-switch {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* Page Header Section */
+    .page-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+
+    .main-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    /* Stock summary figure section (Leading figure, not metric cards) */
+    .lead-figure-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px 24px;
+      margin-bottom: 32px;
+    }
+
+    .figure-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .large-figure {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 40px;
+      font-weight: 600;
+      line-height: 1;
+      color: #202020;
+      letter-spacing: -0.5px;
+    }
+
+    .figure-label {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    .figure-scope {
+      font-size: 14px;
+      color: #626262;
+      padding-left: 8px;
+      border-left: 1px solid #D5D5D5;
+    }
+
+    /* Mutually exclusive textual breakdown */
+    .status-breakdown-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #D5D5D5;
+      font-size: 14px;
+    }
+
+    .breakdown-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #626262;
+    }
+
+    .breakdown-item strong {
+      color: #202020;
+      font-weight: 600;
+    }
+
+    .breakdown-item .font-mono {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .field-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    .text-field, .select-field {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      width: 100%;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .text-field:focus, .select-field:focus {
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    .text-field::placeholder {
+      color: #626262;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      height: 48px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 2px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: opacity 160ms ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 20px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background-color 160ms ease, border-color 160ms ease, transform 90ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Table Container & Empty State */
+    .table-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stock-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .stock-table th {
+      background-color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid #D5D5D5;
+      white-space: nowrap;
+    }
+
+    .empty-state-container {
+      padding: 72px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      width: 56px;
+      height: 56px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      background-color: #F7F7F7;
+      color: #626262;
+    }
+
+    .empty-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .empty-message {
+      font-size: 15px;
+      color: #626262;
+      max-width: 480px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Table footer audit bar */
+    .table-footer {
+      height: 48px;
+      background-color: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Accessibility prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header: The same on every page -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <span class="brand-icon">M</span>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav>
+        <a href="#" class="nav-link">Receipts</a>
+        <a href="#" class="nav-link active">Stock</a>
+        <a href="#" class="nav-link">Moves</a>
+        <a href="#" class="nav-link">Boxes</a>
+        <a href="#" class="nav-link">Cold rooms</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-avatar">LH</div>
+        <span>Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div class="lang-switch">
+        EN / العربية
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="animate-entrance">
+    <!-- Page Heading -->
+    <div class="page-title-row">
+      <h1 class="main-title">Stock</h1>
+      <button class="btn-primary" type="button">
+        Opening stock
+      </button>
+    </div>
+
+    <!-- Lead figure & scope (Lead with one large 0 packs on hand figure and its North Quay scope, not metric cards) -->
+    <section class="lead-figure-panel">
+      <div class="figure-header">
+        <span class="large-figure">0</span>
+        <span class="figure-label">packs on hand</span>
+        <span class="figure-scope">North Quay Warehouse</span>
+      </div>
+      <!-- Mutually exclusive totals -->
+      <div class="status-breakdown-row">
+        <span class="breakdown-item"><strong>Available</strong> <span class="font-mono">0</span></span>
+        <span class="breakdown-item"><strong>Allocated</strong> <span class="font-mono">0</span></span>
+        <span class="breakdown-item"><strong>Quarantined</strong> <span class="font-mono">0</span></span>
+        <span class="breakdown-item"><strong>On Hold</strong> <span class="font-mono">0</span></span>
+        <span class="breakdown-item"><strong>Rejected</strong> <span class="font-mono">0</span></span>
+        <span class="breakdown-item"><strong>Recalled</strong> <span class="font-mono">0</span></span>
+        <span class="breakdown-item"><strong>Expired</strong> <span class="font-mono">0</span></span>
+      </div>
+    </section>
+
+    <!-- Filter & search row -->
+    <section class="filter-panel">
+      <div class="field-group" style="flex: 2;">
+        <label class="field-label" for="search-input">Search</label>
+        <input 
+          id="search-input" 
+          type="text" 
+          class="text-field" 
+          placeholder="Search product, lot, handling unit, or location"
+          disabled
+        >
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="status-filter">Status</label>
+        <select id="status-filter" class="select-field" disabled>
+          <option>All statuses</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="handling-unit-filter">Handling unit</label>
+        <select id="handling-unit-filter" class="select-field" disabled>
+          <option>All units</option>
+        </select>
+      </div>
+
+      <button type="button" class="btn-secondary" style="height: 48px;" disabled>
+        CSV export
+      </button>
+    </section>
+
+    <!-- Lot & Handling-Unit Table: Empty State -->
+    <section class="table-panel">
+      <table class="stock-table">
+        <thead>
+          <tr>
+            <th style="width: 72px;">Photo</th>
+            <th style="width: 140px;">Product</th>
+            <th style="width: 110px;">Lot</th>
+            <th style="width: 130px;">Handling unit</th>
+            <th style="width: 140px;">Warehouse</th>
+            <th style="width: 130px;">Location</th>
+            <th style="width: 120px;">Receipt</th>
+            <th style="width: 120px;">Expiry</th>
+            <th style="width: 90px; text-align: right;">Packs</th>
+            <th style="width: 120px; padding-left: 24px;">Status</th>
+          </tr>
+        </thead>
+      </table>
+
+      <!-- Empty state content -->
+      <div class="empty-state-container">
+        <div class="empty-state-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#626262" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="18" rx="1" ry="1"></rect>
+            <line x1="2" y1="9" x2="22" y2="9"></line>
+            <line x1="10" y1="14" x2="14" y2="14"></line>
+          </svg>
+        </div>
+        <h2 class="empty-title">No stock recorded</h2>
+        <p class="empty-message">
+          No inventory is currently on hand for North Quay Warehouse. Initialize inventory by recording opening stock.
+        </p>
+        <button class="btn-primary" type="button">
+          Opening stock
+        </button>
+      </div>
+
+      <!-- Table footer -->
+      <div class="table-footer">
+        <span>Assigned warehouse: North Quay</span>
+        <span class="font-mono">0 records</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 10,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 53,
+    "end": 61
+   },
+   "ms": 1,
+   "resultChars": 3075,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:53,&quot;end&quot;:61}\">\nlib/api/client.msw.ts lines 53-61\n53\texport const getSignInResponseMock = (): SignInResponse => ({\"accessToken\":\"demo-token-01\",\"user\":{\"id\":1,\"name\":\"Riley Morgan\",\"email\":\"riley@example.test\",\"landingPage\":\"/yard\",\"permissions\":[\"yard.view\",\"inventory.view\"],\"authorizedYards\":[{\"id\":1,\"name\":\"North Yard\"}]}})\n54\t\n55\texport const getGetSessionResponseMock = (): SessionResponse => ({\"user\":{\"id\":1,\"name\":\"Riley Morgan\",\"email\":\"riley@example.test\",\"landingPage\":\"/yard\",\"permissions\":[\"yard.view\",\"inventory.view\"],\"authorizedYards\":[{\"id\":1,\"name\":\"North Yard\"}]}})\n56\t\n57\texport const getGetDashboardResponseMock = (): DashboardResponse => ({\"permissions\":[\"yard.view\",\"profitability.view\"],\"yardSummary\":{\"totalHead\":420,\"averageAdg\":3.1,\"averageCostOfGain\":1.42,\"totalFeedCost\":28450},\"activeLotCount\":3,\"activePenCount\":4,\"inventoryStatus\":\"2 items below reorder level\",\"rationUsage\":\"Grower: 2 lots; Finisher: 1 lot\",\"dailyBunkRatePerPen\":24.5,\"plannedFeed\":1020,\"actualFeed\":1004,\"totalFeedConsumed\":28000,\"totalFeedCost\":28450,\"startingWeight\":620,\"currentWeight\":711,\"totalGain\":91,\"adg\":3.1,\"feedToGain\":7.2,\"costPerGain\":1.42,\"energyConsumed\":18.6,\"rankingMeasure\":\"adg\",\"bestLots\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"value\":3.4}],\"worstLots\":[{\"id\":2412,\"lotCode\":\"L-2412\",\"value\":2.6}],\"lots\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\",\"pen\":\"P-12\",\"head\":140,\"daysOnFeed\":92,\"averageWeight\":711,\"adg\":3.4,\"fcr\":7.1,\"costOfGain\":1.38,\"feedCost\":9450,\"energy\":18.6,\"returnOnInvestment\":12.4,\"status\":\"Active\"}]})\n58\t\n59\texport const getPreviewSourceRecordsResponseMock = (): ImportPreviewResponse => ({\"permissions\":[\"imports.manage\"],\"records\":[{\"id\":701,\"vendor\":\"Prairie Livestock\",\"sourceIdentifier\":\"PO-8831-L1\",\"cost\":1875,\"headCount\":48,\"animalWeight\":612,\"breed\":\"Angus cross\",\"age\":\"18 months\",\"source\":\"Prairie Auction\",\"purchaseOrder\":\"PO-8831\",\"receiving\":\"RCV-294\",\"animalDescription\":\"Angus cross steers\",\"sourceLineId\":\"PO-8831-L1\",\"existingMatch\":false,\"targetPen\":\"P-12\",\"receivedResult\":\"Received\",\"adapterStatus\":\"Ready\",\"sampleData\":false}]})\n60\t\n61\texport const getImportSelectedRecordsResponseMock = (): ImportResult => ({\"permissions\":[\"imports.manage\"],\"status\":\"completed_with_matches\",\"createdCount\":0,\"updatedCount\":1,\"records\":[{\"id\":701,\"vendor\":\"Prairie Livestock\",\"sourceIdentifier\":\"PO-8831-L1\",\"cost\":1875,\"headCount\":46,\"animalWeight\":612,\"breed\":\"Angus cross\",\"age\":\"18 months\",\"source\":\"Prairie Auction\",\"purchaseOrder\":\"PO-8831\",\"receiving\":\"RCV-294\",\"animalDescription\":\"Angus cross steers\",\"sourceLineId\":\"PO-8831-L1\",\"existingMatch\":true,\"targetPen\":\"P-12\",\"receivedResult\":\"Updated\",\"adapterStatus\":\"Matched\",\"sampleData\":false}],\"allocationConflicts\":[{\"sourceIdentifier\":\"PO-8831-L1\",\"returnedHeadCount\":46,\"mappedHeadCount\":48,\"message\":\"Mapped allocation exceeds updated source head count.\"}]})\n… (730 lines total; ask for start=62)\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 15,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getSignInResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 452,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getSignInResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:53: export const getSignInResponseMock = (): SignInResponse => ({\"accessToken\":\"demo-token-01\",\"user\":{\"id\":1,\"name\":\"Riley Morgan\",\"email\":\"riley@example.test\",\"landingPage\":\"/yard\",\"permissions\":[\"yard.\nlib/api/client.msw.ts:149: : getSignInResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

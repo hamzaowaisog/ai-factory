@@ -1,0 +1,194 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Sign-in operation explicitly required",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Explicitly requires the contract-defined sign-in operation to accept and respond according to its request and response definitions."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Explicitly requires POST /auth/sign-in to be available and follow the contract."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-1",
+      "topic": "Authentication and authorization enforcement",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Requires contract-defined errors for failed authentication or authorization, without successful operations or unintended writes."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 4,
+        "summary": "Explicitly bars callers lacking required authentication or permission from restricted operations and requires the contract denial response."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Specifies validation errors for invalid or missing inputs, but does not separately require authentication/authorization enforcement."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Specifies invalid-input and documented-error handling, but does not separately require authentication/authorization enforcement."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-1",
+      "topic": "Undocumented paths and methods",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Explicitly says undefined paths or methods must not act as undocumented contract operations."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Explicitly says undefined paths or methods must not gain new contract operations."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Requires handling every declared operation but does not state what happens for undefined paths or methods."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-2",
+      "topic": "Persistence across process restarts",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Explicitly requires persisted application data to remain available after the API process restarts."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Requires successful creates and updates to persist and be readable by subsequent API requests, but does not explicitly require restart durability."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Requires PostgreSQL persistence, but does not explicitly require restart durability."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-3",
+      "topic": "Seed behavior when disabled",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Explicitly says startup does not write demo rows when Seed:Demo is false or absent."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Explicitly says startup does not insert demo rows when Seed:Demo is false or unset."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Specifies sample rows when demo seeding runs but does not specify that startup must gate seeding on Seed:Demo."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-3",
+      "topic": "Idempotent demo seeding",
+      "readings": [
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Requires rerunning demo seeding with existing sample rows not to create duplicates."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Requires sample rows when seeding runs but does not specify duplicate avoidance."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Requires sample rows at startup when enabled but does not specify duplicate avoidance."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-3",
+      "topic": "Failure to write demo seed data",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Requires startup not to silently claim seeding succeeded if sample rows cannot be written."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Requires writing example rows but does not specify how seed-write failures are reported."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Requires inserting sample rows when seeding runs but does not specify how seed-write failures are reported."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "I-5",
+      "topic": "Health and API documentation/testing surfaces",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Explicitly allows the existing health endpoint and API documentation/testing surface to remain available."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Says expose API operations and avoid product UI routes, without expressly addressing health or documentation/testing surfaces."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Rules out product-facing screens and routes, without expressly addressing health or documentation/testing surfaces."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

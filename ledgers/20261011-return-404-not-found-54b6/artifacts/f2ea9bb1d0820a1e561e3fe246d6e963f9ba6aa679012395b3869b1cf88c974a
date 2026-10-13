@@ -1,0 +1,1 @@
+{"characterisation":[{"file":"Shop.Tests/MissingOrderTests.cs","name":"CHAR_ExistingOrderStillReturned","target":"GET /orders/{id}"}],"notes":"","probes":[{"acId":"AC-1.1","expectStatus":404,"method":"GET","path":"/orders/999"}],"tests":[{"acId":"AC-1.1","file":"Shop.Tests/MissingOrderTests.cs","name":"AC_1_1_Returns404ForMissingOrder"}]}

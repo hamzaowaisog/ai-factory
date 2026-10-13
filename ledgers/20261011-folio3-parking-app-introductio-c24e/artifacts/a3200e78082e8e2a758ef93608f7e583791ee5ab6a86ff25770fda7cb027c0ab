@@ -1,0 +1,135 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Handling failed employee-profile retrieval",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Successful authorized sign-in opens the employee parking-app account, without specifying a separate profile-retrieval failure outcome."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "If the corporate employee profile cannot be identified or retrieved, deny dashboard access and show an unsuccessful sign-in/profile-retrieval outcome."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-1",
+      "topic": "Returning users with incomplete vehicle profiles",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 6,
+        "summary": "Route a first-time user missing a required vehicle profile to vehicle registration after authentication."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Keep an employee from completing first-login setup until required vehicle registration is complete; afterward, returning users go to the dashboard."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Take returning users to the dashboard, without specifying a routing exception for an incomplete vehicle profile."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-2",
+      "topic": "Availability timing for same-day releases",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Make released spaces available according to the daily release-time rule; the chosen interpretation specifies pre-time releases wait and post-time releases are immediate."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Explicitly make a same-day release immediately available if the daily release time has passed, or available at that time if it has not."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Make a valid release eligible according to daily release-time rules, but does not independently spell out the same-day timing cases."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-3",
+      "topic": "Claim race handling",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 4,
+        "summary": "Explicitly reject a later claim if another employee claims the last space first, and show refreshed availability."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Do not allocate when no space remains and ensure each released space can be claimed only once."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "Require concurrent claim attempts not to allocate the same space twice."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-4",
+      "topic": "Unreadable or unverifiable plates",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Check a detected plate against current-day temporary allocations, without stating a separate rule for unreadable plates."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "A plate that cannot be read or verified must not be treated as authorized."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-5",
+      "topic": "Dedicated allocation utilization when holder releases parking",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Classify dedicated parking as unused only when the holder neither released it nor had a registered vehicle detected entering."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Classify an unreleased dedicated allocation as unused when no registered vehicle was detected entering."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

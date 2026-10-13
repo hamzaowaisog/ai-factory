@@ -1,0 +1,844 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample data — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Design System strict colors & reset */
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-quiet: #626262;
+      --border-rule: #D8D8D8;
+      --brand-primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+      --font-heading: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion specifications */
+    @keyframes pageEnter {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% { opacity: 0.82; }
+      50% { opacity: 0.86; }
+    }
+
+    .animate-enter {
+      animation: pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-enter, .live-dot {
+        animation: none !important;
+        transform: none !important;
+      }
+      * {
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+      color: var(--text-main);
+    }
+
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+      color: var(--text-main);
+    }
+
+    .font-mono {
+      font-family: var(--font-mono);
+    }
+
+    .text-quiet {
+      color: var(--text-quiet);
+    }
+
+    /* Top Plain Header */
+    .top-header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-rule);
+      height: 56px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-box {
+      width: 24px;
+      height: 24px;
+      background-color: var(--text-main);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 650;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+
+    .brand-name {
+      font-family: var(--font-heading);
+      font-weight: 650;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .shared-menu {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      list-style: none;
+    }
+
+    .menu-item {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      text-decoration: none;
+      padding: 16px 0;
+      border-bottom: 2px solid transparent;
+      transition: color 140ms ease;
+    }
+
+    .menu-item:hover {
+      color: var(--text-main);
+    }
+
+    .menu-item.active {
+      color: var(--brand-primary);
+      border-bottom-color: var(--brand-primary);
+      font-weight: 600;
+    }
+
+    .header-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .profile-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--border-rule);
+    }
+
+    .profile-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 16px;
+    }
+
+    .profile-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .profile-role {
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    /* Layout */
+    .page-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header-subtext {
+      margin-top: 4px;
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+
+    .major-divider {
+      height: 2px;
+      background-color: var(--border-rule);
+      border: none;
+      margin: 24px 0;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* Visibly Distinct SAMPLE banner/treatment */
+    .sample-status-banner {
+      border: 1px solid var(--border-rule);
+      border-left: 4px solid var(--status-waiting);
+      border-radius: 4px;
+      background-color: var(--bg-surface);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .sample-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background-color: #FAF4E6;
+      color: var(--status-waiting);
+      border: 1px solid #E4D5B3;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good {
+      color: var(--status-good);
+    }
+    .status-good .status-dot {
+      background-color: var(--status-good);
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+    }
+    .status-waiting .status-dot {
+      background-color: var(--status-waiting);
+    }
+
+    .status-failed {
+      color: var(--status-failed);
+    }
+    .status-failed .status-dot {
+      background-color: var(--status-failed);
+    }
+
+    /* Action area */
+    .action-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .action-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    /* Buttons conforming to design system */
+    button {
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--brand-primary);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: var(--brand-primary);
+      color: #FFFFFF;
+      border: 1px solid var(--brand-primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #9E3E35;
+      border-color: #9E3E35;
+    }
+
+    .btn-primary:active:not(:disabled) {
+      background-color: #8C372F;
+    }
+
+    .btn-primary:disabled {
+      background-color: #E2CFCD;
+      border-color: #E2CFCD;
+      color: #FFFFFF;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-rule);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #F5F5F5;
+      border-color: #BFBFBF;
+    }
+
+    .btn-secondary:active:not(:disabled) {
+      background-color: #EBEBEB;
+    }
+
+    .btn-destructive-outline {
+      background-color: transparent;
+      color: var(--status-failed);
+      border: 1px solid #E6B8B5;
+    }
+
+    .btn-destructive-outline:hover:not(:disabled) {
+      background-color: #FDF3F2;
+      border-color: var(--status-failed);
+    }
+
+    .btn-destructive-solid {
+      background-color: var(--status-failed);
+      color: #FFFFFF;
+      border: 1px solid var(--status-failed);
+    }
+
+    .btn-destructive-solid:hover {
+      background-color: #8B342E;
+    }
+
+    /* Confirmation Modal / Inline Drawer */
+    .confirmation-box {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid #E6B8B5;
+      background-color: #FCF7F7;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .confirmation-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Service Result Callout */
+    .service-result-card {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background-color: #F5F5F5;
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    /* Compact Status-Led Table */
+    .data-table-wrapper {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead th {
+      background-color: #FAFAFA;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-rule);
+      height: 44px;
+    }
+
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid var(--border-rule);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      font-size: 15px;
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    .tag-sample {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background-color: #FAF4E6;
+      color: var(--status-waiting);
+      border: 1px solid #E4D5B3;
+      margin-left: 6px;
+    }
+
+    /* Status badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .top-header {
+        height: auto;
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .shared-menu {
+        overflow-x: auto;
+        width: 100%;
+        padding-bottom: 4px;
+      }
+      .panel {
+        padding: 16px;
+      }
+      tbody tr {
+        height: 56px;
+      }
+      button {
+        height: 48px;
+        width: 100%;
+      }
+      .action-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body class="animate-enter">
+
+  <!-- Shared Plain Header -->
+  <header class="top-header">
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="brand-box">R</div>
+        <span class="brand-name">Range Ledger</span>
+      </a>
+      <nav aria-label="Main Navigation">
+        <ul class="shared-menu">
+          <li><a href="#" class="menu-item">Yard</a></li>
+          <li><a href="#" class="menu-item">Imports</a></li>
+          <li><a href="#" class="menu-item">Allocations</a></li>
+          <li><a href="#" class="menu-item">Lots</a></li>
+          <li><a href="#" class="menu-item">Inventory</a></li>
+          <li><a href="#" class="menu-item">Feed outlook</a></li>
+          <li><a href="#" class="menu-item">Rations</a></li>
+          <li><a href="#" class="menu-item">Feed plans</a></li>
+          <li><a href="#" class="menu-item">Feeding</a></li>
+          <li><a href="#" class="menu-item">Reports</a></li>
+          <li><a href="#" class="menu-item">Feed-to-gain</a></li>
+          <li><a href="#" class="menu-item">Profitability</a></li>
+          <li><a href="#" class="menu-item active">Sample data</a></li>
+          <li><a href="#" class="menu-item">Delivery brief</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="header-profile">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen portrait" class="profile-photo">
+      <div class="profile-meta">
+        <span class="profile-name">Maya Chen</span>
+        <span class="profile-role">Yard manager</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-container">
+    <!-- Single Top Heading -->
+    <h1>Sample data</h1>
+    <p class="header-subtext">
+      Red Mesa Yard • America/Denver (Mountain Time) • Evaluation environment &amp; isolated sample store
+    </p>
+
+    <!-- Visibly Distinct SAMPLE Treatment & Isolation Rule -->
+    <section class="sample-status-banner" style="margin-top: 20px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <span class="sample-pill">
+            <span class="status-dot live-dot" style="background-color: var(--status-waiting);"></span>
+            SAMPLE
+          </span>
+          <span style="font-weight: 600; font-size: 17px;">Sample records currently loaded for Red Mesa Yard</span>
+          <span class="badge status-good" style="margin-left: 8px;">
+            <span class="status-dot"></span>
+            Operational normal
+          </span>
+        </div>
+        <p style="font-size: 15px; color: var(--text-main); max-width: 960px;">
+          Sample records are loaded separately from real feedlot operations. As a strict system guarantee, sample records do not enter operational report results, inventory totals or exports.
+        </p>
+      </div>
+      <div style="text-align: right; white-space: nowrap;">
+        <span class="text-quiet" style="font-size: 13px; display: block;">Returned load status</span>
+        <span class="font-mono" style="font-size: 14px; font-weight: 600; color: var(--status-good);">ACTIVE_ISOLATED</span>
+      </div>
+    </section>
+
+    <!-- Action Area -->
+    <section class="action-panel">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <h3>Sample data controls</h3>
+          <p class="text-quiet" style="font-size: 14px; margin-top: 4px;">
+            Authorized for Maya Chen (Yard manager). Sample records are active in the local store. Duplicate loads are prevented to preserve cohort integrity.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge status-waiting">
+            <span class="status-dot"></span>
+            Load unavailable (already loaded)
+          </span>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-row">
+        <!-- Primary action disabled due to duplicate prevention rule -->
+        <button class="btn-primary" disabled="" aria-disabled="true" title="Sample data is already loaded for Red Mesa Yard">
+          Load sample data
+        </button>
+        <!-- Secondary destructive actions -->
+        <button class="btn-secondary">
+          Replace sample data
+        </button>
+        <button class="btn-destructive-outline">
+          Reset sample data
+        </button>
+      </div>
+
+      <!-- Service Result Message Card -->
+      <div class="service-result-card">
+        <div>
+          <span style="font-weight: 600; font-size: 14px; display: block; margin-bottom: 2px;">
+            Returned service result: Active cohort loaded
+          </span>
+          <span class="text-quiet" style="font-size: 14px;">
+            Standard Red Mesa Yard evaluation suite active. 4 cattle lots (360 active head), 2 verified feeding deliveries, and 1 benchmark PO import mapped. Duplicate load is disallowed while existing sample suite is present.
+          </span>
+        </div>
+        <div class="font-mono text-quiet" style="font-size: 13px; text-align: right; white-space: nowrap;">
+          MATCHED_NOOP
+        </div>
+      </div>
+
+      <!-- Confirmation Drawer: Reset (Plain warning shown) -->
+      <div id="confirm-reset-box" class="confirmation-box" style="display: none;">
+        <div>
+          <span style="font-weight: 600; color: var(--status-failed); font-size: 15px; display: block; margin-bottom: 4px;">
+            Confirm sample data reset
+          </span>
+          <p style="font-size: 14px; color: var(--text-main);">
+            This action cannot be undone. All loaded sample lots, simulated bunk deliveries, and calibration intake entries will be permanently cleared from the isolated evaluation store.
+          </p>
+        </div>
+        <div class="confirmation-actions">
+          <button class="btn-destructive-solid" style="height: 38px; padding: 0 14px;">
+            Confirm reset
+          </button>
+          <button class="btn-secondary" style="height: 38px; padding: 0 14px;">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Confirmation Drawer: Replace (Plain warning shown) -->
+      <div id="confirm-replace-box" class="confirmation-box" style="display: none;">
+        <div>
+          <span style="font-weight: 600; color: var(--brand-primary); font-size: 15px; display: block; margin-bottom: 4px;">
+            Confirm sample data replacement
+          </span>
+          <p style="font-size: 14px; color: var(--text-main);">
+            This action cannot be undone. Current sample records and test reconciliation adjustments will be completely overwritten with a clean snapshot of the Red Mesa Yard benchmark dataset.
+          </p>
+        </div>
+        <div class="confirmation-actions">
+          <button class="btn-primary" style="height: 38px; padding: 0 14px;">
+            Confirm replace
+          </button>
+          <button class="btn-secondary" style="height: 38px; padding: 0 14px;">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Full-width 2px rule separating major groups -->
+    <hr class="major-divider">
+
+    <!-- Status-Led List of Sample Records & Isolation Audit -->
+    <section>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+        <h2>Loaded sample records &amp; isolation scope</h2>
+        <span class="text-quiet" style="font-size: 14px;">Showing 5 isolated domain entities</span>
+      </div>
+
+      <div class="data-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 200px;">Domain Entity</th>
+              <th style="width: 140px;">Record Type</th>
+              <th style="width: 160px;">Status</th>
+              <th>Isolation Scope &amp; Exclusion Guarantee</th>
+              <th style="width: 220px;">Returned Service Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>Cattle lots &amp; pens</strong>
+                <span class="tag-sample">SAMPLE</span>
+              </td>
+              <td>
+                <span class="font-mono text-quiet">LOT_REGISTER</span>
+              </td>
+              <td>
+                <span class="badge status-good">
+                  <span class="status-dot"></span>
+                  Active loaded
+                </span>
+              </td>
+              <td class="text-quiet">
+                Lots L-2407, L-2409, L-2411, L-2413 (360 head across P-04, P-07, P-12). Excluded from yard scale exports and live packing manifest logs.
+              </td>
+              <td>
+                <span class="font-mono text-quiet">4 lots registered</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <strong>Feeding delivery slips</strong>
+                <span class="tag-sample">SAMPLE</span>
+              </td>
+              <td>
+                <span class="font-mono text-quiet">FEED_EVENT</span>
+              </td>
+              <td>
+                <span class="badge status-good">
+                  <span class="status-dot"></span>
+                  Active loaded
+                </span>
+              </td>
+              <td class="text-quiet">
+                Pen P-07 delivery (2,772 lb) and Pen P-04 delivery (3,337 lb). Omitted from operational bunk consumption totals and cost ledgers.
+              </td>
+              <td>
+                <span class="font-mono text-quiet">2 events isolated</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <strong>Procurement adapter PO</strong>
+                <span class="tag-sample">SAMPLE</span>
+              </td>
+              <td>
+                <span class="font-mono text-quiet">IMPORT_RECEIPT</span>
+              </td>
+              <td>
+                <span class="badge status-waiting">
+                  <span class="status-dot"></span>
+                  Conflict retained
+                </span>
+              </td>
+              <td class="text-quiet">
+                Mock PO-8841 line 1 (80 head updated vs 82 mapped). Kept in evaluation conflict status; does not affect procurement billing accounts.
+              </td>
+              <td>
+                <span class="font-mono text-quiet">1 conflict flagged</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <strong>Feed outlook projections</strong>
+                <span class="tag-sample">SAMPLE</span>
+              </td>
+              <td>
+                <span class="font-mono text-quiet">PROJECTION</span>
+              </td>
+              <td>
+                <span class="badge status-good">
+                  <span class="status-dot"></span>
+                  Service returned
+                </span>
+              </td>
+              <td class="text-quiet">
+                Projections calculated on 8,384 lb/day and 2.8% configured margin. Never blended into certified commercial inventory valuations.
+              </td>
+              <td>
+                <span class="font-mono text-quiet">6 horizons derived</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <strong>Commodity test batches</strong>
+                <span class="tag-sample">SAMPLE</span>
+              </td>
+              <td>
+                <span class="font-mono text-quiet">CALIBRATION</span>
+              </td>
+              <td>
+                <span class="badge status-good">
+                  <span class="status-dot"></span>
+                  Omitted from total
+                </span>
+              </td>
+              <td class="text-quiet">
+                Synthetic probe entry (5,000 lb dry grain). Excluded from 137,400 lb physical commodity balance and warehouse reports.
+              </td>
+              <td>
+                <span class="font-mono text-quiet">1 entry omitted</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Operational Isolation Ledger Note -->
+    <div style="margin-top: 24px; padding: 16px; background-color: #FFFFFF; border: 1px solid var(--border-rule); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="status-dot" style="background-color: var(--status-good);"></span>
+        <span style="font-size: 14px; color: var(--text-main);">
+          Audit verification: Sample isolation enforced. Live Yard summary and operational reporting continue to reference authorized service records only.
+        </span>
+      </div>
+      <span class="font-mono text-quiet" style="font-size: 13px;">
+        RED_MESA_ISO_ACTIVE
+      </span>
+    </div>
+  </main>
+
+  
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-15";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

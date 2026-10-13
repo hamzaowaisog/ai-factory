@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 13,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 130,
+    "end": 140
+   },
+   "ms": 0,
+   "resultChars": 1760,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:130,&quot;end&quot;:140}\">\nlib/api/client.msw.ts lines 130-140\n130\t\n131\texport const getGetProfitabilityResponseMock = (): ProfitabilityResponse => ({\"permissions\":[\"profitability.view\",\"profitability.export\"],\"canViewProfitability\":true,\"rows\":[{\"id\":2407,\"lotCode\":\"L-2407\",\"breed\":\"Angus cross\",\"class\":\"Steer\",\"pen\":\"P-12\",\"head\":140,\"daysOnFeed\":92,\"currentWeight\":711,\"returnedInvestment\":24500,\"totalGainValue\":28450,\"netReturn\":3950,\"roiPercent\":16.12,\"sampleData\":false}]})\n132\t\n133\texport const getExportProfitabilityResponseMock = (): ExportResponse => ({\"fileName\":\"profitability.csv\",\"contentType\":\"text/csv\",\"contentBase64\":\"bG90LHJldHVybixyb2k=\"})\n134\t\n135\texport const getGetSampleDataResponseMock = (): SampleDataResponse => ({\"permissions\":[\"sample-data.view\",\"sample-data.manage\"],\"loaded\":true,\"recordCount\":12,\"records\":[{\"id\":9901,\"entity\":\"Lot\",\"recordType\":\"Sample\",\"status\":\"Loaded\",\"isolationScope\":\"Sample records excluded from operational reports.\",\"sampleData\":true}]})\n136\t\n137\texport const getLoadSampleDataResponseMock = (): SampleOperationResponse => ({\"permissions\":[\"sample-data.manage\"],\"status\":\"already_loaded\",\"message\":\"Sample data was already loaded.\",\"recordCount\":12,\"records\":[{\"id\":9901,\"entity\":\"Lot\",\"recordType\":\"Sample\",\"status\":\"Loaded\",\"isolationScope\":\"Sample records excluded from operational reports.\",\"sampleData\":true}]})\n138\t\n139\texport const getResetSampleDataResponseMock = (): SampleOperationResponse => ({\"permissions\":[\"sample-data.manage\"],\"status\":\"reset\",\"message\":\"Sample data reset.\",\"recordCount\":0,\"records\":[]})\n140\t\n… (730 lines total; ask for start=141)\n</untrusted_document>"
+  }
+ ]
+}

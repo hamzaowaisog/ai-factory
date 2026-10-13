@@ -1,0 +1,777 @@
+<!DOCTYPE html><html class="h-full bg-surface" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Weekly Utilization Reports - Folio3 Parking</title>
+<!-- Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 with Forms & Container Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-background": "#181c1b",
+            "on-primary-fixed-variant": "#005141",
+            "background": "#f7faf7",
+            "tertiary": "#77392e",
+            "on-secondary-container": "#4d685f",
+            "surface-container-highest": "#e0e3e0",
+            "primary": "#005645",
+            "inverse-surface": "#2d312f",
+            "error": "#ba1a1a",
+            "on-surface-variant": "#3f4945",
+            "inverse-on-surface": "#eef1ee",
+            "primary-container": "#1f6f5c",
+            "secondary-fixed-dim": "#afcdc2",
+            "surface-dim": "#d8dbd8",
+            "outline": "#6f7975",
+            "surface-tint": "#186a57",
+            "on-tertiary-container": "#ffd7d0",
+            "tertiary-fixed": "#ffdad4",
+            "secondary-fixed": "#cbe9dd",
+            "on-secondary-fixed": "#042019",
+            "surface-container": "#ecefeb",
+            "surface": "#f7faf7",
+            "inverse-primary": "#8ad5be",
+            "on-primary-container": "#a3efd7",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#181c1b",
+            "secondary": "#49645b",
+            "on-secondary-fixed-variant": "#314c44",
+            "surface-bright": "#f7faf7",
+            "tertiary-container": "#945044",
+            "surface-container-high": "#e6e9e6",
+            "primary-fixed": "#a5f2d9",
+            "on-primary": "#ffffff",
+            "surface-variant": "#e0e3e0",
+            "on-error-container": "#93000a",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "primary-fixed-dim": "#8ad5be",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#002019",
+            "on-tertiary-fixed": "#3a0a05",
+            "outline-variant": "#bec9c4",
+            "surface-container-low": "#f1f4f1",
+            "on-tertiary": "#ffffff",
+            "secondary-container": "#c8e6db",
+            "error-container": "#ffdad6"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16,1,0.3,1);
+      --ease-spring: linear(0,0.009,0.035 2.1%,0.141,0.281 6.7%,0.723 12.9%,0.938 16.7%,1.017,1.077 21.4%,1.121 24%,1.149 27%,1.159,1.154 33%,1.051 43.2%,1.013 49.5%,0.996 57%,1.001 72%,1);
+    }
+    body {
+      color: #18181B; /* Charcoal Ink - strictly no pure black */
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+    .font-tabular {
+      font-variant-numeric: tabular-nums;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 19px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    /* Signature Plate and Bay Code chips */
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 2px 7px;
+      background: #FFFFFF;
+      color: #18181B;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 2px 7px;
+      background: #E6F0ED;
+      color: #1F6F5C;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .live-dot {
+      animation: live-breathe 4.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full font-body bg-surface text-on-surface antialiased overflow-x-hidden selection:bg-secondary-container selection:text-primary">
+<!-- ================= TOP APP BAR (Shared Components JSON Anchor) ================= -->
+<header class="w-full px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant">
+<!-- Left Zone: Brand + Breadcrumbs -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded bg-primary-container text-on-primary flex items-center justify-center font-headline font-bold text-sm tracking-tight shadow-sm">
+          F3
+        </div>
+<span class="font-headline text-lg font-bold tracking-tight text-primary">Folio3 Parking</span>
+</div>
+<!-- Divider -->
+<span class="h-4 w-px bg-outline-variant"></span>
+<!-- Breadcrumbs -->
+<nav aria-label="Breadcrumb" class="hidden sm:flex items-center gap-2 text-xs font-medium text-on-surface-variant">
+<span class="hover:text-on-surface cursor-pointer transition-colors">Admin</span>
+<span class="text-outline-variant">/</span>
+<span class="hover:text-on-surface cursor-pointer transition-colors">Reports</span>
+<span class="text-outline-variant">/</span>
+<span class="font-semibold text-on-surface">Weekly Utilization Reports</span>
+</nav>
+</div>
+<!-- Center Search Bar (search_bar: on_left in center channel) -->
+<div class="hidden md:flex items-center flex-1 max-w-md mx-8">
+<div class="relative w-full">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</span>
+<input class="w-full pl-9 pr-4 py-1.5 text-xs bg-surface-container-low border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-secondary-container transition-all text-on-surface placeholder:text-outline font-body" placeholder="Search plates, bay codes, employees (⌘K)" type="text">
+</div>
+</div>
+<!-- Right Zone: Campus Status, Notification, Help, Profile Avatar -->
+<div class="flex items-center gap-3">
+<!-- Quick Campus Live Badge -->
+<div class="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded bg-surface-container text-xs text-on-surface-variant font-medium border border-outline-variant">
+<span class="h-2 w-2 rounded-full bg-primary-container live-dot"></span>
+<span class="font-mono text-[11px] font-semibold text-primary">PK-KHI-HQ</span>
+<span class="text-outline-variant">•</span>
+<span class="text-[11px]">Live Sync</span>
+</div>
+<!-- Secondary Action: Admin Console Toggle -->
+<button class="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-surface-container-low rounded border border-outline-variant transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span>Admin Console</span>
+</button>
+<!-- Trailing Icon Actions -->
+<button aria-label="Notifications" class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded transition-colors relative" type="button">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-tertiary"></span>
+</button>
+<button aria-label="Help &amp; Documentation" class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<!-- User Profile Badge -->
+<div class="flex items-center gap-2 pl-2 border-l border-outline-variant">
+<div class="h-7 w-7 rounded-full bg-secondary-container text-primary font-mono text-xs font-semibold flex items-center justify-center border border-outline-variant" title="Omar Farooq (Super Admin)">
+          OF
+        </div>
+<div class="hidden 2xl:flex flex-col text-left">
+<span class="text-xs font-semibold leading-tight text-on-surface">Omar Farooq</span>
+<span class="text-[10px] text-on-surface-variant leading-none">Super Admin</span>
+</div>
+</div>
+</div>
+</header>
+<!-- ================= APP SHELL LAYOUT ================= -->
+<div class="flex min-h-[calc(100vh-49px)]">
+<!-- ================= SIDE NAVIGATION BAR (docked w-[232px]) ================= -->
+<aside class="w-[232px] flex-shrink-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col justify-between py-4 px-3 sticky top-[49px] h-[calc(100vh-49px)]">
+<!-- Upper Navigation Block -->
+<div class="flex flex-col space-y-6">
+<!-- Sub-header metadata -->
+<div class="px-2">
+<div class="text-[11px] font-semibold tracking-wider uppercase text-outline">Karachi Office Bay</div>
+<div class="text-xs font-medium text-on-surface">Level 1–4 Subterranean</div>
+</div>
+<!-- Primary Navigation Tabs (JSON items strictly mapped) -->
+<nav class="flex flex-col space-y-1">
+<!-- 1. Claim & Release -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="swap_driving_apps">swap_driving_apps</span>
+<span>Claim &amp; Release</span>
+</a>
+<!-- 2. Daily Allocations -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="event_available">event_available</span>
+<span>Daily Allocations</span>
+</a>
+<!-- 3. Guard Console -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="local_police">local_police</span>
+<span>Guard Console</span>
+</a>
+<!-- 4. Vehicle Roster -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="directions_car">directions_car</span>
+<span>Vehicle Roster</span>
+</a>
+<!-- 5. Spaces & Employees -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-2 flex items-center gap-3 text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="badge">badge</span>
+<span>Spaces &amp; Employees</span>
+</a>
+<!-- Section Divider -->
+<div class="my-2 border-t border-outline-variant/60"></div>
+<!-- Highlighted Current Section: Reports -->
+<a class="bg-secondary-container text-on-secondary-container font-semibold border-l-2 border-primary rounded-r px-3 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary" data-icon="analytics">analytics</span>
+<span>Reports &amp; Audit</span>
+</a>
+</nav>
+</div>
+<!-- Lower Navigation Block & Quick Action -->
+<div class="flex flex-col space-y-4 pt-3 border-t border-outline-variant">
+<!-- Quick Action CTA: Release Today -->
+<button class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-primary-container text-on-primary font-body text-xs font-medium rounded hover:bg-primary active:scale-[0.97] transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[17px]" data-icon="lock_open">lock_open</span>
+<span>Release Today</span>
+</button>
+<!-- Footer Tab Labels from JSON -->
+<div class="flex flex-col space-y-1">
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-1.5 flex items-center gap-3 text-xs font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="history">history</span>
+<span>Audit Logs</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded px-3 py-1.5 flex items-center gap-3 text-xs font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- ================= MAIN CONTENT WORKSPACE ================= -->
+<main class="flex-1 min-w-0 bg-surface px-8 py-7 overflow-y-auto max-w-[1400px]">
+<!-- Context Preview Pill Bar -->
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Audit Scope:</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container-lowest text-on-surface border border-outline-variant shadow-xs">
+<span class="h-1.5 w-1.5 rounded-full bg-primary-container"></span>
+            Weekly Cycle #23 (FY2025-Q2)
+          </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant border border-outline-variant">
+            Full Zone (Basement 1–3)
+          </span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-outline font-medium">Automatic Snapshot:</span>
+<span class="font-mono text-xs font-medium text-on-surface bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant">
+            Mon 09:00:00 PKT
+          </span>
+</div>
+</div>
+<!-- ================= 1. PAGE HEADER & WEEK SELECTOR ================= -->
+<section class="mb-8 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+<div>
+<div class="flex items-center gap-3 mb-1.5">
+<h1 class="font-headline text-2xl md:text-[28px] font-bold text-on-surface tracking-tight leading-snug">
+              Weekly utilization report
+            </h1>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-semibold bg-secondary-container text-primary border border-primary/20">
+<span class="material-symbols-outlined text-[14px]" data-icon="mark_email_read">mark_email_read</span>
+              Report Generated • Delivered via Amazon SES
+            </span>
+</div>
+<div class="flex flex-wrap items-center gap-2.5 text-xs text-on-surface-variant">
+<span class="font-medium">Emailed Mon 9 Jun 2025, 09:00 PKT to 4 recipients</span>
+<span class="text-outline-variant">•</span>
+<button class="text-primary font-semibold hover:underline flex items-center gap-1" type="button">
+<span>Manage recipients</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="open_in_new">open_in_new</span>
+</button>
+<span class="text-outline-variant">•</span>
+<span class="font-mono text-outline">ID: rpt_2025_w23_khi</span>
+</div>
+</div>
+<!-- Right Side: Week Selector Dropdown & Actions -->
+<div class="flex flex-wrap items-center gap-3">
+<!-- Week Selector Paginator -->
+<div class="inline-flex items-center bg-surface-container-lowest border border-outline-variant rounded p-0.5 shadow-xs">
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors" title="Previous week (26 May – 1 Jun)" type="button">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<div class="px-3 py-1 flex items-center gap-2 border-x border-outline-variant text-xs font-semibold text-on-surface font-body cursor-pointer hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="date_range">date_range</span>
+<span class="font-tabular">Week of 2–8 Jun 2025</span>
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="expand_more">expand_more</span>
+</div>
+<button class="p-1.5 text-outline-variant cursor-not-allowed rounded" disabled="" title="Next week (current or future)" type="button">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<!-- Export Action -->
+<div class="inline-flex rounded shadow-xs">
+<button class="px-3.5 py-2 text-xs font-semibold bg-surface-container-lowest border border-outline-variant rounded-l hover:bg-surface-container text-on-surface flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="file_download">file_download</span>
+<span>Export PDF / CSV</span>
+</button>
+<button aria-label="Export options" class="px-2 py-2 text-xs bg-surface-container-lowest border-t border-r border-b border-outline-variant rounded-r hover:bg-surface-container text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="arrow_drop_down">arrow_drop_down</span>
+</button>
+</div>
+</div>
+</section>
+<!-- ================= 2. KPI CARDS (4 Clean Metric Cards) ================= -->
+<section class="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- KPI 1: Overall Utilization -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline font-label">Overall utilization</span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-secondary-container text-primary font-tabular">
+<span class="material-symbols-outlined text-[13px]" data-icon="trending_up">trending_up</span>
+                +3.2%
+              </span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline text-3xl font-bold tracking-tight text-on-surface font-tabular">87%</span>
+<span class="text-xs text-on-surface-variant font-medium">peak Friday 91%</span>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-outline-variant/50 flex items-center justify-between text-[11px] text-outline">
+<span>Target: &gt;85% threshold</span>
+<span class="text-primary font-semibold">Exceeded</span>
+</div>
+</div>
+<!-- KPI 2: Released Spaces -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline font-label">Released spaces</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-surface-container text-on-surface-variant font-tabular">
+                90.4% quota
+              </span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline text-3xl font-bold tracking-tight text-on-surface font-tabular">38</span>
+<span class="text-xs text-on-surface-variant font-medium">of 42 allocated slots</span>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-outline-variant/50 flex items-center justify-between text-[11px] text-outline">
+<span>Avg release lead time</span>
+<span class="font-mono font-medium text-on-surface">14h 20m</span>
+</div>
+</div>
+<!-- KPI 3: Temporary Claims -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline font-label">Temporary claims</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-secondary-container text-primary font-tabular">
+                92% claim rate
+              </span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline text-3xl font-bold tracking-tight text-on-surface font-tabular">35</span>
+<span class="text-xs text-on-surface-variant font-medium">from open pool</span>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-outline-variant/50 flex items-center justify-between text-[11px] text-outline">
+<span>Waitlist unfulfilled</span>
+<span class="font-mono font-medium text-on-surface">3 requests</span>
+</div>
+</div>
+<!-- KPI 4: Dedicated Entries -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline font-label">Dedicated entries</span>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-surface-container text-on-surface-variant">
+<span class="material-symbols-outlined text-[13px] text-primary" data-icon="verified">verified</span>
+                ANPR + Guard
+              </span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline text-3xl font-bold tracking-tight text-on-surface font-tabular">162</span>
+<span class="text-xs text-on-surface-variant font-medium">valid check-ins</span>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-outline-variant/50 flex items-center justify-between text-[11px] text-outline">
+<span>False positive rate</span>
+<span class="font-mono font-medium text-on-surface">0.0%</span>
+</div>
+</div>
+</section>
+<!-- ================= 3. DAILY UTILIZATION BAR CHART (Mon–Fri) ================= -->
+<section class="mb-8 bg-surface-container-lowest border border-outline-variant rounded-lg p-6 shadow-xs">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-outline-variant">
+<div>
+<h2 class="font-headline text-base font-bold text-on-surface">
+              Daily office parking utilization
+            </h2>
+<p class="text-xs text-on-surface-variant mt-0.5">
+              Comparative capacity occupancy tracked Monday through Friday with 85% target baseline.
+            </p>
+</div>
+<!-- Legend indicators -->
+<div class="flex items-center gap-5 text-xs text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="h-3 w-3 rounded-xs bg-primary-container"></span>
+<span class="font-medium">Recorded Occupancy</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="h-0.5 w-5 bg-tertiary border-b border-dashed border-tertiary"></span>
+<span class="font-medium text-outline">85% Optimal Target</span>
+</div>
+</div>
+</div>
+<!-- Vertical Bar Visual Chart -->
+<div class="relative pt-6 pb-2">
+<!-- 85% Optimal Target Baseline Line -->
+<div class="absolute inset-x-0 z-10 pointer-events-none" style="bottom: calc(85% * 0.72 + 36px);">
+<div class="relative border-b-2 border-dashed border-tertiary/70 w-full flex items-center justify-end">
+<span class="bg-tertiary text-on-tertiary text-[10px] font-mono font-semibold px-2 py-0.5 rounded mr-2 -translate-y-1/2 shadow-xs">
+                Target 85%
+              </span>
+</div>
+</div>
+<!-- Grid Background lines -->
+<div class="absolute inset-x-0 bottom-9 top-6 flex flex-col justify-between pointer-events-none opacity-40">
+<div class="border-b border-outline-variant text-[10px] text-outline font-mono">100%</div>
+<div class="border-b border-outline-variant text-[10px] text-outline font-mono">75%</div>
+<div class="border-b border-outline-variant text-[10px] text-outline font-mono">50%</div>
+<div class="border-b border-outline-variant text-[10px] text-outline font-mono">25%</div>
+<div class="border-b border-outline-variant text-[10px] text-outline font-mono">0%</div>
+</div>
+<!-- Columns Mon-Fri (12-column subgrid layout) -->
+<div class="grid grid-cols-5 gap-4 md:gap-8 h-64 items-end relative z-20 px-4 md:px-12">
+<!-- Monday: 91% -->
+<div class="flex flex-col items-center h-full justify-end group">
+<div class="font-mono text-xs font-bold text-primary mb-2 transition-transform group-hover:-translate-y-1">
+                91%
+              </div>
+<div class="w-full max-w-[68px] bg-primary-container rounded-t transition-all duration-200 group-hover:brightness-110 relative" style="height: 91%;">
+<div class="absolute top-1.5 inset-x-0 text-center text-[10px] font-mono text-on-primary-container hidden sm:block">
+                  49/54
+                </div>
+</div>
+<div class="mt-3 text-center">
+<div class="font-semibold text-xs text-on-surface">Monday</div>
+<div class="font-mono text-[11px] text-outline">2 Jun</div>
+</div>
+</div>
+<!-- Tuesday: 88% -->
+<div class="flex flex-col items-center h-full justify-end group">
+<div class="font-mono text-xs font-bold text-primary mb-2 transition-transform group-hover:-translate-y-1">
+                88%
+              </div>
+<div class="w-full max-w-[68px] bg-primary-container rounded-t transition-all duration-200 group-hover:brightness-110 relative" style="height: 88%;">
+<div class="absolute top-1.5 inset-x-0 text-center text-[10px] font-mono text-on-primary-container hidden sm:block">
+                  47/54
+                </div>
+</div>
+<div class="mt-3 text-center">
+<div class="font-semibold text-xs text-on-surface">Tuesday</div>
+<div class="font-mono text-[11px] text-outline">3 Jun</div>
+</div>
+</div>
+<!-- Wednesday: 85% -->
+<div class="flex flex-col items-center h-full justify-end group">
+<div class="font-mono text-xs font-bold text-primary mb-2 transition-transform group-hover:-translate-y-1">
+                85%
+              </div>
+<div class="w-full max-w-[68px] bg-primary-container rounded-t transition-all duration-200 group-hover:brightness-110 relative" style="height: 85%;">
+<div class="absolute top-1.5 inset-x-0 text-center text-[10px] font-mono text-on-primary-container hidden sm:block">
+                  46/54
+                </div>
+</div>
+<div class="mt-3 text-center">
+<div class="font-semibold text-xs text-on-surface">Wednesday</div>
+<div class="font-mono text-[11px] text-outline">4 Jun</div>
+</div>
+</div>
+<!-- Thursday: 84% -->
+<div class="flex flex-col items-center h-full justify-end group">
+<div class="font-mono text-xs font-bold text-primary mb-2 transition-transform group-hover:-translate-y-1">
+                84%
+              </div>
+<div class="w-full max-w-[68px] bg-primary-container/85 rounded-t transition-all duration-200 group-hover:brightness-110 relative" style="height: 84%;">
+<div class="absolute top-1.5 inset-x-0 text-center text-[10px] font-mono text-on-primary-container hidden sm:block">
+                  45/54
+                </div>
+</div>
+<div class="mt-3 text-center">
+<div class="font-semibold text-xs text-on-surface">Thursday</div>
+<div class="font-mono text-[11px] text-outline">5 Jun</div>
+</div>
+</div>
+<!-- Friday: 87% -->
+<div class="flex flex-col items-center h-full justify-end group">
+<div class="font-mono text-xs font-bold text-primary mb-2 transition-transform group-hover:-translate-y-1">
+                87%
+              </div>
+<div class="w-full max-w-[68px] bg-primary-container rounded-t transition-all duration-200 group-hover:brightness-110 relative" style="height: 87%;">
+<div class="absolute top-1.5 inset-x-0 text-center text-[10px] font-mono text-on-primary-container hidden sm:block">
+                  47/54
+                </div>
+</div>
+<div class="mt-3 text-center">
+<div class="font-semibold text-xs text-on-surface">Friday</div>
+<div class="font-mono text-[11px] text-outline">6 Jun</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Weekly Summary Stat bar -->
+<div class="mt-6 pt-4 border-t border-outline-variant flex flex-wrap items-center justify-between text-xs text-on-surface-variant">
+<div class="flex items-center gap-4">
+<span>Total slots available daily: <strong class="text-on-surface font-mono">54 bays</strong></span>
+<span class="text-outline-variant">•</span>
+<span>Total vehicle passes issued: <strong class="text-on-surface font-mono">234</strong></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-outline">Weekly Average:</span>
+<span class="font-headline font-bold text-on-surface text-sm font-tabular">87.0%</span>
+<span class="text-[11px] text-primary font-medium">(+2.0% above 85% guideline)</span>
+</div>
+</div>
+</section>
+<!-- ================= 4. TABLE 1: Unused Dedicated Parking ================= -->
+<section class="mb-8 bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden shadow-xs">
+<div class="p-5 border-b border-outline-variant bg-surface-container-low/50">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div>
+<div class="flex items-center gap-2.5">
+<h3 class="font-headline text-base font-bold text-on-surface">
+                  Unused dedicated parking (not released, no entry)
+                </h3>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-error-container text-on-error-container">
+                  2 Incidents
+                </span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">
+                Dedicated spaces that were neither released into the pool nor entered via ANPR gate.
+              </p>
+</div>
+<!-- Quick Action button -->
+<button class="self-start sm:self-auto px-3 py-1.5 text-xs font-semibold text-primary hover:bg-secondary-container rounded border border-outline-variant transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[15px]" data-icon="forward_to_inbox">forward_to_inbox</span>
+<span>Send Advisory Notice</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse font-body">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant text-[11px] font-semibold text-outline uppercase tracking-wider font-label">
+<th class="py-3 px-5" scope="col">Employee Name</th>
+<th class="py-3 px-5" scope="col">Bay Code</th>
+<th class="py-3 px-5" scope="col">Day &amp; Date</th>
+<th class="py-3 px-5" scope="col">Department</th>
+<th class="py-3 px-5 text-right" scope="col">Status Flag</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-sm">
+<!-- Row 1: Usman Tariq -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-5">
+<div class="flex items-center gap-3">
+<div class="h-7 w-7 rounded-full bg-surface-container text-on-surface font-mono text-xs font-semibold flex items-center justify-center border border-outline-variant">
+                      UT
+                    </div>
+<div>
+<div class="font-semibold text-on-surface">Usman Tariq</div>
+<div class="text-[11px] text-outline">usman.tariq@folio3.com</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-5">
+<span class="space-chip">B3-07</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-xs text-on-surface font-tabular">
+                  Wed 4 Jun 2025
+                </td>
+<td class="py-3.5 px-5 text-xs text-on-surface-variant font-medium">
+                  Product Design
+                </td>
+<td class="py-3.5 px-5 text-right">
+<span class="inline-flex items-center gap-1.5 text-xs font-medium text-error">
+<span class="h-1.5 w-1.5 rounded-full bg-error"></span>
+                    Unused full-day
+                  </span>
+</td>
+</tr>
+<!-- Row 2: Ayesha Siddiqui -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-5">
+<div class="flex items-center gap-3">
+<div class="h-7 w-7 rounded-full bg-surface-container text-on-surface font-mono text-xs font-semibold flex items-center justify-center border border-outline-variant">
+                      AS
+                    </div>
+<div>
+<div class="font-semibold text-on-surface">Ayesha Siddiqui</div>
+<div class="text-[11px] text-outline">ayesha.s@folio3.com</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-5">
+<span class="space-chip">B1-03</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-xs text-on-surface font-tabular">
+                  Fri 6 Jun 2025
+                </td>
+<td class="py-3.5 px-5 text-xs text-on-surface-variant font-medium">
+                  Engineering
+                </td>
+<td class="py-3.5 px-5 text-right">
+<span class="inline-flex items-center gap-1.5 text-xs font-medium text-error">
+<span class="h-1.5 w-1.5 rounded-full bg-error"></span>
+                    Unused full-day
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- ================= 5. TABLE 2: Unused Temporary Claims ================= -->
+<section class="mb-8 bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden shadow-xs">
+<div class="p-5 border-b border-outline-variant bg-surface-container-low/50">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div>
+<div class="flex items-center gap-2.5">
+<h3 class="font-headline text-base font-bold text-on-surface">
+                  Unused temporary claims (claimed, no recorded entry)
+                </h3>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-caution-wash text-tertiary border border-outline-variant">
+                  1 Incident
+                </span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">
+                General pool spaces claimed in morning lottery but driver never clocked gate entry.
+              </p>
+</div>
+<!-- Policy enforcement link -->
+<button class="self-start sm:self-auto px-3 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container rounded border border-outline-variant transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[15px] text-outline" data-icon="policy">policy</span>
+<span>Review 48h Strike Rule</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse font-body">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant text-[11px] font-semibold text-outline uppercase tracking-wider font-label">
+<th class="py-3 px-5" scope="col">Employee Name</th>
+<th class="py-3 px-5" scope="col">Bay Code</th>
+<th class="py-3 px-5" scope="col">Day &amp; Date</th>
+<th class="py-3 px-5" scope="col">Claim Time</th>
+<th class="py-3 px-5 text-right" scope="col">Status Flag</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-sm">
+<!-- Row 1: Hamza Qureshi -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-5">
+<div class="flex items-center gap-3">
+<div class="h-7 w-7 rounded-full bg-surface-container text-on-surface font-mono text-xs font-semibold flex items-center justify-center border border-outline-variant">
+                      HQ
+                    </div>
+<div>
+<div class="font-semibold text-on-surface">Hamza Qureshi</div>
+<div class="text-[11px] text-outline">hamza.q@folio3.com</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-5">
+<span class="space-chip">B2-14</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-xs text-on-surface font-tabular">
+                  Tue 3 Jun 2025
+                </td>
+<td class="py-3.5 px-5 font-mono text-xs text-on-surface-variant font-tabular">
+                  08:14 PKT
+                </td>
+<td class="py-3.5 px-5 text-right">
+<span class="inline-flex items-center gap-1.5 text-xs font-medium text-tertiary">
+<span class="h-1.5 w-1.5 rounded-full bg-tertiary"></span>
+                    No entry record
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- ================= 6. FOOTNOTE & AUDIT NOTICE ================= -->
+<footer class="mt-8 border-t border-outline-variant pt-6 pb-12 flex flex-col gap-4 text-xs text-on-surface-variant">
+<!-- Footnote banner -->
+<div class="p-3.5 rounded bg-surface-container-low border border-outline-variant flex items-start sm:items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[20px] flex-shrink-0" data-icon="info">info</span>
+<p class="text-xs text-on-surface leading-relaxed">
+<strong>Footnote:</strong> Temporary entries are based on guard-recorded outcomes; sticker vehicles are based on LPR (Licence Plate Recognition) entries. In case of discrepancy, consult the gate security physical logs.
+          </p>
+</div>
+<!-- Footer Metadata Row -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-outline pt-2">
+<div class="flex flex-wrap items-center gap-3 font-mono">
+<span>SHA-256: 7d4a98f12cb8...3a01</span>
+<span>•</span>
+<span class="text-primary font-sans font-medium flex items-center gap-1">
+<span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+              PostgreSQL Sync: Nominal (0 ms lag)
+            </span>
+<span>•</span>
+<span>Worker: worker-cron-khi-utilization</span>
+</div>
+<div class="flex items-center gap-4">
+<a class="text-primary hover:underline font-medium" href="#">Weekly report recipients</a>
+<span>•</span>
+<a class="text-primary hover:underline font-medium" href="#">Allocation Policy v4.2</a>
+<span>•</span>
+<span>Folio3 Internal Portal</span>
+</div>
+</div>
+</footer>
+</main>
+</div>
+<script>(function(){var T=[{"id":"S-1","names":["folio3 parking system","sign in"],"words":["sign"]},{"id":"S-2","names":["we couldn t load your employee profile","access error"],"words":["access"]},{"id":"S-3","names":["register your vehicle to continue","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-4","names":["good morning bilal","dashboard"],"words":["dashboard"]},{"id":"S-5","names":["hello ayesha siddiqui","holder","dashboard holder"],"words":["dashboard","holder"]},{"id":"S-6","names":["schedule releases for space b1 03","releases successfully scheduled","schedule","releases schedule"],"words":["release","schedule"]},{"id":"S-7","names":["my profile vehicles","profile"],"words":["profile"]},{"id":"S-8","names":["critical hardware alert","verifications","guard verifications"],"words":["guard","verification"]},{"id":"S-9","names":["parking spaces","spaces","admin spaces"],"words":["space"]},{"id":"S-10","names":["employees","admin employees"],"words":["employee"]},{"id":"S-11","names":["employee parking vehicle maintenance","employees","admin employees"],"words":["employee"]},{"id":"S-12","names":["roles and access","roles","admin roles"],"words":["role"]},{"id":"S-13","names":["parking release settings","settings","admin settings"],"words":["setting"]},{"id":"S-14","names":["weekly report recipients","recipients","admin reports recipients"],"words":["report","recipient"]},{"id":"S-16","names":["audit log","audit","admin audit"],"words":["audit"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"];
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
+var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,122 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The Folio3 Parking System shall accept sign-in only through authorized Folio3 Google Workspace accounts for employees, security guards, and parking administrators, rejecting personal Gmail and other provider accounts."
+     },
+     {
+      "n": 2,
+      "text": "The Folio3 Parking System shall identify employees by corporate email, retrieve employee ID and name from the corporate directory, and associate those identity fields with app-maintained dedicated-parking status, assigned floor, and one or more registered vehicle profiles."
+     },
+     {
+      "n": 3,
+      "text": "If a non-dedicated employee has no registered vehicle plate, then the Folio3 Parking System shall require at least one plate to be saved before making the dashboard available, while allowing vehicle make, model, and color to be optional and directing an incomplete returning profile to registration."
+     },
+     {
+      "n": 4,
+      "text": "If Google authentication succeeds but the employee profile cannot be identified or retrieved from the corporate directory, then the Folio3 Parking System shall deny application access and return a retryable error with a contact path."
+     },
+     {
+      "n": 5,
+      "text": "The Folio3 Parking System shall restrict employees to their own records, limit guards to information needed for entry verification, and permit administrators to manage records and access configured reports."
+     },
+     {
+      "n": 6,
+      "text": "The Folio3 Parking System shall allow parking administrators to enter and maintain parking assignments, assigned floors, and registered vehicles, including initial launch records, with plate changes applying to future dates while existing claims retain their recorded plate."
+     },
+     {
+      "n": 7,
+      "text": "The Folio3 Parking System shall provide employee mobile applications for both iOS and Android."
+     },
+     {
+      "n": 8,
+      "text": "The Folio3 Parking System shall provide security guards and parking administrators responsive web interfaces for desktop and mobile browsers, with administration functions available on administrator-only screens in the same app."
+     },
+     {
+      "n": 9,
+      "text": "The Folio3 Parking System shall display user-facing application content in English using left-to-right text."
+     },
+     {
+      "n": 10,
+      "text": "The Folio3 Parking System shall let only a dedicated parking holder release today's parking through a single home-screen release action, prevent duplicate releases for the same holder and date, and expose the current Reserved, Released, or Claimed status."
+     },
+     {
+      "n": 11,
+      "text": "The Folio3 Parking System shall let dedicated holders schedule releases for one or multiple future dates up to 30 calendar days ahead and persist each selected release."
+     },
+     {
+      "n": 12,
+      "text": "The Folio3 Parking System shall use a configurable Daily Parking Release Time defaulting to 08:00 office-local time, make pre-scheduled releases and same-day releases created before that time claimable at that time, and make same-day releases created at or after that time claimable immediately."
+     },
+     {
+      "n": 13,
+      "text": "The Folio3 Parking System shall allow a holder to cancel an unclaimed scheduled release, deny holder cancellation after a claim, and allow an administrator to revoke that claim and restore the holder's use for the remainder of the date."
+     },
+     {
+      "n": 14,
+      "text": "The Folio3 Parking System shall publish the current available-space count and send a push notification to eligible employees without dedicated parking whenever one or more spaces become claimable."
+     },
+     {
+      "n": 15,
+      "text": "The Folio3 Parking System shall allocate each available space to the first eligible non-dedicated employee request accepted by the service, limit each employee to one temporary claim per date, and return refreshed availability to later unsuccessful claimants."
+     },
+     {
+      "n": 16,
+      "text": "The Folio3 Parking System shall assign one available parking space and its floor to a successful claimant, record the claim date, time, employee, and assigned space for audit, and not require proof that the employee parked on the assigned floor."
+     },
+     {
+      "n": 17,
+      "text": "The Folio3 Parking System shall allow an employee to cancel a successful temporary claim at any time and make the claimed space available immediately."
+     },
+     {
+      "n": 18,
+      "text": "The Folio3 Parking System shall process license-plate-recognition detections for cars, ignore pedestrians, motorcycles, and other non-car objects, and bypass temporary system verification for vehicles marked with a permanent parking sticker."
+     },
+     {
+      "n": 19,
+      "text": "Where a readable plate is detected on an unstickered vehicle, the Folio3 Parking System shall verify it against a temporary claim for the current office-local date using any plate registered to the claimant for the claimed date and activate the green indicator only for a valid authorization."
+     },
+     {
+      "n": 20,
+      "text": "If a plate is unreadable or unverifiable, or the camera, authorization service, or indicator is unavailable, then the Folio3 Parking System shall make no automated authorization, issue no green-indicator activation, and record an unreadable, unverifiable, or outage event."
+     },
+     {
+      "n": 21,
+      "text": "The Folio3 Parking System shall record every temporary verification attempt with its date, time, detected plate or unreadable status, and verification result, and let security record whether the vehicle actually entered after the check."
+     },
+     {
+      "n": 22,
+      "text": "The Folio3 Parking System shall use recorded actual-entry outcomes, rather than camera detections or authorization attempts alone, to preserve utilization history and identify dedicated parking that was not released and had no entry and temporary claims that had no entry."
+     },
+     {
+      "n": 23,
+      "text": "The Folio3 Parking System shall generate and email a weekly utilization report every Monday morning in the office-local timezone to configured stakeholders, containing unused dedicated and temporary parking employees, daily and weekly utilization statistics, released-space and temporary-claim totals, and an overall utilization percentage."
+     },
+     {
+      "n": 24,
+      "text": "The Folio3 Parking System shall allow parking administrators to add, update, and remove the stakeholder list used for weekly utilization report emails in the app."
+     },
+     {
+      "n": 25,
+      "text": "The Folio3 Parking System shall not apply automated warnings, suspensions, or penalties based on parking utilization events."
+     },
+     {
+      "n": 26,
+      "text": "Main employee, guard, and administrator flows conform to WCAG 2.1 Level AA."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

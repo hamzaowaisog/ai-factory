@@ -1,0 +1,449 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Price lists",
+     "subtitle": "Company prices, which customer companies use each list, and who last changed it",
+     "crumbs": [
+      "Catalogue"
+     ],
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "New price list",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Deactivate the ticked price lists"
+        }
+       ]
+      },
+      {
+       "type": "toolbar",
+       "search": "Search price lists by name or code",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Inactive"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Sort by",
+         "options": [
+          "Name",
+          "Companies",
+          "Last changed"
+         ],
+         "value": "Last changed"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Export",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Price list",
+        "Status",
+        "Companies",
+        "Products priced",
+        "Last changed",
+        "Created"
+       ],
+       "rows": [
+        [
+         "Trade Standard",
+         "Active",
+         "142",
+         "4,816",
+         "P. Hartley · 14 Mar 2026",
+         "S. Okafor · 03 Jan 2024"
+        ],
+        [
+         "Fleet Contract A",
+         "Active",
+         "18",
+         "3,204",
+         "P. Hartley · 11 Mar 2026",
+         "P. Hartley · 22 Feb 2025"
+        ],
+        [
+         "Main Dealer Plus",
+         "Active",
+         "9",
+         "2,977",
+         "R. Mensah · 06 Mar 2026",
+         "S. Okafor · 14 Jun 2024"
+        ],
+        [
+         "Agricultural Workshops",
+         "Active",
+         "6",
+         "1,148",
+         "R. Mensah · 27 Feb 2026",
+         "R. Mensah · 09 Sep 2025"
+        ],
+        [
+         "Trade Standard 2024",
+         "Inactive",
+         "0",
+         "4,602",
+         "S. Okafor · 02 Jan 2026",
+         "S. Okafor · 08 Jan 2024"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 4,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        },
+        "Export"
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Trade Standard",
+       "to": "S-31"
+      },
+      {
+       "from": "Fleet Contract A",
+       "to": "S-31"
+      },
+      {
+       "from": "Main Dealer Plus",
+       "to": "S-31"
+      },
+      {
+       "from": "Agricultural Workshops",
+       "to": "S-31"
+      },
+      {
+       "from": "Trade Standard 2024",
+       "to": "S-31"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "New price list",
+       "title": "New price list",
+       "text": "Start empty or copy every price from an existing list, then edit prices on the list itself.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Name",
+           "kind": "text",
+           "placeholder": "e.g. Fleet Contract B",
+           "required": true,
+           "error": "Enter a name for the price list",
+           "help": "Must be unique; up to 60 characters"
+          },
+          {
+           "label": "Code",
+           "kind": "text",
+           "placeholder": "FLT-B",
+           "required": true,
+           "error": "Enter a short code, letters, numbers and dashes only",
+           "help": "Shown on order and invoice lines"
+          },
+          {
+           "label": "Copy prices from",
+           "kind": "select",
+           "value": "Trade Standard",
+           "options": [
+            "Start empty",
+            "Trade Standard",
+            "Fleet Contract A",
+            "Main Dealer Plus",
+            "Agricultural Workshops"
+           ]
+          }
+         ],
+         "submit": "Create price list"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Create price list",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Price list actions",
+       "items": [
+        "Open price list",
+        "Rename",
+        "Assign to companies",
+        "View change history",
+        "Deactivate"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Deactivate",
+       "title": "Deactivate Agricultural Workshops?",
+       "text": "6 companies use this list. Until you assign them another active list they will order at Trade Standard prices. Its 1,148 prices are kept and you can reactivate it later.",
+       "actions": [
+        {
+         "label": "Deactivate price list",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep active",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Create price list",
+       "text": "Price list Fleet Contract B created with 4,816 prices copied",
+       "tone": "ok"
+      },
+      {
+       "after": "Deactivate price list",
+       "text": "Agricultural Workshops deactivated",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No price lists yet",
+      "emptyHint": "Create a price list to give customer companies their own prices. Until then everyone orders at list price.",
+      "validation": "Give the price list a unique name and a short code before creating it.",
+      "success": "Price list saved.",
+      "error": "Price lists couldn't be loaded. Showing the last saved copy; try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Price lists",
+     "subtitle": "Company prices, which customer companies use each list, and who last changed it",
+     "crumbs": [
+      "Catalogue"
+     ],
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "New price list",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Deactivate the ticked price lists"
+        }
+       ]
+      },
+      {
+       "type": "toolbar",
+       "search": "Search price lists by name or code",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Inactive"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Sort by",
+         "options": [
+          "Name",
+          "Companies",
+          "Last changed"
+         ],
+         "value": "Last changed"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Export",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Price list",
+        "Status",
+        "Companies",
+        "Products priced",
+        "Last changed",
+        "Created"
+       ],
+       "rows": [
+        [
+         "Trade Standard",
+         "Active",
+         "142",
+         "4,816",
+         "P. Hartley · 14 Mar 2026",
+         "S. Okafor · 03 Jan 2024"
+        ],
+        [
+         "Fleet Contract A",
+         "Active",
+         "18",
+         "3,204",
+         "P. Hartley · 11 Mar 2026",
+         "P. Hartley · 22 Feb 2025"
+        ],
+        [
+         "Bodyshop Network",
+         "Active",
+         "27",
+         "1,962",
+         "J. Whitlock · 10 Mar 2026",
+         "J. Whitlock · 17 Oct 2025"
+        ],
+        [
+         "Main Dealer Plus",
+         "Active",
+         "9",
+         "2,977",
+         "R. Mensah · 06 Mar 2026",
+         "S. Okafor · 14 Jun 2024"
+        ],
+        [
+         "Tyre & Exhaust Centres",
+         "Active",
+         "31",
+         "842",
+         "J. Whitlock · 04 Mar 2026",
+         "R. Mensah · 30 Apr 2025"
+        ],
+        [
+         "Agricultural Workshops",
+         "Active",
+         "6",
+         "1,148",
+         "R. Mensah · 27 Feb 2026",
+         "R. Mensah · 09 Sep 2025"
+        ],
+        [
+         "Council Fleet Framework",
+         "Active",
+         "3",
+         "2,415",
+         "P. Hartley · 19 Feb 2026",
+         "P. Hartley · 01 Apr 2025"
+        ],
+        [
+         "Motorsport Specialists",
+         "Active",
+         "4",
+         "388",
+         "S. Okafor · 12 Feb 2026",
+         "S. Okafor · 21 Nov 2025"
+        ],
+        [
+         "Taxi & Private Hire",
+         "Active",
+         "12",
+         "1,506",
+         "R. Mensah · 30 Jan 2026",
+         "J. Whitlock · 05 Aug 2025"
+        ],
+        [
+         "Trade Standard 2024",
+         "Inactive",
+         "0",
+         "4,602",
+         "S. Okafor · 02 Jan 2026",
+         "S. Okafor · 08 Jan 2024"
+        ],
+        [
+         "Winter Battery Promo",
+         "Inactive",
+         "0",
+         "64",
+         "J. Whitlock · 01 Mar 2026",
+         "J. Whitlock · 28 Oct 2025"
+        ],
+        [
+         "Fleet Contract A (old)",
+         "Inactive",
+         "0",
+         "2,981",
+         "P. Hartley · 23 Feb 2025",
+         "S. Okafor · 11 Mar 2024"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 4,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        },
+        "Export"
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No price lists yet",
+      "emptyHint": "Create a price list to give customer companies their own prices. Until then everyone orders at list price.",
+      "validation": "Give the price list a unique name and a short code before creating it.",
+      "success": "Price list saved.",
+      "error": "Price lists couldn't be loaded. Showing the last saved copy; try again in a moment."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

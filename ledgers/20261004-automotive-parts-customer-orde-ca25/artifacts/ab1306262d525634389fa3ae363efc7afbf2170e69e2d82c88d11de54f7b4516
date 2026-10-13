@@ -1,0 +1,16 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "max_tokens",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {},
+   "ms": 1,
+   "resultChars": 386,
+   "isError": true,
+   "result": "The result doesn't match the schema: requirements: Invalid input: expected array, received undefined; nfrs: Invalid input: expected array, received undefined; outOfScope: Invalid input: expected array, received undefined; assumptions: Invalid input: expected array, received undefined; suggestions: Invalid input: expected array, received undefined. Fix it and call submit_result again."
+  }
+ ]
+}

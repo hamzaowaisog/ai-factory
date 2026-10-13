@@ -1,0 +1,235 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "problems": [
+       1
+      ],
+      "text": "Should this 34-requirement scope be approved as one run, split into multiple runs, or reduced?",
+      "options": [
+       "Approve all 34 requirements as one run.",
+       "Split the work into about three runs without cutting requirements.",
+       "Reject the scope and identify requirements to cut."
+      ],
+      "recommended": "Split the work into about three runs without cutting requirements.",
+      "reason": "This preserves the requested scope while addressing the estimate that it is about three runs of work.",
+      "impact": 2,
+      "impactReason": "This affects delivery planning and sequencing, not product behavior."
+     },
+     {
+      "problems": [
+       2
+      ],
+      "text": "If a driver's session expires while the browser is offline, may the driver continue recording loading, handover, and refusal work?",
+      "options": [
+       "Allow local recording after expiry, but require the driver to re-authenticate before queued work can sync.",
+       "Stop new recording when the session expires; retain previously queued work for syncing after re-authentication.",
+       "Allow recording and syncing without re-authentication until the browser is back online."
+      ],
+      "recommended": "Allow local recording after expiry, but require the driver to re-authenticate before queued work can sync.",
+      "reason": "This lets the driver continue the requested offline work while retaining the spec's re-authentication-before-sync rule.",
+      "impact": 3,
+      "impactReason": "This affects who may create and send delivery records."
+     },
+     {
+      "problems": [
+       8,
+       13
+      ],
+      "text": "Should recall blocking and conflict handling extend to offline cached recall information, or apply only once the service is reachable? The request separately requires retaining and flagging an offline handover that conflicts with a hold.",
+      "options": [
+       "Apply recall blocks from the service while online; do not add offline-cache recall blocking or a separate recall-conflict quality-case flow.",
+       "Also block using cached recall information offline, and flag the handover and show the returned quality-case result if it conflicts with a recall during sync."
+      ],
+      "recommended": "Apply recall blocks from the service while online; do not add offline-cache recall blocking or a separate recall-conflict quality-case flow.",
+      "reason": "The request requires the driver to see a recall block when online, but does not ask for offline-cache recall handling.",
+      "impact": 3,
+      "impactReason": "This determines whether a handover is blocked and how a potentially recalled delivery is recorded."
+     },
+     {
+      "problems": [
+       10
+      ],
+      "text": "If the browser denies or cannot provide location, should an otherwise eligible handover still be allowed?",
+      "options": [
+       "Allow the handover and record the location as unavailable.",
+       "Require location to be available before completing the handover."
+      ],
+      "recommended": "Allow the handover and record the location as unavailable.",
+      "reason": "This avoids blocking an otherwise valid handover when browser location is unavailable.",
+      "impact": 3,
+      "impactReason": "This affects whether a delivery record can be completed and what location data it contains."
+     },
+     {
+      "problems": [
+       11
+      ],
+      "text": "Should the offline queue include safeguards beyond the requested local work retention and automatic sending, such as account isolation, re-authentication, retry identifiers, and review of permanently rejected payloads?",
+      "options": [
+       "Keep the requested offline queue and automatic sending, without adding the extra account-isolation and rejected-payload review rules.",
+       "Add the full safeguards: isolate queued work by account, require its originator to re-authenticate, preserve retry identifiers and occurrence times, retain payloads until acknowledgement, and require review before retrying permanent failures."
+      ],
+      "recommended": "Keep the requested offline queue and automatic sending, without adding the extra account-isolation and rejected-payload review rules.",
+      "reason": "The request asks for offline work to be sent automatically, but does not specify these additional queue policies.",
+      "impact": 3,
+      "impactReason": "These rules govern who can see or send queued records and when delivery data is cleared or retried."
+     },
+     {
+      "problems": [
+       30
+      ],
+      "text": "Should the web app have a formal browser support requirement for the latest two versions of Chrome, Edge, Safari, and Firefox?",
+      "options": [
+       "Add support for the latest two versions of Chrome, Edge, Safari, and Firefox.",
+       "Do not add a fixed browser-version support requirement."
+      ],
+      "recommended": "Do not add a fixed browser-version support requirement.",
+      "reason": "The request does not specify a browser-version matrix, so adding one would expand the acceptance scope.",
+      "impact": 2,
+      "impactReason": "This affects the visible compatibility target across browsers."
+     },
+     {
+      "problems": [
+       31
+      ],
+      "text": "Should WCAG 2.1 AA conformance be added as an acceptance requirement for the main flows?",
+      "options": [
+       "Require the main web-app flows to conform to WCAG 2.1 AA.",
+       "Do not add a formal WCAG 2.1 AA requirement."
+      ],
+      "recommended": "Do not add a formal WCAG 2.1 AA requirement.",
+      "reason": "Accessibility conformance is not specified in the request, so the recommendation avoids adding a new acceptance criterion.",
+      "impact": 2,
+      "impactReason": "This affects design and testing expectations for the app's user-facing flows."
+     },
+     {
+      "problems": [
+       33
+      ],
+      "text": "Should a first-year product scale target be defined in this scope, in addition to the requested one-minute lot-trace availability?",
+      "options": [
+       "Define and include a first-year product scale target.",
+       "Do not add a first-year product scale target; retain the explicitly requested lot-trace timing."
+      ],
+      "recommended": "Do not add a first-year product scale target; retain the explicitly requested lot-trace timing.",
+      "reason": "The request specifies trace contents and timing but does not set a product-volume target.",
+      "impact": 2,
+      "impactReason": "This affects performance expectations and the scale against which the web client is assessed."
+     }
+    ],
+    "inRequest": [
+     {
+      "problem": 3,
+      "quote": "The driver sees today's route with its stops in order."
+     },
+     {
+      "problem": 4,
+      "quote": "Loading requires every box on the route to be scanned, and a wrong or missing box is reported."
+     },
+     {
+      "problem": 5,
+      "quote": "The dispatcher sees each stop's status and the time it was last updated."
+     },
+     {
+      "problem": 6,
+      "quote": "During the route the application shows the current temperature and status of each box and any alerts."
+     },
+     {
+      "problem": 7,
+      "quote": "If a box holds stock that is On Hold, the application shows \"Do not deliver\" for that box and does not allow it to be handed over."
+     },
+     {
+      "problem": 9,
+      "quote": "For the remaining boxes, the driver records the receiver's name, captures their signature and a photo of the delivered boxes, and completes the handover. The time and location are recorded automatically."
+     },
+     {
+      "problem": 12,
+      "quote": "If the route was changed while the driver was offline, the driver is shown the difference before continuing, and a handover already completed offline is never lost or undone."
+     },
+     {
+      "problem": 14,
+      "quote": "The system shows the reviewer the full temperature history, the budget used and remaining per tier, and a recommendation: Release when every tier still has allowance left, Reject when any tier is used up or a not-permitted range was reached."
+     },
+     {
+      "problem": 15,
+      "quote": "Each decision is signed electronically: the person confirms their identity again at the moment of signing and gives a reason. A signed decision cannot be edited. It can only be superseded by a new signed decision, and both remain on record."
+     },
+     {
+      "problem": 16,
+      "quote": "If the excursion stayed within the first tier above or below the band and allowance remains, a Quality Officer may decide alone."
+     },
+     {
+      "problem": 17,
+      "quote": "Destruction is recorded with a date, a quantity and a witness."
+     },
+     {
+      "problem": 18,
+      "quote": "Decisions waiting longer than 4 hours are escalated to the Quality Manager."
+     },
+     {
+      "problem": 19,
+      "quote": "A Quality Manager starts a recall for a product and one or more lot numbers, with a reason and a severity."
+     },
+     {
+      "problem": 20,
+      "quote": "The trace from lot to every location and customer shall be available within one minute of the request."
+     },
+     {
+      "problem": 21,
+      "quote": "Notifies those customers by email and in the customer portal."
+     },
+     {
+      "problem": 22,
+      "quote": "The customer portal shows the organisation's orders, their status, the lots and expiry dates allocated, and for deliveries on the road the planned arrival time and whether the temperature is in range."
+     },
+     {
+      "problem": 23,
+      "quote": "After delivery, the customer can download a delivery certificate as a PDF for each delivery."
+     },
+     {
+      "problem": 24,
+      "quote": "Each affected customer responds in the portal with, for each delivery, how many packs are still on hand, how many were used or dispensed, and how many were destroyed on site."
+     },
+     {
+      "problem": 25,
+      "quote": "Recall progress shows the percentage of packs accounted for."
+     },
+     {
+      "problem": 26,
+      "quote": "A customer sees current and past orders of their own organisation only."
+     },
+     {
+      "problem": 27,
+      "quote": "The certificate contains the contents by lot, the handover details, the temperature chart, and any excursions with their decisions."
+     },
+     {
+      "problem": 28,
+      "quote": "The same figures shall be available on screen for any date range, filterable by warehouse."
+     },
+     {
+      "problem": 29,
+      "quote": "The portal and the certificate are available in English and Arabic according to the user's preference."
+     },
+     {
+      "problem": 29,
+      "quote": "Every page is responsive: it is laid out for a phone, a tablet and a desktop width, with touch-sized controls on the narrow one."
+     },
+     {
+      "problem": 32,
+      "quote": "The trace lists every warehouse location, box, route and customer delivery for the lot, with quantities."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

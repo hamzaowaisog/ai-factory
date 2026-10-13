@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rations — Range Ledger</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-panel: #FFFFFF;
+      --text-main: #262626;
+      --text-muted: #626262;
+      --border-color: #D8D8D8;
+      --brand-accent: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .num-font, .code-font, .time-font {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Design System Spacing & Component Rules */
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .panel-card {
+        padding: 16px;
+      }
+    }
+
+    .btn-solid {
+      background-color: var(--brand-accent);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 4px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      transition: background-color 150ms ease, transform 100ms ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-solid:hover {
+      background-color: #9c3c33;
+    }
+
+    .btn-solid:active {
+      transform: scale(0.98);
+    }
+
+    .btn-outline {
+      background-color: #FFFFFF;
+      color: var(--text-main);
+      height: 44px;
+      border-radius: 4px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+      cursor: pointer;
+    }
+
+    .btn-outline:hover {
+      background-color: #FAFAFA;
+      border-color: #BDBDBD;
+    }
+
+    .btn-outline:active {
+      transform: scale(0.98);
+    }
+
+    .form-input, .form-select {
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      height: 44px;
+      padding: 0 12px;
+      color: var(--text-main);
+      width: 100%;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--brand-accent);
+      box-shadow: 0 0 0 2px var(--brand-accent);
+    }
+
+    @media (max-width: 768px) {
+      .btn-solid, .btn-outline, .form-input, .form-select {
+        height: 48px;
+      }
+    }
+
+    /* Motion Tokens and Keyframes */
+    @keyframes page-enter {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: page-enter 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    .feeding-track-fill {
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+      animation-duration: 420ms;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance, .live-dot, .feeding-track-fill {
+        animation: none !important;
+      }
+    }
+
+    /* Table rules */
+    .table-row-item {
+      height: 48px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+      .table-row-item {
+        min-height: 56px;
+        height: auto;
+      }
+    }
+
+    .major-divider {
+      border: 0;
+      border-top: 2px solid var(--border-color);
+      margin: 32px 0;
+    }
+
+    /* Ratio crop helper */
+    .portrait-avatar {
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+<!-- Shared Plain Header -->
+<header class="bg-white border-b border-[#D8D8D8]">
+<div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center space-x-8">
+<a class="flex items-center space-x-3 text-[#262626] font-semibold text-lg tracking-tight" href="#">
+<div class="w-7 h-7 bg-[#262626] rounded-[4px] flex items-center justify-center text-white font-bold text-sm">
+            R
+          </div>
+<span class="heading-font font-[650] text-lg text-[#262626]">Range Ledger</span>
+</a>
+<nav aria-label="Main menu" class="hidden xl:flex items-center space-x-1 text-sm font-normal text-[#626262]">
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Yard</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Imports</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Allocations</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Lots</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Inventory</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Feed outlook</a>
+<a class="px-3 py-2 text-[#B3473D] font-semibold border-b-2 border-[#B3473D] pb-[14px] mt-[2px]" href="#">Rations</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Feed plans</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Feeding</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Reports</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Feed-to-gain</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Profitability</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Sample data</a>
+<a class="px-3 py-2 hover:text-[#262626] transition-colors" href="#">Delivery brief</a>
+</nav>
+</div>
+<div class="flex items-center space-x-3">
+<img alt="Maya Chen" class="w-9 h-9 portrait-avatar border border-[#D8D8D8]" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG"/>
+<div class="text-left text-sm leading-tight">
+<div class="text-[#262626] font-semibold">Maya Chen</div>
+<div class="text-[#626262] text-xs">Yard manager</div>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-6 pt-8 animate-entrance">
+<!-- Single Page Heading -->
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between mb-8 pb-4 border-b border-[#D8D8D8]">
+<div>
+<h1 class="heading-font text-[32px] font-[650] text-[#262626] leading-9">Rations</h1>
+<p class="text-[#626262] text-sm mt-1">
+          Nutrition workbench for authorized ration managers • Red Mesa Yard • America/Denver (Mountain Time)
+        </p>
+</div>
+<div class="mt-4 md:mt-0 flex items-center space-x-4">
+<div class="flex items-center space-x-2 text-sm text-[#262626]">
+<span class="w-2.5 h-2.5 rounded-full bg-[#286143] live-dot"></span>
+<span class="text-[#286143] font-medium">Authorized active workbench</span>
+</div>
+<div class="text-xs text-[#626262] border-l border-[#D8D8D8] pl-3 py-0.5">
+          Ration manager: <span class="font-medium text-[#262626]">Samira Patel</span>
+</div>
+</div>
+</div>
+<!-- Active Operational Rations Worklist Section -->
+<section class="panel-card mb-8">
+<div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#D8D8D8] mb-6">
+<div>
+<h2 class="heading-font text-[24px] font-[600] text-[#262626]">Active Ration Profiles</h2>
+<p class="text-[#626262] text-sm mt-0.5">
+            Service-returned operational diet formulations currently assigned to yard pens
+          </p>
+</div>
+<div class="mt-3 md:mt-0 flex items-center space-x-2">
+<span class="text-xs text-[#626262]">Yard commitments:</span>
+<span class="text-xs font-semibold num-font text-[#262626]">P-04, P-07 (Grower)</span>
+<span class="text-xs text-[#626262]">•</span>
+<span class="text-xs font-semibold num-font text-[#262626]">P-12 (Finisher)</span>
+</div>
+</div>
+<!-- Ration Selection & Profile Cards -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Grower Ration Card (Selectable & Active) -->
+<div class="border-2 border-[#B3473D] bg-white rounded-[4px] p-5 relative">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-2">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-[#286143]"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-[#286143]">Active in yard</span>
+<span class="text-xs px-2 py-0.5 bg-[#F5F5F5] text-[#262626] font-medium rounded-[4px] border border-[#D8D8D8]">Current selection</span>
+</div>
+<h3 class="heading-font text-[18px] font-[600] text-[#262626] mt-2">Grower</h3>
+<p class="text-xs text-[#626262]">Assigned to Pen P-04 (140 head) and Pen P-07 (126 head)</p>
+</div>
+<div class="text-right">
+<div class="text-xs text-[#626262]">Delivered cost</div>
+<div class="num-font text-xl font-semibold text-[#262626]">$0.145<span class="text-xs font-normal text-[#626262]">/lb</span></div>
+</div>
+</div>
+<!-- Nutritional Key Metrics -->
+<div class="grid grid-cols-3 gap-3 my-4 py-3 bg-[#F5F5F5] rounded-[4px] px-4 border border-[#D8D8D8]">
+<div>
+<div class="text-xs text-[#626262]">Crude protein</div>
+<div class="num-font font-semibold text-base text-[#262626]">13.2%</div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Net energy</div>
+<div class="num-font font-semibold text-base text-[#262626]">1.48 <span class="text-xs text-[#626262]">Mcal/lb</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Dry matter basis</div>
+<div class="num-font font-semibold text-base text-[#262626]">88.5%</div>
+</div>
+</div>
+<!-- Compact Ingredient Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead>
+<tr class="text-xs text-[#626262] uppercase tracking-wider border-b border-[#D8D8D8]">
+<th class="py-2 font-normal">Ingredient</th>
+<th class="py-2 text-right font-normal">Inclusion</th>
+<th class="py-2 text-right font-normal">Daily rate (P-07 avg)</th>
+<th class="py-2 text-right font-normal">Inventory on-hand</th>
+</tr>
+</thead>
+<tbody>
+<tr class="table-row-item">
+<td class="font-medium text-[#262626]">Steam-flaked corn</td>
+<td class="text-right num-font font-semibold text-[#262626]">64%</td>
+<td class="text-right num-font text-[#626262]">14.1 lb/hd</td>
+<td class="text-right num-font text-[#626262]">84,600 lb</td>
+</tr>
+<tr class="table-row-item">
+<td class="font-medium text-[#262626]">Distillers grains</td>
+<td class="text-right num-font font-semibold text-[#262626]">24%</td>
+<td class="text-right num-font text-[#626262]">5.3 lb/hd</td>
+<td class="text-right num-font text-[#626262]">31,200 lb</td>
+</tr>
+<tr class="table-row-item">
+<td class="font-medium text-[#262626]">Alfalfa hay</td>
+<td class="text-right num-font font-semibold text-[#262626]">10%</td>
+<td class="text-right num-font text-[#626262]">2.2 lb/hd</td>
+<td class="text-right num-font text-[#626262]">18,400 lb</td>
+</tr>
+<tr class="table-row-item border-b-0">
+<td class="font-medium text-[#262626]">Mineral premix</td>
+<td class="text-right num-font font-semibold text-[#262626]">2%</td>
+<td class="text-right num-font text-[#626262]">0.4 lb/hd</td>
+<td class="text-right num-font text-[#626262]">3,200 lb</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-4 pt-3 border-t border-[#D8D8D8] flex items-center justify-between text-xs text-[#626262]">
+<span>Formulated by: Samira Patel (Ration manager)</span>
+<span class="num-font">Total inclusion: 100%</span>
+</div>
+</div>
+<!-- Finisher Ration Card -->
+<div class="border border-[#D8D8D8] bg-white rounded-[4px] p-5 relative hover:border-[#BDBDBD] transition-colors">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-2">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-[#286143]"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-[#286143]">Active in yard</span>
+</div>
+<h3 class="heading-font text-[18px] font-[600] text-[#262626] mt-2">Finisher</h3>
+<p class="text-xs text-[#626262]">Assigned to Pen P-12 (94 head Charolais-cross steers)</p>
+</div>
+<div class="text-right">
+<div class="text-xs text-[#626262]">Delivered cost</div>
+<div class="num-font text-xl font-semibold text-[#262626]">$0.151<span class="text-xs font-normal text-[#626262]">/lb</span></div>
+</div>
+</div>
+<!-- Nutritional Key Metrics -->
+<div class="grid grid-cols-3 gap-3 my-4 py-3 bg-[#F5F5F5] rounded-[4px] px-4 border border-[#D8D8D8]">
+<div>
+<div class="text-xs text-[#626262]">Crude protein</div>
+<div class="num-font font-semibold text-base text-[#262626]">12.8%</div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Net energy</div>
+<div class="num-font font-semibold text-base text-[#262626]">1.54 <span class="text-xs text-[#626262]">Mcal/lb</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Dry matter basis</div>
+<div class="num-font font-semibold text-base text-[#262626]">89.2%</div>
+</div>
+</div>
+<!-- Compact Ingredient Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead>
+<tr class="text-xs text-[#626262] uppercase tracking-wider border-b border-[#D8D8D8]">
+<th class="py-2 font-normal">Ingredient</th>
+<th class="py-2 text-right font-normal">Inclusion</th>
+<th class="py-2 text-right font-normal">Daily rate (P-12 avg)</th>
+<th class="py-2 text-right font-normal">Inventory on-hand</th>
+</tr>
+</thead>
+<tbody>
+<tr class="table-row-item">
+<td class="font-medium text-[#262626]">Steam-flaked corn</td>
+<td class="text-right num-font font-semibold text-[#262626]">72%</td>
+<td class="text-right num-font text-[#626262]">17.4 lb/hd</td>
+<td class="text-right num-font text-[#626262]">84,600 lb</td>
+</tr>
+<tr class="table-row-item">
+<td class="font-medium text-[#262626]">Distillers grains</td>
+<td class="text-right num-font font-semibold text-[#262626]">18%</td>
+<td class="text-right num-font text-[#626262]">4.4 lb/hd</td>
+<td class="text-right num-font text-[#626262]">31,200 lb</td>
+</tr>
+<tr class="table-row-item">
+<td class="font-medium text-[#262626]">Alfalfa hay</td>
+<td class="text-right num-font font-semibold text-[#262626]">7%</td>
+<td class="text-right num-font text-[#626262]">1.7 lb/hd</td>
+<td class="text-right num-font text-[#626262]">18,400 lb</td>
+</tr>
+<tr class="table-row-item border-b-0">
+<td class="font-medium text-[#262626]">Mineral premix</td>
+<td class="text-right num-font font-semibold text-[#262626]">3%</td>
+<td class="text-right num-font text-[#626262]">0.7 lb/hd</td>
+<td class="text-right num-font text-[#626262]">3,200 lb</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-4 pt-3 border-t border-[#D8D8D8] flex items-center justify-between text-xs text-[#626262]">
+<span>Returned by: Ration service v-current</span>
+<span class="num-font">Total inclusion: 100%</span>
+</div>
+</div>
+</div>
+</section>
+<hr class="major-divider"/>
+<!-- Stepwise Editor & Nutrition Optimizer Layout (Stacks on phone width) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+<!-- Left Column: Stepwise Ration Editor (7 Cols on desktop, full width on mobile) -->
+<div class="lg:col-span-7 space-y-6">
+<div class="panel-card">
+<div class="border-b border-[#D8D8D8] pb-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+<div>
+<h2 class="heading-font text-[24px] font-[600] text-[#262626]">Stepwise Ration Editor</h2>
+<p class="text-[#626262] text-sm mt-0.5">Revise existing formulations or calibrate custom batch mixes</p>
+</div>
+<div class="mt-2 sm:mt-0">
+<span class="text-xs px-2.5 py-1 bg-[#F5F5F5] text-[#626262] rounded-[4px] border border-[#D8D8D8]">
+                Mode: Revise Grower
+              </span>
+</div>
+</div>
+<!-- Step Progression Indicator -->
+<div class="grid grid-cols-3 gap-2 pb-6 border-b border-[#D8D8D8]">
+<div class="p-2 border-l-2 border-[#B3473D] bg-[#F5F5F5]">
+<div class="text-xs text-[#626262] uppercase tracking-wider">Step 1</div>
+<div class="text-sm font-semibold text-[#262626]">Proportions</div>
+</div>
+<div class="p-2 border-l-2 border-[#D8D8D8]">
+<div class="text-xs text-[#626262] uppercase tracking-wider">Step 2</div>
+<div class="text-sm font-semibold text-[#626262]">Quality check</div>
+</div>
+<div class="p-2 border-l-2 border-[#D8D8D8]">
+<div class="text-xs text-[#626262] uppercase tracking-wider">Step 3</div>
+<div class="text-sm font-semibold text-[#626262]">Yard approval</div>
+</div>
+</div>
+<!-- Step 1 Form Content -->
+<div class="pt-6 space-y-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1.5" for="target-ration-profile">
+                  Target Ration Profile
+                </label>
+<select aria-label="Target ration profile" class="form-select text-sm font-medium" id="target-ration-profile">
+<option selected="">Grower (Revise active formulation)</option>
+<option>Finisher (Revise active formulation)</option>
+<option>Create new candidate ration</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1.5" for="target-dry-matter-basis">
+                  Target Dry Matter Basis (%)
+                </label>
+<input aria-label="Target dry matter basis percentage" class="form-input num-font text-sm" id="target-dry-matter-basis" type="text" value="88.5"/>
+</div>
+</div>
+<!-- Ingredient Adjustment Table -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold text-[#626262] uppercase tracking-wider">Ingredient Proportions</span>
+<span class="text-xs font-semibold num-font text-[#286143]">Current total: 100.0%</span>
+</div>
+<div class="border border-[#D8D8D8] rounded-[4px] overflow-hidden">
+<table class="w-full text-left text-sm">
+<thead>
+<tr class="bg-[#F5F5F5] text-xs text-[#626262] uppercase border-b border-[#D8D8D8]">
+<th class="py-2.5 px-3 font-normal">Commodity</th>
+<th class="py-2.5 px-3 text-right font-normal">Percent (%)</th>
+<th class="py-2.5 px-3 text-right font-normal">Available</th>
+</tr>
+</thead>
+<tbody>
+<tr class="table-row-item px-3">
+<td class="py-2 px-3 font-medium text-[#262626]">Steam-flaked corn</td>
+<td class="py-2 px-3 text-right">
+<input aria-label="Steam-flaked corn inclusion percent" class="w-20 form-input num-font text-sm text-right inline-block h-8 py-0" id="steam-flaked-corn-percent" type="text" value="64.0"/>
+</td>
+<td class="py-2 px-3 text-right num-font text-[#626262] text-xs">84,600 lb</td>
+</tr>
+<tr class="table-row-item px-3">
+<td class="py-2 px-3 font-medium text-[#262626]">Distillers grains</td>
+<td class="py-2 px-3 text-right">
+<input aria-label="Distillers grains inclusion percent" class="w-20 form-input num-font text-sm text-right inline-block h-8 py-0" id="distillers-grains-percent" type="text" value="24.0"/>
+</td>
+<td class="py-2 px-3 text-right num-font text-[#626262] text-xs">31,200 lb</td>
+</tr>
+<tr class="table-row-item px-3">
+<td class="py-2 px-3 font-medium text-[#262626]">Alfalfa hay</td>
+<td class="py-2 px-3 text-right">
+<input aria-label="Alfalfa hay inclusion percent" class="w-20 form-input num-font text-sm text-right inline-block h-8 py-0" id="alfalfa-hay-percent" type="text" value="10.0"/>
+</td>
+<td class="py-2 px-3 text-right num-font text-[#626262] text-xs">18,400 lb</td>
+</tr>
+<tr class="table-row-item px-3 border-b-0">
+<td class="py-2 px-3 font-medium text-[#262626]">Mineral premix</td>
+<td class="py-2 px-3 text-right">
+<input aria-label="Mineral premix inclusion percent" class="w-20 form-input num-font text-sm text-right inline-block h-8 py-0" id="mineral-premix-percent" type="text" value="2.0"/>
+</td>
+<td class="py-2 px-3 text-right num-font text-[#626262] text-xs">3,200 lb</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Calculated Live Evaluation -->
+<div class="p-4 bg-[#F5F5F5] rounded-[4px] border border-[#D8D8D8] flex flex-wrap items-center justify-between gap-4">
+<div>
+<span class="text-xs text-[#626262]">Projected Delivered Cost:</span>
+<span class="ml-2 num-font font-semibold text-lg text-[#262626]">$0.1450 / lb</span>
+</div>
+<div class="flex items-center space-x-4 text-xs">
+<span>CP: <strong class="num-font text-[#262626]">13.2%</strong></span>
+<span>Energy: <strong class="num-font text-[#262626]">1.48 Mcal/lb</strong></span>
+</div>
+</div>
+<!-- Form Actions -->
+<div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#D8D8D8]">
+<div class="text-xs text-[#626262]">
+                Changes only apply upon confirmation by authorized ration manager
+              </div>
+<div class="flex items-center space-x-3 w-full sm:w-auto">
+<button class="btn-outline w-full sm:w-auto text-sm" type="button">Discard</button>
+<button class="btn-solid w-full sm:w-auto text-sm" type="button">Save ration</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Nutrition Optimizer (5 Cols on desktop, full width on mobile) -->
+<div class="lg:col-span-5 space-y-6">
+<div class="panel-card">
+<div class="border-b border-[#D8D8D8] pb-4 mb-6">
+<h2 class="heading-font text-[24px] font-[600] text-[#262626]">Nutrition Optimizer</h2>
+<p class="text-[#626262] text-sm mt-0.5">
+              Enter minimum targets to return least-cost candidate formulations
+            </p>
+</div>
+<form class="space-y-4">
+<div>
+<label class="block text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1.5">
+                Minimum Crude Protein (CP %)
+              </label>
+<div class="relative">
+<input class="form-input num-font text-sm pr-8" type="text" value="13.0"/>
+<span class="absolute right-3 top-2.5 text-xs text-[#626262] pointer-events-none">%</span>
+</div>
+</div>
+<div>
+<label class="block text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1.5">
+                Minimum Net Energy (Mcal/lb)
+              </label>
+<div class="relative">
+<input class="form-input num-font text-sm pr-16" type="text" value="1.45"/>
+<span class="absolute right-3 top-2.5 text-xs text-[#626262] pointer-events-none">Mcal/lb</span>
+</div>
+</div>
+<div>
+<label class="block text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1.5">
+                Roughage Floor (Alfalfa Hay Min %)
+              </label>
+<div class="relative">
+<input class="form-input num-font text-sm pr-8" type="text" value="10.0"/>
+<span class="absolute right-3 top-2.5 text-xs text-[#626262] pointer-events-none">%</span>
+</div>
+</div>
+<div>
+<label class="block text-xs font-semibold text-[#626262] uppercase tracking-wider mb-1.5">
+                Mineral Premix Fixed (%)
+              </label>
+<div class="relative">
+<input class="form-input num-font text-sm pr-8" readonly="" type="text" value="2.0"/>
+<span class="absolute right-3 top-2.5 text-xs text-[#626262] pointer-events-none">%</span>
+</div>
+</div>
+<div class="pt-2">
+<button class="btn-solid w-full text-sm" type="button">
+                Compute candidate mixes
+              </button>
+</div>
+</form>
+<!-- Disclaimer / Audit Notice -->
+<div class="mt-5 p-3 bg-[#F5F5F5] rounded-[4px] border border-[#D8D8D8] text-xs text-[#626262] leading-relaxed">
+<span class="font-semibold text-[#262626]">Optimization Notice:</span>
+            Candidate mixes are service-returned exploratory evaluations. Optimization itself does not modify any saved yard ration. Mixes remain uncommitted until explicitly saved via “Save ration”.
+          </div>
+</div>
+</div>
+</div>
+<!-- Candidate Mix Comparison Table (Full Width) -->
+<section class="panel-card mb-8">
+<div class="border-b border-[#D8D8D8] pb-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+<div>
+<h2 class="heading-font text-[24px] font-[600] text-[#262626]">Returned Candidate Mixes</h2>
+<p class="text-[#626262] text-sm mt-0.5">
+            Comparative least-cost formulation results based on current commodity inventory prices
+          </p>
+</div>
+<div class="mt-3 md:mt-0 flex items-center space-x-2 text-xs">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-[#286143]"></span>
+<span class="text-[#262626] font-medium">1 mix marked lowest-cost meeting minimums</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead>
+<tr class="border-b border-[#D8D8D8] text-xs text-[#626262] uppercase tracking-wider">
+<th class="py-3 px-3 font-normal">Candidate ID</th>
+<th class="py-3 px-3 font-normal">Corn</th>
+<th class="py-3 px-3 font-normal">Distillers</th>
+<th class="py-3 px-3 font-normal">Alfalfa</th>
+<th class="py-3 px-3 font-normal">Premix</th>
+<th class="py-3 px-3 text-right font-normal">Crude protein</th>
+<th class="py-3 px-3 text-right font-normal">Net energy</th>
+<th class="py-3 px-3 text-right font-normal">Cost / lb</th>
+<th class="py-3 px-3 font-normal">Evaluation status</th>
+<th class="py-3 px-3 text-right font-normal">Workbench action</th>
+</tr>
+</thead>
+<tbody>
+<!-- Candidate A: Lowest Cost Meeting Requirements -->
+<tr class="table-row-item bg-[#F5F5F5] border-l-4 border-l-[#286143]">
+<td class="py-3 px-3 font-semibold num-font text-[#262626]">
+                OPT-MIX-01
+              </td>
+<td class="py-3 px-3 num-font text-[#262626]">65.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">23.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">10.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">2.0%</td>
+<td class="py-3 px-3 text-right num-font font-semibold text-[#262626]">13.1%</td>
+<td class="py-3 px-3 text-right num-font font-semibold text-[#262626]">1.49 Mcal</td>
+<td class="py-3 px-3 text-right num-font font-bold text-[#286143] text-base">$0.1438</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center text-xs text-[#286143] font-semibold">
+<span class="w-2 h-2 rounded-full bg-[#286143] mr-1.5"></span>
+                  Lowest cost meeting requirements
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<button class="btn-solid text-xs h-8 px-3" type="button">
+                  Save ration
+                </button>
+</td>
+</tr>
+<!-- Candidate B: Baseline Grower Match -->
+<tr class="table-row-item">
+<td class="py-3 px-3 font-semibold num-font text-[#262626]">
+                OPT-MIX-02 (Current Grower)
+              </td>
+<td class="py-3 px-3 num-font text-[#262626]">64.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">24.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">10.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">2.0%</td>
+<td class="py-3 px-3 text-right num-font text-[#262626]">13.2%</td>
+<td class="py-3 px-3 text-right num-font text-[#262626]">1.48 Mcal</td>
+<td class="py-3 px-3 text-right num-font font-semibold text-[#262626]">$0.1450</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center text-xs text-[#626262]">
+<span class="w-2 h-2 rounded-full bg-[#286143] mr-1.5"></span>
+                  Meets minimums
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="text-xs text-[#626262] italic pr-2">Currently saved</span>
+</td>
+</tr>
+<!-- Candidate C: High Protein Alternative -->
+<tr class="table-row-item">
+<td class="py-3 px-3 font-semibold num-font text-[#262626]">
+                OPT-MIX-03
+              </td>
+<td class="py-3 px-3 num-font text-[#262626]">60.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">28.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">10.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">2.0%</td>
+<td class="py-3 px-3 text-right num-font text-[#262626]">13.8%</td>
+<td class="py-3 px-3 text-right num-font text-[#262626]">1.46 Mcal</td>
+<td class="py-3 px-3 text-right num-font font-semibold text-[#262626]">$0.1472</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center text-xs text-[#626262]">
+<span class="w-2 h-2 rounded-full bg-[#286143] mr-1.5"></span>
+                  Meets minimums
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<button class="btn-outline text-xs h-8 px-3" type="button">
+                  Save ration
+                </button>
+</td>
+</tr>
+<!-- Candidate D: Energy Dense Variation -->
+<tr class="table-row-item border-b-0">
+<td class="py-3 px-3 font-semibold num-font text-[#262626]">
+                OPT-MIX-04
+              </td>
+<td class="py-3 px-3 num-font text-[#262626]">68.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">20.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">10.0%</td>
+<td class="py-3 px-3 num-font text-[#262626]">2.0%</td>
+<td class="py-3 px-3 text-right num-font text-[#262626]">12.7%</td>
+<td class="py-3 px-3 text-right num-font text-[#262626]">1.51 Mcal</td>
+<td class="py-3 px-3 text-right num-font font-semibold text-[#262626]">$0.1465</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center text-xs text-[#805600]">
+<span class="w-2 h-2 rounded-full bg-[#805600] mr-1.5"></span>
+                  Below protein requirement (12.7% &lt; 13.0%)
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<button class="btn-outline text-xs h-8 px-3 opacity-50 cursor-not-allowed" type="button">
+                  Save ration
+                </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-4 pt-3 border-t border-[#D8D8D8] flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-[#626262] gap-2">
+<span>Evaluated against on-hand commodity bunkers (Corn $0.138/lb, Distillers $0.162/lb, Alfalfa $0.115/lb, Premix $0.420/lb)</span>
+<span class="text-[#262626] font-medium">Candidate mixes are not saved until authorized selection</span>
+</div>
+</section>
+<!-- Yard Delivery Integration / Feeding Sequence Track -->
+<section class="panel-card">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#D8D8D8] mb-4">
+<div>
+<h2 class="heading-font text-[18px] font-[600] text-[#262626]">Downstream Yard Delivery Link</h2>
+<p class="text-xs text-[#626262]">Saved Jun 19 operational plan allocations fed by active rations</p>
+</div>
+<div class="mt-2 sm:mt-0 text-xs num-font text-[#626262]">
+          Total planned delivery: <strong class="text-[#262626]">8,384 lb/day</strong>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="p-3 bg-[#F5F5F5] rounded-[4px] border border-[#D8D8D8]">
+<div class="flex items-center justify-between text-xs mb-1">
+<span class="font-semibold text-[#262626]">Pen P-04 (140 head)</span>
+<span class="text-[#805600] font-medium flex items-center">
+<span class="w-2 h-2 rounded-full bg-[#805600] mr-1"></span>
+              Flagged for review
+            </span>
+</div>
+<div class="text-xs text-[#626262] mb-2">Ration: <strong class="text-[#262626]">Grower</strong> • Rate: <span class="num-font text-[#262626]">23.5 lb/hd</span></div>
+<div class="w-full bg-[#D8D8D8] h-2 rounded-[2px] overflow-hidden">
+<div class="bg-[#B3473D] h-full feeding-track-fill" style="width: 39.8%;"></div>
+</div>
+<div class="flex justify-between text-xs num-font text-[#626262] mt-1.5">
+<span>Saved plan: 3,337 lb</span>
+<span>Retained on 142 hd</span>
+</div>
+</div>
+<div class="p-3 bg-[#F5F5F5] rounded-[4px] border border-[#D8D8D8]">
+<div class="flex items-center justify-between text-xs mb-1">
+<span class="font-semibold text-[#262626]">Pen P-07 (126 head)</span>
+<span class="text-[#286143] font-medium flex items-center">
+<span class="w-2 h-2 rounded-full bg-[#286143] mr-1"></span>
+              Normal
+            </span>
+</div>
+<div class="text-xs text-[#626262] mb-2">Ration: <strong class="text-[#262626]">Grower</strong> • Rate: <span class="num-font text-[#262626]">22.0 lb/hd</span></div>
+<div class="w-full bg-[#D8D8D8] h-2 rounded-[2px] overflow-hidden">
+<div class="bg-[#286143] h-full feeding-track-fill" style="width: 33.1%;"></div>
+</div>
+<div class="flex justify-between text-xs num-font text-[#626262] mt-1.5">
+<span>Saved plan: 2,772 lb</span>
+<span>126 hd verified</span>
+</div>
+</div>
+<div class="p-3 bg-[#F5F5F5] rounded-[4px] border border-[#D8D8D8]">
+<div class="flex items-center justify-between text-xs mb-1">
+<span class="font-semibold text-[#262626]">Pen P-12 (94 head)</span>
+<span class="text-[#286143] font-medium flex items-center">
+<span class="w-2 h-2 rounded-full bg-[#286143] mr-1"></span>
+              Normal
+            </span>
+</div>
+<div class="text-xs text-[#626262] mb-2">Ration: <strong class="text-[#262626]">Finisher</strong> • Rate: <span class="num-font text-[#262626]">24.2 lb/hd</span></div>
+<div class="w-full bg-[#D8D8D8] h-2 rounded-[2px] overflow-hidden">
+<div class="bg-[#286143] h-full feeding-track-fill" style="width: 27.1%;"></div>
+</div>
+<div class="flex justify-between text-xs num-font text-[#626262] mt-1.5">
+<span>Saved plan: 2,274.8 lb</span>
+<span>94 hd verified</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body>
+</html>

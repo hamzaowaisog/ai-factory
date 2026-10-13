@@ -1,0 +1,345 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "driver-route-loading-handover",
+      "readingChosen": "Treat the delivery workflow as one responsive web app; a refusal is recorded per affected box, and each refused box is returned to the warehouse and quarantined.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "A driver can view and act on only their own routes; attempts to open another driver's route are denied."
+       },
+       {
+        "kind": "happy",
+        "text": "Before departure, the driver sees today's assigned route and its stops in order, with the route's boxes and loading status."
+       },
+       {
+        "kind": "data",
+        "text": "When the driver scans a box for loading, the app identifies it and records the scan against the route."
+       },
+       {
+        "kind": "error",
+        "text": "If a scanned box belongs to another route, the app identifies it as a wrong-route box and warns the driver; it is not counted as a valid route-box scan."
+       },
+       {
+        "kind": "error",
+        "text": "The driver cannot complete loading or depart the route until every box assigned to the route has been scanned; the app identifies any missing boxes."
+       },
+       {
+        "kind": "happy",
+        "text": "During the route, the driver can see each box's current temperature, status, and alerts."
+       },
+       {
+        "kind": "happy",
+        "text": "At a stop, the driver scans the boxes assigned to that stop and sees which boxes are eligible for handover."
+       },
+       {
+        "kind": "error",
+        "text": "If a box contains stock On Hold, the app displays “Do not deliver” and the hold reason and prevents the driver from recording its handover."
+       },
+       {
+        "kind": "happy",
+        "text": "For eligible boxes, the driver records the receiver's name, captures a signature and a photo of the delivered boxes, and completes handover."
+       },
+       {
+        "kind": "data",
+        "text": "On handover, the app records the event time and location automatically, along with the receiver name, signature, photo, stop, and delivered boxes."
+       },
+       {
+        "kind": "happy",
+        "text": "The driver can record a refusal of all or part of a delivery, recording the refused boxes and a reason for each refused box; non-refused eligible boxes can still be handed over."
+       },
+       {
+        "kind": "data",
+        "text": "Refused boxes are recorded as returning to the warehouse and are marked Quarantined on arrival."
+       },
+       {
+        "kind": "happy",
+        "text": "Loading, handover, and refusal can be recorded without a connection; the app retains the work locally and sends it automatically when connectivity returns."
+       },
+       {
+        "kind": "data",
+        "text": "An offline handover retains the time it actually occurred, rather than being timestamped with its later upload time."
+       },
+       {
+        "kind": "happy",
+        "text": "If the server route changed while the driver was offline, the app shows the driver the differences before the driver continues with route work."
+       },
+       {
+        "kind": "data",
+        "text": "A handover completed offline remains recorded if the route changed meanwhile; syncing the route change does not erase or undo that handover."
+       },
+       {
+        "kind": "error",
+        "text": "If a box was put On Hold while the driver was offline but was handed over offline, the app retains the handover, flags the hold/handover conflict, and opens a quality case."
+       },
+       {
+        "kind": "data",
+        "text": "Sending the same handover more than once results in one recorded handover, not duplicate records."
+       },
+       {
+        "kind": "happy",
+        "text": "A dispatcher can see each stop's status and the time it was last updated."
+       },
+       {
+        "kind": "error",
+        "text": "If location is unavailable or the driver does not grant browser location access, the app does not invent a location and indicates that it could not record one."
+       }
+      ]
+     },
+     {
+      "id": "US-010-affected-stock-decisions",
+      "readingChosen": "The “first tier above or below the band” means an excursion confined to an immediately adjacent tier; it qualifies for a Quality Officer acting alone only if allowance remains in every applicable tier and no non-permitted range was reached.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "For each affected handling unit, a reviewer sees the full temperature history, allowance used and remaining for each tier, and the system's Release or Reject recommendation."
+       },
+       {
+        "kind": "data",
+        "text": "The system recommends Release only when every tier still has allowance; it recommends Reject if any tier's allowance is used up or a non-permitted range was reached."
+       },
+       {
+        "kind": "permission",
+        "text": "A Quality Officer can sign a decision alone only for an excursion confined to the first tier above or below the band with allowance remaining."
+       },
+       {
+        "kind": "permission",
+        "text": "For every other case, a Quality Officer can propose a decision and a Quality Manager must approve it; the proposer cannot approve their own proposal, even if they also have the Manager role."
+       },
+       {
+        "kind": "permission",
+        "text": "A decision against the system recommendation requires both the proposal and approval roles and a written justification."
+       },
+       {
+        "kind": "data",
+        "text": "At signing, the decision-maker confirms their identity again and enters a reason; the signed decision records the decision, actor(s), reason, and signature."
+       },
+       {
+        "kind": "error",
+        "text": "A decision cannot be signed without the required identity confirmation and reason, or without the required distinct proposer and approver."
+       },
+       {
+        "kind": "error",
+        "text": "A signed decision cannot be edited or deleted, including by a System Administrator; a correction can only be made as a new signed decision that supersedes it, with both decisions retained."
+       },
+       {
+        "kind": "data",
+        "text": "Releasing stock returns it to its previous availability, order, and route state as applicable."
+       },
+       {
+        "kind": "data",
+        "text": "Rejecting stock removes it from its order, removes it from available stock, lists it for destruction, and causes the order to be reallocated under US-005."
+       },
+       {
+        "kind": "error",
+        "text": "Stock On Hold cannot be allocated, packed, loaded, or handed over."
+       },
+       {
+        "kind": "happy",
+        "text": "A decision still waiting more than four hours is escalated to the Quality Manager."
+       },
+       {
+        "kind": "data",
+        "text": "A destruction record captures its date, quantity, and witness."
+       },
+       {
+        "kind": "error",
+        "text": "The app prevents recording a destroyed quantity greater than the rejected quantity."
+       }
+      ]
+     },
+     {
+      "id": "US-011-lot-recall",
+      "readingChosen": "A pack reported as still on hand is collected on a return route and becomes Quarantined when it arrives at Meridian; customer quantities are accounted for per delivery.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only a Quality Manager can start or close a recall; each start and close action is signed."
+       },
+       {
+        "kind": "happy",
+        "text": "A Quality Manager can start a recall by selecting a product and one or more lot numbers and entering a reason and severity."
+       },
+       {
+        "kind": "data",
+        "text": "Starting a recall immediately marks all Meridian-held stock from the selected lots Recalled across every warehouse, removes it from orders, and blocks its handover, including stock packed or already on a van."
+       },
+       {
+        "kind": "happy",
+        "text": "A driver whose device is online sees “Do not deliver” for a recalled box."
+       },
+       {
+        "kind": "data",
+        "text": "The recall trace lists every affected warehouse location, box, route, and customer delivery with quantities; the trace is available within one minute of the recall request."
+       },
+       {
+        "kind": "error",
+        "text": "The trace exposes a quantity discrepancy if its accounted locations and deliveries do not add up exactly to the total quantity received for the lot."
+       },
+       {
+        "kind": "data",
+        "text": "The recall identifies each customer who received the lot, with the quantities delivered, delivery dates, and receivers."
+       },
+       {
+        "kind": "happy",
+        "text": "Affected customers receive an email and a customer-portal notice and can respond separately for each delivery with packs still on hand, used or dispensed, and destroyed on site."
+       },
+       {
+        "kind": "error",
+        "text": "The app rejects a customer's reported quantity if the total reported for a delivery exceeds the quantity delivered."
+       },
+       {
+        "kind": "data",
+        "text": "Packs reported on hand are assigned to a return route and marked Quarantined when received."
+       },
+       {
+        "kind": "happy",
+        "text": "If a customer has not responded within 24 hours, the app sends a reminder and shows the outstanding customer to the Quality Manager."
+       },
+       {
+        "kind": "happy",
+        "text": "Recall progress displays the percentage of packs accounted for."
+       },
+       {
+        "kind": "data",
+        "text": "The recall accounts for packs held by Meridian, returned, reported used, reported destroyed, or written off as unaccounted."
+       },
+       {
+        "kind": "error",
+        "text": "A recall cannot be closed while any pack is unaccounted for unless the pack has a signed write-off justification."
+       }
+      ]
+     },
+     {
+      "id": "US-012-customer-portal",
+      "readingChosen": "The customer's language preference applies to the whole portal and generated certificate; Arabic uses right-to-left layout, including tables, charts, and the PDF.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "A customer user sees current and past orders belonging only to their own organisation; requests for another organisation's orders or deliveries are denied."
+       },
+       {
+        "kind": "happy",
+        "text": "The portal shows order status, allocated lots and expiry dates, and for a delivery on the road its planned arrival time and in-range or out-of-range temperature status."
+       },
+       {
+        "kind": "permission",
+        "text": "A customer can see only their own delivery information; the portal does not reveal other customers or their deliveries on the same route."
+       },
+       {
+        "kind": "happy",
+        "text": "For each completed delivery, the customer can download a PDF delivery certificate."
+       },
+       {
+        "kind": "data",
+        "text": "The certificate contains products, lots, expiry dates, quantities, receiver and handover time, each box's temperature chart from sealing through handover, excursions, and their signed decisions."
+       },
+       {
+        "kind": "data",
+        "text": "Once issued, a certificate remains unchanged; if later readings alter the temperature history, the app issues a new certificate version and keeps both versions available."
+       },
+       {
+        "kind": "happy",
+        "text": "The customer can choose English or Arabic, and the portal and certificate use the selected language."
+       },
+       {
+        "kind": "happy",
+        "text": "With Arabic selected, the entire portal and certificate are right-to-left, including tables and charts."
+       },
+       {
+        "kind": "data",
+        "text": "Portal dates and times are displayed in the customer's own time zone."
+       }
+      ]
+     },
+     {
+      "id": "US-013-audit-trail",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Creation, change, and deletion of regulated data produces an audit entry, including changes to products and profiles, stock, orders and allocations, boxes and routes, handovers, excursions, decisions, recalls, users and roles, and configuration."
+       },
+       {
+        "kind": "data",
+        "text": "Each audit entry records who acted, when, what changed, old and new values, and any reason supplied."
+       },
+       {
+        "kind": "data",
+        "text": "Automatic actions such as system holds and allocations are recorded and attributed to the system."
+       },
+       {
+        "kind": "error",
+        "text": "No user, including a System Administrator, can edit or delete an audit entry."
+       },
+       {
+        "kind": "data",
+        "text": "The system provides a way to demonstrate whether the audit trail has been altered outside the application."
+       },
+       {
+        "kind": "happy",
+        "text": "An Auditor can filter audit entries by record, user, date range, and action type, and export the filtered view."
+       },
+       {
+        "kind": "happy",
+        "text": "A user can view a lot's complete history from receipt through delivery or destruction in chronological order."
+       },
+       {
+        "kind": "data",
+        "text": "Audit times use one reference time for storage and are displayed in the viewer's time zone; Karachi and Lahore use the same zone, while Dubai uses a different zone."
+       },
+       {
+        "kind": "data",
+        "text": "Audit records remain available for seven years."
+       }
+      ]
+     },
+     {
+      "id": "US-014-reports-summaries",
+      "readingChosen": "“Warehouse time” means each warehouse's configured local time; on-screen date-range reporting uses the same underlying record definitions as emailed summaries.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "At 07:00 in each warehouse's own time zone, the system emails that warehouse's Quality Officers a daily summary of excursions from the preceding 24 hours, decisions still waiting, silent devices, and stock On Hold."
+       },
+       {
+        "kind": "data",
+        "text": "Automatically, on the first day of each month, the system generates and emails a monthly report to configured stakeholders."
+       },
+       {
+        "kind": "data",
+        "text": "The monthly report includes excursion counts and rates by route, driver, vehicle, and shipper-box type; rejected and destroyed packs by product and cause; on-time and in-full delivery percentages; average time from excursion to decision; stock within 60 days of expiry by product and warehouse; and open recalls with progress."
+       },
+       {
+        "kind": "happy",
+        "text": "A staff member can view report figures on screen for any date range, filter by warehouse, and export the report."
+       },
+       {
+        "kind": "permission",
+        "text": "A staff member sees report figures only for warehouses they are permitted to access."
+       },
+       {
+        "kind": "data",
+        "text": "Report figures match the underlying records for the same reporting period."
+       },
+       {
+        "kind": "data",
+        "text": "A delivery counts as on time only if handover occurs within 60 minutes of its planned arrival, and counts as in full only if every ordered pack is handed over."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

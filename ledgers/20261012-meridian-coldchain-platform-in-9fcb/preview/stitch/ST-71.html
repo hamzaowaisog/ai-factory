@@ -1,0 +1,638 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Recall notices — Meridian</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+      --radius: 2px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion system */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-waiting {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-waiting);
+      margin-right: 6px;
+    }
+
+    .status-dot-refused {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-refused);
+      margin-right: 6px;
+    }
+
+    .status-dot-good {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      margin-right: 6px;
+    }
+
+    /* Typography */
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1, .h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    h2, .h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: var(--text);
+    }
+
+    h3, .h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .text-quiet {
+      color: var(--text-quiet);
+    }
+
+    .text-sm {
+      font-size: 14px;
+    }
+
+    /* Header */
+    header {
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-logo-box {
+      width: 20px;
+      height: 20px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: var(--radius);
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      height: 56px;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 16px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--primary);
+    }
+
+    .nav-item.selected {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .avatar-initials {
+      width: 24px;
+      height: 24px;
+      background-color: #EAEAEA;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      margin-right: 8px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      color: var(--text);
+    }
+
+    .lang-switcher {
+      color: var(--text-quiet);
+      padding-left: 12px;
+      border-left: 1px solid var(--border);
+    }
+
+    /* Container & Layout */
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-header-row {
+      margin-bottom: 32px;
+    }
+
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .panel-header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .panel-grid-summary {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .carton-photo {
+      width: 144px;
+      height: 108px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      object-fit: cover;
+      display: block;
+      background-color: #FBFBFB;
+    }
+
+    .summary-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 16px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+
+    .metric-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Status badge style */
+    .status-refused {
+      color: var(--status-refused);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .status-good {
+      color: var(--status-good);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Action bar */
+    .action-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #933E16;
+      border-color: #933E16;
+    }
+
+    .btn-secondary {
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background-color: #F2F2F2;
+      border-color: #C0C0C0;
+    }
+
+    /* Table styling */
+    .table-container {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 15px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: #FAFBFB;
+    }
+
+    .info-card {
+      padding: 16px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance {
+        animation: none;
+      }
+      .status-dot-waiting {
+        animation: none;
+      }
+      .btn {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<!-- Header: exact specification -->
+<header>
+<div class="nav-left">
+<a class="brand-mark" href="#">
+<div class="brand-logo-box">M</div>
+<span class="brand-title">Meridian</span>
+</a>
+<nav>
+<a class="nav-item" href="#">Orders</a>
+<a class="nav-item" href="#">Deliveries</a>
+<a class="nav-item selected" href="#">Recall notices</a>
+<a class="nav-item" href="#">Account</a>
+</nav>
+</div>
+<div class="nav-right">
+<div class="user-profile">
+<span class="avatar-initials">HY</span>
+<span>Hana Youssef · Cedar Health</span>
+</div>
+<span class="lang-switcher">EN / العربية</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="animate-entrance">
+<div class="page-header-row">
+<h1>Recall notices</h1>
+</div>
+<!-- Active Recall Notice Card -->
+<section class="panel">
+<div class="panel-header-section">
+<div>
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+<h2>Recall notice <span class="mono">RC-12</span></h2>
+<span class="status-refused"><span class="status-dot-refused"></span>refused</span>
+</div>
+<p class="text-sm text-quiet">Issued by Nadia Farouk · Initiated 14 May 2026 10:00 BST</p>
+</div>
+<div style="text-align: right;">
+<span class="text-sm text-quiet">Customer scope</span>
+<div style="font-weight: 600;">Cedar Health · Order <span class="mono">O-290</span></div>
+</div>
+</div>
+<div class="panel-grid-summary">
+<!-- 4:3 cropped small photograph of affected insulin carton -->
+<img alt="Insulin Glargine 100 units/mL carton" class="carton-photo" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA">
+<div style="display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+<div>
+<div style="font-weight: 600; font-size: 18px; margin-bottom: 2px;">Insulin Glargine 100 units/mL</div>
+<p class="text-sm text-quiet">Pack of 10 pens · Lot <span class="mono">IG-2509</span> · Expiry <span class="mono">30 November 2026</span></p>
+</div>
+<div class="summary-metrics">
+<div class="metric-item">
+<span class="metric-label">Delivered quantity</span>
+<span class="metric-value"><span class="mono">20</span> packs</span>
+</div>
+<div class="metric-item">
+<span class="metric-label">Affected delivery</span>
+<span class="metric-value">Order <span class="mono">O-290</span></span>
+</div>
+<div class="metric-item">
+<span class="metric-label">Delivery destination</span>
+<span class="metric-value" style="font-size: 15px;">Cedar Clinic, 42 River Road</span>
+</div>
+<div class="metric-item">
+<span class="metric-label">Response state</span>
+<span class="status-waiting"><span class="status-dot-waiting"></span>waiting response</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recall detail explanation & reason -->
+<div class="info-card" style="background-color: var(--bg); margin-bottom: 20px;">
+<div style="font-size: 14px; color: var(--text-quiet); margin-bottom: 4px;">Recall reason &amp; operational instruction</div>
+<div style="font-size: 15px; color: var(--text); margin-bottom: 12px;">
+          Active manufacturer recall RC-12 on Lot IG-2509. Mandatory quarantine and customer reconciliation. 20 packs delivered to Cedar Clinic on 13 May require physical quarantine at clinical pharmacy site and disposition confirmation.
+        </div>
+<div class="detail-grid">
+<div>
+<span class="text-sm text-quiet">Receiver recorded</span>
+<div style="font-weight: 500; font-size: 14px;">Rania Karim (Cedar Clinic)</div>
+</div>
+<div>
+<span class="text-sm text-quiet">Received date &amp; route</span>
+<div class="mono text-sm">13 May 2026 10:14 BST · R-201</div>
+</div>
+<div>
+<span class="text-sm text-quiet">Designated Cedar contact</span>
+<div style="font-weight: 500; font-size: 14px;">Hana Youssef (Buyer)</div>
+</div>
+</div>
+</div>
+<!-- Primary action: Recall response alongside Delivery detail link -->
+<div class="action-row">
+<a class="btn btn-primary" href="#">Recall response</a>
+<a class="btn btn-secondary" href="#">Delivery detail</a>
+</div>
+</section>
+<!-- Chronological Notice List -->
+<section>
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+<h2>Chronological notice history</h2>
+<span class="text-sm text-quiet">Showing events for Cedar Health</span>
+</div>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="width: 170px;">Date &amp; time</th>
+<th style="width: 110px;">Notice</th>
+<th style="width: 140px;">Consigned lot</th>
+<th style="width: 120px;">Order</th>
+<th>Event description</th>
+<th style="width: 160px;">Returned status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="mono text-sm">14 May 2026 14:00 BST</td>
+<td class="mono font-semibold">RC-12</td>
+<td class="mono">IG-2509</td>
+<td class="mono">O-290</td>
+<td>Automated notice reminder sent to Hana Youssef</td>
+<td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting response</span></td>
+</tr>
+<tr>
+<td class="mono text-sm">14 May 2026 10:05 BST</td>
+<td class="mono font-semibold">RC-12</td>
+<td class="mono">IG-2509</td>
+<td class="mono">O-290</td>
+<td>Recall notice transmitted to Cedar Clinic consignee (20 packs)</td>
+<td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting response</span></td>
+</tr>
+<tr>
+<td class="mono text-sm">14 May 2026 10:00 BST</td>
+<td class="mono font-semibold">RC-12</td>
+<td class="mono">IG-2509</td>
+<td>—</td>
+<td>Active manufacturer recall initiated by Nadia Farouk</td>
+<td><span class="status-refused"><span class="status-dot-refused"></span>refused</span></td>
+</tr>
+<tr>
+<td class="mono text-sm">13 May 2026 10:14 BST</td>
+<td>—</td>
+<td class="mono">IG-2509</td>
+<td class="mono">O-290</td>
+<td>Tariq handed 20 packs to Rania Karim at Cedar Clinic</td>
+<td><span class="status-good"><span class="status-dot-good"></span>good delivered</span></td>
+</tr>
+<tr>
+<td class="mono text-sm">12 May 2026 10:05 BST</td>
+<td>—</td>
+<td class="mono">IG-2509</td>
+<td>—</td>
+<td>Omar released 24 packs at North Quay to available stock</td>
+<td><span class="status-good"><span class="status-dot-good"></span>good</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"orders":"S-41","deliveries":"S-45","account":"S-50","recall response":"S-49","delivery detail":"S-46"},A={"request password reset":"S-3","back to sign in":"S-1","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8","receipts":"S-6","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","place order":"S-42","change order":"S-44","certificates":"S-47","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-48";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

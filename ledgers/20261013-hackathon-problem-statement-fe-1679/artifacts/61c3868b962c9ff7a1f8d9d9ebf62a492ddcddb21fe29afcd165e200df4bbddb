@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetAllocationsResponseMock"
+   },
+   "ms": 28,
+   "resultChars": 718,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetAllocationsResponseMock&quot;}\">\nlib/api/client.msw.ts:63: export const getGetAllocationsResponseMock = (): AllocationsResponse => ({\"permissions\":[\"allocations.view\",\"allocations.manage\"],\"poLines\":[{\"id\":701,\"sourceIdentifier\":\"PO-8831-L1\",\"sourceHead\":48,\"\nlib/api/client.msw.ts:209: : getGetAllocationsResponseMock()),\ntests/acceptance.test.tsx:14: getGetAllocationsResponseMock,\ntests/acceptance.test.tsx:211: const response = getGetAllocationsResponseMock();\ntests/acceptance.test.tsx:235: const saved = getGetAllocationsResponseMock();\ntests/acceptance.test.tsx:252: const viewOnly = getGetAllocationsResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

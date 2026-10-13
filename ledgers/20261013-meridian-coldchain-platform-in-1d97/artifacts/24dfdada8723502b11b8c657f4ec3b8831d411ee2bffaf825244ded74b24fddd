@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "readings|temperature",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 975,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;readings|temperature&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:187: summary: \"Get receipt, inbound readings and handling units.\"\ncontracts/openapi.yaml:271: summary: \"Get stock, temperature budget, gaps and handling-unit history.\"\ncontracts/openapi.yaml:398: summary: \"List cold rooms, latest readings and alerts.\"\ncontracts/openapi.yaml:425: /temperature-history:\ncontracts/openapi.yaml:427: operationId: getTemperatureHistory\ncontracts/openapi.yaml:428: summary: \"Get temperature history for a box, lot, handling unit or device.\"\ncontracts/openapi.yaml:1553: operationId: listTemperatureProfiles\ncontracts/openapi.yaml:1569: operationId: createTemperatureProfile\ncontracts/openapi.yaml:1570: summary: \"Create a versioned temperature profile effective today or later.\"\ncontracts/openapi.yaml:2609: message: \"Temperature within permitted range\"\n</untrusted_document>"
+  }
+ ]
+}

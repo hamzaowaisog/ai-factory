@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports — Empty State</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageFadeIn 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header Component */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .main-nav {
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 16px;
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+    .nav-link:hover {
+      color: #202020;
+    }
+    .nav-link:focus-visible {
+      outline: none;
+      box-shadow: inset 0 -2px 0 0 #A94B1D;
+    }
+    .nav-link.active {
+      color: #A94B1D;
+      border-bottom-color: #A94B1D;
+      font-weight: 600;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #202020;
+    }
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      background-color: #ECECEC;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-weight: 600;
+      font-size: 11px;
+      color: #202020;
+    }
+    .user-name-title {
+      font-weight: 500;
+    }
+    .header-divider {
+      width: 1px;
+      height: 16px;
+      background-color: #D5D5D5;
+    }
+    .lang-switcher {
+      color: #626262;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Page Container */
+    .page-main {
+      flex: 1;
+      width: 100%;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    /* Page Title */
+    .page-title {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+      margin-bottom: 32px;
+      letter-spacing: -0.02em;
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+    }
+    .field-select {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 14px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23626262' d='M2 4l4 4 4-4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .field-select:hover {
+      border-color: #626262;
+    }
+    .field-select:focus {
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    /* Buttons */
+    .btn-secondary {
+      height: 48px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+      white-space: nowrap;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+    .btn-secondary:focus-visible {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+    .btn-secondary:active {
+      background-color: #EFEFEF;
+    }
+
+    .btn-primary {
+      height: 48px;
+      padding: 0 24px;
+      background-color: #A94B1D;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 150ms ease, background-color 150ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #923f17;
+    }
+    .btn-primary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #A94B1D;
+    }
+    .btn-primary:active {
+      background-color: #7b3412;
+    }
+
+    /* Empty State Panel */
+    .empty-state-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 96px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .empty-icon-box {
+      width: 48px;
+      height: 48px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      background-color: #FFFFFF;
+    }
+    .empty-icon-box svg {
+      width: 20px;
+      height: 20px;
+      stroke: #626262;
+    }
+    .empty-title {
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .empty-message {
+      font-size: 15px;
+      color: #626262;
+      max-width: 480px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    /* Subtle footer boundary indicator matching system standard */
+    .ledger-meta-bar {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #626262;
+      padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Application Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="#" class="brand">
+        <div class="brand-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="#" class="nav-link">Products</a>
+        <a href="#" class="nav-link">Organisations</a>
+        <a href="#" class="nav-link">Accounts</a>
+        <a href="#" class="nav-link">Audit trail</a>
+        <a href="#" class="nav-link active" aria-current="page">Reports</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-avatar">MV</div>
+        <span class="user-name-title">Marcus Vale · System Administrator</span>
+      </div>
+      <div class="header-divider" aria-hidden="true"></div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="page-main animate-entrance">
+    <h1 class="page-title">Reports</h1>
+
+    <!-- Filter Bar -->
+    <section class="filter-panel" aria-label="Report Filters">
+      <div class="field-group">
+        <label for="date-range" class="field-label">Date range</label>
+        <select id="date-range" class="field-select">
+          <option selected>13–14 May 2026</option>
+          <option>14 May 2026 (Today)</option>
+          <option>12–14 May 2026</option>
+          <option>All dates</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="facility-filter" class="field-label">Facility scope</label>
+        <select id="facility-filter" class="field-select">
+          <option selected>North Quay Warehouse</option>
+          <option>All facilities</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <button type="button" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3"></path>
+            <polyline points="5 7 8 10 11 7"></polyline>
+            <line x1="8" y1="10" x2="8" y2="1"></line>
+          </svg>
+          Export displayed CSV
+        </button>
+      </div>
+    </section>
+
+    <!-- Empty State Container -->
+    <section class="empty-state-panel" aria-label="Empty State">
+      <div class="empty-icon-box" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+          <line x1="2" y1="20" x2="22" y2="20"></line>
+        </svg>
+      </div>
+      <h2 class="empty-title">No reports recorded</h2>
+      <p class="empty-message">
+        No completed distribution cycles or settled assurance records have been finalized for this reporting window. Record receipt to initialize facility activity.
+      </p>
+      <button type="button" class="btn-primary">
+        Record receipt
+      </button>
+    </section>
+
+    <!-- Ledger Meta Bar -->
+    <div class="ledger-meta-bar">
+      <span class="mono">0 records</span>
+      <span class="mono">Prototype date: 14 May 2026 · Europe/London (BST)</span>
+    </div>
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+# Design System: Employee Parking
+
+## 1. Visual Theme & Atmosphere
+A precise parking instrument, not a science-fiction console. It should feel like well-labelled garage equipment: calm, readable at a glance from a guard booth, exact in a report. Dark zinc surfaces rise in three steps from the client's brand colour. Thin 1px hairlines of low-alpha light replace shadows. Every number, plate, bay code, date and time is set in mono with tabular figures. Labels are tight, tracked uppercase. One sharp signal yellow, the colour of a painted bay line, appears only as thin lines, small fills and the focus ring. Depth comes from layered surfaces and inset rules, never from glow.
+
+- **Density 7, "Cockpit-leaning daily app":** 40px table rows, 4px spacing base, panels divided by hairlines rather than wide gutters. Information sits close together but always on a grid.
+- **Variance 4, "disciplined offset":** left-aligned page headers and asymmetric main/meta splits on a declared 12-column grid. No centred compositions, no random offsets.
+- **Motion 7, "fast and exact":** numbers roll to their value, bars and lines draw in, a space's bay code carries from a list into its detail, new rows slide in with a short shift, and one live element breathes. Nothing floats, bounces or wobbles.
+- **Colour mode:** dark only.
+
+## 2. Color Palette & Roles
+**Surfaces (three steps, never pure black)**
+- **Brand Zinc Canvas** (#18181B): the client's brand colour and the off-black for the whole system. Used for the app canvas, the deepest layer, and inset wells (inputs and code fields set into panels). It is also the Stitch theme seed.
+- **Panel Zinc** (#1F1F23): the first raised layer. Used for the navigation rail, panels, table bodies and the mobile top bar.
+- **Raised Zinc** (#27272C): the second raised layer. Used for menus, popovers, bottom sheets, dialogs, the table header band and pressed rows.
+
+The steps stay in the brand's zinc family and never warm towards the accent. The accent shows up only as line, fill and tint.
+
+**Lines (in place of shadows)**
+- **Hairline** (rgba(244,244,245,0.08)): the default 1px rule for row dividers, panel edges and section rules.
+- **Strong Hairline** (rgba(244,244,245,0.16)): input borders, outlines on secondary buttons, the rule under table headers, and the border of identifier plates.
+- **Inset Rule** (rgba(244,244,245,0.06)): the 1px inset top edge on Raised Zinc surfaces (`box-shadow: inset 0 1px 0`). This is the only depth effect.
+
+**Ink**
+- **Primary Ink** (#F4F4F5): titles, body text, table values, readouts.
+- **Secondary Ink** (#A1A1AA): labels, table headers, helper text, metadata.
+- **Faint Ink** (#71717A): placeholders and disabled text only.
+
+**Accent (the only one)**
+- **Line-Paint Yellow** (#E6C34A, about 76% saturation): primary button fill, focus ring, active tab and nav rule, progress and utilization bars, the left rule on selected rows, and the bay-line section marker.
+- **Line-Paint Pressed** (#CFAE3E): hover and press state of the yellow fill only.
+- **Yellow Tint** (rgba(230,195,74,0.08)): background for selected rows and newly inserted rows.
+
+**Status signals (state only, never decoration, always paired with a text label)**
+- **Clear Green** (#45C07F): granted, available, live link healthy.
+- **Stop Red** (#E5534B): denied, fail-closed, errors, destructive actions.
+- **Stop Tint** (rgba(229,83,75,0.12)): background for blocking-state banners.
+
+**Overlay**
+- **Scrim** (rgba(24,24,27,0.6)): the brand colour, used behind sheets and dialogs. Never a pure-black scrim.
+
+There are no gradients anywhere. Text on yellow is always Brand Zinc Canvas (#18181B), at about 10:1 contrast.
+
+## 3. Typography Rules
+- **Display / titles:** IBM Plex Sans SemiBold (600). Page title is `clamp(1.375rem, 1.1rem + 0.9vw, 1.75rem)` with 1.25 line height and −0.02em tracking. Section title is 16px/22px, 600, −0.01em. Hierarchy comes from weight and ink colour, not size.
+- **Body:** IBM Plex Sans 400, 14px/21px on dense desktop views and 16px/24px on mobile. Prose (helper text, error explanations) is capped at 65ch.
+- **Mono:** IBM Plex Mono 400/500 for every number, plate, bay code, date, time, count, ID and file name. Always `font-variant-numeric: tabular-nums slashed-zero`.
+- **Labels:** IBM Plex Mono 500, 11px/16px, uppercase, +0.08em tracking, Secondary Ink.
+- **Headline readout:** IBM Plex Mono 500, `clamp(2.25rem, 1.5rem + 3vw, 3.5rem)`, line height 1, −0.03em tracking. At most one per screen.
+- **One deliberate contrast: case.** Uppercase mono labels sit against sentence-case sans. Only weights 400, 500 and 600 are used, and widths never vary.
+- **Craft:** curly quotes, en dash for ranges with no spaces, a real ellipsis character, dates and currency in the user's locale. Audit times are 24-hour HH:MM:SS in mono. Plates are shown uppercase as registered and never truncated.
+- **Banned:** Inter, Roboto, Poppins, Montserrat, DM Sans, Plus Jakarta Sans, Space Grotesk, Manrope, Sora, and any serif face. This is software, so no serifs at all.
+
+## 4. Component Stylings
+- **Buttons:** 40px tall (44px on touch), 2px radius, IBM Plex Sans 500 14px. Primary is a Line-Paint Yellow fill with #18181B text, and each view has at most one. Its label is a product verb that says the action ("Claim this space", "Release for today"). Secondary is transparent with a Strong Hairline border and Primary Ink text. Destructive is Stop Red text with a red 1px border. Press is `scale(0.97)` over 90ms. Primary hover changes the fill to #CFAE3E. Secondary hover adds an rgba(244,244,245,0.04) tint and nudges a trailing arrow 3px right. Focus-visible is a 2px solid #E6C34A outline with 2px offset. Disabled is a Raised Zinc fill with Faint Ink text. No glow and no lift.
+- **Identifier plates:** every plate and bay code renders as a plate token. It is IBM Plex Mono 500 uppercase with +0.08em tracking, 28px tall, 8px horizontal padding, a 1px Strong Hairline border, 2px radius, and a Brand Zinc Canvas fill. A selected or claimed bay adds a 2px Line-Paint Yellow left edge.
+- **Panels:** Panel Zinc fill, 1px Hairline border, 4px radius, no drop shadow. Nested elements use a 2px radius (inner = outer − padding, floored at 2px). Use panels only when grouping matters. Inside dense views, separate with hairline rules and spacing.
+- **Tables:** the header band is Raised Zinc with uppercase mono labels and a Strong Hairline rule beneath. Rows are 40px tall (48px on touch) with Hairline dividers and right-aligned tabular figures. Row hover adds an rgba(244,244,245,0.03) tint. A selected row gets Yellow Tint and a 2px yellow left rule. Sortable headers show a small caret that rotates over 160ms.
+- **Inputs:** an uppercase mono label sits above. The field is a Brand Zinc Canvas well inset into the panel, with a 1px Strong Hairline border, 2px radius and 40px height. Focus turns the border Line-Paint Yellow and adds the 2px yellow outline. Helper text below is Secondary Ink. On error, the border turns Stop Red and an error sentence appears below in Stop Red. No floating labels.
+- **Selects, toggles, checkboxes:** square-ish with a 2px radius. The toggle thumb travels on `--ease-spring` over 260ms. The checked fill is Line-Paint Yellow with a #18181B tick.
+- **Tabs:** text-only labels with a 2px yellow underline that slides between tabs.
+- **Status tokens:** an 8px dot plus a text label in mono uppercase. Colour never carries meaning alone.
+- **Navigation:** text-first, scoped to the person's role. On desktop it is a Panel Zinc left rail, and the active item has a 2px yellow left rule and Primary Ink text. On mobile it is a top bar with a menu that opens as a sheet. Icons appear only where they speed recognition.
+- **Sheets and dialogs:** Raised Zinc with an Inset Rule top edge, 4px top radius on sheets, over the Scrim.
+- **Blocking banners:** full panel width, Stop Tint background, 1px Stop Red rules top and bottom. A mono state code is followed by one plain sentence and the recovery action. Banners never flash.
+- **Inline errors:** a Stop Red 2px left rule, a plain-language sentence, and a retry action beside the failed element.
+- **Loaders:** skeleton blocks sized exactly to the incoming rows and readouts. Panel Zinc blocks carry a Raised Zinc shimmer sweep, used only while loading. No circular spinners.
+- **Empty states:** a hairline-framed area at the real content's size. One sentence says what will appear here and why it is empty, followed by the single action that fills it.
+
+## 5. Layout Principles
+- **Grid:** 12 columns with 24px gutters on desktop, 8 columns at 768–1199px, 4 columns below 768px. Content max-width is 1440px, centred, with 32px side padding (16px on mobile). Spacing uses a 4px base, and the scale is 4/8/12/16/24/32/48.
+- **Page header:** left-aligned. An uppercase mono label comes first, then the title, then at most one primary action aligned right on the same row. No hero blocks.
+- **Asymmetry on the grid:** detail views split 8/4, with main content on columns 1–8 and a metadata column on 9–12. Forms sit in a narrow column spanning columns 1–6. Dense tables span all 12 columns.
+- **Vary the rhythm:** a single headline readout, a dense table and a narrow form column should not share one repeated template. Never use a row of three equal cards.
+- **Full-height shells** use `min-height: 100dvh`, never `100vh` or `h-screen`.
+- **CSS Grid** for structure. No `calc()` percentage hacks and no absolutely positioned stacking. Nothing overlaps.
+- **Responsive:** employee-facing views are mobile-first. Console and admin views are desktop-first and collapse cleanly. Below 768px, everything becomes a single column, and tables turn into stacked rows of mono label/value pairs. Touch targets are at least 44px, there is no horizontal scroll, body text is at least 16px on mobile, and section gaps use `clamp(1.5rem, 4vw, 3rem)`.
+
+## 6. Motion & Interaction
+Motion is fast and exact, and it always conveys a value, a change or a place.
+- Counts and totals roll to their value.
+- Utilization and progress bars, and section rules, draw in from the left once.
+- A space's bay-code plate carries from its list row into its detail view.
+- New rows insert with a 160ms fade and 8px shift.
+- Exactly one live element breathes: the link-status dot on the live entrance view.
+
+Entrances run once per route. Exits run about 30% faster than entrances. Only `transform` and `opacity` animate. The full spec and CSS are in §9.
+
+## 7. Anti-Patterns (Banned)
+- No emojis. No Inter or other AI-default fonts. No serif faces.
+- No pure black anywhere, including scrims and borders. The off-black is #18181B.
+- No glow, neon, outer shadows, gradient blobs, aurora, mesh or conic backgrounds, glassmorphism or backdrop blur, and no purple-to-blue gradients.
+- No gradient text. No second accent. No accent saturation above 80%.
+- No row of three equal cards, no KPI-card rows with sparklines and "+12%" chips, no bento of near-equal tiles.
+- No pill badges, no sparkle or wand icons, no "Get started" style CTAs, no icon on every row.
+- No placeholder names, lorem ipsum or fake round numbers.
+- No custom cursors and no overlapping elements.
+- No filler text such as "Scroll to explore", no bouncing chevrons, no pulsing CTAs.
+- No identical fade-up on every section, no typewriter effects, no parallax or scroll-jacking.
+- No fly-ins longer than 16px of travel, and no motion over 900ms outside the entrance.
+- No animations that replay on every scroll pass.
+- No more than one perpetual animation per screen.
+
+## 8. Voice & Font Rationale
+- **Voice:** exact, calm, accountable.
+- **Display:** IBM Plex Sans. It was drawn as an engineering face with squared curves and a distinct `a`, `g` and `R`, so titles read like labelled equipment rather than marketing (fallback: Hanken Grotesk).
+- **Body / Mono:** IBM Plex Sans for body text and IBM Plex Mono for data. Using one superfamily keeps metrics aligned in tables. Plex Mono's slashed zero and open numerals keep plates, bay codes and timestamps unambiguous when read at a glance (mono fallback: Red Hat Mono).
+
+## 9. Motion System
+- **Tokens:**
+  - Durations: instant 90ms (press, toggle), quick 160ms (hover, focus, row insert), base 260ms (tabs, menus, accordions), slow 420ms (sheets, dialogs, shared element, bar draw), scene 720ms (route entrance total, once), roll 600ms (numbers).
+  - Easings: `--ease-out` cubic-bezier(0.16, 1, 0.3, 1) for entering, `--ease-in` cubic-bezier(0.7, 0, 0.84, 0) for leaving, `--ease-inout` cubic-bezier(0.65, 0, 0.35, 1) for moving between places, and `--ease-spring` as the linear() stand-in for stiffness 100 / damping 20.
+  - Travel: 8px.
+- **Entrance:** the header label, then the title, then each content panel. Each fades in with an 8px rise over 260ms on `--ease-out`, staggered 50ms, with a total under 720ms. Past six items, the rest reveal as one group. Plays once per route load.
+- **Scroll-linked:** utilization and progress bars and the yellow segment of section rules draw from `scaleX(0)` to `scaleX(1)` (origin left) over 420ms when first in view. An IntersectionObserver adds `.is-drawn` and then unobserves, so the reveal happens once and never replays. Counts roll from their previous value (or 0 on first view) to the real value over 600ms, using a digit-strip `translateY` in tabular mono.
+- **Interaction feedback:**
+  - Buttons: press `scale(0.97)` over 90ms. Primary hover swaps the fill to #CFAE3E. Secondary hover nudges its arrow 3px.
+  - Rows: 0.03 white tint on hover and an immediate pressed tint on tap.
+  - Links: underline draws from the left on hover.
+  - Inputs: border goes to yellow over 160ms on focus.
+  - Everything shows the 2px yellow focus-visible outline.
+- **State transitions:**
+  - Tab underline slides over 260ms on `--ease-inout`.
+  - Accordions open via `grid-template-rows: 0fr → 1fr` over 260ms.
+  - New rows insert at the top with a 160ms fade and an 8px downward shift, carrying Yellow Tint that fades out over 420ms after 2s.
+  - Removed rows leave with opacity only over 110ms on `--ease-in`.
+  - Bottom sheets slide up over 420ms on `--ease-out` while the scrim fades from 0 to 0.6, and close over 290ms on `--ease-in`.
+  - Mobile screen pushes move 24px with a fade.
+- **Ambient (max 1):** the live-link status dot on the entrance console. Its 1px ring in the current state colour scales 1 → 1.75 and back (3px of travel) on a 6s infinite cycle with `--ease-inout`. A dead link never breathes: the ring stops and the token turns Stop Red.
+- **Signature moment, "Bay carry":** when a space is opened from a list, its bay-code plate is the shared element. It gets `view-transition-name: bay-code` and morphs into the header of the detail or pass view over 420ms on `--ease-inout`, while the surrounding content cross-fades. Without View Transitions support, the detail view runs the normal entrance.
+- **Reduced motion:** entrances become instant opacity changes. Bar draws, number rolls and the breathing ring are removed, so final values show immediately. State changes keep at most a 120ms opacity fade, and the shared element snaps in place with a cross-fade. Content is never hidden waiting for an animation.
+
+```css
+:root {
+  --canvas: #18181B; --panel: #1F1F23; --raised: #27272C;
+  --ink: #F4F4F5; --ink-2: #A1A1AA; --ink-3: #71717A;
+  --rule: rgba(244,244,245,0.08); --rule-strong: rgba(244,244,245,0.16);
+  --accent: #E6C34A; --accent-press: #CFAE3E; --accent-tint: rgba(230,195,74,0.08);
+  --clear: #45C07F; --stop: #E5534B;
+  --dur-instant: 90ms; --dur-quick: 160ms; --dur-base: 260ms;
+  --dur-slow: 420ms; --dur-scene: 720ms; --dur-roll: 600ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+  --travel: 8px;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(var(--travel)); } to { opacity: 1; transform: none; } }
+@keyframes draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes row-in { from { opacity: 0; transform: translateY(calc(var(--travel) * -1)); } to { opacity: 1; transform: none; } }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.75); } }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+.enter > * { animation: rise var(--dur-base) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms); }
+.bar { transform-origin: left; transform: scaleX(0); }
+.bar.is-drawn { animation: draw var(--dur-slow) var(--ease-out) forwards; }
+.digit-strip { transition: transform var(--dur-roll) var(--ease-out); }
+.row-new { animation: row-in var(--dur-quick) var(--ease-out) both; background: var(--accent-tint); transition: background var(--dur-slow) var(--ease-out) 2s; }
+.live-ring { border: 1px solid currentColor; opacity: 0.4; border-radius: 50%; animation: breathe 6s var(--ease-inout) infinite; }
+.live-ring[data-state="down"] { animation: none; }
+.press:active { transform: scale(0.97); transition: transform var(--dur-instant) var(--ease-out); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::view-transition-group(bay-code) { animation-duration: var(--dur-slow); animation-timing-function: var(--ease-inout); }
+
+@media (prefers-reduced-motion: reduce) {
+  .enter > *, .row-new { animation: none; opacity: 1; transform: none; }
+  .bar, .bar.is-drawn { animation: none; transform: scaleX(1); }
+  .digit-strip { transition: none; }
+  .live-ring { animation: none; }
+  .tab-indicator, .accordion, .sheet { transition: opacity 120ms var(--ease-out); transform: none; }
+  ::view-transition-group(*) { animation: none; }
+  ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 120ms; }
+}
+```
+
+## 10. Component Substitutions
+- **Four KPI cards with sparklines:** replaced by one headline mono readout with its timeframe and source label, followed by a dense sortable table.
+- **Icon-in-square feature cards:** replaced by hairline-ruled lists and tables.
+- **Pill badges and "New" chips:** none. Version or date notes are plain mono text.
+- **Sparkle/AI icons:** none. Labels say what the control does.
+- **"Get started" / "Start for free":** replaced by product verbs tied to the action.
+- **Glassmorphism and gradient backgrounds:** replaced by solid zinc steps with hairlines and an inset top rule.
+- **Default shadcn look:** replaced by the 2px/4px sharp radius system and a yellow 2px offset focus outline.
+- **Icon on every nav link and row:** replaced by text-first navigation, with icons only for recognition-critical items.
+- **Circular spinners:** replaced by dimension-matched skeletons.
+- **Bento grids:** replaced by full-width tables and 8/4 detail splits.
+
+## 11. Human Fingerprint
+- **Unexpected decision, "bay-line markers":** every section rule is a 1px Hairline that starts with a 24px × 2px Line-Paint Yellow segment, like the painted end of a parking bay line. Together with the identifier-plate token for every plate and bay code, it ties the instrument to the garage floor.
+- **Radius family:** sharp. Controls, plates and inputs are 2px. Panels, sheets and dialogs are 4px. Nested elements use outer minus padding, floored at 2px. Status dots are the only circles.
+- **Elevation:** zero drop shadows. There are two tint levels (Panel Zinc, Raised Zinc) over Brand Zinc Canvas, separated by hairlines, with an inset top rule on the raised level only.
+- **Grid:** 12/8/4 columns, 24px gutters, 1440px max width, 4px spacing base.
+- **Image treatment:** no photography or illustration. Profile photos only, 1:1, 2px radius, fully desaturated inside a 1px Hairline frame. If no photo exists, show mono initials on Raised Zinc.
+- **Icon set:** Lucide at 1.25 stroke, 16px inline and 20px in navigation, Secondary Ink, or Primary Ink when active.

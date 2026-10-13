@@ -1,0 +1,108 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "The existing .NET API serves the product’s backend operations over HTTP; this change does not add portal screens or other UI. API consumers can call the backend independently of the web app.",
+        "kind": "data"
+       },
+       {
+        "text": "API requests that require persisted data read and write the shared backend records rather than returning in-memory or fabricated results. Invalid or unavailable backend configuration does not silently produce successful business-operation responses.",
+        "kind": "error"
+       }
+      ],
+      "readingChosen": "API-side product work only; no web, customer-portal, or driver-app screens are built in this project."
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "For every operation in contracts/openapi.yaml, the API accepts the contract-defined method, path, parameters, request fields and content types, and returns the contract-defined response fields, status codes and content types. Required-field, type, enum and format violations are rejected rather than silently accepted or returned as success.",
+        "kind": "data"
+       },
+       {
+        "text": "The contract-defined authorization operation distinguishes permitted and refused access. Meridian staff access is restricted to Meridian accounts; customer access requires the customer sign-in’s second step. Authenticated users can access only the records permitted by their role, warehouse assignments and customer organisation. Auditors have read-only access; attempts to write are refused. Customer users cannot access another organisation’s orders, deliveries or documents, and customer administrators can manage users only in their own organisation.",
+        "kind": "permission"
+       },
+       {
+        "text": "Contract-defined receipt listing and creation return and persist the receipt data represented by the contract. A receipt request that violates contract validation or the applicable business rules—such as an expired product lot or a write by a user without warehouse authority—is refused and does not create a receipt.",
+        "kind": "data"
+       },
+       {
+        "text": "Contract-defined customer-order operations, including PATCH /customer/orders/{orderId} (changeCustomerOrder), accept only the contract’s request shape and return its specified result. A customer can change or cancel their own order only while it is before Packed; a foreign organisation’s order, a disallowed status transition, or an invalid change is refused without changing the order.",
+        "kind": "permission"
+       },
+       {
+        "text": "All other operations named in the locked contract are callable at their exact documented routes and enforce their documented request/response and access rules; an undocumented route or unsupported method does not perform a business action.",
+        "kind": "error"
+       }
+      ],
+      "readingChosen": "The locked OpenAPI document governs operation surface and wire-level details. The supplied current-behaviour summary identifies receipt and authorization operations and the customer-order PATCH operation, but does not expose the full YAML; operation-specific wire fields and statuses therefore remain those defined in that document."
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "Persist products and their required temperature profiles, including version, effective date, reason and author. A profile cannot be saved without a product profile or with overlapping tiers or gaps; prior versions remain viewable and cannot be changed. Product search works by name or code, and a deactivated product cannot be ordered.",
+        "kind": "data"
+       },
+       {
+        "text": "Persist each stock receipt separately with product, lot, expiry, quantity, supplier and storage location, even when product and lot number match an earlier receipt. New stock is Quarantined; only a Quality Officer can release it, and stock arriving within 30 days of expiry cannot be released. Past-expiry stock cannot be received. Inbound logger data and the resulting tier-by-tier budget usage are retained for the release decision. Stock moves retain who moved it, when, and the source and destination.",
+        "kind": "permission"
+       },
+       {
+        "text": "Persist customer organisations, their users and addresses, serving warehouse, minimum shelf-life requirement, orders and order lines. An order must have one or more lines, each for at least one pack, a saved address belonging to that organisation, a delivery date permitted by its warehouse calendar and cut-off, and a choice of partial delivery or delivery complete. A duplicate submission of the same order does not create a second order. Invalid dates, addresses, quantities or cross-organisation requests are refused without creating or changing the order.",
+        "kind": "data"
+       },
+       {
+        "text": "On submission, allocate only Released stock from the serving warehouse, never above available quantity, using earliest expiry first and skipping lots that fail the customer’s minimum remaining shelf life on the requested delivery date; equal-expiry lots with more stability budget used are chosen first. Lines can be split across lots. Complete-only orders reserve no stock unless all lines can be fulfilled; partial orders retain available allocations and back-order the balance. Back orders are filled automatically in submission order when suitable stock is released. Dispatcher overrides require a reason and cannot bypass the Released or shelf-life rules. Concurrent submissions cannot allocate the same stock twice.",
+        "kind": "data"
+       },
+       {
+        "text": "Persist order status and per-line allocated and outstanding quantities. Customers can change or cancel their own order before packing; cancellation returns allocations to availability. After packing, customer changes and cancellation are refused; a dispatcher may cancel and receives the applicable allocation-restoration result. When allocated stock becomes On Hold, Rejected, Recalled or Expired, remove that allocation, attempt replacement allocation, and make the outcome visible to the dispatcher.",
+        "kind": "permission"
+       },
+       {
+        "text": "Persist warehouse stock quantities and allocation state so available, allocated and quarantined quantities can be viewed by product, lot and warehouse and reconcile to quantity on hand. Stock automatically becomes Expired at the end of its expiry date, is removed from allocations, and the dispatcher is notified.",
+        "kind": "data"
+       },
+       {
+        "text": "Persist shipper-box type and qualification, box contents by lot and quantity, seal time and operator, and its single assigned logger. Refuse sealing without exactly one logger, assigning one logger to multiple open boxes, packing products with different storage bands, or packing a product outside the box type’s qualified range. Persist routes with date, vehicle, driver, ordered stops and planned arrival times; refuse conflicting driver or vehicle assignments and confirmation when a box exceeds qualified duration less the configured safety margin, identifying the box and excess. Confirmed-route changes are communicated to the driver.",
+        "kind": "data"
+       },
+       {
+        "text": "Accept and persist temperature readings only from the supplier gateway and for known devices. Duplicate readings are stored once; late and out-of-order readings are placed at their measurement time and trigger recalculation. Future readings and readings before box sealing are retained but marked and excluded from calculations. A device with no reading for 15 minutes is shown as silent; an out-for-delivery silent logger raises an alert. Missing intervals remain visible as gaps, not as assumed in-range time.",
+        "kind": "data"
+       },
+       {
+        "text": "Persist temperature history for boxes, cold rooms and lots, with readings, applicable bands, excursions and gaps available as chart/table data. An excursion opens on an out-of-band reading and closes after three consecutive in-band readings; tier time is charged to each affected handling unit, combining inbound, cold-room and box history without treating different parts of a lot as having identical histories. Reordered or late readings update excursions, budgets, holds and alerts and retain an audit record of the correction.",
+        "kind": "data"
+       },
+       {
+        "text": "On an excursion, alert the driver when the box is on a route, the dispatcher and the warehouse Quality Officers within two minutes of receipt of the triggering reading. Alert again when a tier’s remaining allowance falls below 25%, when it is exhausted, or when a not-permitted range is reached. Affected stock is placed On Hold pending the quality decision; a late-discovered excursion affecting delivered stock opens a quality-review case and is shown to the customer.",
+        "kind": "data"
+       },
+       {
+        "text": "Persist auditable actors and times for consequential changes and decisions, including profile changes, stock movements, allocation overrides and corrected excursion histories. Unauthorized writes, invalid state transitions, impossible allocations, invalid quality or stock actions, and attempts by an Auditor to mutate records are refused without applying the prohibited change.",
+        "kind": "error"
+       }
+      ],
+      "readingChosen": "Treat the described workflows as persisted API data and business outcomes where the API contract exposes them; do not infer unprovided endpoint names or wire schemas. Stability, allocation and access rules apply to the shared records, including when requests arrive concurrently or readings arrive late."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

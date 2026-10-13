@@ -1,0 +1,315 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [],
+      "answers": [
+       "Q-1",
+       "Q-41"
+      ]
+     },
+     {
+      "n": 2,
+      "spans": [],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 3,
+      "spans": [],
+      "answers": [
+       "Q-17"
+      ]
+     },
+     {
+      "n": 4,
+      "spans": [],
+      "answers": [
+       "Q-18"
+      ]
+     },
+     {
+      "n": 5,
+      "spans": [],
+      "answers": [
+       "Q-19"
+      ]
+     },
+     {
+      "n": 6,
+      "spans": [],
+      "answers": [
+       "Q-20"
+      ]
+     },
+     {
+      "n": 7,
+      "spans": [],
+      "answers": [
+       "Q-21"
+      ]
+     },
+     {
+      "n": 8,
+      "spans": [],
+      "answers": [
+       "Q-11"
+      ]
+     },
+     {
+      "n": 9,
+      "spans": [],
+      "answers": [
+       "Q-22"
+      ]
+     },
+     {
+      "n": 10,
+      "spans": [],
+      "answers": [
+       "Q-12"
+      ]
+     },
+     {
+      "n": 11,
+      "spans": [],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 12,
+      "spans": [],
+      "answers": [
+       "Q-10",
+       "Q-13"
+      ]
+     },
+     {
+      "n": 13,
+      "spans": [],
+      "answers": [
+       "Q-13"
+      ]
+     },
+     {
+      "n": 14,
+      "spans": [],
+      "answers": [
+       "Q-23"
+      ]
+     },
+     {
+      "n": 15,
+      "spans": [],
+      "answers": [
+       "Q-11"
+      ]
+     },
+     {
+      "n": 16,
+      "spans": [],
+      "answers": [
+       "Q-8",
+       "Q-24"
+      ]
+     },
+     {
+      "n": 17,
+      "spans": [],
+      "answers": [
+       "Q-24"
+      ]
+     },
+     {
+      "n": 18,
+      "spans": [],
+      "answers": [
+       "Q-24"
+      ]
+     },
+     {
+      "n": 19,
+      "spans": [],
+      "answers": [
+       "Q-25"
+      ]
+     },
+     {
+      "n": 20,
+      "spans": [],
+      "answers": [
+       "Q-26"
+      ]
+     },
+     {
+      "n": 21,
+      "spans": [],
+      "answers": [
+       "Q-27"
+      ]
+     },
+     {
+      "n": 22,
+      "spans": [],
+      "answers": [
+       "Q-28"
+      ]
+     },
+     {
+      "n": 23,
+      "spans": [],
+      "answers": [
+       "Q-29"
+      ]
+     },
+     {
+      "n": 24,
+      "spans": [],
+      "answers": [
+       "Q-30",
+       "Q-40"
+      ]
+     },
+     {
+      "n": 25,
+      "spans": [],
+      "answers": [
+       "Q-31"
+      ]
+     },
+     {
+      "n": 26,
+      "spans": [],
+      "answers": [
+       "Q-3",
+       "Q-34"
+      ]
+     },
+     {
+      "n": 27,
+      "spans": [],
+      "answers": [
+       "Q-6",
+       "Q-35"
+      ]
+     },
+     {
+      "n": 28,
+      "spans": [],
+      "answers": [
+       "Q-3",
+       "Q-6"
+      ]
+     },
+     {
+      "n": 29,
+      "spans": [],
+      "answers": [
+       "Q-32",
+       "Q-36"
+      ]
+     },
+     {
+      "n": 30,
+      "spans": [],
+      "answers": [
+       "Q-33",
+       "Q-37"
+      ]
+     },
+     {
+      "n": 31,
+      "spans": [],
+      "answers": [
+       "Q-34"
+      ]
+     },
+     {
+      "n": 32,
+      "spans": [],
+      "answers": [
+       "Q-35",
+       "Q-39"
+      ]
+     },
+     {
+      "n": 33,
+      "spans": [],
+      "answers": [
+       "Q-36"
+      ]
+     },
+     {
+      "n": 34,
+      "spans": [],
+      "answers": [
+       "Q-37"
+      ]
+     },
+     {
+      "n": 35,
+      "spans": [],
+      "answers": [
+       "Q-38"
+      ]
+     },
+     {
+      "n": 36,
+      "spans": [],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 37,
+      "spans": [],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 38,
+      "spans": [],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 39,
+      "spans": [],
+      "answers": [
+       "Q-39"
+      ]
+     },
+     {
+      "n": 40,
+      "spans": [],
+      "answers": [
+       "Q-40"
+      ]
+     },
+     {
+      "n": 41,
+      "spans": [],
+      "answers": [
+       "Q-30"
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

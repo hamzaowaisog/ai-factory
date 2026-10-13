@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement only the operations and behavior defined in `contracts/openapi.yaml`, retaining the existing root health, OpenAPI-document, and Swagger UI routes; conform to the contract for responses, filtering, authentication, authorization, and scope enforcement."
+     },
+     {
+      "n": 2,
+      "text": "Persist business-data changes to the configured PostgreSQL database, applying only lifecycle constraints stated in the contract; receipt creation must produce a Quarantined receipt, and valid customer order changes before packing must persist."
+     },
+     {
+      "n": 3,
+      "text": "Run `SeedData.Run` at startup when `Seed:Demo` is true; seed two to five contract-example-based rows only in empty contract-backed tables, preserve populated tables, and create valid references."
+     },
+     {
+      "n": 4,
+      "text": "When `Seed:Demo` is false or unset, do not run demo seeding or create demo rows; return empty lists for collections with no matching persisted records."
+     },
+     {
+      "n": 5,
+      "text": "Use the existing staff identity provider with deployment-configured authorization URL and token-validation settings, return that URL from the contracted operation, and validate staff tokens against those settings."
+     },
+     {
+      "n": 6,
+      "text": "Fail startup with an error identifying any missing or invalid required staff identity-provider setting, while allowing valid explicit settings in test and factory hosts."
+     },
+     {
+      "n": 7,
+      "text": "Authenticate customer accounts through the contract’s email-and-password and one-time-code flow, and authorize callers using roles, warehouse IDs, and organization IDs from the PostgreSQL account record matched to their authenticated email."
+     },
+     {
+      "n": 8,
+      "text": "Apply ordered, versioned PostgreSQL schema migrations at startup, baseline compatible schemas created by the previous `EnsureCreated` startup, and preserve existing rows; fail startup without data loss when schema incompatibility cannot be migrated."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

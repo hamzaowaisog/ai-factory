@@ -1,0 +1,240 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Settings",
+     "subtitle": "System-wide rules for ordering, invoicing and access. Changes apply to all buyers and staff from the next order.",
+     "crumbs": [
+      "Admin"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Order cutoff time",
+         "kind": "time",
+         "value": "14:00",
+         "required": true,
+         "help": "Orders placed after this time are delivered one working day later",
+         "error": "Enter a time between 06:00 and 20:00"
+        },
+        {
+         "label": "System timezone",
+         "kind": "combobox",
+         "value": "Europe/London (GMT/BST)",
+         "options": [
+          "Europe/London (GMT/BST)",
+          "Europe/Dublin (GMT/IST)",
+          "Europe/Paris (CET/CEST)",
+          "UTC"
+         ],
+         "required": true
+        },
+        {
+         "label": "Maximum delivery days ahead",
+         "kind": "number",
+         "value": "14",
+         "required": true,
+         "help": "How far ahead buyers can pick a delivery date, in working days",
+         "error": "Enter a whole number from 1 to 60"
+        },
+        {
+         "label": "Low-stock threshold",
+         "kind": "number",
+         "value": "5",
+         "required": true,
+         "help": "Products at or below this many units show as Low stock",
+         "hint": "Applies to every warehouse location"
+        }
+       ],
+       "submit": "Save ordering settings"
+      },
+      {
+       "type": "calendar",
+       "month": "December 2026",
+       "startsOn": 1,
+       "days": 31,
+       "off": [
+        5,
+        6,
+        12,
+        13,
+        19,
+        20,
+        25,
+        26,
+        27,
+        28
+       ],
+       "marks": [
+        {
+         "day": 24,
+         "label": "Cutoff 11:00",
+         "tone": "warn"
+        },
+        {
+         "day": 25,
+         "label": "Christmas Day",
+         "tone": "bad"
+        },
+        {
+         "day": 28,
+         "label": "Boxing Day (sub)",
+         "tone": "bad"
+        },
+        {
+         "day": 31,
+         "label": "Stocktake",
+         "tone": "warn"
+        }
+       ],
+       "picked": 31
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Tax rate",
+         "kind": "number",
+         "value": "20",
+         "required": true,
+         "help": "% VAT added to every invoice line",
+         "error": "Enter a rate between 0 and 100"
+        },
+        {
+         "label": "Invoice overdue after",
+         "kind": "number",
+         "value": "30",
+         "required": true,
+         "help": "Days after the invoice date"
+        },
+        {
+         "label": "Order number prefix",
+         "kind": "text",
+         "value": "ORD-",
+         "required": true,
+         "help": "Next order: ORD-24817 · up to 6 letters and a dash",
+         "error": "Use 1 to 6 capital letters, optionally ending in a dash"
+        },
+        {
+         "label": "Invoice number prefix",
+         "kind": "text",
+         "value": "INV-",
+         "required": true,
+         "help": "Next invoice: INV-11392"
+        },
+        {
+         "label": "Password reset link valid for",
+         "kind": "select",
+         "value": "1 hour",
+         "options": [
+          "30 minutes",
+          "1 hour",
+          "4 hours",
+          "24 hours"
+         ]
+        },
+        {
+         "label": "Invitation link valid for",
+         "kind": "select",
+         "value": "7 days",
+         "options": [
+          "3 days",
+          "7 days",
+          "14 days",
+          "30 days"
+         ]
+        }
+       ],
+       "submit": "Save invoicing and links"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Company name",
+         "kind": "text",
+         "value": "Hartley Motor Factors Ltd",
+         "required": true
+        },
+        {
+         "label": "Registered address",
+         "kind": "textarea",
+         "value": "Unit 7, Riverside Trade Park, Leeds LS10 1QP",
+         "required": true
+        },
+        {
+         "label": "VAT registration number",
+         "kind": "text",
+         "value": "GB 284 6619 03",
+         "required": true,
+         "error": "Enter a valid UK VAT number, e.g. GB 123 4567 89"
+        },
+        {
+         "label": "Company number",
+         "kind": "text",
+         "value": "08431726"
+        },
+        {
+         "label": "Accounts email",
+         "kind": "email",
+         "value": "accounts@hartleymf.co.uk",
+         "required": true
+        },
+        {
+         "label": "Accounts phone",
+         "kind": "phone",
+         "value": "+44 113 496 0281"
+        }
+       ],
+       "submit": "Save company details"
+      },
+      {
+       "type": "upload",
+       "label": "Invoice logo",
+       "hint": "PNG or SVG, up to 1 MB · printed at 180 × 60 px on invoice PDFs",
+       "files": [
+        {
+         "name": "hartley-logo-2026.png",
+         "size": "84 KB",
+         "status": "done"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save ordering settings",
+       "text": "Ordering settings saved. New cutoff applies from the next order.",
+       "tone": "ok"
+      },
+      {
+       "after": "Save invoicing and links",
+       "text": "Invoicing and link settings saved",
+       "tone": "ok"
+      },
+      {
+       "after": "Save company details",
+       "text": "Company details saved. New invoices will use them.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "success": "Settings saved. Buyers see the new cutoff and delivery dates straight away.",
+      "validation": "Some settings need fixing before they can be saved. Check the highlighted fields."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

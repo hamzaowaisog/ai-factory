@@ -1,0 +1,296 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Weekly utilization report",
+     "subtitle": "8–12 June 2026 · Generated Monday, 15 June at 8:05 AM Islamabad time",
+     "crumbs": [
+      "Reports"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Spaces released",
+         "value": "14",
+         "delta": "This week"
+        },
+        {
+         "label": "Temporary claims",
+         "value": "21",
+         "delta": "This week"
+        },
+        {
+         "label": "Overall utilization",
+         "value": "83.6%",
+         "delta": "5 working days"
+        }
+       ]
+      },
+      {
+       "type": "chart",
+       "kind": "bar",
+       "title": "Daily utilization",
+       "points": [
+        {
+         "label": "Mon 8",
+         "value": 82
+        },
+        {
+         "label": "Tue 9",
+         "value": 86
+        },
+        {
+         "label": "Wed 10",
+         "value": 79
+        },
+        {
+         "label": "Thu 11",
+         "value": 91
+        },
+        {
+         "label": "Fri 12",
+         "value": 80
+        }
+       ],
+       "max": 100,
+       "unit": "%"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Employee",
+        "Parking",
+        "Unused event",
+        "Date"
+       ],
+       "rows": [
+        [
+         "Bilal Ahmed",
+         "Temporary",
+         "Unused Temporary Parking",
+         "8 Jun"
+        ],
+        [
+         "Aisha Rahman",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "9 Jun"
+        ],
+        [
+         "Omar Farooq",
+         "Temporary",
+         "Unused Temporary Parking",
+         "10 Jun"
+        ],
+        [
+         "Sara Malik",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "11 Jun"
+        ],
+        [
+         "Zara Iqbal",
+         "Temporary",
+         "Unused Temporary Parking",
+         "12 Jun"
+        ]
+       ],
+       "statusColumn": 2,
+       "sortBy": 3,
+       "sortDir": "asc",
+       "pages": 1,
+       "page": 1
+      },
+      {
+       "type": "text",
+       "body": "Monday–Friday are working days, including holidays. Phase 1 utilization reporting does not create warnings, suspensions or penalties."
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No utilization activity for this workweek",
+      "emptyHint": "The report will show released spaces, temporary claims and unused-parking events when activity is recorded.",
+      "error": "We couldn't refresh the report. The last available report is still shown.",
+      "success": "Utilization report refreshed.",
+      "validation": "The reporting period must include a complete workweek."
+     }
+    },
+    "mockFull": {
+     "title": "Weekly utilization report",
+     "subtitle": "8–12 June 2026 · Generated Monday, 15 June at 8:05 AM Islamabad time",
+     "crumbs": [
+      "Reports"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Spaces released",
+         "value": "14",
+         "delta": "This week"
+        },
+        {
+         "label": "Temporary claims",
+         "value": "21",
+         "delta": "This week"
+        },
+        {
+         "label": "Overall utilization",
+         "value": "83.6%",
+         "delta": "5 working days"
+        }
+       ]
+      },
+      {
+       "type": "chart",
+       "kind": "bar",
+       "title": "Daily utilization",
+       "points": [
+        {
+         "label": "Mon 8 AM",
+         "value": 78
+        },
+        {
+         "label": "Mon 8 PM",
+         "value": 86
+        },
+        {
+         "label": "Tue 9 AM",
+         "value": 82
+        },
+        {
+         "label": "Tue 9 PM",
+         "value": 90
+        },
+        {
+         "label": "Wed 10 AM",
+         "value": 74
+        },
+        {
+         "label": "Wed 10 PM",
+         "value": 84
+        },
+        {
+         "label": "Thu 11 AM",
+         "value": 88
+        },
+        {
+         "label": "Thu 11 PM",
+         "value": 94
+        },
+        {
+         "label": "Fri 12 AM",
+         "value": 76
+        },
+        {
+         "label": "Fri 12 PM",
+         "value": 84
+        }
+       ],
+       "max": 100,
+       "unit": "%"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Employee",
+        "Parking",
+        "Unused event",
+        "Date"
+       ],
+       "rows": [
+        [
+         "Bilal Ahmed",
+         "Temporary",
+         "Unused Temporary Parking",
+         "8 Jun"
+        ],
+        [
+         "Hina Shah",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "8 Jun"
+        ],
+        [
+         "Mariam Ali",
+         "Temporary",
+         "Unused Temporary Parking",
+         "9 Jun"
+        ],
+        [
+         "Aisha Rahman",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "9 Jun"
+        ],
+        [
+         "Usman Tariq",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "10 Jun"
+        ],
+        [
+         "Omar Farooq",
+         "Temporary",
+         "Unused Temporary Parking",
+         "10 Jun"
+        ],
+        [
+         "Nadia Khan",
+         "Temporary",
+         "Unused Temporary Parking",
+         "11 Jun"
+        ],
+        [
+         "Sara Malik",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "11 Jun"
+        ],
+        [
+         "Faraz Siddiqui",
+         "Dedicated",
+         "Unused Dedicated Parking",
+         "12 Jun"
+        ],
+        [
+         "Zara Iqbal",
+         "Temporary",
+         "Unused Temporary Parking",
+         "12 Jun"
+        ]
+       ],
+       "statusColumn": 2,
+       "sortBy": 3,
+       "sortDir": "asc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "text",
+       "body": "Monday–Friday are working days, including holidays. Phase 1 utilization reporting does not create warnings, suspensions or penalties."
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No utilization activity for this workweek",
+      "emptyHint": "The report will show released spaces, temporary claims and unused-parking events when activity is recorded.",
+      "error": "We couldn't refresh the report. The last available report is still shown.",
+      "success": "Utilization report refreshed.",
+      "validation": "The reporting period must include a complete workweek."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

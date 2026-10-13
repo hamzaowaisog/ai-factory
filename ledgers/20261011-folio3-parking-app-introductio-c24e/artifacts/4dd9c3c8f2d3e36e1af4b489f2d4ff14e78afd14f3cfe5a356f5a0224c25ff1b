@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Parking Spaces — Folio3 Parking Inventory</title>
+<!-- Typography: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with custom configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#d8dbd8",
+            "on-surface-variant": "#3f4945",
+            "surface-container-low": "#f1f4f1",
+            "secondary-fixed-dim": "#afcdc2",
+            "surface-container": "#ecefeb",
+            "secondary-fixed": "#cbe9dd",
+            "primary": "#005645",
+            "on-surface": "#181c1b",
+            "on-secondary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-highest": "#e0e3e0",
+            "surface-bright": "#f7faf7",
+            "on-error": "#ffffff",
+            "on-background": "#181c1b",
+            "primary-container": "#1f6f5c",
+            "on-tertiary-fixed": "#3a0a05",
+            "on-primary-container": "#a3efd7",
+            "tertiary": "#77392e",
+            "tertiary-fixed": "#ffdad4",
+            "secondary-container": "#c8e6db",
+            "on-primary-fixed": "#002019",
+            "primary-fixed-dim": "#8ad5be",
+            "on-secondary-container": "#4d685f",
+            "on-tertiary-container": "#ffd7d0",
+            "background": "#f7faf7",
+            "on-secondary-fixed": "#042019",
+            "inverse-on-surface": "#eef1ee",
+            "secondary": "#49645b",
+            "outline-variant": "#bec9c4",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "outline": "#6f7975",
+            "on-tertiary-fixed-variant": "#72352a",
+            "error": "#ba1a1a",
+            "surface-container-high": "#e6e9e6",
+            "surface": "#f7faf7",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed-variant": "#005141",
+            "inverse-surface": "#2d312f",
+            "tertiary-container": "#945044",
+            "primary-fixed": "#a5f2d9",
+            "inverse-primary": "#8ad5be",
+            "on-secondary-fixed-variant": "#314c44",
+            "error-container": "#ffdad6",
+            "surface-variant": "#e0e3e0",
+            "surface-tint": "#186a57"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Strict Design System & Motion Standards */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+    body {
+      color: #18181B; /* Charcoal Ink Off-black */
+      background-color: #F7F7F8; /* Canvas Zinc */
+      font-family: 'Public Sans', sans-serif;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .font-headline {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #18181B;
+      letter-spacing: -0.02em;
+    }
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Bay Green Plate Chip Standard */
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      background: #FFFFFF;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .space-code-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      background: #FFFFFF;
+      border: 1.5px solid #1F6F5C;
+      color: #1F6F5C;
+      border-radius: 4px;
+      padding: 2px 7px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+      transition: transform var(--dur-instant) var(--ease-out);
+    }
+    /* Subtle live connection pulse */
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .live-dot {
+      animation: live-breathe 6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full flex overflow-hidden bg-surface-bright">
+<!-- ========================================================================= -->
+<!-- SIDE NAVIGATION (Source: Shared Components JSON)                         -->
+<!-- ========================================================================= -->
+<aside class="fixed left-0 top-0 h-full w-58 flex flex-col justify-between py-6 px-3 z-40 bg-surface-container-lowest border-r border-outline-variant">
+<div class="flex flex-col gap-6">
+<!-- Brand Anchor Header -->
+<div class="flex items-center gap-3 px-3">
+<div class="w-8 h-8 rounded bg-primary-container text-surface-container-lowest flex items-center justify-center font-headline font-bold text-sm tracking-tight shadow-sm">
+          F3
+        </div>
+<div class="flex flex-col">
+<span class="font-headline text-base font-bold text-on-surface tracking-tight leading-none">Folio3 Parking</span>
+<span class="font-label text-[11px] font-semibold text-outline uppercase tracking-wider mt-1">Bay Management</span>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex flex-col gap-1 mt-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#claim-release">
+<span class="material-symbols-outlined text-[20px] text-outline">local_parking</span>
+<span class="font-body text-sm font-medium text-[#3F3F46]">Claim &amp; Release</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#daily-allocations">
+<span class="material-symbols-outlined text-[20px] text-outline">calendar_today</span>
+<span class="font-body text-sm font-medium text-[#3F3F46]">Daily Allocations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#guard-console">
+<span class="material-symbols-outlined text-[20px] text-outline">security</span>
+<span class="font-body text-sm font-medium text-[#3F3F46]">Guard Console</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#vehicle-roster">
+<span class="material-symbols-outlined text-[20px] text-outline">directions_car</span>
+<span class="font-body text-sm font-medium text-[#3F3F46]">Vehicle Roster</span>
+</a>
+<!-- Active Semantic Destination: Parking Spaces / Inventory -->
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-surface font-medium border-l-2 border-primary rounded-r" href="#inventory">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+<span class="font-body text-sm font-semibold text-[#18181B]">Parking Spaces</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#audit-log">
+<span class="material-symbols-outlined text-[20px] text-outline">receipt_long</span>
+<span class="font-body text-sm font-medium text-[#3F3F46]">Audit Log</span>
+</a>
+</nav>
+</div>
+<!-- Footer Cluster & Action -->
+<div class="flex flex-col gap-3 pt-4 border-t border-[#E4E4E7]">
+<button class="btn-action w-full h-10 px-3 flex items-center justify-center gap-2 bg-primary-container text-surface-container-lowest rounded font-body text-sm font-medium hover:bg-[#195C4C] transition-colors shadow-none">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Claim space</span>
+</button>
+<div class="flex flex-col gap-0.5 mt-1">
+<a class="flex items-center gap-3 px-3 py-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors rounded" href="#support">
+<span class="material-symbols-outlined text-[18px] text-outline">help_outline</span>
+<span class="font-body text-xs text-[#71717A]">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors rounded" href="#signout">
+<span class="material-symbols-outlined text-[18px] text-outline">logout</span>
+<span class="font-body text-xs text-[#71717A]">Sign out</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- MAIN WORKSPACE & TOP NAV SHELL                                           -->
+<!-- ========================================================================= -->
+<div class="flex-1 pl-58 flex flex-col h-full min-w-0 overflow-hidden bg-[#F7F7F8]">
+<!-- Top Bar (System status, PKT clock, avatar profile) -->
+<header class="flex justify-between items-center w-full h-16 px-8 border-b border-[#E4E4E7] bg-surface-container-lowest sticky top-0 z-30 flex-shrink-0">
+<!-- Live Status & Breadcrumb -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-2.5 py-1 bg-[#E6F0ED] rounded border border-[#C8E6DB]">
+<span class="w-2 h-2 rounded-full bg-[#2F7D4A] live-dot"></span>
+<span class="text-xs font-mono font-medium text-[#1F6F5C]">PKT GATE SYNC: ONLINE</span>
+</div>
+<span class="text-xs font-mono text-[#71717A]">Tue, 4 Nov 2025 · 14:32:08 PKT</span>
+</div>
+<!-- Right Header Tools -->
+<div class="flex items-center gap-4">
+<button class="btn-action h-9 px-3.5 border border-[#E4E4E7] hover:bg-[#EFEFF1] text-[#18181B] text-xs font-medium rounded flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#71717A]">refresh</span>
+<span>Sync telemetry</span>
+</button>
+<div class="h-4 w-[1px] bg-[#E4E4E7]"></div>
+<button class="relative p-1.5 text-[#71717A] hover:text-[#18181B] rounded transition-colors" title="Notifications" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#1F6F5C]"></span>
+</button>
+<button class="p-1.5 text-[#71717A] hover:text-[#18181B] rounded transition-colors" title="Help Docs" type="button">
+<span class="material-symbols-outlined text-[20px]">help</span>
+</button>
+<!-- Employee Avatar Initials in Tint Step Circle -->
+<div class="flex items-center gap-2.5 pl-2">
+<div class="w-8 h-8 rounded-full bg-[#EFEFF1] border border-[#D4D4D8] flex items-center justify-center font-headline text-xs font-bold text-[#3F3F46]" title="Employee avatar initials in circular badge">
+            MR
+          </div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-semibold text-[#18181B] leading-none">Mansoor R.</span>
+<span class="text-[11px] font-mono text-[#71717A] leading-tight">Admin (Operations)</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Interactive Validation State Banner Toggle (Demonstration bar) -->
+<div class="bg-[#FBF3DE] border-b border-[#E4E4E7] px-8 py-2 flex items-center justify-between text-xs text-[#9A6700]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#9A6700]">info</span>
+<span>Validation Test Mode: You can toggle the duplicate bay code preview error in the drawer below.</span>
+</div>
+<button class="font-medium underline hover:text-[#7A5000] text-xs" onclick="toggleErrorState()">
+        Toggle simulated error state: <span class="font-mono font-semibold" id="errorStateLabel">Active</span>
+</button>
+</div>
+<!-- MAIN SCROLLABLE BODY (12-column grid canvas) -->
+<main class="flex-1 overflow-y-auto px-8 py-7 flex flex-col gap-6">
+<!-- ===================================================================== -->
+<!-- 1) HEADING SECTION                                                    -->
+<!-- ===================================================================== -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-[#E4E4E7]">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-3">
+<h1 class="text-2xl font-bold tracking-tight text-[#18181B] font-headline">Parking spaces</h1>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-[#EFEFF1] text-[#3F3F46] border border-[#E4E4E7]">
+              42 spaces · 3 floors
+            </span>
+</div>
+<p class="text-sm text-[#71717A]">
+            Define physical parking slots across basement decks, configure dedicated VIP allocations, and release floating inventory.
+          </p>
+</div>
+<!-- Primary Action buttons -->
+<div class="flex items-center gap-2.5 flex-shrink-0">
+<button class="btn-action h-10 px-4 bg-white border border-[#D4D4D8] hover:bg-[#EFEFF1] text-[#18181B] text-sm font-medium rounded inline-flex items-center gap-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#71717A]">file_upload</span>
+<span>Import launch records (CSV)</span>
+</button>
+<button class="btn-action h-10 px-4 bg-[#1F6F5C] hover:bg-[#195C4C] text-white text-sm font-medium rounded inline-flex items-center gap-2 transition-colors shadow-sm" onclick="openDrawer('new')" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Add space</span>
+</button>
+</div>
+</section>
+<!-- ===================================================================== -->
+<!-- 2) FILTERS BAR                                                        -->
+<!-- ===================================================================== -->
+<section class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-3 bg-white rounded-lg border border-[#E4E4E7]">
+<div class="flex flex-wrap items-center gap-4">
+<!-- Floor filter tabs/pills -->
+<div class="inline-flex p-1 bg-[#F1F4F1] rounded border border-[#E4E4E7] text-xs font-medium">
+<button class="px-3 py-1 rounded bg-white text-[#18181B] font-semibold shadow-xs">All Floors</button>
+<button class="px-3 py-1 rounded text-[#71717A] hover:text-[#18181B] transition-colors">Floor B1</button>
+<button class="px-3 py-1 rounded text-[#71717A] hover:text-[#18181B] transition-colors">Floor B2</button>
+<button class="px-3 py-1 rounded text-[#71717A] hover:text-[#18181B] transition-colors">Floor B3</button>
+</div>
+<!-- Divider -->
+<div class="h-6 w-[1px] bg-[#E4E4E7] hidden sm:block"></div>
+<!-- Holder status filter -->
+<div class="flex items-center gap-2 text-xs">
+<span class="font-semibold text-[#71717A] uppercase tracking-wider text-[11px]">Allocation:</span>
+<div class="inline-flex rounded border border-[#E4E4E7] overflow-hidden">
+<button class="px-3 py-1 bg-[#1F6F5C] text-white font-medium">All</button>
+<button class="px-3 py-1 bg-white text-[#3F3F46] hover:bg-[#F1F4F1] border-l border-[#E4E4E7]">Assigned</button>
+<button class="px-3 py-1 bg-white text-[#3F3F46] hover:bg-[#F1F4F1] border-l border-[#E4E4E7]">Unassigned (Pool)</button>
+</div>
+</div>
+</div>
+<!-- Quick search input -->
+<div class="relative min-w-[280px]">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-[#71717A]">search</span>
+<input class="w-full h-10 pl-9 pr-3 text-sm bg-white border border-[#E4E4E7] rounded text-[#18181B] placeholder-[#71717A] focus:outline-none focus:border-[#1F6F5C] focus:ring-2 focus:ring-[#E6F0ED] transition-colors" placeholder="Search space code, floor, or holder..." type="text"/>
+</div>
+</section>
+<!-- ===================================================================== -->
+<!-- 3) DATA TABLE                                                         -->
+<!-- ===================================================================== -->
+<section class="bg-white rounded-lg border border-[#E4E4E7] overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<!-- Table Header -->
+<thead>
+<tr class="bg-[#EFEFF1] border-b border-[#E4E4E7] text-xs font-semibold text-[#71717A] tracking-wider uppercase">
+<th class="py-3 px-5 w-36 font-semibold" scope="col">Space</th>
+<th class="py-3 px-5 w-28 font-semibold" scope="col">Floor</th>
+<th class="py-3 px-6 font-semibold" scope="col">Dedicated holder</th>
+<th class="py-3 px-6 w-44 font-semibold" scope="col">Status / Type</th>
+<th class="py-3 px-5 w-28 text-right font-semibold" scope="col">Actions</th>
+</tr>
+</thead>
+<!-- Table Body with specified rows -->
+<tbody class="divide-y divide-[#E4E4E7] text-sm">
+<!-- ROW 1 (Specified: B1-03 · B1 · Ayesha Siddiqui · Dedicated · Active/Selected State) -->
+<tr class="bg-[#E6F0ED] border-l-4 border-l-[#1F6F5C] hover:bg-[#dcece7] transition-colors" id="row-B1-03">
+<td class="py-3.5 px-5">
+<span class="space-code-chip font-bold text-sm">B1-03</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-sm text-[#18181B]">
+                  B1
+                </td>
+<td class="py-3.5 px-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#C8E6DB] text-[#005645] flex items-center justify-center font-headline text-xs font-bold border border-[#A5F2D9]">
+                      AS
+                    </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-medium text-[#18181B]">Ayesha Siddiqui</span>
+<span class="font-mono text-xs text-[#71717A]">(F3-0921)</span>
+</div>
+<span class="text-xs text-[#71717A]">Engineering · Backend Core Lead</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-6">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-white text-[#1F6F5C] border border-[#1F6F5C]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+<span>Dedicated</span>
+</div>
+</td>
+<td class="py-3.5 px-5 text-right">
+<button class="btn-action h-8 px-3 bg-[#1F6F5C] text-white text-xs font-medium rounded hover:bg-[#195C4C] transition-colors inline-flex items-center gap-1 shadow-xs" onclick="openDrawer('B1-03')" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+<span>Edit</span>
+</button>
+</td>
+</tr>
+<!-- ROW 2 (Specified: B2-14 · Floor B2 · Dedicated holder '— (pool)' · Status 'General Pool') -->
+<tr class="hover:bg-[#EFEFF1] transition-colors">
+<td class="py-3.5 px-5">
+<span class="plate-chip font-medium text-xs text-[#3F3F46]">B2-14</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-sm text-[#3F3F46]">
+                  B2
+                </td>
+<td class="py-3.5 px-6">
+<div class="flex items-center gap-2">
+<span class="text-sm text-[#71717A] font-mono font-medium">— (pool)</span>
+<span class="text-xs px-2 py-0.5 rounded bg-[#F1F4F1] text-[#71717A] border border-[#E4E4E7]">Unassigned</span>
+</div>
+</td>
+<td class="py-3.5 px-6">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-[#F1F4F1] text-[#3F3F46] border border-[#D4D4D8]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#71717A]"></span>
+<span>General Pool</span>
+</div>
+</td>
+<td class="py-3.5 px-5 text-right">
+<button class="btn-action h-8 px-3 bg-white border border-[#E4E4E7] text-[#18181B] text-xs font-medium rounded hover:bg-[#EFEFF1] transition-colors inline-flex items-center gap-1" onclick="openDrawer('B2-14')" type="button">
+<span class="material-symbols-outlined text-[16px] text-[#71717A]">edit</span>
+<span>Edit</span>
+</button>
+</td>
+</tr>
+<!-- ROW 3 (Specified: B3-07 · Floor B3 · Dedicated holder 'Usman Tariq (F3-0455)' · Status 'Dedicated') -->
+<tr class="hover:bg-[#EFEFF1] transition-colors">
+<td class="py-3.5 px-5">
+<span class="plate-chip font-medium text-xs text-[#18181B]">B3-07</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-sm text-[#3F3F46]">
+                  B3
+                </td>
+<td class="py-3.5 px-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#EFEFF1] text-[#3F3F46] flex items-center justify-center font-headline text-xs font-bold border border-[#D4D4D8]">
+                      UT
+                    </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-medium text-[#18181B]">Usman Tariq</span>
+<span class="font-mono text-xs text-[#71717A]">(F3-0455)</span>
+</div>
+<span class="text-xs text-[#71717A]">Product Design · Staff Designer</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-6">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-[#E6F0ED] text-[#1F6F5C] border border-[#C8E6DB]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+<span>Dedicated</span>
+</div>
+</td>
+<td class="py-3.5 px-5 text-right">
+<button class="btn-action h-8 px-3 bg-white border border-[#E4E4E7] text-[#18181B] text-xs font-medium rounded hover:bg-[#EFEFF1] transition-colors inline-flex items-center gap-1" onclick="openDrawer('B3-07')" type="button">
+<span class="material-symbols-outlined text-[16px] text-[#71717A]">edit</span>
+<span>Edit</span>
+</button>
+</td>
+</tr>
+<!-- Additional Row 4: Realistic context (B1-04) -->
+<tr class="hover:bg-[#EFEFF1] transition-colors">
+<td class="py-3.5 px-5">
+<span class="plate-chip font-medium text-xs text-[#18181B]">B1-04</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-sm text-[#3F3F46]">
+                  B1
+                </td>
+<td class="py-3.5 px-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#EFEFF1] text-[#3F3F46] flex items-center justify-center font-headline text-xs font-bold border border-[#D4D4D8]">
+                      ZA
+                    </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-medium text-[#18181B]">Zainab Ahmed</span>
+<span class="font-mono text-xs text-[#71717A]">(F3-1084)</span>
+</div>
+<span class="text-xs text-[#71717A]">Quality Assurance · Lead SDET</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-6">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-[#E6F0ED] text-[#1F6F5C] border border-[#C8E6DB]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+<span>Dedicated</span>
+</div>
+</td>
+<td class="py-3.5 px-5 text-right">
+<button class="btn-action h-8 px-3 bg-white border border-[#E4E4E7] text-[#18181B] text-xs font-medium rounded hover:bg-[#EFEFF1] transition-colors inline-flex items-center gap-1" onclick="openDrawer('B1-04')" type="button">
+<span class="material-symbols-outlined text-[16px] text-[#71717A]">edit</span>
+<span>Edit</span>
+</button>
+</td>
+</tr>
+<!-- Additional Row 5: Realistic context (B2-15 General Pool) -->
+<tr class="hover:bg-[#EFEFF1] transition-colors">
+<td class="py-3.5 px-5">
+<span class="plate-chip font-medium text-xs text-[#3F3F46]">B2-15</span>
+</td>
+<td class="py-3.5 px-5 font-mono text-sm text-[#3F3F46]">
+                  B2
+                </td>
+<td class="py-3.5 px-6">
+<div class="flex items-center gap-2">
+<span class="text-sm text-[#71717A] font-mono font-medium">— (pool)</span>
+<span class="text-xs px-2 py-0.5 rounded bg-[#F1F4F1] text-[#71717A] border border-[#E4E4E7]">Unassigned</span>
+</div>
+</td>
+<td class="py-3.5 px-6">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-[#F1F4F1] text-[#3F3F46] border border-[#D4D4D8]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#71717A]"></span>
+<span>General Pool</span>
+</div>
+</td>
+<td class="py-3.5 px-5 text-right">
+<button class="btn-action h-8 px-3 bg-white border border-[#E4E4E7] text-[#18181B] text-xs font-medium rounded hover:bg-[#EFEFF1] transition-colors inline-flex items-center gap-1" onclick="openDrawer('B2-15')" type="button">
+<span class="material-symbols-outlined text-[16px] text-[#71717A]">edit</span>
+<span>Edit</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Inventory Meta summary -->
+<div class="px-5 py-3.5 bg-white border-t border-[#E4E4E7] flex items-center justify-between text-xs text-[#71717A]">
+<div class="flex items-center gap-4">
+<span>Showing <strong class="text-[#18181B] font-mono">5</strong> of <strong class="text-[#18181B] font-mono">42</strong> bays configured</span>
+<span class="h-3 w-[1px] bg-[#E4E4E7]"></span>
+<span>Allocated: <strong class="text-[#1F6F5C] font-mono">28 Dedicated</strong></span>
+<span>Unallocated: <strong class="text-[#3F3F46] font-mono">14 General Pool</strong></span>
+</div>
+<div class="flex items-center gap-1 font-mono">
+<span>Daily Release Cutoff: 09:30 PKT</span>
+</div>
+</div>
+</section>
+<!-- Floor Capacity Indicator Strip (Orderly infrastructure widget) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-6">
+<div class="bg-white p-4 rounded-lg border border-[#E4E4E7] flex flex-col gap-2">
+<div class="flex justify-between items-baseline">
+<span class="text-xs uppercase tracking-wider font-semibold text-[#71717A]">Floor B1 (Executive &amp; VIP)</span>
+<span class="text-xs font-mono font-medium text-[#18181B]">14 / 14 bays</span>
+</div>
+<div class="w-full bg-[#EFEFF1] h-2 rounded-full overflow-hidden">
+<div class="bg-[#1F6F5C] h-full" style="width: 100%;"></div>
+</div>
+<span class="text-[11px] text-[#71717A]">100% committed to dedicated managers &amp; leads</span>
+</div>
+<div class="bg-white p-4 rounded-lg border border-[#E4E4E7] flex flex-col gap-2">
+<div class="flex justify-between items-baseline">
+<span class="text-xs uppercase tracking-wider font-semibold text-[#71717A]">Floor B2 (General Staff Pool)</span>
+<span class="text-xs font-mono font-medium text-[#18181B]">8 / 16 assigned</span>
+</div>
+<div class="w-full bg-[#EFEFF1] h-2 rounded-full overflow-hidden">
+<div class="bg-[#1F6F5C] h-full" style="width: 50%;"></div>
+</div>
+<span class="text-[11px] text-[#71717A]">8 bays available in daily morning claim cycle</span>
+</div>
+<div class="bg-white p-4 rounded-lg border border-[#E4E4E7] flex flex-col gap-2">
+<div class="flex justify-between items-baseline">
+<span class="text-xs uppercase tracking-wider font-semibold text-[#71717A]">Floor B3 (Overflow &amp; Visitors)</span>
+<span class="text-xs font-mono font-medium text-[#18181B]">6 / 12 assigned</span>
+</div>
+<div class="w-full bg-[#EFEFF1] h-2 rounded-full overflow-hidden">
+<div class="bg-[#1F6F5C] h-full" style="width: 50%;"></div>
+</div>
+<span class="text-[11px] text-[#71717A]">6 bays open for pre-arranged client parking</span>
+</div>
+</section>
+</main>
+</div>
+<!-- ========================================================================= -->
+<!-- 4) SIDE PANEL FORM 'Edit space B1-03' (Slide-over drawer overlay)          -->
+<!-- ========================================================================= -->
+<aside class="fixed right-0 top-0 h-full w-[440px] max-w-full bg-white border-l border-[#D4D4D8] shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out translate-x-0" id="side-drawer">
+<!-- Drawer Header -->
+<div class="px-6 py-5 border-b border-[#E4E4E7] flex items-start justify-between bg-white">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<h2 class="font-headline text-lg font-bold text-[#18181B]" id="drawer-title">Edit space B1-03</h2>
+<span class="space-code-chip text-xs">B1-03</span>
+</div>
+<p class="text-xs text-[#71717A] mt-1">Update bay configuration and dedicated allocation.</p>
+</div>
+<button class="p-1 rounded text-[#71717A] hover:text-[#18181B] hover:bg-[#EFEFF1] transition-colors" onclick="closeDrawer()" title="Close drawer" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Drawer Scrollable Form Body -->
+<div class="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
+<!-- INLINE VALIDATION ERROR ALERT (Required validation styling) -->
+<div class="p-3.5 bg-[#FBEAE8] border-l-4 border-l-[#B42318] rounded border border-[#E4E4E7] flex items-start gap-3" id="validation-error-box">
+<span class="material-symbols-outlined text-[20px] text-[#B42318] flex-shrink-0 mt-0.5">error</span>
+<div class="flex flex-col text-xs text-[#18181B]">
+<span class="font-semibold text-[#B42318]">Bay Assignment Conflict</span>
+<p class="text-[#3F3F46] mt-0.5">Space code <strong>B1-03</strong> already exists on Floor B1. Re-using this code will overwrite telemetry for bay sensors.</p>
+</div>
+</div>
+<!-- Field 1: Space Code -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center">
+<label class="text-xs font-semibold uppercase tracking-wider text-[#3F3F46]" for="space-code-input">
+            Space code <span class="text-[#B42318]">*</span>
+</label>
+<span class="text-[11px] font-mono text-[#71717A]">Format: [Floor]-[Slot]</span>
+</div>
+<div class="relative">
+<input class="w-full h-10 px-3 font-mono font-medium text-sm bg-white border border-[#B42318] text-[#18181B] rounded focus:outline-none focus:border-[#B42318] focus:ring-2 focus:ring-[#FBEAE8] transition-colors uppercase" id="space-code-input" placeholder="e.g. B1-03" type="text" value="B1-03"/>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-[18px] text-[#B42318]">warning</span>
+</div>
+<span class="text-xs text-[#B42318] font-medium flex items-center gap-1 mt-0.5" id="field-error-text">
+<span>Space code B1-03 already exists.</span>
+</span>
+</div>
+<!-- Field 2: Floor Selection -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-[#3F3F46]" for="floor-select">
+          Floor <span class="text-[#B42318]">*</span>
+</label>
+<div class="relative">
+<select class="w-full h-10 px-3 text-sm bg-white border border-[#E4E4E7] text-[#18181B] rounded focus:outline-none focus:border-[#1F6F5C] focus:ring-2 focus:ring-[#E6F0ED] appearance-none transition-colors" id="floor-select">
+<option selected="" value="B1">B1 (Basement 1)</option>
+<option value="B2">B2 (Basement 2)</option>
+<option value="B3">B3 (Basement 3)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-[18px] text-[#71717A] pointer-events-none">expand_more</span>
+</div>
+<span class="text-[11px] text-[#71717A]">Basement 1 houses dedicated management and executive stalls.</span>
+</div>
+<!-- Field 3: Allocation Type Toggles (Dedicated vs Floating / General Pool) -->
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-[#3F3F46]">
+          Allocation policy
+        </label>
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-start gap-2.5 p-3 rounded border border-[#1F6F5C] bg-[#E6F0ED] cursor-pointer">
+<input checked="" class="mt-0.5 text-[#1F6F5C] focus:ring-[#1F6F5C]" name="allocation_type" type="radio" value="dedicated"/>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-[#18181B]">Dedicated</span>
+<span class="text-[11px] text-[#3F3F46] mt-0.5">Assigned to an individual employee</span>
+</div>
+</label>
+<label class="flex items-start gap-2.5 p-3 rounded border border-[#E4E4E7] bg-white hover:bg-[#F1F4F1] transition-colors cursor-pointer">
+<input class="mt-0.5 text-[#1F6F5C] focus:ring-[#1F6F5C]" name="allocation_type" type="radio" value="pool"/>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-[#18181B]">Floating / Pool</span>
+<span class="text-[11px] text-[#71717A] mt-0.5">Available for morning claim pool</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Field 4: Dedicated Holder (Employee Search) -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-[#3F3F46]">
+          Dedicated holder (employee search)
+        </label>
+<!-- Selected Employee Card Component -->
+<div class="p-3 bg-white border border-[#E4E4E7] rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-[#C8E6DB] text-[#005645] flex items-center justify-center font-headline text-xs font-bold border border-[#A5F2D9]">
+              AS
+            </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-sm font-semibold text-[#18181B]">Ayesha Siddiqui</span>
+<span class="text-xs font-mono text-[#71717A]">(F3-0921)</span>
+</div>
+<span class="text-xs text-[#71717A]">Engineering · Backend Core Lead</span>
+</div>
+</div>
+<button class="text-xs text-[#71717A] hover:text-[#B42318] p-1 rounded hover:bg-[#FBEAE8] transition-colors" title="Remove dedicated holder" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Autocomplete search field -->
+<div class="relative mt-1">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-[#71717A]">person_search</span>
+<input class="w-full h-10 pl-9 pr-3 text-xs bg-white border border-[#E4E4E7] rounded text-[#18181B] placeholder-[#71717A] focus:outline-none focus:border-[#1F6F5C] focus:ring-2 focus:ring-[#E6F0ED] transition-colors" placeholder="Search employee name, department, or F3 ID..." type="text"/>
+</div>
+<span class="text-[11px] text-[#71717A]">If unassigned, this slot will automatically revert to the general claim pool at 09:30 PKT.</span>
+</div>
+<!-- Associated Primary Vehicle Info (Design system Plate Chip signature) -->
+<div class="p-3 bg-[#F1F4F1] rounded-lg border border-[#E4E4E7] flex flex-col gap-2">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-[#71717A]">Registered primary vehicle:</span>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="plate-chip text-xs">BGF-842</span>
+<span class="text-xs text-[#18181B] font-medium">Honda Civic (Silver)</span>
+</div>
+<span class="text-xs text-[#1F6F5C] font-mono font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+            Active permit
+          </span>
+</div>
+</div>
+</div>
+<!-- Drawer Footer Actions -->
+<div class="px-6 py-4 border-t border-[#E4E4E7] bg-white flex items-center justify-end gap-3 flex-shrink-0">
+<button class="btn-action h-10 px-4 bg-white border border-[#D4D4D8] hover:bg-[#EFEFF1] text-[#18181B] text-sm font-medium rounded transition-colors" onclick="closeDrawer()" type="button">
+        Cancel
+      </button>
+<button class="btn-action h-10 px-5 bg-[#1F6F5C] hover:bg-[#195C4C] text-white text-sm font-medium rounded inline-flex items-center gap-2 transition-colors shadow-sm" onclick="saveSpaceChanges()" type="button">
+<span class="material-symbols-outlined text-[18px]">check</span>
+<span>Save changes</span>
+</button>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- JAVASCRIPT MICRO-INTERACTIONS & VALIDATION STATE HANDLERS                -->
+<!-- ========================================================================= -->
+<script>
+    let isErrorStateSimulated = true;
+
+    function openDrawer(spaceCode) {
+      const drawer = document.getElementById('side-drawer');
+      const drawerTitle = document.getElementById('drawer-title');
+      const spaceCodeInput = document.getElementById('space-code-input');
+      
+      if (spaceCode === 'new') {
+        drawerTitle.textContent = 'Add new space';
+        spaceCodeInput.value = '';
+        setErrorState(false);
+      } else {
+        drawerTitle.textContent = `Edit space ${spaceCode}`;
+        spaceCodeInput.value = spaceCode;
+        if (spaceCode === 'B1-03') {
+          setErrorState(true);
+        } else {
+          setErrorState(false);
+        }
+      }
+      drawer.classList.remove('translate-x-full');
+      drawer.classList.add('translate-x-0');
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('side-drawer');
+      drawer.classList.add('translate-x-full');
+      drawer.classList.remove('translate-x-0');
+    }
+
+    function toggleErrorState() {
+      isErrorStateSimulated = !isErrorStateSimulated;
+      setErrorState(isErrorStateSimulated);
+      document.getElementById('errorStateLabel').textContent = isErrorStateSimulated ? 'Active' : 'Cleared';
+    }
+
+    function setErrorState(active) {
+      const errBox = document.getElementById('validation-error-box');
+      const input = document.getElementById('space-code-input');
+      const text = document.getElementById('field-error-text');
+
+      if (active) {
+        errBox.classList.remove('hidden');
+        input.classList.add('border-[#B42318]');
+        input.classList.remove('border-[#E4E4E7]');
+        text.classList.remove('hidden');
+      } else {
+        errBox.classList.add('hidden');
+        input.classList.remove('border-[#B42318]');
+        input.classList.add('border-[#E4E4E7]');
+        text.classList.add('hidden');
+      }
+    }
+
+    function saveSpaceChanges() {
+      if (document.getElementById('space-code-input').value === 'B1-03' && isErrorStateSimulated) {
+        alert('Validation error: Space code B1-03 already exists. Please resolve conflict before saving.');
+      } else {
+        alert('Changes for space B1-03 successfully saved to Folio3 inventory telemetry.');
+        closeDrawer();
+      }
+    }
+
+    // Initialize state
+    document.addEventListener('DOMContentLoaded', () => {
+      setErrorState(true);
+    });
+  </script>
+</body></html>

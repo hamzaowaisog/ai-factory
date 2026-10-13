@@ -1,0 +1,233 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Something went wrong",
+     "subtitle": "Your request didn't go through. Nothing was changed on your account.",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "We couldn't complete that request",
+       "text": "Nothing was saved and no order was placed. Try again, or quote the reference below to the trade counter on 0161 496 0732."
+      },
+      {
+       "type": "detail",
+       "title": "Error reference",
+       "rows": [
+        {
+         "label": "Reference",
+         "value": "ERR-7F3K-92QD"
+        },
+        {
+         "label": "Status",
+         "value": "Server error",
+         "badge": true
+        },
+        {
+         "label": "Time",
+         "value": "14 Mar 2026, 13:42"
+        },
+        {
+         "label": "Page",
+         "value": "Review and submit order"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Page not found",
+         "meta": "The order, invoice or address doesn't exist or isn't on your account",
+         "badge": "404"
+        },
+        {
+         "title": "No access to this area",
+         "meta": "Reports, audit history and office tools need a staff or admin role",
+         "badge": "403"
+        },
+        {
+         "title": "Your session has ended",
+         "meta": "Sign in again to carry on. Your basket is kept",
+         "badge": "401"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Try again",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Back to catalogue",
+         "variant": "secondary"
+        },
+        {
+         "label": "My orders",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to catalogue",
+       "to": "S-5"
+      },
+      {
+       "from": "My orders",
+       "to": "S-10"
+      },
+      {
+       "from": "Page not found",
+       "to": "S-5"
+      },
+      {
+       "from": "No access to this area",
+       "to": "S-5"
+      },
+      {
+       "from": "Your session has ended",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Try again",
+       "text": "Retrying your request…",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "error": "Something went wrong on our side. Quote reference ERR-7F3K-92QD to the trade counter if it happens again."
+     }
+    },
+    "mockFull": {
+     "title": "Something went wrong",
+     "subtitle": "Your request didn't go through. Nothing was changed on your account.",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "We couldn't complete that request",
+       "text": "Nothing was saved and no order was placed. Try again, or quote the reference below to the trade counter on 0161 496 0732 (Mon–Fri 07:30–17:30)."
+      },
+      {
+       "type": "detail",
+       "title": "Error reference",
+       "rows": [
+        {
+         "label": "Reference",
+         "value": "ERR-7F3K-92QD"
+        },
+        {
+         "label": "Status",
+         "value": "Server error",
+         "badge": true
+        },
+        {
+         "label": "Time",
+         "value": "14 Mar 2026, 13:42"
+        },
+        {
+         "label": "Page",
+         "value": "Review and submit order"
+        },
+        {
+         "label": "Account",
+         "value": "Hartley Motors Ltd · HM-20418"
+        },
+        {
+         "label": "Signed in as",
+         "value": "Dan Whitcombe (Buyer)"
+        },
+        {
+         "label": "Order cutoff",
+         "value": "Today 14:00 for next-day delivery"
+        },
+        {
+         "label": "Basket",
+         "value": "7 lines kept · £486.20 ex VAT"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Page not found",
+         "meta": "The page or record doesn't exist or isn't on your account",
+         "badge": "404"
+        },
+        {
+         "title": "Order not found",
+         "meta": "Order SO-118204 isn't on the Hartley Motors account",
+         "badge": "404"
+        },
+        {
+         "title": "Invoice not found",
+         "meta": "Invoice INV-55931 belongs to another customer account",
+         "badge": "404"
+        },
+        {
+         "title": "No access to this area",
+         "meta": "Reports, audit history and office tools need a staff or admin role",
+         "badge": "403"
+        },
+        {
+         "title": "Admin only",
+         "meta": "Users, audit log and settings are for administrators",
+         "badge": "403"
+        },
+        {
+         "title": "Your session has ended",
+         "meta": "Sign in again to carry on. Your basket is kept",
+         "badge": "401"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Try again",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Back to catalogue",
+         "variant": "secondary"
+        },
+        {
+         "label": "My orders",
+         "variant": "ghost"
+        },
+        {
+         "label": "Copy reference",
+         "variant": "ghost",
+         "icon": "copy"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "Something went wrong on our side. Quote reference ERR-7F3K-92QD to the trade counter if it happens again."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,249 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Feedlot Operations API shall implement every HTTP operation in contracts/openapi.yaml, including its request and response schemas, success and error statuses, security rules, and declared behavior, without deviation.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 11,
+        "lineEnd": 14,
+        "quote": "  /auth/sign-in:\n    post:\n      operationId: signIn\n      summary: \"Sign in with email and password.\""
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 2007,
+        "lineEnd": 2010,
+        "quote": "  /sample-data:\n    get:\n      operationId: getSampleData\n      summary: \"Return sample-data records and management permissions.\""
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 28,
+        "lineEnd": 31,
+        "quote": "app.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n// The API's own document (/openapi/v1.json) and a page to read and try it (/swagger). Keep both: the factory's product page links to the page.\napp.MapOpenApi();\napp.UseSwaggerUI(o => o.SwaggerEndpoint(\"/openapi/v1.json\", \"API\"));"
+       }
+      ],
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "A request corresponds to any HTTP method and path declared in contracts/openapi.yaml, includes valid input, and satisfies its declared authentication and permission requirements",
+        "when": "the client sends the request",
+        "then": "the response status and JSON fields match the operation's declared success response schema and behavior",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A request to any declared operation has a missing or invalid credential, insufficient permission, or input rejected by a declared validation or conflict rule",
+        "when": "the client sends the request",
+        "then": "the response status and error response fields match the corresponding statuses and schemas declared for that operation",
+        "level": "api"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The Feedlot Operations API shall persist all application data its operations read or change, including derived or cached values used by later requests, in PostgreSQL through the existing App connection string, and add the required application structures without discarding compatible pre-existing contents.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 8,
+        "lineEnd": 9,
+        "quote": "builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\n    ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_4»")));"
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 22,
+        "lineEnd": 22,
+        "quote": "        db.Database.EnsureCreated();"
+       },
+       {
+        "path": "App.Api/AppDb.cs",
+        "lineStart": 5,
+        "lineEnd": 7,
+        "quote": "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n}"
+       }
+      ],
+      "sources": [
+       "I-2",
+       "Q-1",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A PostgreSQL database configured with the App connection string contains a compatible pre-existing row",
+        "when": "the application starts and a contract operation reads or changes application data",
+        "then": "the pre-existing row remains in the database and the response reflects persisted data after a subsequent request",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "An API operation creates or changes application data",
+        "when": "the client repeats the corresponding read request after the application has restarted against the same App database",
+        "then": "the response contains the stored record and values, including any derived or cached values used by that request",
+        "level": "api"
+       }
+      ],
+      "stability": 0.87
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When Seed:Demo is true at application startup, the Feedlot Operations API shall run App.Api/SeedData.cs to insert a few believable rows for each application table using examples from contracts/openapi.yaml.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A clean database is configured and Seed:Demo is true",
+        "when": "the application starts and a client requests each contract list operation",
+        "then": "each response list count is at least one and the returned sample values include data drawn from contract examples",
+        "level": "api"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When Seed:Demo is false, the Feedlot Operations API shall serve contract operations without requiring demo seed rows to exist.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 22,
+        "lineEnd": 24,
+        "quote": "        db.Database.EnsureCreated();\n        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       },
+       {
+        "path": "App.Tests/HealthTests.cs",
+        "lineStart": 12,
+        "lineEnd": 17,
+        "quote": "    [Fact]\n    public async Task ApiIsUp()\n    {\n        var res = await _factory.CreateClient().GetAsync(\"/\");\n        Assert.Equal(HttpStatusCode.OK, res.StatusCode);\n    }"
+       }
+      ],
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "Seed:Demo is false and the database has no operational rows",
+        "when": "a client calls contract operations valid for an empty data state",
+        "then": "the response status and fields conform to the contract without requiring a seeded record",
+        "level": "api"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When a ration defines ingredient proportions, the Feedlot Operations API shall calculate ingredient consumption and ration cost from as-fed ingredient weights and use dry-matter values only for nutritional calculations.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A ration contains ingredients with stated proportions, different dry-matter percentages, and known unit costs",
+        "when": "a client records a feeding event and reads the ration and event results",
+        "then": "the response ingredient movement quantities and cost fields reflect the as-fed proportions and costs, while nutritional values reflect dry-matter values",
+        "level": "api"
+       }
+      ],
+      "stability": 0.83
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When a feeding event requires more of an ingredient than its available inventory, the Feedlot Operations API shall reject the entire event without changing inventory or feed rollups.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "An ingredient has less available inventory than a proposed feeding event requires and inventory and lot rollup values have been recorded",
+        "when": "the client posts the feeding event",
+        "then": "the response status is 409 and the inventory row, feeding-event row count, and lot feed totals remain unchanged",
+        "level": "api"
+       }
+      ],
+      "stability": 0.85
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When a lot has zero Days on Feed, nonpositive total weight gain, or nonpositive ADG, the Feedlot Operations API shall return ADG as null when Days on Feed is zero, feedConversionRatio and costOfGain as null when their weight-gain denominator is nonpositive, and projectedShipDate as null when ADG is nonpositive or no positive gain remains toward the target.",
+      "op": "ADDED",
+      "sources": [
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "A lot has zero Days on Feed, or has zero or negative total weight gain or ADG",
+        "when": "the client requests that lot's metrics",
+        "then": "the response fields for the affected metrics and projectedShipDate contain null rather than a numeric value or date",
+        "level": "api"
+       }
+      ],
+      "stability": 0.81
+     },
+     {
+      "id": "REQ-8",
+      "ears": "The Feedlot Operations API shall remain a backend API and documentation surface and shall not add product-facing web application screens in this repository.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "The repository implementation is complete",
+        "when": "a person reviews its exposed web surfaces and frontend files",
+        "then": "the review finds the API and API documentation surfaces but no product-facing screens or frontend implementation",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.9
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Every HTTP method and path declared in the locked OpenAPI contract conforms to its declared request, response, status, and security definitions.",
+      "metric": "100% of declared operations pass contract-conformance checks."
+     },
+     {
+      "id": "NFR-2",
+      "text": "Database schema setup preserves compatible pre-existing application data.",
+      "metric": "0 compatible pre-existing rows are removed during schema setup."
+     }
+    ],
+    "outOfScope": [],
+    "assumptions": [
+     "ASM-1: Seed data is for initial setup; behavior for running SeedData.Run repeatedly when sample rows already exist is not specified."
+    ],
+    "suggestions": []
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

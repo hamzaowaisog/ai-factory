@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="104edccc-49ab-4a73-8d81-01cd96b4313d" name="@8bd33ec3c105 2026-10-11 02:43:07" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-11T02:43:07.9650784+00:00" queuing="2026-10-11T02:43:07.9650784+00:00" start="2026-10-11T02:43:07.3387777+00:00" finish="2026-10-11T02:43:07.9683644+00:00" />
+  <TestSettings name="default" id="41e67ede-d36f-42f0-8c3b-a26f479bc234">
+    <Deployment runDeploymentRoot="_8bd33ec3c105_2026-10-11_02_43_07" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="5711765d-5634-4bf0-9d4d-3dc2ad800a76" testId="b115747d-7afd-c937-3e8d-6e83a405767c" testName="Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder" computerName="8bd33ec3c105" duration="00:00:00.0095611" startTime="2026-10-11T02:43:07.9039973+00:00" endTime="2026-10-11T02:43:07.9039975+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5711765d-5634-4bf0-9d4d-3dc2ad800a76">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: NotFound
+Actual:   InternalServerError</Message>
+          <StackTrace>   at Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder() in /src/Shop.Tests/MissingOrderTests.cs:line 16
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7bf9f6f5-838a-4bfe-af79-14c7749a2c27" testId="284dd49e-f97c-6878-b584-18ec9e97e633" testName="Shop.Tests.MissingOrderTests.CHAR_ExistingOrderStillReturned" computerName="8bd33ec3c105" duration="00:00:00.1067127" startTime="2026-10-11T02:43:07.8882572+00:00" endTime="2026-10-11T02:43:07.8882675+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7bf9f6f5-838a-4bfe-af79-14c7749a2c27" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder" storage="/src/shop.tests/bin/debug/net8.0/shop.tests.dll" id="b115747d-7afd-c937-3e8d-6e83a405767c">
+      <Execution id="5711765d-5634-4bf0-9d4d-3dc2ad800a76" />
+      <TestMethod codeBase="/src/Shop.Tests/bin/Debug/net8.0/Shop.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Shop.Tests.MissingOrderTests" name="AC_1_1_Returns404ForMissingOrder" />
+    </UnitTest>
+    <UnitTest name="Shop.Tests.MissingOrderTests.CHAR_ExistingOrderStillReturned" storage="/src/shop.tests/bin/debug/net8.0/shop.tests.dll" id="284dd49e-f97c-6878-b584-18ec9e97e633">
+      <Execution id="7bf9f6f5-838a-4bfe-af79-14c7749a2c27" />
+      <TestMethod codeBase="/src/Shop.Tests/bin/Debug/net8.0/Shop.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Shop.Tests.MissingOrderTests" name="CHAR_ExistingOrderStillReturned" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="b115747d-7afd-c937-3e8d-6e83a405767c" executionId="5711765d-5634-4bf0-9d4d-3dc2ad800a76" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="284dd49e-f97c-6878-b584-18ec9e97e633" executionId="7bf9f6f5-838a-4bfe-af79-14c7749a2c27" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="1" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.04]   Discovering: Shop.Tests
+[xUnit.net 00:00:00.06]   Discovered:  Shop.Tests
+[xUnit.net 00:00:00.06]   Starting:    Shop.Tests
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/orders/2 - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '&lt;&gt;f__AnonymousType0`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/orders/2 - 200 - application/json;+charset=utf-8 28.6321ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/orders/999 - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /orders/{id:int}'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /orders/{id:int}'
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.Collections.Generic.KeyNotFoundException: The given key '999' was not present in the dictionary.
+         at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+         at Program.&lt;&gt;c__DisplayClass0_0.&lt;&lt;Main&gt;$&gt;b__1(Int32 id) in /src/Shop.Api/Program.cs:line 7
+         at lambda_method59(Closure, Object, HttpContext)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/orders/999 - 500 - text/plain;+charset=utf-8 7.2363ms
+[xUnit.net 00:00:00.21]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.21]       Expected: NotFound
+[xUnit.net 00:00:00.21]       Actual:   InternalServerError
+[xUnit.net 00:00:00.21]       Stack Trace:
+[xUnit.net 00:00:00.21]         /src/Shop.Tests/MissingOrderTests.cs(16,0): at Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder()
+[xUnit.net 00:00:00.21]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.21]   Finished:    Shop.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="8bd33ec3c105" outcome="Error" timestamp="2026-10-11T02:43:07.9031641+00:00">
+        <Text>[xUnit.net 00:00:00.21]     Shop.Tests.MissingOrderTests.AC_1_1_Returns404ForMissingOrder [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="8bd33ec3c105" outcome="Warning" timestamp="2026-10-11T02:43:07.9397431+00:00">
+        <Text>Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

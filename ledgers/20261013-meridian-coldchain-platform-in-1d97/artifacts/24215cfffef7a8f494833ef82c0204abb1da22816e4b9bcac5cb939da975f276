@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "ActionEnvelope:|authorization|authUrl",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 0,
+   "resultChars": 565,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;ActionEnvelope:|authorization|authUrl&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:9: /auth/staff/authorization-url:\ncontracts/openapi.yaml:11: operationId: getStaffAuthorizationUrl\ncontracts/openapi.yaml:12: summary: \"Get the configured staff identity-provider authorization URL.\"\ncontracts/openapi.yaml:1999: ActionEnvelope:\ncontracts/openapi.yaml:2621: description: \"Authentication challenge or configured staff authorization result.\"\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,452 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "74-estimation-checklist",
+      "readingChosen": "Treated as a process requirement: the estimate deliverable must break down effort by each listed item rather than by screen/page count.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Estimate document contains a separate effort line (hours/days) for each checklist item under Product/UX, Frontend, Backend, Integrations, QA, DevOps and Documentation."
+       },
+       {
+        "kind": "happy",
+        "text": "Estimate is not expressed solely as a per-screen count; screen-count figures, if present, are supplementary to the itemised breakdown."
+       },
+       {
+        "kind": "error",
+        "text": "If an estimate omits any checklist item, it is rejected/flagged as incomplete before being sent to the client."
+       },
+       {
+        "kind": "happy",
+        "text": "Each itemised estimate line can be reviewed, approved, or revised independently of the others."
+       }
+      ]
+     },
+     {
+      "id": "75-technology-stack",
+      "readingChosen": "The implementation team must produce and submit a written technology proposal covering each listed concern before build starts.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Proposal document lists a chosen option for each of: frontend framework, backend framework, database, authentication approach, file storage, email integration, PDF generation approach, hosting/cloud platform, CI/CD, monitoring/logging."
+       },
+       {
+        "kind": "happy",
+        "text": "Each proposed technology choice is accompanied by a justification referencing expected scale and the 7-year data-retention requirement."
+       },
+       {
+        "kind": "error",
+        "text": "A proposal that omits a justification tying the database/storage choice to 7-year retention is flagged as incomplete and returned for revision."
+       },
+       {
+        "kind": "permission",
+        "text": "Only the implementation team (not the client) is responsible for drafting the technology proposal; client approval is required before the stack is finalised."
+       }
+      ]
+     },
+     {
+      "id": "76-customer-auth-and-access",
+      "readingChosen": "Covers login/registration for customers plus role-based permission enforcement across the portal.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer enters valid credentials → is authenticated and redirected to their account/catalogue area."
+       },
+       {
+        "kind": "error",
+        "text": "Customer enters invalid credentials → sees an error message and is not logged in; account lockout/rate-limiting applies after repeated failures."
+       },
+       {
+        "kind": "permission",
+        "text": "Users are assigned roles (e.g., customer, staff, admin) and each role sees only the features/screens/data permitted for that role."
+       },
+       {
+        "kind": "error",
+        "text": "A user attempting to access a page or action outside their role's permission is blocked and shown an access-denied response."
+       },
+       {
+        "kind": "data",
+        "text": "Login attempts and role assignments are recorded for later audit."
+       }
+      ]
+     },
+     {
+      "id": "76-customer-company-management",
+      "readingChosen": "Staff/admin can create and manage customer accounts and associated companies, including multi-user companies.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff/admin can create, edit, and deactivate a customer or company record, with changes saved and reflected immediately in listings."
+       },
+       {
+        "kind": "data",
+        "text": "Each customer record is linked to a company record enabling company-specific pricing and order history."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to save a company/customer record with missing required fields (e.g., name) is rejected with a validation error."
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff/admin roles can create or deactivate customer/company records; customers cannot edit other customers' data."
+       }
+      ]
+     },
+     {
+      "id": "76-catalogue-search-vehicle-compatibility",
+      "readingChosen": "Covers browsing the product catalogue, free-text search, category filtering, and searching by vehicle to find compatible parts.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer browses the product catalogue and sees paginated product listings with images, names, and prices."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer enters a search term → matching products are returned; applying a category filter narrows results further."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer selects a vehicle (make/model/year) → only parts compatible with that vehicle are shown."
+       },
+       {
+        "kind": "error",
+        "text": "Search with no matching results shows an explicit empty-state message rather than a blank page."
+       },
+       {
+        "kind": "error",
+        "text": "Vehicle compatibility search with no matches informs the customer no compatible parts were found."
+       }
+      ]
+     },
+     {
+      "id": "76-customer-specific-pricing",
+      "readingChosen": "Prices shown to a logged-in customer reflect their company's negotiated price list rather than a single public price.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Logged-in customer viewing a product sees the price associated with their company's assigned price list."
+       },
+       {
+        "kind": "data",
+        "text": "Price-list assignments are stored per company and applied consistently across catalogue, basket, and checkout."
+       },
+       {
+        "kind": "error",
+        "text": "If a product has no price entry for the customer's price list, the product is shown as unavailable/priced-on-request rather than showing an incorrect price."
+       },
+       {
+        "kind": "permission",
+        "text": "Customers can only see their own company's prices; they cannot view or infer another company's pricing."
+       }
+      ]
+     },
+     {
+      "id": "76-erp-stock-import",
+      "readingChosen": "Stock levels are imported from the client's ERP system via scheduled/periodic CSV import rather than real-time API sync.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "A valid ERP CSV file is imported and stock quantities/availability are updated for matching product SKUs."
+       },
+       {
+        "kind": "error",
+        "text": "An import file with malformed rows or unknown SKUs is rejected (or partially processed) and an error report is generated listing the failed rows."
+       },
+       {
+        "kind": "data",
+        "text": "Each import run is logged with timestamp, file name, number of records processed, and number of failures."
+       },
+       {
+        "kind": "error",
+        "text": "If stock for a product drops to zero, the product is marked out-of-stock and cannot be added to a basket."
+       }
+      ]
+     },
+     {
+      "id": "76-basket-checkout-delivery-scheduling",
+      "readingChosen": "Customers add items to a basket, proceed through checkout, and delivery date/slot options are constrained by configured scheduling rules.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer adds a product to the basket → basket quantity and total update immediately."
+       },
+       {
+        "kind": "error",
+        "text": "Customer attempts to add more units than are in stock → is blocked or quantity is capped with a warning message."
+       },
+       {
+        "kind": "happy",
+        "text": "At checkout, customer selects a delivery date/slot limited to options allowed by configured delivery scheduling rules (e.g., cut-off times, blackout days)."
+       },
+       {
+        "kind": "error",
+        "text": "Checkout with an empty basket or missing required address/payment information is blocked with a validation error."
+       },
+       {
+        "kind": "data",
+        "text": "Successful checkout creates an order record linked to the customer, basket contents, delivery slot, and totals."
+       }
+      ]
+     },
+     {
+      "id": "76-order-lifecycle",
+      "readingChosen": "Covers order placement, viewing history, tracking status, cancellation, and repeat-ordering of a past order.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer places an order → receives an order confirmation with order number and status 'placed'."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer views order history listing all past orders with status and date; selecting one shows full order detail."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer can track an order's current status (e.g., processing, dispatched, delivered)."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer cancels an eligible order → order status changes to 'cancelled' and relevant stock/invoice adjustments occur."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to cancel an order that has already progressed past the cancellable stage (e.g., dispatched) is rejected with an explanatory message."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer selects 'repeat order' on a past order → a new basket is pre-populated with the same items (adjusted for current stock/price)."
+       },
+       {
+        "kind": "error",
+        "text": "Repeat order with items now out of stock or discontinued are flagged/excluded, not silently added."
+       }
+      ]
+     },
+     {
+      "id": "76-saved-basket-templates",
+      "readingChosen": "Customers can save a named basket configuration as a template for quick reordering later.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer saves current basket contents as a named template, retrievable later from their account."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer loads a saved template → basket is populated with those items (quantities adjusted to current stock/pricing)."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer can rename or delete a saved template."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to save a template with a duplicate name (for that customer) prompts for a different name or confirms overwrite."
+       }
+      ]
+     },
+     {
+      "id": "76-staff-order-management",
+      "readingChosen": "Staff have a dashboard to view and manage all customer orders, and can create orders on behalf of a customer (e.g., phone orders).",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only staff/admin roles can access the staff order management dashboard; customers cannot."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff views a list of orders across all customers, filterable by status/customer/date, and can open an order to view/edit details."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff updates an order's status (e.g., to dispatched) → change is saved and visible to the customer in their order tracking view."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff creates a new order on behalf of a customer by selecting the customer, adding products, and submitting → order is created under that customer's account with correct pricing applied."
+       },
+       {
+        "kind": "error",
+        "text": "Staff attempting to create an order for a non-existent or deactivated customer account is blocked with an error."
+       }
+      ]
+     },
+     {
+      "id": "76-delivery-csv-export",
+      "readingChosen": "Staff/admin can export a CSV of orders due for delivery for use by logistics/ERP systems.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff selects a date range/filter and exports a CSV file listing orders scheduled for delivery, including customer, address, items, and quantities."
+       },
+       {
+        "kind": "data",
+        "text": "Each export is logged with timestamp and user who generated it."
+       },
+       {
+        "kind": "error",
+        "text": "Exporting when no orders match the filter produces an empty/valid CSV with headers only, not an error."
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff/admin roles can generate delivery CSV exports."
+       }
+      ]
+     },
+     {
+      "id": "76-invoicing-payments",
+      "readingChosen": "Invoices are generated automatically when an order reaches an appropriate state, produced as PDFs, and payment status is tracked (not necessarily full payment processing).",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "When an order is placed/confirmed, an invoice record is automatically created and linked to the order without manual staff action."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer/staff can view and download the invoice as a PDF, correctly reflecting order items, prices, and totals."
+       },
+       {
+        "kind": "data",
+        "text": "Each invoice has a payment status field (e.g., unpaid, paid, overdue) that is updated as payment events occur."
+       },
+       {
+        "kind": "error",
+        "text": "If invoice PDF generation fails, the system retries or flags the invoice for manual regeneration rather than leaving it permanently missing."
+       },
+       {
+        "kind": "permission",
+        "text": "Customers can only view/download invoices belonging to their own company; staff/admin can view all."
+       }
+      ]
+     },
+     {
+      "id": "76-administration",
+      "readingChosen": "Admin-only screens for managing products, price lists, and users.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only admin role can access product administration, price-list administration, and user administration screens."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates/edits/deletes a product record (name, description, images, category, vehicle compatibility, stock) and changes are reflected in the customer catalogue."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates/edits a price list and assigns it to one or more companies; pricing changes apply to those customers immediately."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates/edits/deactivates user accounts and assigns roles (customer, staff, admin)."
+       },
+       {
+        "kind": "error",
+        "text": "Admin attempting to delete a product referenced by existing orders is blocked or the product is archived rather than hard-deleted."
+       }
+      ]
+     },
+     {
+      "id": "76-reporting-csv-exports",
+      "readingChosen": "Admin/staff can view reports (e.g., sales, order volume) and export underlying data as CSV.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff/admin selects a report type and date range → system displays aggregated figures (e.g., orders, revenue) matching the applied filters."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff/admin exports the report data as a CSV file matching the on-screen figures."
+       },
+       {
+        "kind": "error",
+        "text": "Report requested for a range with no data shows a clear empty state rather than an error."
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff/admin can access reports and CSV exports; customers cannot."
+       }
+      ]
+     },
+     {
+      "id": "76-email-notifications",
+      "readingChosen": "Automated transactional emails are sent at key events (order placed, dispatched, invoice issued).",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "When an order is placed, the customer receives an email confirmation containing order number and summary."
+       },
+       {
+        "kind": "happy",
+        "text": "When an order status changes (e.g., dispatched) or an invoice is issued, a corresponding notification email is sent."
+       },
+       {
+        "kind": "error",
+        "text": "If an email fails to send, the failure is logged/retried and does not block the underlying order/invoice action from completing."
+       }
+      ]
+     },
+     {
+      "id": "76-audit-history",
+      "readingChosen": "Key actions (order changes, price/user/product edits) are recorded in an audit log viewable by admin.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Each create/update/delete of orders, products, prices, and users is recorded with timestamp, actor, and change details."
+       },
+       {
+        "kind": "permission",
+        "text": "Only admin can view the audit log."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin can filter audit log entries by entity, user, or date range."
+       }
+      ]
+     },
+     {
+      "id": "76-responsive-mobile-experience",
+      "readingChosen": "The buyer-facing portal (catalogue, basket, checkout, orders) is designed and tested to work correctly on mobile-first/responsive layouts.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer completes core flows (browse, search, basket, checkout, order tracking) on a mobile viewport with layout adapting correctly (no broken/overlapping elements)."
+       },
+       {
+        "kind": "error",
+        "text": "Key interactive elements remain usable (tappable, not clipped) at common mobile breakpoints; failing cases are treated as defects."
+       }
+      ]
+     },
+     {
+      "id": "76-seven-year-retention",
+      "readingChosen": "Order and invoice records must be retained and remain retrievable for at least seven years from creation, and not be deletable before then.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Order and invoice records remain stored and queryable for a minimum of 7 years from creation date."
+       },
+       {
+        "kind": "error",
+        "text": "Attempts (manual or automated) to permanently delete an order/invoice record before the 7-year retention period has elapsed are blocked."
+       },
+       {
+        "kind": "happy",
+        "text": "After 7 years, retained records can be archived/purged per policy (if defined) without affecting records still within the retention window."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

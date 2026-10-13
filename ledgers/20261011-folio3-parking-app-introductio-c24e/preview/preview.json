@@ -1,0 +1,251 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "S-1 /sign-in",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "S-2 /access-error",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "S-3 /onboarding/vehicle",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "S-4 /dashboard",
+        "req": "REQ-14"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "S-5 /dashboard/holder",
+        "req": "REQ-10"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "S-6 /releases/schedule",
+        "req": "REQ-11"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "S-7 /profile",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "S-8 /guard/verifications",
+        "req": "REQ-18"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "S-9 /admin/spaces",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "S-10 /admin/employees",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "S-11 /admin/employees/:id",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-12",
+        "title": "S-12 /admin/roles",
+        "req": "REQ-26"
+      },
+      {
+        "path": "index.html#S-13",
+        "title": "S-13 /admin/settings",
+        "req": "REQ-12"
+      },
+      {
+        "path": "index.html#S-14",
+        "title": "S-14 /admin/reports/recipients",
+        "req": "REQ-24"
+      },
+      {
+        "path": "index.html#S-15",
+        "title": "S-15 /admin/reports",
+        "req": "REQ-23"
+      },
+      {
+        "path": "index.html#S-16",
+        "title": "S-16 /admin/audit",
+        "req": "REQ-16"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "frames/stitch-S-1-normal-ca23b6e1.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-1-error-acb780a2.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-normal-adc398ce.png",
+      "screen": "S-2 /access-error",
+      "req": "REQ-4",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-normal-a1027742.png",
+      "screen": "S-3 /onboarding/vehicle",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-normal-da7ac9dd.png",
+      "screen": "S-4 /dashboard",
+      "req": "REQ-14",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-empty-b1c5336e.png",
+      "screen": "S-4 /dashboard",
+      "req": "REQ-14",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-error-b556231e.png",
+      "screen": "S-4 /dashboard",
+      "req": "REQ-14",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-normal-c952acb4.png",
+      "screen": "S-5 /dashboard/holder",
+      "req": "REQ-10",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-error-2ac5afae.png",
+      "screen": "S-5 /dashboard/holder",
+      "req": "REQ-10",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-normal-5127d27c.png",
+      "screen": "S-6 /releases/schedule",
+      "req": "REQ-11",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-normal-f771f963.png",
+      "screen": "S-7 /profile",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-normal-db2baa83.png",
+      "screen": "S-8 /guard/verifications",
+      "req": "REQ-18",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-empty-4bfa54fa.png",
+      "screen": "S-8 /guard/verifications",
+      "req": "REQ-18",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-error-0fc8fc83.png",
+      "screen": "S-8 /guard/verifications",
+      "req": "REQ-18",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-normal-c384282d.png",
+      "screen": "S-9 /admin/spaces",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-empty-ec54e7ca.png",
+      "screen": "S-9 /admin/spaces",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-normal-b89b6576.png",
+      "screen": "S-10 /admin/employees",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-empty-e33d5800.png",
+      "screen": "S-10 /admin/employees",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-normal-f8dd0cd8.png",
+      "screen": "S-11 /admin/employees/:id",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-normal-264f96dc.png",
+      "screen": "S-12 /admin/roles",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-normal-9dcaa2b7.png",
+      "screen": "S-13 /admin/settings",
+      "req": "REQ-12",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-14-normal-ed3336f0.png",
+      "screen": "S-14 /admin/reports/recipients",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-14-empty-d75e07e4.png",
+      "screen": "S-14 /admin/reports/recipients",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-15-normal-dba17998.png",
+      "screen": "S-15 /admin/reports",
+      "req": "REQ-23",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-15-empty-ea2a38b8.png",
+      "screen": "S-15 /admin/reports",
+      "req": "REQ-23",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-16-normal-c26a329c.png",
+      "screen": "S-16 /admin/audit",
+      "req": "REQ-16",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-16-empty-e72addf6.png",
+      "screen": "S-16 /admin/audit",
+      "req": "REQ-16",
+      "viewport": "desktop"
+    }
+  ]
+}

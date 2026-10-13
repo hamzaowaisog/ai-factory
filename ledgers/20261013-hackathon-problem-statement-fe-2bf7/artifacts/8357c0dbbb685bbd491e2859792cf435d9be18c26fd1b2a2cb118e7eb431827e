@@ -1,0 +1,38 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Map[A-Z]|AddControllers|AddAuthorization|AddAuthentication|IEndpointRouteBuilder|ControllerBase|\\[Http",
+    "glob": "**/*.cs"
+   },
+   "ms": 2,
+   "resultChars": 334,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Map[A-Z]|AddControllers|AddAuthorization|AddAuthentication|IEndpointRouteBuilder|ControllerBase|\\\\[Http&quot;,&quot;gl\">\nApp.Api/Program.cs:28: app.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\nApp.Api/Program.cs:30: app.MapOpenApi();\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "DbSet<|Entity<|ToTable\\(|class .*DbContext|SeedData\\.Run|Seed:Demo|Seed__Demo",
+    "glob": "**/*"
+   },
+   "ms": 4,
+   "resultChars": 681,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;DbSet<|Entity<|ToTable\\\\(|class .*DbContext|SeedData\\\\.Run|Seed:Demo|Seed__Demo&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/AppDb.cs:5: public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\nApp.Api/Program.cs:23: // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "react|vue|angular|next|vite|\\.tsx|\\.jsx|html|SwaggerUI",
+    "glob": "**/*"
+   },
+   "ms": 1,
+   "resultChars": 387,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;react|vue|angular|next|vite|\\\\.tsx|\\\\.jsx|html|SwaggerUI&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/App.Api.csproj:16: <PackageReference Include=\"Swashbuckle.AspNetCore.SwaggerUI\" Version=\"7.3.2\" />\nApp.Api/Program.cs:31: app.UseSwaggerUI(o => o.SwaggerEndpoint(\"/openapi/v1.json\", \"API\"));\n</untrusted_document>"
+  }
+ ]
+}

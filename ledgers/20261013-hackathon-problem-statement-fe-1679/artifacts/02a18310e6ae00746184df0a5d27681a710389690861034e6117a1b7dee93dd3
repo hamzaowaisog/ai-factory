@@ -1,0 +1,1 @@
+[{"check":"secret","frames":[],"location":"components/screens/s-1/container.tsx:46","message":"Possible secret (password-assignment) in components/screens/s-1/container.tsx:46"},{"check":"secret","frames":[],"location":"lib/auth/session.ts:5","message":"Possible secret (password-assignment) in lib/auth/session.ts:5"}]

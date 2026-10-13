@@ -1,0 +1,119 @@
+{
+  "runId": "20260930-customer-order-portal-new-ded1",
+  "status": "parked",
+  "parkedReason": "The clarifier briefing is too big (20306 tokens > 20000); biggest part: sketches",
+  "request": "# Customer order portal (new project)\n\nA web portal for a mid-size food distributor. Buyers place and track orders online instead of phoning them in. Office staff manage orders and customers. There is",
+  "costUsd": 0.19226449999999998,
+  "activeMin": 1.0637166666666666,
+  "firstTimePassRate": 1,
+  "topCost": [
+    {
+      "step": "clarify",
+      "costUsd": 0.1830925
+    },
+    {
+      "step": "intake",
+      "costUsd": 0.009172
+    }
+  ],
+  "steps": [
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 1982,
+        "output": 1438,
+        "cached": 0
+      },
+      "costUsd": 0.009172,
+      "activeSec": 9.614,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 10,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.017,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 9,
+        "output": 15426,
+        "cached": 0
+      },
+      "costUsd": 0.1830925,
+      "activeSec": 54.192,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 134,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    }
+  ],
+  "createdAt": "2026-09-30T20:43:46.067Z",
+  "humanCards": []
+}

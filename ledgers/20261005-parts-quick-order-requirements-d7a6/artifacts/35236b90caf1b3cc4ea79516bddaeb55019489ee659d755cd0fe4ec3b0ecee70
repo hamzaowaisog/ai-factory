@@ -1,0 +1,280 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Find parts",
+     "subtitle": "Search by name or part number, then add in-stock parts to your cart. Prices in GBP.",
+     "blocks": [
+      {
+       "type": "results",
+       "query": "bearing",
+       "count": "86 parts · page 1 of 5",
+       "visual": true,
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Seals & O-rings",
+          "Fasteners"
+         ],
+         "picked": [
+          "Bearings"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "FAG",
+          "NSK",
+          "NTN",
+          "INA"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angular contact bearing 7205",
+         "meta": "Part no. 7205 BECBP · SKF",
+         "badge": "In stock",
+         "price": "£41.20"
+        },
+        {
+         "title": "Bearing housing SNL 507",
+         "meta": "Part no. SNL 507-606 · SKF",
+         "badge": "Low stock (3 left)",
+         "price": "£64.95"
+        },
+        {
+         "title": "Deep groove ball bearing 6204-2RS",
+         "meta": "Part no. 6204-2RSR-C3 · FAG",
+         "badge": "In stock",
+         "price": "£5.48"
+        },
+        {
+         "title": "Deep groove ball bearing 6305-2Z",
+         "meta": "Part no. 6305ZZC3 · NSK",
+         "badge": "Out of stock",
+         "price": "£9.15"
+        },
+        {
+         "title": "Flanged bearing unit UCF 206",
+         "meta": "Part no. UCF206 · NTN",
+         "badge": "Low stock (1 left)",
+         "price": "£22.40"
+        },
+        {
+         "title": "Needle roller bearing HK 2016",
+         "meta": "Part no. HK2016 · INA",
+         "badge": "In stock",
+         "price": "£3.72"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous page",
+         "icon": "chevron-left",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "You're on the first page"
+        },
+        {
+         "label": "Next page",
+         "icon": "chevron-right",
+         "variant": "secondary"
+        },
+        {
+         "label": "Go to cart (3)",
+         "icon": "cart",
+         "variant": "primary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Go to cart (3)",
+       "to": "S-2"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or spelling, or clear the search and filters to see every part.",
+      "error": "Parts failed to load. Check your connection and try again.",
+      "success": "Added to cart. Your cart count is updated.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    },
+    "mockFull": {
+     "title": "Find parts",
+     "subtitle": "Search by name or part number, then add in-stock parts to your cart. Prices in GBP.",
+     "blocks": [
+      {
+       "type": "results",
+       "query": "bearing",
+       "count": "86 parts · page 1 of 5",
+       "visual": true,
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Seals & O-rings",
+          "Fasteners"
+         ],
+         "picked": [
+          "Bearings"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "FAG",
+          "NSK",
+          "NTN",
+          "INA"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angular contact bearing 7205",
+         "meta": "Part no. 7205 BECBP · SKF",
+         "badge": "In stock",
+         "price": "£41.20"
+        },
+        {
+         "title": "Angular contact bearing 7306",
+         "meta": "Part no. 7306 BEP · FAG",
+         "badge": "Low stock (4 left)",
+         "price": "£58.90"
+        },
+        {
+         "title": "Bearing housing SNL 507",
+         "meta": "Part no. SNL 507-606 · SKF",
+         "badge": "Low stock (3 left)",
+         "price": "£64.95"
+        },
+        {
+         "title": "Cylindrical roller bearing NU 206",
+         "meta": "Part no. NU206-E-XL-TVP2 · FAG",
+         "badge": "In stock",
+         "price": "£27.35"
+        },
+        {
+         "title": "Deep groove ball bearing 6002-2Z",
+         "meta": "Part no. 6002-2Z/C3 · SKF",
+         "badge": "In stock",
+         "price": "£3.10"
+        },
+        {
+         "title": "Deep groove ball bearing 6204-2RS",
+         "meta": "Part no. 6204-2RSR-C3 · FAG",
+         "badge": "In stock",
+         "price": "£5.48"
+        },
+        {
+         "title": "Deep groove ball bearing 6305-2Z",
+         "meta": "Part no. 6305ZZC3 · NSK",
+         "badge": "Out of stock",
+         "price": "£9.15"
+        },
+        {
+         "title": "Flanged bearing unit UCF 206",
+         "meta": "Part no. UCF206 · NTN",
+         "badge": "Low stock (1 left)",
+         "price": "£22.40"
+        },
+        {
+         "title": "Linear ball bearing LBBR 16",
+         "meta": "Part no. LBBR 16-2LS · SKF",
+         "badge": "Out of stock",
+         "price": "£18.75"
+        },
+        {
+         "title": "Needle roller bearing HK 2016",
+         "meta": "Part no. HK2016 · INA",
+         "badge": "In stock",
+         "price": "£3.72"
+        },
+        {
+         "title": "Pillow block bearing UCP 205",
+         "meta": "Part no. UCP205 · NTN",
+         "badge": "In stock",
+         "price": "£19.60"
+        },
+        {
+         "title": "Spherical roller bearing 22210 E",
+         "meta": "Part no. 22210 EK · SKF",
+         "badge": "In stock",
+         "price": "£112.00"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous page",
+         "icon": "chevron-left",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "You're on the first page"
+        },
+        {
+         "label": "Next page",
+         "icon": "chevron-right",
+         "variant": "secondary"
+        },
+        {
+         "label": "Go to cart (3)",
+         "icon": "cart",
+         "variant": "primary"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or spelling, or clear the search and filters to see every part.",
+      "error": "Parts failed to load. Check your connection and try again.",
+      "success": "Added to cart. Your cart count is updated.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    }
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

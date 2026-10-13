@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Today's routes</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Reset & Design System Tokens */
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-numbers {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes breathingDot {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .saved-handoff-motion {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Interactive state styles */
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      height: 48px;
+      border-radius: 2px;
+      border: 1px solid #A94B1D;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background-color 150ms ease, transform 100ms ease, box-shadow 150ms ease;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+    .btn-primary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #A94B1D;
+    }
+    .btn-primary:active {
+      transform: scale(0.99);
+      background-color: #7d3513;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      height: 48px;
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+    .btn-secondary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #A94B1D;
+    }
+    .btn-secondary:active {
+      transform: scale(0.99);
+      background-color: #EFEFEF;
+    }
+
+    .nav-item-active {
+      color: #A94B1D;
+      border-bottom: 2px solid #A94B1D;
+      font-weight: 600;
+    }
+
+    .nav-link {
+      transition: color 150ms ease;
+    }
+    .nav-link:hover {
+      color: #202020;
+    }
+    .nav-link:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+      border-radius: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .saved-handoff-motion,
+      .btn-primary,
+      .btn-secondary,
+      .nav-link {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header: The same on every page -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D5D5D5] sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      
+      <!-- Left: Logo & Nav -->
+      <div class="flex items-center space-x-6 sm:space-x-8">
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 bg-[#202020] rounded-[2px] flex items-center justify-center text-white font-bold text-xs" style="font-family: 'Hanken Grotesk', sans-serif;">
+            M
+          </div>
+          <span class="text-[17px] font-bold text-[#202020] tracking-tight" style="font-family: 'Hanken Grotesk', sans-serif;">
+            Meridian
+          </span>
+        </div>
+
+        <nav class="flex items-center space-x-6 h-16 text-[15px]" aria-label="Main Navigation">
+          <a href="#" class="h-16 flex items-center px-1 nav-item-active" aria-current="page">
+            Today's routes
+          </a>
+          <a href="#" class="h-16 flex items-center px-1 text-[#626262] nav-link">
+            Pending work
+          </a>
+        </nav>
+      </div>
+
+      <!-- Right: User & Language -->
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 text-[14px]">
+          <span class="w-7 h-7 rounded-[2px] bg-[#EFEFEF] border border-[#D5D5D5] flex items-center justify-center font-medium text-[#202020] text-xs">
+            TM
+          </span>
+          <span class="text-[#202020] font-medium hidden sm:inline">Tariq Mansour</span>
+          <span class="text-[#626262] hidden sm:inline">· Driver</span>
+        </div>
+        <span class="text-[#D5D5D5]">|</span>
+        <div class="text-[14px] text-[#626262]">
+          <span class="text-[#202020] font-semibold">EN</span> / <span class="hover:text-[#202020] cursor-pointer">العربية</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-16 animate-entrance">
+    
+    <!-- Heading -->
+    <div class="mb-8">
+      <h1 class="text-[28px] font-[650] text-[#202020] leading-tight">
+        Today's routes
+      </h1>
+    </div>
+
+    <!-- Assigned Route Lead Section -->
+    <div class="space-y-8">
+      
+      <!-- Primary Card: Route R-204 -->
+      <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 sm:p-6" aria-labelledby="route-title">
+        
+        <!-- Top Row: Route Code & Sync/Connectivity Meta -->
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between pb-4 border-b border-[#D5D5D5] gap-4">
+          <div>
+            <div class="flex items-baseline space-x-3">
+              <span class="text-[#626262] text-[16px] font-normal">Route</span>
+              <span id="route-title" class="font-mono-numbers text-[24px] font-semibold text-[#202020]">
+                R-204
+              </span>
+              <span class="inline-flex items-center space-x-1.5 text-[14px] font-medium text-[#24704B]">
+                <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                <span>good</span>
+              </span>
+            </div>
+            <div class="text-[14px] text-[#626262] mt-1">
+              Confirmed delivery schedule for North Quay Warehouse dispatch
+            </div>
+          </div>
+
+          <!-- Connectivity and Cache Details -->
+          <div class="flex flex-col sm:items-end text-[14px] text-[#626262] space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="text-[#202020] font-medium">Connectivity:</span>
+              <span class="inline-flex items-center space-x-1 text-[#24704B] font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+                <span>Connected</span>
+              </span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-[#202020] font-medium">Cached at:</span>
+              <span class="font-mono-numbers text-[#202020]">14 May 2026 09:30 BST</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vehicle & Route Summary Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 pt-6">
+          
+          <!-- Vehicle Photograph (4:3 ratio) -->
+          <div class="md:col-span-5">
+            <div class="border border-[#D5D5D5] rounded-[2px] overflow-hidden bg-[#F7F7F7]">
+              <img 
+                src="https://lh3.googleusercontent.com/aida/AEtjO1V6kxYXeODWvoVpe_AFHY4zsq216s3f0d3gRHvPhp40XlRK89pWY1jPW_fFhbYpRHAg1_GLjHxB-FI97c57LzSDBD1Hkjp0ljamOnEHEiCjXr-WXPbXNQohpZVStaEUMYdNNPm4wCbrUKRHPk9LUzi8cPB4mbUsQFeYIrxYsTYCb9B7tJ5XwjSuUWt4duyQ8iGzf2XMDVg_eov4oLCi_E4150eyJh3A7ZJyCpDoqQIYq3sgPEIJV-QGZSw" 
+                alt="White refrigerated delivery van VAN-27 parked in warehouse bay" 
+                class="w-full aspect-[4/3] object-cover object-center block"
+              >
+              <div class="p-3 bg-[#FFFFFF] border-t border-[#D5D5D5] flex items-center justify-between text-[14px]">
+                <div class="flex items-center space-x-2">
+                  <span class="font-medium text-[#202020]">VAN-27</span>
+                  <span class="text-[#626262]">·</span>
+                  <span class="font-mono-numbers text-[#626262]">MTR-482</span>
+                </div>
+                <span class="text-[#626262]">Refrigerated courier van</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Route Assignment Details -->
+          <div class="md:col-span-7 flex flex-col justify-between space-y-6">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="p-4 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px]">
+                <div class="text-[14px] text-[#626262] mb-1">Assigned driver</div>
+                <div class="text-[16px] font-semibold text-[#202020]">Tariq Mansour</div>
+                <div class="text-[14px] text-[#626262] mt-0.5">Driver credentials verified</div>
+              </div>
+
+              <div class="p-4 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px]">
+                <div class="text-[14px] text-[#626262] mb-1">Planned departure</div>
+                <div class="font-mono-numbers text-[16px] font-semibold text-[#202020]">14 May 2026 15:00 BST</div>
+                <div class="text-[14px] text-[#626262] mt-0.5">North Quay loading bay 12</div>
+              </div>
+
+              <div class="p-4 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px]">
+                <div class="text-[14px] text-[#626262] mb-1">Consigned cargo scope</div>
+                <div class="text-[16px] font-semibold text-[#202020]">Order O-299</div>
+                <div class="text-[14px] text-[#626262] mt-0.5"><span class="font-mono-numbers">20</span> packs in <span class="font-mono-numbers">B-701</span> & <span class="font-mono-numbers">B-702</span></div>
+              </div>
+
+              <div class="p-4 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px]">
+                <div class="text-[14px] text-[#626262] mb-1">Thermal packaging condition</div>
+                <div class="flex items-center space-x-1.5 text-[16px] font-semibold text-[#24704B]">
+                  <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                  <span>good (eligible)</span>
+                </div>
+                <div class="text-[14px] text-[#626262] mt-0.5">Profile v3 (2–8°C) compliant</div>
+              </div>
+            </div>
+
+            <!-- Single Primary Action Control -->
+            <div class="pt-2">
+              <a href="#" class="btn-primary w-full text-[16px]">
+                Route stops
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Ordered Stops Section -->
+      <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 sm:p-6" aria-labelledby="stops-heading">
+        
+        <div class="flex items-center justify-between pb-4 border-b border-[#D5D5D5]">
+          <div>
+            <h2 id="stops-heading" class="text-[20px] font-[650] text-[#202020]">
+              Ordered stops
+            </h2>
+            <div class="text-[14px] text-[#626262] mt-0.5">
+              1 ordered stop scheduled for route R-204
+            </div>
+          </div>
+          <span class="text-[14px] text-[#626262]">Sequence 01</span>
+        </div>
+
+        <!-- Touch-sized generous row stacked for phone and desktop -->
+        <div class="pt-4">
+          <div class="p-4 sm:p-5 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            <div class="flex items-start space-x-4">
+              <!-- Stop index badge -->
+              <div class="w-8 h-8 rounded-[2px] bg-[#202020] text-white flex items-center justify-center font-mono-numbers text-[16px] font-semibold shrink-0 mt-0.5">
+                1
+              </div>
+
+              <div>
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h3 class="text-[18px] font-semibold text-[#202020]" style="font-family: 'Hanken Grotesk', sans-serif;">
+                    Cedar Clinic
+                  </h3>
+                  <span class="inline-flex items-center space-x-1 text-[14px] font-medium text-[#24704B]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+                    <span>good</span>
+                  </span>
+                </div>
+
+                <div class="text-[15px] text-[#202020] mt-1">
+                  42 River Road, London
+                </div>
+
+                <div class="text-[14px] text-[#626262] mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  <span>Customer: Cedar Health (Hana Youssef)</span>
+                  <span>·</span>
+                  <span>Consignment: Order <span class="font-mono-numbers">O-299</span></span>
+                  <span>·</span>
+                  <span>Product: Insulin Glargine (<span class="font-mono-numbers">IG-2511</span>)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Planned Time and Status -->
+            <div class="flex md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 pt-3 md:pt-0 border-[#D5D5D5]">
+              <div class="text-left md:text-right">
+                <div class="text-[14px] text-[#626262]">Planned stop</div>
+                <div class="font-mono-numbers text-[20px] font-semibold text-[#202020]">15:00 BST</div>
+              </div>
+              <div class="text-[14px] text-[#626262] mt-1 md:text-right">
+                14 May 2026
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- App Caching & Offline Operational Guidance Note -->
+      <section class="p-4 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px]" aria-label="Cache and offline operational details">
+        <p class="text-[14px] leading-relaxed text-[#626262] m-0">
+          This installable web app caches today's assigned route; offline actions remain tied to Tariq, whereas route/customer cache clears on sign-out, workday end or refused access.
+        </p>
+      </section>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

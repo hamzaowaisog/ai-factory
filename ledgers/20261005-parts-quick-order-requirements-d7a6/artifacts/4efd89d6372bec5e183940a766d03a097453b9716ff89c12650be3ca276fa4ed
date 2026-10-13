@@ -1,0 +1,114 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-2",
+      "op": "ADDED",
+      "ears": "When a buyer requests the parts list, the parts API shall return parts sorted by name A–Z, 20 per page, each with image (or none), name, part number, brand, price in GBP with 2 decimals, stock state and stock quantity as a whole number.",
+      "sources": [
+       "I-2",
+       "I-3",
+       "ASM-9",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "45 parts in the parts database",
+        "when": "the buyer calls GET /api/parts?page=1",
+        "then": "The response status is 200 and the returned list has 20 parts in name A–Z order, each with fields image, name, partNumber, brand, price, stockState and stock, and the response total count is 45",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "45 parts in the parts database",
+        "when": "the buyer calls GET /api/parts?page=3",
+        "then": "The returned list has 5 parts, the last 5 by name A–Z",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "A part with price 12.5 and no image",
+        "when": "the buyer calls GET /api/parts",
+        "then": "That part's price value is returned as 12.50 and its image field is null",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.4",
+        "given": "Part BP-200 with stock quantity 4 in the parts database",
+        "when": "the buyer calls GET /api/parts",
+        "then": "The returned BP-200 record has stock value 4 and stockState value \"Low stock (4 left)\"",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "op": "ADDED",
+      "ears": "If any line's quantity is above the part's stock when an order is placed, then the orders API shall reject the order with status 409 and return each affected part number with the stock now available, saving no order.",
+      "sources": [
+       "I-3",
+       "I-5",
+       "ASM-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "Part BP-200 with stock 3 and part OF-100 with stock 0",
+        "when": "B1 calls POST /api/orders with BP-200 quantity 5 and OF-100 quantity 1",
+        "then": "The response status is 409, the response lists {BP-200, available 3} and {OF-100, available 0}, and the orders table row count is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-39",
+      "op": "ADDED",
+      "ears": "When the orders API rejects an order with a 409 stock conflict, the cart shall lower each affected line to the stock now available with the message \"Only n available\", remove each affected line whose available stock is 0 with the message \"<part name> is now out of stock\", and keep all other lines.",
+      "sources": [
+       "I-3",
+       "I-5",
+       "ASM-3",
+       "ASM-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-39.1",
+        "given": "A CartStore holding 5 of BP-200, 1 of OF-100 \"Oil Filter\" and 2 of AF-300",
+        "when": "CartStore.applyStockLimits([{BP-200, 3}, {OF-100, 0}]) is called with the 409 response",
+        "then": "The returned lines list has BP-200 with quantity value 3 and message \"Only 3 available\", AF-300 with quantity value 2, and no OF-100 line; the returned messages include \"Oil Filter is now out of stock\"",
+        "level": "unit"
+       },
+       {
+        "id": "AC-39.2",
+        "given": "The CartStore after AC-39.1",
+        "when": "CartStore.lines() is called",
+        "then": "Every returned line has a quantity value from 1 to 99 and CartStore.count() returns 5",
+        "level": "unit"
+       }
+      ]
+     }
+    ],
+    "assumptions": [
+     "ASM-19: The API endpoints are GET /api/parts (q, category, brand, page), GET /api/parts/brands, POST /api/orders, GET /api/orders (status), GET /api/orders/{orderNumber} and POST /api/orders/{orderNumber}/cancel. Paths can be renamed as long as the behaviour stays the same.",
+     "ASM-20: Cart and checkout logic in the React app sits in public client classes CartStore (addPart, setQuantity, removeLine, lines, count, subtotal, totals, applyStockLimits) and CheckoutForm (canPlaceOrder), so it can be unit-tested directly.",
+     "ASM-21: API error statuses are 400 for invalid input, 401 for no valid session, 404 for an order that doesn't exist or belongs to another buyer, and 409 for stock or cancel conflicts.",
+     "ASM-22: A quantity that isn't a whole number is rounded to the nearest whole number before being limited to 1–99 (from ASM-12).",
+     "ASM-23: Pressing \"Add to cart\" when the line quantity already equals the part's stock leaves the quantity unchanged and shows \"Only n available\", the same as REQ-14.",
+     "ASM-24: The order total is calculated on the server from current part prices and the delivery charge. Prices and totals the client sends are ignored.",
+     "ASM-25: When a 409 stock conflict shows a cart line's part now has 0 stock, the line is removed from the cart (rather than set to quantity 0) with the message \"<part name> is now out of stock\", so every remaining line keeps a quantity of 1–99 and the next order attempt is valid (refines ASM-3)."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

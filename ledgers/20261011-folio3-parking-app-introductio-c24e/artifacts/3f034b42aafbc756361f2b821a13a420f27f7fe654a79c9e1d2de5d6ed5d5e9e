@@ -1,0 +1,134 @@
+# Design System: Folio3 Parking
+
+## 1. Visual Theme & Atmosphere
+An orderly, calm internal tool for claiming, releasing and checking office parking. The mood is a well-run car park office: clear signs, painted lines, nothing extra. Surfaces are flat and light. Structure comes from hairline rules, tint steps and a strict type scale, not from shadows or decoration.
+
+- **Density 6 — Daily App Balanced, leaning efficient.** Employee screens give one clear decision per view. Admin and guard screens use dense, sortable tables and tight forms.
+- **Variance 4 — Mostly predictable, with some offset.** Screens sit on a 12-column grid. The main content starts at column 1, and a narrower context rail takes columns 9–12 when a screen needs one. Sign-in and error screens are left-aligned, never centered.
+- **Motion 4 — Fluid but restrained.** Motion confirms state changes (claimed, released, verified). It is never decorative.
+
+## 2. Color Palette & Roles
+One neutral family (Zinc) for the whole product, plus one accent. Status colours are only for outcomes. They are never used for decoration.
+
+- **Canvas Zinc** (#F7F7F8) — App background behind all screens
+- **Pure Surface** (#FFFFFF) — Tables, forms, panels, sheets
+- **Tint Step** (#EFEFF1) — Table header rows, hovered rows, read-only fields, skeleton base
+- **Hairline Border** (#E4E4E7) — 1px dividers, input borders, table rules
+- **Strong Rule** (#D4D4D8) — Section-dividing top rules, disabled control borders
+- **Charcoal Ink** (#18181B) — Primary text, headings, plate chip text
+- **Graphite** (#3F3F46) — Secondary headings, table body text
+- **Muted Steel** (#71717A) — Metadata, helper text, timestamps, column labels
+- **Bay Green** (#1F6F5C) — The only accent. Used for primary buttons, the active nav item, focus rings, the selected tab indicator and the "available / claimable" state
+- **Bay Green Wash** (#E6F0ED) — Selected row background and the fill behind available-space highlights
+- **Verified Green** (#2F7D4A) — Guard console "entry allowed" result and success confirmations
+- **Stop Red** (#B42318) — Errors, "entry denied", destructive actions, the access error page
+- **Stop Red Wash** (#FBEAE8) — Background of inline error banners
+- **Caution Ochre** (#9A6700) — Warnings such as releases near the Daily Parking Release Time, or pending states
+- **Caution Wash** (#FBF3DE) — Background of warning banners
+
+Never use pure black. The darkest value is Charcoal Ink (#18181B). No gradients, glows or purple/blue neon.
+
+## 3. Typography Rules
+- **Display / Headlines:** Hanken Grotesk, weights 600–700. Tracking −0.02em at 24px and above. Scale: page title 28px/1.2, section title 20px/1.3, panel title 16px/1.4 semibold. Hierarchy comes from weight and colour (Charcoal Ink vs Muted Steel), not from large sizes. Page titles use `clamp(1.5rem, 2.4vw, 1.75rem)`.
+- **Body:** Public Sans 400/500. 15px base with 1.55 line height. Prose blocks are capped at 65ch. Table text is 14px with 1.4 line height.
+- **Mono:** IBM Plex Mono 500 for licence plates, parking space codes, times, dates in tables, audit-log IDs and every numeric column.
+- **Labels:** 12px Public Sans 600, uppercase, +0.08em tracking, Muted Steel. Used for table column headers and form section labels.
+- **Craft:** Tabular figures (`font-variant-numeric: tabular-nums`) everywhere numbers appear. En dash for ranges (08:00–10:00, 3–7 Nov). Curly quotes and a real ellipsis. Dates in the locale format (e.g. "Tue, 4 Nov 2025").
+- **Banned:** Inter, Roboto, Poppins, Montserrat, DM Sans, Space Grotesk, Manrope, Sora, Plus Jakarta Sans. No serif fonts anywhere, because this is software UI.
+
+## 4. Component Stylings
+- **Buttons:** 40px tall (44px on touch), 6px radius, Public Sans 500 at 14px. Primary is a solid Bay Green fill with white text. Secondary is a Pure Surface fill with a 1px Hairline Border and Charcoal Ink text. Destructive is solid Stop Red. Hovering a primary button darkens it to #195C4C. Pressing scales it to 0.97 for 90ms. The focus-visible style is a 2px Bay Green outline with a 2px offset. Labels are product-specific verbs ("Claim space", "Release today", "Verify plate", "Save release time"). No glows and no pulsing.
+- **Plate Chip:** The product's signature element. The licence plate is set in IBM Plex Mono 500, uppercase, +0.06em tracking, inside a Pure Surface chip with a 1.5px Charcoal Ink border and 4px radius, 6px × 10px padding. A Space Code chip uses the same form with a Bay Green border. These chips appear wherever a plate or space is named.
+- **Panels (instead of cards):** Pure Surface with a 1px Hairline Border and 8px radius. No shadow at rest. Use a panel only to group one decision (for example the claim or release action). Admin screens do not use panels. They use full-width tables separated by Strong Rule top borders and whitespace.
+- **Tables:** Tint Step header row with uppercase labels. Rows are 44px tall with Hairline Border separators. Numeric and time columns are right-aligned mono. Hovered rows get a Tint Step background. The selected row gets Bay Green Wash and a 2px Bay Green left rule. A sorted column header shows a small chevron at 1.5 stroke.
+- **Inputs:** The label sits above the field (13px, 500, Graphite). Fields are 40px tall with a 6px radius and a 1px Hairline Border. The focus border is Bay Green with a 3px Bay Green Wash ring. Helper text is optional, below the field, in Muted Steel. Error text is below the field in Stop Red with a 1px Stop Red border. Plate inputs use mono uppercase. Time inputs use mono. No floating labels.
+- **Tabs / Segmented controls:** Text tabs with a 2px Bay Green underline indicator that slides between tabs.
+- **Status tags:** Plain-text tags with a 6px dot in front, no fill, e.g. "● Released", "● Claimed", "● Denied". The dot takes the status colour.
+- **Banners:** Full-width inline banners with a wash background, a 3px left rule in the status colour, and copy that says exactly what happened and what to do next.
+- **Loaders:** Skeleton blocks in Tint Step that match the real row heights and column widths. A shimmer runs only while data is loading. No circular spinners.
+- **Empty states:** Left-aligned. A short sentence on why the area is empty, plus the one action that fills it (e.g. "No vehicles registered yet. Add your plate to claim parking.").
+- **Navigation:** Left sidebar on desktop, 232px wide. Text labels with icons only on the top-level items. The active item has a Bay Green Wash background and a 2px Bay Green left rule. Below 768px the sidebar becomes a top bar with a menu sheet.
+
+## 5. Layout Principles
+- 12-column CSS Grid with 24px gutters. Content area is max-width 1280px, with 32px padding on desktop and 16px on mobile.
+- Employee screens: the main decision sits in columns 1–8. Supporting context (vehicle, schedule, release time) sits in a rail in columns 9–12.
+- Admin screens: page header row (title left, one primary action right), then a filter bar, then a full-width table. Detail screens use columns 1–8 for editable fields and columns 9–12 for related records.
+- Guard console: one large plate input and its result fill the width for quick reading at a booth. The result text is 32px, with clear spacing between zones.
+- Sign-in and access error: left-aligned content in columns 1–6. Columns 7–12 stay as quiet Canvas, with no illustration filler.
+- No overlapping elements. No absolute stacking. No 3-equal-card rows. Full-height views use `min-height: 100dvh`.
+- Below 768px every layout collapses to one column, rails stack below the main content, and tables become stacked row lists with label/value pairs. No horizontal scroll. All touch targets are at least 44px. Section gaps use `clamp(1.5rem, 4vw, 3rem)`.
+
+## 6. Motion & Interaction
+Motion confirms that something changed and is never decorative. All animation uses `transform` and `opacity` only. The spring stand-in (stiffness 100, damping 20) is reserved for confirmations. Lists cascade in at 50ms per row for the first 6 rows, and the rest appear as a group. Reveals happen once and do not replay on scroll. Shimmer is used only for loading. Perpetual motion is limited to one live indicator. The full spec is in §9.
+
+## 7. Anti-Patterns (Banned)
+- No emojis, no sparkle or wand icons
+- No Inter or other AI-default fonts, no serif fonts
+- No pure black. The darkest value is #18181B
+- No neon or outer glow shadows, no gradients, blobs, aurora or glassmorphism
+- No 4-KPI-card dashboard rows with sparklines and "+12%" chips
+- No 3-equal-card feature rows, no bento grids
+- No pill "New" badges, no logo strips, no testimonial carousels
+- No centered hero-style layouts on sign-in or error pages
+- No placeholder copy ("Lorem", "John Doe", "Acme"), no fake round numbers
+- No AI copy clichés ("Seamless", "Elevate", "Unleash", "Next-Gen")
+- No generic "Get started" CTAs
+- No "Scroll to explore" text, scroll arrows or bouncing chevrons
+- No custom cursors, no pulsing buttons, no wiggling icons, no parallax, no scroll-jacking
+- No identical fade-up on every section
+- No icon on every list item
+
+## 8. Voice & Font Rationale
+- **Voice:** orderly, civic, calm
+- **Display:** Hanken Grotesk — its open, slightly squared forms read like clear wayfinding signage without feeling corporate-default (Google Font, loads natively).
+- **Body:** Public Sans — a plain, civic face built for forms and tables, neutral enough to let plates and space codes stand out.
+- **Mono:** IBM Plex Mono — distinct zero and one-glyph shapes make licence plates and times unambiguous, which matters most at the guard console.
+
+## 9. Motion System
+- **Tokens:** instant 90ms (press, toggle), quick 160ms (hover, focus), base 260ms (tabs, menus, accordions), slow 420ms (sheets, modals), scene 700ms (first load only). Ease-out `cubic-bezier(0.16,1,0.3,1)` for entering, ease-in `cubic-bezier(0.7,0,0.84,0)` for leaving (exits are about 30% faster), ease-inout `cubic-bezier(0.65,0,0.35,1)` for moving. The spring `linear(...)` is used only for confirmations. Maximum travel is 12px.
+- **Entrance:** On load, the page title, then the primary panel or table header, then the rows appear in sequence with opacity plus an 8px rise. Stagger is 60ms, total under 700ms.
+- **Scroll-linked:** Used only on long tables and reports. Section rules draw left to right as they enter (`animation-timeline: view()`, range entry 0%–40%), once only.
+- **Interaction feedback:** A primary button darkens on hover and scales to 0.97 on press. A hovered table row gets a Tint Step background at 160ms. Hovering a text link draws its underline from the left. A row-action arrow nudges 3px on hover. Inputs move from Hairline Border to Bay Green with the wash ring at 160ms.
+- **State transitions:** The tab indicator slides between tabs at 260ms. Accordions animate `grid-template-rows: 0fr → 1fr`. Inserted or removed rows fade with an 8px shift at 160ms. Modals and mobile sheets slide up at 420ms with ease-out while the backdrop fades to 40%. Status tags cross-fade when their value changes.
+- **Ambient (max 1):** A live-connection dot on screens showing real-time data (e.g. the guard console). Its opacity breathes between 1 and 0.6 on a 6s cycle. No other screen has perpetual motion.
+- **Signature moment — Plate Chip Swap:** When a space is claimed, released or verified, the affected Space Code or Plate Chip unmasks vertically with `clip-path: inset(0 0 100% 0)` → `inset(0)` in 260ms on the spring curve. At the same time, its status tag cross-fades to the new state.
+- **Reduced motion:** Under `prefers-reduced-motion: reduce`, entrances become instant opacity changes, the scroll-linked rules and the live dot animation are removed, and state changes keep at most a 120ms fade. Content is never hidden while waiting for an animation.
+
+```css
+:root{
+  --dur-instant:90ms;--dur-quick:160ms;--dur-base:260ms;--dur-slow:420ms;--dur-scene:700ms;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);--ease-in:cubic-bezier(0.7,0,0.84,0);
+  --ease-inout:cubic-bezier(0.65,0,0.35,1);
+  --ease-spring:linear(0,0.009,0.035 2.1%,0.141,0.281 6.7%,0.723 12.9%,0.938 16.7%,1.017,1.077 21.4%,1.121 24%,1.149 27%,1.159,1.154 33%,1.051 43.2%,1.013 49.5%,0.996 57%,1.001 72%,1);
+}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes chip-unmask{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0)}}
+@keyframes rule-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes live-breathe{0%,100%{opacity:1}50%{opacity:.6}}
+.reveal{animation:rise var(--dur-base) var(--ease-out) both}
+.chip-swap{animation:chip-unmask var(--dur-base) var(--ease-spring) both}
+.section-rule{transform-origin:left;animation:rule-draw linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
+.live-dot{animation:live-breathe 6s ease-in-out infinite}
+.btn:active{transform:scale(.97);transition:transform var(--dur-instant) var(--ease-out)}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:opacity 120ms linear!important}
+}
+```
+
+## 10. Component Substitutions
+- 4-KPI dashboard cards → one headline status line (e.g. today's space and its state) followed by a dense table or list
+- Icon-in-square feature cards → plain panels with one decision and one specific verb
+- Hero split with floating render → left-aligned sign-in with the Folio3 Google Workspace action only
+- "Get started" CTA → "Sign in with Folio3 Google", "Claim space", "Release today", "Verify plate"
+- Default shadcn look → 6/8px radius system, Bay Green focus ring with offset, Plate Chips
+- Icons on every item → icons only on top-level navigation and row actions
+- Glass and gradient backgrounds → flat Canvas Zinc with hairline structure
+- Mega footer → no footer inside the app
+
+## 11. Human Fingerprint
+- **Unexpected decision:** Licence plates and space codes are always shown as bordered mono Plate Chips, styled after real number plates and painted bay numbers. A guard, an admin or an employee recognises the same object on every screen.
+- **Radius family:** Soft. 6px on controls and chips (4px on Plate Chips), 8px on panels, sheets and modals. Inner radius = outer radius − padding.
+- **Elevation:** Two levels. Level 0 is flat with a hairline border. Level 1 is for modals, sheets and menus only: `0 8px 24px rgba(24,24,27,0.08)`.
+- **Grid:** 12 columns, 24px gutters, max-width 1280px. Main content in columns 1–8, rail in columns 9–12.
+- **Image treatment:** No photography. Profile avatars are initials in Tint Step circles set in Graphite.
+- **Icon set:** Lucide at 1.5 stroke, 16px inline and 20px in navigation, always in Graphite or the status colour.

@@ -1,0 +1,473 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first · Northgate Packaging Ltd",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "23",
+         "£412.60",
+         "Placed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "4",
+         "£186.00",
+         "Packed"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "12",
+         "£97.44",
+         "Dispatched"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "2",
+         "£1,240.00",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "24 Feb 2026",
+         "8",
+         "£63.20",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "18 Feb 2026",
+         "31",
+         "£528.75",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-10482",
+       "status": "Placed",
+       "to": "Northgate Packaging Ltd, Unit 4 Canal Road, Leeds LS12 2PL",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "14 Mar 2026, 09:12"
+        },
+        {
+         "label": "Delivery",
+         "value": "Next working day"
+        },
+        {
+         "label": "Items",
+         "value": "23"
+        }
+       ],
+       "lines": [
+        {
+         "item": "6205-2RS · Deep groove ball bearing",
+         "qty": "12 × £4.80",
+         "amount": "£57.60"
+        },
+        {
+         "item": "SPA-1250 · V-belt, SPA section",
+         "qty": "4 × £11.25",
+         "amount": "£45.00"
+        },
+        {
+         "item": "M8X30-A2 · Hex bolt, box of 100",
+         "qty": "5 × £9.40",
+         "amount": "£47.00"
+        },
+        {
+         "item": "PNC-0614 · Pneumatic cylinder 32 mm",
+         "qty": "2 × £125.50",
+         "amount": "£251.00"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£400.60"
+        },
+        {
+         "label": "Delivery",
+         "value": "£12.00"
+        },
+        {
+         "label": "Total",
+         "value": "£412.60"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 Mar, 09:12",
+         "title": "Placed — current status",
+         "meta": "Waiting to be packed · can still be cancelled",
+         "status": "now"
+        },
+        {
+         "time": "Expected 15 Mar",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Expected 15 Mar",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Expected 16 Mar",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel ORD-10482?",
+       "text": "The order will be marked Cancelled and won't be packed. This can't be undone.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "ORD-10482 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Go to Find parts to search by part number.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10482 is now Cancelled.",
+      "validation": "ORD-10482 has already been packed, so it can no longer be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first · Northgate Packaging Ltd",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "23",
+         "£412.60",
+         "Placed"
+        ],
+        [
+         "ORD-10479",
+         "13 Mar 2026",
+         "1",
+         "£38.90",
+         "Placed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "4",
+         "£186.00",
+         "Packed"
+        ],
+        [
+         "ORD-10466",
+         "10 Mar 2026",
+         "60",
+         "£214.80",
+         "Packed"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "12",
+         "£97.44",
+         "Dispatched"
+        ],
+        [
+         "ORD-10449",
+         "4 Mar 2026",
+         "6",
+         "£2,315.00",
+         "Dispatched"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "2",
+         "£1,240.00",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "24 Feb 2026",
+         "8",
+         "£63.20",
+         "Cancelled"
+        ],
+        [
+         "ORD-10411",
+         "21 Feb 2026",
+         "15",
+         "£149.25",
+         "Delivered"
+        ],
+        [
+         "ORD-10397",
+         "18 Feb 2026",
+         "31",
+         "£528.75",
+         "Delivered"
+        ],
+        [
+         "ORD-10384",
+         "12 Feb 2026",
+         "3",
+         "£44.70",
+         "Cancelled"
+        ],
+        [
+         "ORD-10372",
+         "9 Feb 2026",
+         "120",
+         "£86.40",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-10482",
+       "status": "Placed",
+       "to": "Northgate Packaging Ltd, Unit 4 Canal Road, Leeds LS12 2PL",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "14 Mar 2026, 09:12"
+        },
+        {
+         "label": "Delivery",
+         "value": "Next working day"
+        },
+        {
+         "label": "Items",
+         "value": "23"
+        }
+       ],
+       "lines": [
+        {
+         "item": "6205-2RS · Deep groove ball bearing",
+         "qty": "10 × £4.80",
+         "amount": "£48.00"
+        },
+        {
+         "item": "SPA-1250 · V-belt, SPA section",
+         "qty": "4 × £11.25",
+         "amount": "£45.00"
+        },
+        {
+         "item": "M8X30-A2 · Hex bolt, box of 100",
+         "qty": "4 × £9.40",
+         "amount": "£37.60"
+        },
+        {
+         "item": "PNC-0614 · Pneumatic cylinder 32 mm",
+         "qty": "2 × £125.50",
+         "amount": "£251.00"
+        },
+        {
+         "item": "FLT-220 · Hydraulic filter element",
+         "qty": "2 × £6.50",
+         "amount": "£13.00"
+        },
+        {
+         "item": "GRS-400 · Lithium grease cartridge 400 g",
+         "qty": "1 × £6.00",
+         "amount": "£6.00"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£400.60"
+        },
+        {
+         "label": "Delivery",
+         "value": "£12.00"
+        },
+        {
+         "label": "Total",
+         "value": "£412.60"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 Mar, 09:12",
+         "title": "Placed",
+         "meta": "6 lines, 23 items · Next working day",
+         "status": "done"
+        },
+        {
+         "time": "14 Mar, 09:13",
+         "title": "Order confirmation emailed",
+         "meta": "Sent to purchasing@northgate-pack.co.uk",
+         "status": "done"
+        },
+        {
+         "time": "14 Mar, 09:40",
+         "title": "Placed — current status",
+         "meta": "Queued for packing at Wakefield depot · can still be cancelled",
+         "status": "now"
+        },
+        {
+         "time": "Expected 15 Mar",
+         "title": "Packed",
+         "meta": "Packing cut-off 14:00",
+         "status": "next"
+        },
+        {
+         "time": "Expected 15 Mar",
+         "title": "Dispatched",
+         "meta": "Courier: DPD Business",
+         "status": "next"
+        },
+        {
+         "time": "Expected 16 Mar",
+         "title": "Delivered",
+         "meta": "Goods-in, Unit 4 Canal Road",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Go to Find parts to search by part number.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10482 is now Cancelled.",
+      "validation": "ORD-10482 has already been packed, so it can no longer be cancelled."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 231,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.2.lines.3.qty: Too big: expected string to have <=10 characters; mockFull.blocks.2.lines.3.qty: Too big: expected string to have <=10 characters. Fix it and call submit_result again."
+  }
+ ]
+}

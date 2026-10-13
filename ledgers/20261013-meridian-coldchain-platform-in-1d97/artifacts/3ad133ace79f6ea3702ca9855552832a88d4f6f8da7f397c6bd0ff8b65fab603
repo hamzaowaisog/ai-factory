@@ -1,0 +1,91 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "The locked OpenAPI document is authoritative: implement its specified operations and externally visible contract behavior, rather than treating the surrounding product narrative as permission to add uncontracted API behavior.",
+      "behaviours": [
+       {
+        "text": "For every operation in contracts/openapi.yaml, the API accepts the contract-defined method, path, parameters, headers, and request body, and returns the contract-defined status codes, response bodies, and headers. Contract examples and schemas are reflected in the returned data.",
+        "kind": "happy"
+       },
+       {
+        "text": "Requests that omit required inputs, use invalid values, or refer to unavailable records receive the error responses specified by the contract; they do not produce a successful result or unintended data changes.",
+        "kind": "error"
+       },
+       {
+        "text": "Operations that the contract restricts to authorized users enforce those restrictions: authorized callers can perform the operation, and unauthorized callers receive the contract-defined denial response.",
+        "kind": "permission"
+       },
+       {
+        "text": "Contract operations that create or change records persist those changes in the application's PostgreSQL database; list and read operations return the contract-defined records and filtering or ordering behavior.",
+        "kind": "data"
+       },
+       {
+        "text": "The contract's specified staff authorization, receipt listing and creation, and customer-order change operations are available at their contract-defined routes; the existing root health route alone is not a substitute for implementing them.",
+        "kind": "happy"
+       },
+       {
+        "text": "For API capabilities described in the supplied product context—such as delivery handovers and refusals, quality decisions, recalls, audit records, and reports—the API exposes only the operations actually defined in the locked contract, with their contract-defined request and response behavior.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is invoked, SeedData writes a small set of plausible sample records for every database table, using values from the contract's examples where available (including the Cedar Clinic receipt example).",
+        "kind": "data"
+       },
+       {
+        "text": "The seeded records can be retrieved through the relevant API list/read operations, so lists backed by seeded tables have sample entries to display.",
+        "kind": "happy"
+       },
+       {
+        "text": "Seeded records that refer to one another use compatible identifiers and values, so reading related sample data does not yield broken references.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "With Seed:Demo set to true, application startup runs SeedData and its demo rows become available in the database.",
+        "kind": "data"
+       },
+       {
+        "text": "With Seed:Demo false or unset, startup does not insert the demo rows; an empty database remains a valid starting state for the API and tests.",
+        "kind": "data"
+       },
+       {
+        "text": "Tests do not require demo rows to exist: when run without demo seeding, they can exercise behavior using their own setup and do not fail merely because sample records are absent.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "This repository provides API behavior and does not add or serve customer, driver, dispatcher, or staff portal screens; the separately built web application consumes the API.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

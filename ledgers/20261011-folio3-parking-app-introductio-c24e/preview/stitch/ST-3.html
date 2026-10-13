@@ -1,0 +1,298 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Account Lookup Error — Folio3 Parking</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Typography: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed-dim": "#8ad5be",
+            "inverse-surface": "#2d312f",
+            "tertiary": "#77392e",
+            "surface-container-low": "#f1f4f1",
+            "outline": "#6f7975",
+            "inverse-primary": "#8ad5be",
+            "outline-variant": "#bec9c4",
+            "on-surface": "#181c1b",
+            "on-background": "#181c1b",
+            "on-tertiary-container": "#ffd7d0",
+            "primary": "#005645",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "on-tertiary": "#ffffff",
+            "on-secondary-container": "#4d685f",
+            "surface-variant": "#e0e3e0",
+            "on-tertiary-fixed": "#3a0a05",
+            "inverse-on-surface": "#eef1ee",
+            "tertiary-container": "#945044",
+            "error": "#ba1a1a",
+            "secondary": "#49645b",
+            "on-secondary-fixed": "#042019",
+            "surface-bright": "#f7faf7",
+            "surface": "#f7faf7",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-primary-fixed": "#002019",
+            "on-surface-variant": "#3f4945",
+            "surface-container-high": "#e6e9e6",
+            "on-secondary-fixed-variant": "#314c44",
+            "on-error-container": "#93000a",
+            "secondary-container": "#c8e6db",
+            "surface-tint": "#186a57",
+            "on-primary": "#ffffff",
+            "primary-container": "#1f6f5c",
+            "secondary-fixed": "#cbe9dd",
+            "surface-container": "#ecefeb",
+            "background": "#f7faf7",
+            "surface-dim": "#d8dbd8",
+            "primary-fixed": "#a5f2d9",
+            "on-primary-container": "#a3efd7",
+            "tertiary-fixed": "#ffdad4",
+            "on-secondary": "#ffffff",
+            "on-error": "#ffffff",
+            "error-container": "#ffdad6",
+            "on-primary-fixed-variant": "#005141",
+            "surface-container-highest": "#e0e3e0",
+            "on-tertiary-fixed-variant": "#72352a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {},
+          "fontFamily": {
+            "headline": [
+              "Hanken Grotesk",
+              "sans-serif"
+            ],
+            "display": [
+              "Hanken Grotesk",
+              "sans-serif"
+            ],
+            "body": [
+              "Public Sans",
+              "sans-serif"
+            ],
+            "label": [
+              "Public Sans",
+              "sans-serif"
+            ],
+            "mono": [
+              "IBM Plex Mono",
+              "monospace"
+            ]
+          },
+          "fontSize": {}
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Design System Motion & Interaction */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .reveal-card {
+      animation: rise var(--dur-slow) var(--ease-out) both;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-press:active {
+      transform: scale(0.97);
+      transition: transform var(--dur-instant) var(--ease-out);
+    }
+  </style>
+</head>
+<body class="bg-background text-[#18181B] font-body min-h-full flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TopNavBar (Shared Component mapping, docked top-0 z-40, unlinked session state) -->
+<header class="bg-surface-container-lowest border-b border-outline-variant w-full sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-6 h-16 max-w-7xl mx-auto">
+<!-- Brand Logo / Product Name -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container text-surface-container-lowest flex items-center justify-center font-headline font-bold text-sm tracking-tight">
+          F3
+        </div>
+<div class="flex flex-col">
+<span class="font-headline font-bold text-lg text-on-surface tracking-tight leading-none">
+            Folio3 Parking
+          </span>
+<span class="font-body text-[11px] text-[#71717A] tracking-normal mt-0.5">Corporate Access Portal</span>
+</div>
+</div>
+<!-- Minimal Unlinked User Session Chip -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-full bg-surface-container border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-[#9A6700] ring-4 ring-[#FBF3DE]"></span>
+<span class="text-xs text-[#3F3F46] font-medium hidden sm:inline tabular-nums">sana.khalid@folio3.com</span>
+<div class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-xs font-semibold text-[#18181B]" title="User Initials: SK">
+            SK
+          </div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas: Orderly, Focused Single Decision Layout -->
+<main class="flex-1 flex items-center justify-center px-4 py-8 md:py-12">
+<div class="w-full max-w-[640px] reveal-card">
+<!-- Centered Error Card -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant p-6 sm:p-9">
+<!-- Section 1: Warning Badge & Exact Heading -->
+<div class="flex flex-col items-center text-center">
+<!-- Amber / Warning Badge Container -->
+<div class="w-12 h-12 rounded-full bg-[#FBF3DE] border border-[#9A6700]/20 flex items-center justify-center text-[#9A6700] mb-4">
+<span class="material-symbols-outlined text-[26px]" data-icon="person_off">person_off</span>
+</div>
+<h1 class="font-headline font-bold text-[24px] sm:text-[26px] tracking-[-0.02em] text-[#18181B] leading-tight mb-2">
+            We couldn't load your employee profile
+          </h1>
+</div>
+<!-- Section 2: Explanation Paragraph & Informative Breakdown Card -->
+<div class="mt-3">
+<p class="text-center text-[14.5px] leading-[1.55] text-[#3F3F46] max-w-[540px] mx-auto">
+            You signed in as <span class="font-mono text-xs font-medium text-[#18181B] bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant">sana.khalid@folio3.com</span>, but your employee ID and name could not be retrieved from the corporate directory. You can't use the parking app until this is fixed.
+          </p>
+<!-- Account & Directory Breakdown Table Card -->
+<div class="mt-6 rounded border border-outline-variant bg-surface-bright overflow-hidden">
+<!-- Header strip -->
+<div class="bg-surface-container-low px-4 py-2.5 border-b border-outline-variant flex items-center justify-between">
+<span class="text-[11px] font-semibold text-[#71717A] uppercase tracking-[0.08em] font-label">Session Verification Diagnostic</span>
+<span class="text-xs font-mono text-[#71717A] tabular-nums">AUTH-OK · DIR-FAIL</span>
+</div>
+<!-- Row 1: Google Account -->
+<div class="p-3.5 sm:px-4 border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold uppercase tracking-[0.08em] text-[#71717A] w-32 shrink-0">Google Account</span>
+<span class="font-mono text-[13px] text-[#18181B] tabular-nums">sana.khalid@folio3.com</span>
+</div>
+<div class="flex items-center gap-1.5 self-start sm:self-auto bg-[#E6F0ED] text-[#1F6F5C] px-2 py-0.5 rounded text-xs font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+<span>Verified Google Workspace</span>
+</div>
+</div>
+<!-- Row 2: Directory Lookup Status -->
+<div class="p-3.5 sm:px-4 bg-surface-container-lowest/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold uppercase tracking-[0.08em] text-[#71717A] w-32 shrink-0">Directory Lookup</span>
+<span class="text-[13px] font-medium text-[#18181B] flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#B42318]"></span>
+                    Not Found / Error
+                  </span>
+</div>
+<div class="sm:ml-32 mt-1 text-[12px] text-[#71717A] flex items-center gap-3 font-mono">
+<span>ID: <span class="text-[#B42318] bg-[#FBEAE8] px-1 py-0.2 rounded font-medium">Unassigned</span></span>
+<span class="text-outline">|</span>
+<span>Name: <span class="text-[#71717A] italic">Unavailable</span></span>
+</div>
+</div>
+<!-- Status badge -->
+<span class="self-start sm:self-auto font-mono text-xs px-2 py-0.5 rounded bg-[#FBEAE8] text-[#B42318] border border-[#B42318]/20 font-medium">
+                HTTP 404_NOT_PROVISIONED
+              </span>
+</div>
+</div>
+</div>
+<!-- Section 3: Action Buttons with Interactive Loading State -->
+<div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+<!-- Primary Button: Try again with inline checking simulator -->
+<button class="w-full sm:w-auto min-w-[160px] h-10 px-5 rounded bg-primary-container hover:bg-[#195C4C] text-on-primary font-body text-sm font-medium flex items-center justify-center gap-2 transition-colors duration-150 btn-press focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" id="tryAgainBtn">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh" id="btnIcon">refresh</span>
+<span id="btnText">Try again</span>
+</button>
+<!-- Secondary Button: Sign out -->
+<button class="w-full sm:w-auto min-w-[130px] h-10 px-5 rounded bg-surface-container-lowest hover:bg-surface-container text-[#18181B] border border-outline-variant font-body text-sm font-medium flex items-center justify-center gap-2 transition-colors duration-150 btn-press focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+<span class="material-symbols-outlined text-[18px] text-[#71717A]" data-icon="logout">logout</span>
+<span>Sign out</span>
+</button>
+</div>
+<!-- Retry Status Banner (Visible dynamically during/after simulation) -->
+<div class="hidden mt-4 p-3 rounded bg-surface-container text-xs text-[#3F3F46] border border-outline-variant flex items-center justify-between transition-all" id="retryBanner">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-[#9A6700]" data-icon="info">info</span>
+<span id="bannerMessage">Directory query returned no matching employee record.</span>
+</div>
+<span class="font-mono text-[11px] text-[#71717A] tabular-nums" id="retryTimestamp">08:14 PKT</span>
+</div>
+<!-- Section 4: Structured Callout & Contact Box -->
+<div class="mt-8 pt-6 border-t border-outline-variant text-left">
+<div class="rounded p-4 bg-surface-container-low border border-outline-variant flex flex-col gap-3">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] text-[#71717A] mt-0.5 shrink-0" data-icon="support_agent">support_agent</span>
+<div class="flex-1 text-[13px] leading-relaxed text-[#3F3F46]">
+<p class="font-medium text-[#18181B]">Still not working?</p>
+<p class="mt-0.5">
+                  Contact Parking Administration at 
+                  <a class="text-primary-container font-medium hover:underline underline-offset-2" href="mailto:parking-admin@folio3.com">parking-admin@folio3.com</a> 
+                  or IT Helpdesk <span class="font-mono text-xs font-medium text-[#18181B]">ext. 2210</span>.
+                </p>
+</div>
+</div>
+<!-- Reference Code Chip with Copy Button -->
+<div class="mt-1 pt-3 border-t border-outline-variant/60 flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<span class="text-[11px] font-semibold text-[#71717A] uppercase tracking-[0.08em] font-label">Diagnostic Reference</span>
+<span class="font-mono text-[12px] font-medium text-[#18181B] bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant tabular-nums" id="refCodeText">DIR-404 · 10 Jun 2025 08:12 PKT</span>
+</div>
+<button class="h-7 px-2.5 rounded bg-surface-container-lowest hover:bg-surface-variant text-[12px] font-medium text-[#3F3F46] border border-outline-variant flex items-center gap-1.5 transition-colors btn-press" id="copyBtn">
+<span class="material-symbols-outlined text-[14px]" data-icon="content_copy" id="copyIcon">content_copy</span>
+<span id="copyLabel">Copy ref</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Quiet Footer Metadata -->
+<div class="mt-4 flex items-center justify-between px-2 text-[11px] text-[#71717A] font-mono tabular-nums">
+<span>Folio3 Enterprise Parking v2.4.1</span>
+<span>Karachi · Lahore · Silicon Valley</span>
+</div>
+</div>
+</main>
+<!-- Interactive JavaScript logic for micro-interactions -->
+
+<script>(function(){var T=[{"id":"S-1","names":["folio3 parking system","sign in"],"words":["sign"]},{"id":"S-3","names":["register your vehicle to continue","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-4","names":["good morning bilal","dashboard"],"words":["dashboard"]},{"id":"S-5","names":["hello ayesha siddiqui","holder","dashboard holder"],"words":["dashboard","holder"]},{"id":"S-6","names":["schedule releases for space b1 03","releases successfully scheduled","schedule","releases schedule"],"words":["release","schedule"]},{"id":"S-7","names":["my profile vehicles","profile"],"words":["profile"]},{"id":"S-8","names":["critical hardware alert","verifications","guard verifications"],"words":["guard","verification"]},{"id":"S-9","names":["parking spaces","spaces","admin spaces"],"words":["space"]},{"id":"S-10","names":["employees","admin employees"],"words":["employee"]},{"id":"S-11","names":["employee parking vehicle maintenance","employees","admin employees"],"words":["employee"]},{"id":"S-12","names":["roles and access","roles","admin roles"],"words":["role"]},{"id":"S-13","names":["parking release settings","settings","admin settings"],"words":["setting"]},{"id":"S-14","names":["weekly report recipients","recipients","admin reports recipients"],"words":["report","recipient"]},{"id":"S-15","names":["weekly utilization report","reports","admin reports"],"words":["report"]},{"id":"S-16","names":["audit log","audit","admin audit"],"words":["audit"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"];
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
+var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imports — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Exact tokens specified by system rules */
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-quiet: #626262;
+      --border-rule: #D8D8D8;
+      --primary-accent: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+    }
+
+    h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+    }
+
+    h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 26px;
+    }
+
+    .font-mono-val {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-accent);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 4px;
+      padding: 0 20px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 160ms ease, box-shadow 160ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:focus {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    .btn-primary:active {
+      opacity: 0.85;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-main);
+      height: 44px;
+      border-radius: 4px;
+      border: 1px solid var(--border-rule);
+      padding: 0 16px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 160ms ease, border-color 160ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #FAFAFA;
+      border-color: #BFBFBF;
+    }
+
+    .btn-secondary:focus {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    .form-input, .form-select {
+      height: 44px;
+      border-radius: 4px;
+      border: 1px solid var(--border-rule);
+      background-color: #FFFFFF;
+      padding: 0 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      color: var(--text-main);
+      transition: border-color 160ms ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+      border-color: var(--primary-accent);
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .entrance-sequence {
+      animation: entranceFadeUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-live-breathe {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .entrance-sequence,
+      .animate-live-breathe {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .btn-primary, .btn-secondary, .form-input, .form-select {
+        height: 48px;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Shared Header -->
+  <header class="bg-white border-b border-[#D8D8D8] px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center space-x-8">
+      <!-- Brand mark + words -->
+      <a href="#" class="flex items-center space-x-3 text-decoration-none">
+        <div class="w-7 h-7 bg-[#B3473D] rounded-[4px] flex items-center justify-center font-bold text-white text-base font-mono-val leading-none">
+          R
+        </div>
+        <span class="text-xl font-bold tracking-tight text-[#262626]" style="font-family: 'Hanken Grotesk', sans-serif;">Range Ledger</span>
+      </a>
+
+      <!-- Shared Menu in strict prescribed order: Yard, Imports, Allocations, Lots, Inventory, Feed outlook, Rations, Feed plans, Feeding, Reports, Feed-to-gain, Profitability, Sample data, Delivery brief -->
+      <!-- With Yard manager permissions, menu items are filtered/rendered according to returned permissions -->
+      <nav class="hidden lg:flex items-center space-x-1" aria-label="Main menu">
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Yard</a>
+        <a href="#" class="px-3 py-2 text-[#B3473D] font-semibold text-sm rounded-[4px] border-b-2 border-[#B3473D]">Imports</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Allocations</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Lots</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Inventory</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Feed outlook</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Rations</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Feed plans</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Feeding</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Reports</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Feed-to-gain</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Profitability</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Sample data</a>
+        <a href="#" class="px-3 py-2 text-[#626262] hover:text-[#262626] font-medium text-sm transition-colors rounded-[4px]">Delivery brief</a>
+      </nav>
+    </div>
+
+    <!-- Signed-in user: Maya Chen, Yard manager -->
+    <div class="flex items-center space-x-3">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="w-9 h-9 rounded-[4px] object-cover border border-[#D8D8D8]">
+      <div class="flex flex-col text-left">
+        <span class="text-sm font-semibold text-[#262626] leading-tight">Maya Chen</span>
+        <span class="text-xs text-[#626262] leading-tight">Yard manager</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 entrance-sequence">
+
+    <!-- Page Header & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <h1 class="text-[#262626] tracking-tight">Imports</h1>
+        <p class="text-[#626262] mt-1 text-base">
+          Mock procurement and receiving adapter for Red Mesa Yard, America/Denver (Mountain Time).
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="button" class="btn-secondary">
+          Refresh source PO
+        </button>
+        <button type="button" class="btn-primary">
+          Preview selected records
+        </button>
+      </div>
+    </div>
+
+    <!-- 2px Major Group Separator -->
+    <hr class="border-0 h-[2px] bg-[#D8D8D8] my-4">
+
+    <!-- Procurement & Receiving Import Adapter Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Status Card 1 -->
+      <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-[#626262]">Active Yard Source</span>
+          <span class="inline-flex items-center gap-1.5 text-xs text-[#286143]">
+            <span class="w-2 h-2 rounded-full bg-[#286143] animate-live-breathe"></span>
+            Operational normal
+          </span>
+        </div>
+        <div class="mt-2">
+          <div class="font-mono-val text-xl font-semibold text-[#262626]">PO-8841</div>
+          <div class="text-sm text-[#626262] mt-1">3 source lines &bull; 300 total source head</div>
+        </div>
+      </div>
+
+      <!-- Status Card 2 -->
+      <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-[#626262]">First-import result</span>
+          <span class="text-xs font-mono-val text-[#626262]">2025-06-13 09:05 MT</span>
+        </div>
+        <div class="mt-2">
+          <div class="font-mono-val text-xl font-semibold text-[#262626]">2 matched, 1 created</div>
+          <div class="text-sm text-[#626262] mt-1">L-2407, L-2409 matched; L-2413 created</div>
+        </div>
+      </div>
+
+      <!-- Status Card 3 -->
+      <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-[#626262]">Repeat-import result</span>
+          <span class="text-xs font-mono-val text-[#626262]">2025-06-18 10:10 MT</span>
+        </div>
+        <div class="mt-2">
+          <div class="font-mono-val text-xl font-semibold text-[#262626]">Matched, not duplicated</div>
+          <div class="inline-flex items-center gap-1.5 text-sm text-[#805600] mt-1">
+            <span class="w-2 h-2 rounded-full bg-[#805600]"></span>
+            Line 1 allocation conflict (80 head vs 82 mapped)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Allocation Conflict Operational Banner -->
+    <div class="bg-white border border-[#D8D8D8] border-l-4 border-l-[#805600] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-start sm:items-center gap-3">
+        <div class="flex items-center gap-2 mt-0.5 sm:mt-0">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#805600]"></span>
+          <span class="text-sm font-semibold text-[#805600]">Allocation conflict</span>
+        </div>
+        <p class="text-sm text-[#262626]">
+          Line 1 Angus steers returned updated source count of <span class="font-mono-val font-semibold">80 head</span> against <span class="font-mono-val font-semibold">82 head</span> previously mapped in Pen P-04 (L-2407). Allocation retained for review; yard totals not silently altered.
+        </p>
+      </div>
+      <div class="text-xs text-[#626262] font-mono-val whitespace-nowrap">
+        2025-06-18 10:10 MT
+      </div>
+    </div>
+
+    <!-- Filterable Formal Worklist Panel -->
+    <div class="bg-white border border-[#D8D8D8] rounded-[4px] overflow-hidden">
+      <!-- Filter and Worklist Header -->
+      <div class="p-6 border-b border-[#D8D8D8] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-[#262626]">PO-8841 Source Worklist</h2>
+          <p class="text-sm text-[#626262] mt-0.5">Filter lines by receipt status, lot match, or pen assignment</p>
+        </div>
+
+        <!-- Filter Controls (without an Apply button as strictly required) -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2">
+            <label for="filter-status" class="text-xs font-semibold text-[#626262] uppercase tracking-wider">Status</label>
+            <select id="filter-status" class="form-select text-sm py-1">
+              <option>All lines (3)</option>
+              <option>Matched</option>
+              <option>Conflict flagged</option>
+              <option>Created</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label for="filter-lot" class="text-xs font-semibold text-[#626262] uppercase tracking-wider">Pen</label>
+            <select id="filter-lot" class="form-select text-sm py-1">
+              <option>All pens</option>
+              <option>P-04 (L-2407)</option>
+              <option>P-07 (L-2409)</option>
+              <option>P-12 (L-2413)</option>
+            </select>
+          </div>
+
+          <div class="text-xs text-[#626262] font-mono-val ml-2">
+            3 records selected
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsive Horizontal Table Overflow -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[900px]">
+          <thead>
+            <tr class="border-b border-[#D8D8D8] bg-[#FAFAFA] text-xs font-semibold text-[#626262] tracking-wider">
+              <th class="p-3 w-12 text-center">
+                <input type="checkbox" checked class="w-4 h-4 rounded-[2px] accent-[#B3473D] cursor-pointer" aria-label="Select all records">
+              </th>
+              <th class="py-3 px-4">Source Line</th>
+              <th class="py-3 px-4">Animal Description</th>
+              <th class="py-3 px-4 text-right">Source Head Count</th>
+              <th class="py-3 px-4">Existing Match</th>
+              <th class="py-3 px-4">Target Pen</th>
+              <th class="py-3 px-4">Received Result</th>
+              <th class="py-3 px-4">Adapter Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D8D8D8] text-sm">
+            <!-- Row 1: Line 1 -->
+            <tr class="h-12 sm:h-14 hover:bg-[#F9F9F9] transition-colors">
+              <td class="p-3 text-center">
+                <input type="checkbox" checked class="w-4 h-4 rounded-[2px] accent-[#B3473D] cursor-pointer" aria-label="Select Line 1">
+              </td>
+              <td class="py-3 px-4 font-mono-val font-semibold text-[#262626]">
+                Line 1
+              </td>
+              <td class="py-3 px-4 text-[#262626]">
+                Angus steers
+              </td>
+              <td class="py-3 px-4 text-right font-mono-val font-semibold text-[#262626]">
+                80 head
+                <span class="block text-xs text-[#805600] font-normal font-sans">(82 mapped)</span>
+              </td>
+              <td class="py-3 px-4">
+                <span class="font-mono-val font-medium text-[#262626]">L-2407</span>
+                <span class="text-xs text-[#626262] block">Matched on PO-8841</span>
+              </td>
+              <td class="py-3 px-4 font-mono-val text-[#626262]">
+                P-04
+              </td>
+              <td class="py-3 px-4 text-[#262626]">
+                Matched, not duplicated
+                <span class="block text-xs text-[#626262]">Retained 82 head mapped vs 80 source</span>
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-xs font-medium bg-[#FFF9E6] text-[#805600] border border-[#ECD9A8]">
+                  <span class="w-2 h-2 rounded-full bg-[#805600]"></span>
+                  Conflict flagged
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 2: Line 2 -->
+            <tr class="h-12 sm:h-14 hover:bg-[#F9F9F9] transition-colors">
+              <td class="p-3 text-center">
+                <input type="checkbox" checked class="w-4 h-4 rounded-[2px] accent-[#B3473D] cursor-pointer" aria-label="Select Line 2">
+              </td>
+              <td class="py-3 px-4 font-mono-val font-semibold text-[#262626]">
+                Line 2
+              </td>
+              <td class="py-3 px-4 text-[#262626]">
+                Hereford steers
+              </td>
+              <td class="py-3 px-4 text-right font-mono-val font-semibold text-[#262626]">
+                126 head
+              </td>
+              <td class="py-3 px-4">
+                <span class="font-mono-val font-medium text-[#262626]">L-2409</span>
+                <span class="text-xs text-[#626262] block">Matched on PO-8841</span>
+              </td>
+              <td class="py-3 px-4 font-mono-val text-[#626262]">
+                P-07
+              </td>
+              <td class="py-3 px-4 text-[#262626]">
+                Matched, not duplicated
+                <span class="block text-xs text-[#626262]">126 head verified</span>
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-xs font-medium bg-[#EDF6F0] text-[#286143] border border-[#BCE1C8]">
+                  <span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+                  Matched
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 3: Line 3 -->
+            <tr class="h-12 sm:h-14 hover:bg-[#F9F9F9] transition-colors">
+              <td class="p-3 text-center">
+                <input type="checkbox" checked class="w-4 h-4 rounded-[2px] accent-[#B3473D] cursor-pointer" aria-label="Select Line 3">
+              </td>
+              <td class="py-3 px-4 font-mono-val font-semibold text-[#262626]">
+                Line 3
+              </td>
+              <td class="py-3 px-4 text-[#262626]">
+                Charolais-cross steers
+              </td>
+              <td class="py-3 px-4 text-right font-mono-val font-semibold text-[#262626]">
+                94 head
+              </td>
+              <td class="py-3 px-4">
+                <span class="font-mono-val font-medium text-[#262626]">L-2413</span>
+                <span class="text-xs text-[#626262] block">Initial import created</span>
+              </td>
+              <td class="py-3 px-4 font-mono-val text-[#626262]">
+                P-12
+              </td>
+              <td class="py-3 px-4 text-[#262626]">
+                Matched, not duplicated
+                <span class="block text-xs text-[#626262]">Created on first import, confirmed</span>
+              </td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-xs font-medium bg-[#EDF6F0] text-[#286143] border border-[#BCE1C8]">
+                  <span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+                  Matched
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Worklist Table Footer / Action Banner -->
+      <div class="p-4 bg-[#FAFAFA] border-t border-[#D8D8D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="text-sm text-[#626262]">
+          Showing <span class="font-mono-val font-medium text-[#262626]">3</span> of <span class="font-mono-val font-medium text-[#262626]">3</span> PO lines &bull; All 3 selected for bulk action
+        </div>
+        <div class="flex items-center gap-3">
+          <button type="button" class="btn-secondary">
+            Clear selection
+          </button>
+          <button type="button" class="btn-primary">
+            Preview selected records
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2px Major Group Separator -->
+    <hr class="border-0 h-[2px] bg-[#D8D8D8] my-4">
+
+    <!-- Documented Mock-Data Adapter Outcome & Recorded Import Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left 2 Cols: Adapter Result Details -->
+      <div class="lg:col-span-2 bg-white border border-[#D8D8D8] rounded-[4px] p-6 space-y-4">
+        <div>
+          <h3 class="text-[#262626]">Mock-Data Adapter Return Payload</h3>
+          <p class="text-sm text-[#626262] mt-0.5">
+            Returned transaction results for source PO-8841 at Red Mesa Yard
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 border border-[#D8D8D8] rounded-[4px] bg-[#FAFAFA]">
+            <span class="text-xs font-medium text-[#626262] uppercase tracking-wider block">Returned Summary</span>
+            <div class="font-mono-val text-base font-semibold text-[#262626] mt-1">2 matched, 1 created (initial)</div>
+            <div class="font-mono-val text-sm text-[#262626] mt-0.5">3 matched, 0 duplicated (repeat)</div>
+            <p class="text-xs text-[#626262] mt-2">
+              Idempotent receiving logic prevents re-allocation of existing lines.
+            </p>
+          </div>
+
+          <div class="p-4 border border-[#D8D8D8] rounded-[4px] bg-[#FAFAFA]">
+            <span class="text-xs font-medium text-[#626262] uppercase tracking-wider block">Operational Allocation Status</span>
+            <div class="font-mono-val text-base font-semibold text-[#805600] mt-1">Conflict flagged: P-04</div>
+            <div class="text-xs text-[#626262] mt-1 font-mono-val">L-2407: 82 mapped vs 80 source count</div>
+            <p class="text-xs text-[#626262] mt-2">
+              Retained mapped allocation for supervisor review; pen total unchanged.
+            </p>
+          </div>
+        </div>
+
+        <div class="border border-[#D8D8D8] rounded-[4px] p-4 bg-white">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-[#262626]">Adapter Fields &amp; Mapping Integrity</span>
+            <span class="text-xs font-mono-val text-[#626262]">Format: JSON response</span>
+          </div>
+          <div class="space-y-2 text-xs font-mono-val text-[#262626]">
+            <div class="flex justify-between py-1 border-b border-[#D8D8D8]">
+              <span class="text-[#626262]">source_po:</span>
+              <span class="font-semibold">PO-8841</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[#D8D8D8]">
+              <span class="text-[#626262]">yard_destination:</span>
+              <span>Red Mesa Yard (America/Denver)</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[#D8D8D8]">
+              <span class="text-[#626262]">repeat_match_policy:</span>
+              <span>match_existing_idempotent (no duplicate lot generation)</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-[#626262]">count_variance_action:</span>
+              <span class="text-[#805600] font-semibold">flag_allocation_conflict</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Col: Tomas Reed Activity Card -->
+      <div class="bg-white border border-[#D8D8D8] rounded-[4px] p-6 flex flex-col justify-between">
+        <div>
+          <h3 class="text-[#262626]">Recorded Import Activity</h3>
+          <p class="text-sm text-[#626262] mt-0.5">
+            Coordinator audit trail for Red Mesa Yard
+          </p>
+
+          <!-- Tomas Reed Profile & Recorded Events -->
+          <div class="mt-4 pt-4 border-t border-[#D8D8D8] flex items-center space-x-3">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1XP8gXfk1n-6mEAvB7hmXPFaqX_gPgMH54cSWMSTxyGB-OCZwvCeuj3hkhFR-Aufp16OvFyXrd7pTEUCf7DiLGrHqka4-9DZ9xdN1FRzPsgz3PygCpkCjsSMNhqvnDiyKq9JOfDD4rnUul2q2e8Xj1DtgF7EJlZZMMwXeNhuL-zs4_0F1elvqrLoPHUer1wkk4APnnKTWbVR-m1pPEOlm2Eu5W4mykWgOW3kMtWBcIvsYl9ftsZJ-nFLqhF" alt="Tomas Reed" class="w-12 h-12 rounded-[4px] object-cover border border-[#D8D8D8]">
+            <div>
+              <div class="text-base font-semibold text-[#262626]">Tomas Reed</div>
+              <div class="text-xs text-[#626262]">Procurement &bull; Receiving coordinator</div>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-4">
+            <!-- Event 9 -->
+            <div class="p-3 bg-[#FAFAFA] border border-[#D8D8D8] rounded-[4px]">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-mono-val font-semibold text-[#262626]">2025-06-18 10:10 MT</span>
+                <span class="inline-flex items-center gap-1 text-[#805600] font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#805600]"></span>
+                  Conflict flagged
+                </span>
+              </div>
+              <p class="text-xs text-[#262626] leading-relaxed">
+                Repeated PO-8841 import at Red Mesa Yard, line 1 matched rather than duplicated and returned updated 80 head against 82 already mapped, allocation conflict flagged.
+              </p>
+            </div>
+
+            <!-- Event 3 -->
+            <div class="p-3 bg-[#FAFAFA] border border-[#D8D8D8] rounded-[4px]">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-mono-val font-semibold text-[#262626]">2025-06-13 09:05 MT</span>
+                <span class="inline-flex items-center gap-1 text-[#286143] font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Import completed
+                </span>
+              </div>
+              <p class="text-xs text-[#262626] leading-relaxed">
+                Imported PO-8841 lines at Red Mesa Yard, 2 matched and 1 created as L-2413, import completed.
+              </p>
+            </div>
+
+            <!-- Event 1 -->
+            <div class="p-3 bg-[#FAFAFA] border border-[#D8D8D8] rounded-[4px]">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-mono-val font-semibold text-[#262626]">2025-03-26 07:30 MT</span>
+                <span class="inline-flex items-center gap-1 text-[#286143] font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Receipt recorded
+                </span>
+              </div>
+              <p class="text-xs text-[#262626] leading-relaxed">
+                Received 82 Angus steers averaging 884 lb into L-2407, Red Mesa Yard/P-04, receipt recorded.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[#D8D8D8] flex items-center justify-between text-xs text-[#626262]">
+          <span>Logged under Red Mesa yard events</span>
+          <span class="font-mono-val">Staff ID: TR-41</span>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

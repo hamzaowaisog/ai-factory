@@ -1,0 +1,1 @@
+{"characterisation":[],"lock":[],"rules":{"productionExceptionOk":true},"tests":[{"acId":"AC-2.4","failsOnBase":true,"file":"tests/portal-acceptance.test.tsx","name":"AC_2_4_HidesProtectedContentAfterAccessDenial","testId":"tests/portal-acceptance.test.tsx::portal acceptance > AC_2_4_HidesProtectedContentAfterAccessDenial"}]}

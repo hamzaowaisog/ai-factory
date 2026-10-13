@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stop detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Setup */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, .heading-main {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    h2, .heading-section {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      line-height: 1.3;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    h3, .heading-sub {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-feature-settings: "tnum" 1;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    .text-sm {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Status Tokens */
+    .status-good {
+      color: #24704B;
+      font-weight: 500;
+    }
+    .status-waiting {
+      color: #805800;
+      font-weight: 500;
+    }
+    .status-refused {
+      color: #AE2C2C;
+      font-weight: 500;
+    }
+
+    .dot-indicator {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot-good { background-color: #24704B; }
+    .dot-waiting { background-color: #805800; }
+    .dot-refused { background-color: #AE2C2C; }
+
+    /* Header Component */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 100%;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+      color: #202020;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 100%;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      border-bottom-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-badge {
+      width: 28px;
+      height: 28px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .user-name-role {
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .user-name-role span {
+      color: #626262;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Container Layout */
+    .main-layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    /* Panels & Rules */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .panel-padding {
+      padding: 16px;
+    }
+
+    .panel-header-bar {
+      padding: 16px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      outline: none;
+      transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 90ms ease;
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #A94B1D;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border-color: #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #933E15;
+      border-color: #933E15;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      background-color: #7E3411;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border-color: #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+      background-color: #EFEFEF;
+    }
+
+    /* Grids & Cards */
+    .stop-overview-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      border-bottom: 1px solid #D5D5D5;
+    }
+
+    .meta-cell {
+      padding: 16px;
+      border-right: 1px solid #D5D5D5;
+    }
+
+    .meta-cell:last-child {
+      border-right: none;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 16px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    .meta-subtext {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 2px;
+    }
+
+    .stop-secondary-meta {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 16px;
+      background-color: #FFFFFF;
+      gap: 16px;
+    }
+
+    /* Table Styles */
+    .data-table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+      background-color: #FFFFFF;
+      padding: 0 16px;
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .data-table td {
+      font-size: 15px;
+      color: #202020;
+      padding: 0 16px;
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 15px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Telemetry Tag Styles */
+    .stale-badge {
+      display: inline-block;
+      font-size: 13px;
+      color: #805800;
+      background-color: #FBF8F0;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 2px 6px;
+      margin-left: 6px;
+    }
+
+    .gateway-disconnected {
+      color: #805800;
+      font-weight: 500;
+    }
+
+    .gateway-connected {
+      color: #24704B;
+      font-weight: 500;
+    }
+
+    /* Audit & Outstanding strip */
+    .status-summary-strip {
+      padding: 16px;
+      background-color: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    /* Action bar at base of page */
+    .actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+    }
+
+    /* Design system signature motion tokens (CSS only) */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .sync-breathe {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .animate-handoff,
+      .sync-breathe {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .btn {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Persistent Standard App Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-group">
+        <div class="brand-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="nav-menu">
+        <a href="#todays-routes" class="nav-item active">Today's routes</a>
+        <a href="#pending-work" class="nav-item">Pending work</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-badge">TM</div>
+        <div class="user-name-role">Tariq Mansour · <span>Driver</span></div>
+      </div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-layout animate-entrance">
+
+    <!-- Top Section & Page Heading -->
+    <div class="page-title-row">
+      <div>
+        <h1 class="heading-main">Stop detail</h1>
+      </div>
+      <div>
+        <a href="#route-stops" class="btn btn-secondary">Route stops</a>
+      </div>
+    </div>
+
+    <!-- Stop Identification & Destination Overview -->
+    <section class="panel">
+      <div class="stop-overview-grid">
+        <div class="meta-cell">
+          <div class="meta-label">Delivery destination & address</div>
+          <div class="meta-value" style="font-size: 18px; font-weight: 600;">Cedar Clinic · planned <span class="mono">15:00</span></div>
+          <div class="meta-subtext">42 River Road, London</div>
+          <div class="meta-subtext text-quiet" style="margin-top: 4px;">Consignee: Cedar Health (Hana Youssef)</div>
+        </div>
+
+        <div class="meta-cell">
+          <div class="meta-label">Route & assignment</div>
+          <div class="meta-value"><span class="mono">R-204</span> · Stop 1 of 1</div>
+          <div class="meta-subtext">White van <span class="mono">VAN-27</span> (plate <span class="mono">MTR-482</span>)</div>
+          <div class="meta-subtext text-quiet" style="margin-top: 4px;">Driver: Tariq Mansour</div>
+        </div>
+
+        <div class="meta-cell">
+          <div class="meta-label">Returned stop status</div>
+          <div class="meta-value status-good">
+            <span class="dot-indicator dot-good"></span>good
+          </div>
+          <div class="meta-subtext">Confirmed schedule</div>
+          <div class="meta-subtext text-quiet mono" style="margin-top: 4px;">14 May 2026 09:30 BST</div>
+        </div>
+      </div>
+
+      <div class="stop-secondary-meta">
+        <div>
+          <div class="meta-label">Consignment order</div>
+          <div class="meta-value mono">Order 0-299</div>
+          <div class="meta-subtext">20 packs total allocation</div>
+        </div>
+        <div>
+          <div class="meta-label">Consigned product</div>
+          <div class="meta-value">Insulin Glargine 100 units/mL</div>
+          <div class="meta-subtext">Pack of 10 pens · <span class="mono">Lot IG-2511</span></div>
+        </div>
+        <div>
+          <div class="meta-label">Thermal packaging specification</div>
+          <div class="meta-value">Profile v3 (permitted <span class="mono">2.0°C–8.0°C</span>)</div>
+          <div class="meta-subtext">Upper tier allowance: 30 min (>8–10°C)</div>
+        </div>
+        <div>
+          <div class="meta-label">Consignment status</div>
+          <div class="meta-value status-good">
+            <span class="dot-indicator dot-good"></span>good
+          </div>
+          <div class="meta-subtext">2 whole boxes eligible</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ordered Consignment Boxes & Live Gateway Telemetry Table -->
+    <section class="panel">
+      <div class="panel-header-bar">
+        <div>
+          <h2 class="heading-section">Consigned shipper boxes & telemetry audit</h2>
+        </div>
+        <div class="text-sm">
+          Ordered allocation: <strong class="mono">20 packs</strong> across <strong class="mono">2 boxes</strong>
+        </div>
+      </div>
+
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 110px;">Box</th>
+              <th style="width: 140px;">Consigned quantity</th>
+              <th style="width: 180px;">Datalogger gateway</th>
+              <th style="width: 180px;">Latest temperature</th>
+              <th style="width: 160px;">Reading time</th>
+              <th style="width: 170px;">Gateway status</th>
+              <th style="width: 140px;">Returned status</th>
+              <th style="width: 160px;">Delivery eligibility</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Box B-701 -->
+            <tr>
+              <td>
+                <strong class="mono">B-701</strong>
+              </td>
+              <td>
+                <span class="table-num">12 packs</span>
+              </td>
+              <td>
+                <span class="mono">LOG-9921</span> / <span class="mono text-quiet">GTW-VAN27</span>
+              </td>
+              <td>
+                <span class="table-num" style="font-weight: 600;">4.4°C</span>
+                <span class="text-quiet text-sm" style="margin-left: 4px;">(2–8°C band)</span>
+              </td>
+              <td>
+                <span class="mono table-num">14:40 BST</span>
+              </td>
+              <td>
+                <span class="gateway-connected">
+                  <span class="dot-indicator dot-good"></span>Connected
+                </span>
+              </td>
+              <td>
+                <span class="status-good">
+                  <span class="dot-indicator dot-good"></span>good
+                </span>
+              </td>
+              <td>
+                <span class="status-good">
+                  <span class="dot-indicator dot-good"></span>good
+                </span>
+                <span class="text-sm text-quiet" style="margin-left: 2px;">(Eligible)</span>
+              </td>
+            </tr>
+
+            <!-- Box B-702 (Disconnected gateway / plainly stale temperature) -->
+            <tr>
+              <td>
+                <strong class="mono">B-702</strong>
+              </td>
+              <td>
+                <span class="table-num">8 packs</span>
+              </td>
+              <td>
+                <span class="mono">LOG-8819</span> / <span class="mono text-quiet">GTW-VAN27</span>
+              </td>
+              <td>
+                <span class="table-num text-quiet">4.8°C</span>
+                <span class="stale-badge mono">[stale reading]</span>
+              </td>
+              <td>
+                <span class="mono table-num text-quiet">11:45 BST</span>
+              </td>
+              <td>
+                <span class="gateway-disconnected">
+                  <span class="dot-indicator dot-waiting sync-breathe"></span>Disconnected
+                </span>
+              </td>
+              <td>
+                <span class="status-good">
+                  <span class="dot-indicator dot-good"></span>good
+                </span>
+              </td>
+              <td>
+                <span class="status-good">
+                  <span class="dot-indicator dot-good"></span>good
+                </span>
+                <span class="text-sm text-quiet" style="margin-left: 2px;">(Eligible)</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Outstanding & Fulfillment Reconciliation Strip -->
+      <div class="status-summary-strip">
+        <div>
+          Outstanding quantities for this stop: <strong class="mono">0 packs outstanding</strong> (<span class="mono">20 of 20 packs</span> consigned on vehicle).
+        </div>
+        <div class="text-quiet text-sm">
+          Prototype date: <span class="mono">14 May 2026</span> · Europe/London (BST)
+        </div>
+      </div>
+    </section>
+
+    <!-- Handover Readiness & Primary Action -->
+    <div class="actions-bar animate-handoff">
+      <div>
+        <div class="heading-sub">Handover execution</div>
+        <div class="text-sm text-quiet" style="margin-top: 2px;">
+          Both consigned boxes (<span class="mono">B-701</span> and <span class="mono">B-702</span>) are verified whole and eligible.
+        </div>
+      </div>
+      <div>
+        <!-- Primary Record handover appears only for eligible whole boxes -->
+        <a href="#record-handover" class="btn btn-primary">Record handover</a>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

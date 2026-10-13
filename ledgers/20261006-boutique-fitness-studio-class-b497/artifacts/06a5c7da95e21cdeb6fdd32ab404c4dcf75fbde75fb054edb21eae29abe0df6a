@@ -1,0 +1,374 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Schedule",
+     "subtitle": "Wed 14 Oct · 6 classes · book up to 7 days ahead",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 12",
+          "Tue 13",
+          "Wed 14",
+          "Thu 15",
+          "Fri 16",
+          "Sat 17",
+          "Sun 18"
+         ],
+         "value": "Wed 14"
+        },
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You're on the current week"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Sunrise Vinyasa",
+         "meta": "07:00 · 60 min · Studio A · 4 spots left · Started",
+         "badge": "Yoga · Low",
+         "people": [
+          "Maya Chen"
+         ]
+        },
+        {
+         "title": "Reformer Core",
+         "meta": "09:30 · 50 min · Studio B · Full · 3 on waitlist · Waitlisted #2",
+         "badge": "Pilates · Medium",
+         "people": [
+          "Sofia Marques"
+         ]
+        },
+        {
+         "title": "Lunch Burn",
+         "meta": "12:15 · 45 min · Studio A · Only 2 left",
+         "badge": "HIIT · High",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Rhythm Ride",
+         "meta": "17:30 · 45 min · Spin Room · 6 spots left · Booked ✓",
+         "badge": "Spin · Medium",
+         "people": [
+          "Priya Nair"
+         ]
+        },
+        {
+         "title": "Fight Club Basics",
+         "meta": "18:30 · 60 min · Studio B · Full · 5 on waitlist",
+         "badge": "Boxing · High",
+         "people": [
+          "Dan Reyes"
+         ]
+        },
+        {
+         "title": "Candlelit Yin",
+         "meta": "20:00 · 75 min · Studio A · Cancelled by studio",
+         "badge": "Yoga · Cancelled",
+         "people": [
+          "Maya Chen"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book",
+         "variant": "primary"
+        },
+        {
+         "label": "Join waitlist",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Sunrise Vinyasa",
+       "to": "S-2"
+      },
+      {
+       "from": "Reformer Core",
+       "to": "S-2"
+      },
+      {
+       "from": "Lunch Burn",
+       "to": "S-2"
+      },
+      {
+       "from": "Rhythm Ride",
+       "to": "S-2"
+      },
+      {
+       "from": "Fight Club Basics",
+       "to": "S-2"
+      },
+      {
+       "from": "Candlelit Yin",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Book",
+       "text": "You're booked for Lunch Burn · Wed 12:15",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Join waitlist",
+       "text": "Couldn't join the waitlist. A spot just opened, so book it instead.",
+       "tone": "bad"
+      },
+      {
+       "after": "App opens",
+       "text": "Good news! You're off the waitlist for Reformer Core · Wed 09:30",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day on the strip. The rest of the week is packed.",
+      "error": "We couldn't load the schedule. Check your connection and tap Retry.",
+      "validation": "No classes match your filters. Tap Clear filters to see the whole day.",
+      "success": "You're booked. See you on the mat!"
+     }
+    },
+    "mockFull": {
+     "title": "Schedule",
+     "subtitle": "Wed 14 Oct · 9 classes · book up to 7 days ahead",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 12",
+          "Tue 13",
+          "Wed 14",
+          "Thu 15",
+          "Fri 16",
+          "Sat 17",
+          "Sun 18"
+         ],
+         "value": "Wed 14"
+        },
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You're on the current week"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Sunrise Vinyasa",
+         "meta": "07:00 · 60 min · Studio A · 4 spots left · Started",
+         "badge": "Yoga · Low",
+         "people": [
+          "Maya Chen"
+         ]
+        },
+        {
+         "title": "Mat Pilates Flow",
+         "meta": "08:15 · 45 min · Studio B · 8 spots left · Started",
+         "badge": "Pilates · Low",
+         "people": [
+          "Sofia Marques"
+         ]
+        },
+        {
+         "title": "Reformer Core",
+         "meta": "09:30 · 50 min · Studio B · Full · 3 on waitlist · Waitlisted #2",
+         "badge": "Pilates · Medium",
+         "people": [
+          "Sofia Marques"
+         ]
+        },
+        {
+         "title": "Lunch Burn",
+         "meta": "12:15 · 45 min · Studio A · Only 2 left",
+         "badge": "HIIT · High",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Express Spin 30",
+         "meta": "13:00 · 30 min · Spin Room · 1 spot left",
+         "badge": "Spin · High",
+         "people": [
+          "Priya Nair"
+         ]
+        },
+        {
+         "title": "Rhythm Ride",
+         "meta": "17:30 · 45 min · Spin Room · 6 spots left · Booked ✓",
+         "badge": "Spin · Medium",
+         "people": [
+          "Priya Nair"
+         ]
+        },
+        {
+         "title": "Fight Club Basics",
+         "meta": "18:30 · 60 min · Studio B · Full · 5 on waitlist",
+         "badge": "Boxing · High",
+         "people": [
+          "Dan Reyes"
+         ]
+        },
+        {
+         "title": "Tabata Torch",
+         "meta": "19:00 · 40 min · Studio A · Only 3 left",
+         "badge": "HIIT · High",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Candlelit Yin",
+         "meta": "20:00 · 75 min · Studio A · Cancelled by studio",
+         "badge": "Yoga · Cancelled",
+         "people": [
+          "Maya Chen"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book",
+         "variant": "primary"
+        },
+        {
+         "label": "Join waitlist",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day on the strip. The rest of the week is packed.",
+      "error": "We couldn't load the schedule. Check your connection and tap Retry.",
+      "validation": "No classes match your filters. Tap Clear filters to see the whole day.",
+      "success": "You're booked. See you on the mat!"
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

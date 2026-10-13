@@ -1,0 +1,21 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "repo_map",
+   "input": {
+    "focus": [
+     "App.Api",
+     "App.Tests",
+     "contracts"
+    ]
+   },
+   "ms": 2,
+   "resultChars": 341,
+   "result": "<untrusted_document id=\"repo_map\" source=\"{&quot;focus&quot;:[&quot;App.Api&quot;,&quot;App.Tests&quot;,&quot;contracts&quot;]}\">\nApp.Api/AppDb.cs\n  class AppDb\nApp.Api/Program.cs\n  class Program\nApp.Api/SeedData.cs\n  class SeedData\n    void Run(AppDb db)\nApp.Tests/HealthTests.cs\n  class HealthTests\n    Task ApiIsUp()\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waiting decisions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #202020;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* Motion tokens & keyframes */
+    @keyframes pageEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .dot-waiting {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #805800;
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+    .dot-refused {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot-good {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #24704B;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .status-waiting {
+      color: #805800;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+    }
+    .status-refused {
+      color: #AE2C2C;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+    }
+    .status-good {
+      color: #24704B;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .brand-text {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+    .nav-item {
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      transition: color 150ms ease;
+    }
+    .nav-item:hover {
+      color: #202020;
+    }
+    .nav-item.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #626262;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .user-name {
+      font-size: 14px;
+      color: #202020;
+    }
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Layout */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .quiet-text {
+      color: #626262;
+      font-size: 14px;
+    }
+
+    /* Section & Cards layout */
+    .section-block {
+      margin-bottom: 32px;
+    }
+    .section-header {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+    }
+
+    /* Decision Table */
+    .table-container {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .table-container th {
+      background-color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      padding: 12px 16px;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+      white-space: nowrap;
+    }
+    .table-container td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 14px;
+      height: 48px;
+      vertical-align: middle;
+    }
+    .table-container tr:last-child td {
+      border-bottom: none;
+    }
+    .table-container tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Custom dense card row styling */
+    .decision-row-active {
+      background-color: #FFFFFF;
+    }
+    .decision-row-escalated {
+      background-color: #FFFDFD;
+    }
+
+    .case-title {
+      font-weight: 600;
+      color: #202020;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sub-meta {
+      color: #626262;
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    /* Buttons */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+    .btn-secondary:active {
+      background-color: #EFEFEF;
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 150ms ease;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:active {
+      opacity: 0.85;
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Text marker */
+    .elapsed-marker {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+    }
+    .elapsed-marker.warning {
+      color: #AE2C2C;
+      font-weight: 600;
+    }
+
+    /* Signed section */
+    .signed-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      opacity: 0.95;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .dot-waiting {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-group">
+        <div class="brand-mark">M</div>
+        <div class="brand-text">Meridian</div>
+      </a>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active">Waiting decisions</a>
+        <a href="#" class="nav-item">Recalls</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-avatar">NF</div>
+        <div class="user-name">Nadia Farouk · Quality Manager</div>
+      </div>
+      <div class="lang-switcher">
+        <span>EN</span>
+        <span>/</span>
+        <span>العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="animate-entrance">
+    
+    <div class="page-header">
+      <h1>Waiting decisions</h1>
+      <div class="quiet-text">
+        Prototype date: <span class="mono">14 May 2026</span> · Europe/London (BST)
+      </div>
+    </div>
+
+    <!-- Section 1: Escalated & Quality Manager Review (Awaiting Nadia Farouk) -->
+    <div class="section-block">
+      <div class="section-header">
+        <h2>Awaiting Quality Manager approval (2 cases)</h2>
+        <div class="quiet-text">Ordered by urgency: escalated cases require manager dual-authorization</div>
+      </div>
+
+      <div class="panel">
+        <table class="table-container">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Case &amp; status</th>
+              <th style="width: 140px;">Elapsed time</th>
+              <th style="width: 160px;">Proposal author</th>
+              <th>Recommendation &amp; justification</th>
+              <th style="width: 260px;">Stock scope &amp; lot</th>
+              <th style="width: 180px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Q-90: Escalated, waited 4h 19m, placed first -->
+            <tr class="decision-row-escalated">
+              <td>
+                <div class="case-title">
+                  <span class="mono">Q-90</span>
+                </div>
+                <div class="sub-meta">
+                  <span class="status-refused"><span class="dot-refused"></span>refused</span> · <span class="status-refused">escalated</span>
+                </div>
+              </td>
+              <td>
+                <div class="elapsed-marker warning mono">4h 19m</div>
+                <div class="sub-meta">waiting 4h 19m</div>
+              </td>
+              <td>
+                <div>Nadia Farouk</div>
+                <div class="sub-meta">Quality Manager</div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">RC-12 recall quarantine &amp; customer reconciliation</div>
+                <div class="sub-meta">Active manufacturer recall RC-12 initiated 10:00. Quarantine 4 packs on hand at Cold Room C2 Rack 4; reconcile 20 delivered packs at Cedar Clinic.</div>
+              </td>
+              <td>
+                <div class="mono" style="font-weight: 500;">Lot IG-2509 (Exp: 30 Nov 2026)</div>
+                <div class="sub-meta">24 packs total: 4 packs on hand quarantined, 20 packs delivered on O-290</div>
+              </td>
+              <td style="text-align: right;">
+                <a href="#" class="btn-primary">Decision approval</a>
+              </td>
+            </tr>
+
+            <!-- Q-88: Excursion on HU-82, placed after Q-90 -->
+            <tr class="decision-row-active">
+              <td>
+                <div class="case-title">
+                  <span class="mono">Q-88</span>
+                </div>
+                <div class="sub-meta">
+                  <span class="status-waiting"><span class="dot-waiting"></span>waiting</span>
+                </div>
+              </td>
+              <td>
+                <div class="elapsed-marker mono">0h 45m</div>
+                <div class="sub-meta">Opened 08:30 BST</div>
+              </td>
+              <td>
+                <div>Omar Saleh</div>
+                <div class="sub-meta">Quality Officer</div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">Release 10 quarantined packs to Available stock</div>
+                <div class="sub-meta">HU-82 recorded 9.1°C for 22m against 30m first upper-tier allowance (8m remaining). Profile v3 compliant under dual-authorization protocol.</div>
+              </td>
+              <td>
+                <div class="mono" style="font-weight: 500;">HU-82 · Lot IG-2511 (Exp: 31 Mar 2027)</div>
+                <div class="sub-meta">20 packs: 10 quarantined, 5 On Hold, 2 Rejected, 3 Expired (Cold Room C2, Rack 4)</div>
+              </td>
+              <td style="text-align: right;">
+                <a href="#" class="btn-primary">Decision approval</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 2: Decisions Awaiting a Different Signer -->
+    <div class="section-block">
+      <div class="section-header">
+        <h2>Decisions awaiting a different signer (1 case)</h2>
+        <div class="quiet-text">In-flight evaluations assigned to officer investigation prior to manager signature</div>
+      </div>
+
+      <div class="panel">
+        <table class="table-container">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Case &amp; status</th>
+              <th style="width: 140px;">Elapsed time</th>
+              <th style="width: 160px;">Assigned officer</th>
+              <th>Investigation scope &amp; note</th>
+              <th style="width: 260px;">Stock scope &amp; delivery</th>
+              <th style="width: 180px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Q-89: Delivered O-290 late datalogger readings -->
+            <tr>
+              <td>
+                <div class="case-title">
+                  <span class="mono">Q-89</span>
+                </div>
+                <div class="sub-meta">
+                  <span class="status-waiting"><span class="dot-waiting"></span>waiting</span> · under review
+                </div>
+              </td>
+              <td>
+                <div class="elapsed-marker mono">0h 25m</div>
+                <div class="sub-meta">Opened 10:20 BST</div>
+              </td>
+              <td>
+                <div>Omar Saleh</div>
+                <div class="sub-meta">Awaiting officer analysis</div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">Delivered O-290 late corrected datalogger readings</div>
+                <div class="sub-meta">Handed to Rania Karim 13 May 10:14 on route R-201. Post-sync corrected readings generated certificate v1 and v2. Awaiting Omar's proposed ruling.</div>
+              </td>
+              <td>
+                <div class="mono" style="font-weight: 500;">Order O-290 · Cedar Clinic</div>
+                <div class="sub-meta">20 packs Insulin Glargine (Lot IG-2509) delivered in full without dock refusal</div>
+              </td>
+              <td style="text-align: right;">
+                <a href="#" class="btn-secondary">Decision approval</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 3: Already Signed Cases -->
+    <div class="section-block">
+      <div class="section-header">
+        <h2>Already signed cases (North Quay Warehouse scope)</h2>
+        <div class="quiet-text">Immutable disposition records sealed in electronic custody</div>
+      </div>
+
+      <div class="signed-panel">
+        <table class="table-container">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Case &amp; reference</th>
+              <th style="width: 140px;">Signed time</th>
+              <th style="width: 160px;">Signer</th>
+              <th>Signed disposition ruling</th>
+              <th style="width: 260px;">Resulting stock state</th>
+              <th style="width: 180px; text-align: right;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="case-title">
+                  <span class="mono">Q-88-PRE</span>
+                </div>
+                <div class="sub-meta">
+                  <span class="mono">QS-20260514-088</span>
+                </div>
+              </td>
+              <td>
+                <div class="mono">08:45 BST</div>
+                <div class="sub-meta">14 May 2026</div>
+              </td>
+              <td>
+                <div>Omar Saleh</div>
+                <div class="sub-meta">Quality Officer</div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">Hold remaining upper-tier &amp; quarantine excursion units</div>
+                <div class="sub-meta">Baseline ruling: 10 packs quarantined, 5 on hold, 2 rejected awaiting destruction, 3 expired. Cryptographically pinned.</div>
+              </td>
+              <td>
+                <div class="mono" style="font-weight: 500;">HU-82 (20 packs total)</div>
+                <div class="sub-meta">North Quay Cold Room C2, Rack 4. Total warehouse balance 124 packs.</div>
+              </td>
+              <td style="text-align: right;">
+                <span class="status-good"><span class="dot-good"></span>good signed</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="case-title">
+                  <span class="mono">RC-12-INT</span>
+                </div>
+                <div class="sub-meta">
+                  <span class="mono">QS-20260514-012</span>
+                </div>
+              </td>
+              <td>
+                <div class="mono">10:00 BST</div>
+                <div class="sub-meta">14 May 2026</div>
+              </td>
+              <td>
+                <div>Nadia Farouk</div>
+                <div class="sub-meta">Quality Manager</div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">Active manufacturer recall quarantine declaration</div>
+                <div class="sub-meta">Mandatory isolation of 4 packs on hand in Cold Room C2 Rack 4; dispatched trace notification to Cedar Clinic buyer Hana Youssef.</div>
+              </td>
+              <td>
+                <div class="mono" style="font-weight: 500;">Lot IG-2509 (4 packs on hand)</div>
+                <div class="sub-meta">Status set to Recalled. Dispatched 20 packs flagged pending reconciliation.</div>
+              </td>
+              <td style="text-align: right;">
+                <span class="status-good"><span class="dot-good"></span>good signed</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

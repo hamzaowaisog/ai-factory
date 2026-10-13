@@ -1,0 +1,310 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "roles",
+      "topic": "roles",
+      "text": "Which user roles exist, and within a customer company can different users see or do different things (for example, a buyer versus a company admin who manages the company's users and addresses)?",
+      "options": [
+       "Three roles: customer user, staff, admin; all users of one customer company see all of that company's orders, invoices and templates",
+       "Four roles: customer buyer, customer company admin, staff, admin",
+       "Customer users see only the orders they placed themselves; staff and admin see everything"
+      ],
+      "recommended": "Three roles: customer user, staff, admin; all users of one customer company see all of that company's orders, invoices and templates",
+      "reason": "This is the smallest set that covers customer, staff and admin experiences and the company-level data isolation the request mentions.",
+      "spans": [
+       "Role-based access.",
+       "Customer data-isolation testing."
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can see which orders, invoices and prices."
+     },
+     {
+      "id": "Q-7",
+      "category": "external",
+      "text": "How does the ERP stock data arrive, and how often?",
+      "options": [
+       "Admin uploads an ERP stock CSV by hand whenever needed",
+       "A scheduled job picks up a CSV file from an agreed location at a set interval",
+       "A live API connection to the ERP"
+      ],
+      "recommended": "Admin uploads an ERP stock CSV by hand whenever needed",
+      "reason": "This is the simplest way to deliver a CSV-based ERP stock import.",
+      "spans": [
+       "ERP stock import.",
+       "ERP CSV import.",
+       "Scheduled jobs."
+      ],
+      "impact": 3,
+      "impactReason": "Overwrites stock levels that customers rely on when ordering."
+     },
+     {
+      "id": "Q-8",
+      "category": "data-model",
+      "text": "How is stock shown to customers, and can they order more than the stock on hand?",
+      "options": [
+       "Show in stock / low / out of stock, and allow orders above stock (backorder)",
+       "Show in stock / low / out of stock, and block quantities above stock",
+       "Show exact quantities, and block quantities above stock"
+      ],
+      "recommended": "Show in stock / low / out of stock, and allow orders above stock (backorder)",
+      "reason": "Imported stock can be out of date, so blocking orders on it could turn away valid orders.",
+      "spans": [
+       "Stock.",
+       "Checkout."
+      ],
+      "impact": 3,
+      "impactReason": "Controls whether orders can be placed."
+     },
+     {
+      "id": "Q-9",
+      "category": "scope",
+      "text": "What are the delivery scheduling rules applied at checkout?",
+      "options": [
+       "The customer picks a delivery date from the next working days, after a fixed daily cut-off time set in configuration",
+       "Each customer has fixed delivery days set by staff, and orders go to the next available one",
+       "No date choice: the next working day if ordered before a cut-off time"
+      ],
+      "recommended": "The customer picks a delivery date from the next working days, after a fixed daily cut-off time set in configuration",
+      "reason": "This is a simple rule that still lets customers schedule deliveries, with the cut-off kept in configuration rather than hard-coded.",
+      "spans": [
+       "Delivery scheduling rules."
+      ],
+      "impact": 2,
+      "impactReason": "Shapes the checkout flow and the delivery export."
+     },
+     {
+      "id": "Q-10",
+      "category": "data-model",
+      "text": "What are the order statuses, and which changes between them are allowed?",
+      "options": [
+       "Placed → Processing → Dispatched → Delivered, with Cancelled possible before Dispatched",
+       "Placed → Confirmed → Picking → Dispatched → Delivered, plus Cancelled",
+       "Statuses are configurable by admin"
+      ],
+      "recommended": "Placed → Processing → Dispatched → Delivered, with Cancelled possible before Dispatched",
+      "reason": "This is the smallest set that supports tracking, amendments before dispatch and cancellation.",
+      "spans": [
+       "Order state transitions.",
+       "Order tracking."
+      ],
+      "impact": 3,
+      "impactReason": "Controls the order lifecycle and what is written to the audit history."
+     },
+     {
+      "id": "Q-11",
+      "category": "roles",
+      "text": "Who can cancel an order, and up to what point?",
+      "options": [
+       "Customers can cancel their own company's orders while Placed; staff can cancel any order before dispatch",
+       "Only staff can cancel, before dispatch",
+       "Customers and staff can cancel any time before dispatch"
+      ],
+      "recommended": "Customers can cancel their own company's orders while Placed; staff can cancel any order before dispatch",
+      "reason": "Lets customers fix mistakes themselves, without letting them cancel orders staff are already working on.",
+      "spans": [
+       "Order cancellation."
+      ],
+      "impact": 3,
+      "impactReason": "Changes order data and decides who is allowed to do it."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "How does customer-specific pricing work?",
+      "options": [
+       "Each customer is assigned one price list; products not on it fall back to the standard list price",
+       "Each customer has a percentage discount off list price",
+       "Price lists plus per-customer, per-product overrides"
+      ],
+      "recommended": "Each customer is assigned one price list; products not on it fall back to the standard list price",
+      "reason": "Fits the price lists already being imported and the 'Price-list administration' item.",
+      "spans": [
+       "Customer-specific pricing.",
+       "Price-list administration.",
+       "Pricing."
+      ],
+      "impact": 3,
+      "impactReason": "Decides the prices customers pay."
+     },
+     {
+      "id": "Q-13",
+      "category": "data-model",
+      "text": "When is an invoice created automatically, and what happens to it if staff amend the order?",
+      "options": [
+       "One invoice is created when the order is dispatched; amendments are only allowed before dispatch, so invoices never change",
+       "An invoice is created when the order is placed and regenerated if it is amended",
+       "An invoice is created per dispatched shipment"
+      ],
+      "recommended": "One invoice is created when the order is dispatched; amendments are only allowed before dispatch, so invoices never change",
+      "reason": "Fits the answer that amendments only happen before dispatch, and keeps invoices unchanged once issued.",
+      "spans": [
+       "Automated invoice creation.",
+       "Invoice PDFs.",
+       "Order amendments."
+      ],
+      "impact": 3,
+      "impactReason": "Creates financial records."
+     },
+     {
+      "id": "Q-14",
+      "category": "data-model",
+      "text": "Is 'overdue' set by staff, or worked out automatically from the invoice due date?",
+      "options": [
+       "Worked out automatically when an unpaid invoice passes its due date (payment terms per customer); staff mark invoices as paid",
+       "Staff set all three statuses by hand"
+      ],
+      "recommended": "Staff set all three statuses by hand",
+      "reason": "The earlier answer said staff update payment status, so no scheduled job or payment-terms data is needed.",
+      "spans": [
+       "Payment status.",
+       "Payments."
+      ],
+      "impact": 2,
+      "impactReason": "Changes which invoice status customers see."
+     },
+     {
+      "id": "Q-15",
+      "category": "existing-data",
+      "text": "Since the one-off import covers only products, customers and price lists, how do categories and vehicle compatibility data get into the system?",
+      "options": [
+       "Admins enter categories and vehicle compatibility by hand in product administration",
+       "Categories and vehicle compatibility are included as columns in the product CSV import",
+       "Vehicle compatibility comes from an external vehicle-data provider"
+      ],
+      "recommended": "Categories and vehicle compatibility are included as columns in the product CSV import",
+      "reason": "Reuses the import that is already planned, instead of large amounts of manual entry.",
+      "spans": [
+       "Vehicle compatibility search.",
+       "Categories.",
+       "Vehicle compatibility."
+      ],
+      "impact": 3,
+      "impactReason": "Decides how core catalogue data is written."
+     },
+     {
+      "id": "Q-16",
+      "category": "scope",
+      "topic": "notifications",
+      "text": "Which events send email notifications, and to whom?",
+      "options": [
+       "Account invitation, order confirmation, dispatch and invoice issued, sent to the ordering customer user",
+       "Every order status change, sent to all users at the customer company",
+       "Customer emails as in the first option, plus staff alerts for new orders"
+      ],
+      "recommended": "Account invitation, order confirmation, dispatch and invoice issued, sent to the ordering customer user",
+      "reason": "Covers the flows that are in scope without extra recipient settings.",
+      "spans": [
+       "Email notifications.",
+       "Notifications."
+      ],
+      "impact": 2,
+      "impactReason": "Visible messages to customers."
+     },
+     {
+      "id": "Q-17",
+      "category": "external",
+      "text": "Who is the delivery CSV export for, and how is it produced?",
+      "options": [
+       "Staff download it on demand for a chosen delivery date, in a fixed column layout we define",
+       "It is produced automatically each day and sent to a carrier or ERP in that system's format"
+      ],
+      "recommended": "Staff download it on demand for a chosen delivery date, in a fixed column layout we define",
+      "reason": "Needs no external integration or scheduled job.",
+      "spans": [
+       "Delivery CSV export.",
+       "CSV downloads."
+      ],
+      "impact": 2,
+      "impactReason": "Shapes the staff flow and any external format."
+     },
+     {
+      "id": "Q-18",
+      "category": "scope",
+      "topic": "reporting",
+      "text": "Which reports are needed in the first release?",
+      "options": [
+       "Sales by customer, by product and by period, plus outstanding invoices, each viewable on screen and downloadable as CSV",
+       "Only CSV downloads of orders and invoices filtered by date",
+       "A configurable reporting dashboard"
+      ],
+      "recommended": "Sales by customer, by product and by period, plus outstanding invoices, each viewable on screen and downloadable as CSV",
+      "reason": "Gives a small, defined set of reports that covers both 'Reports' and 'CSV exports'.",
+      "spans": [
+       "Reporting.",
+       "Reports.",
+       "CSV exports."
+      ],
+      "impact": 2,
+      "impactReason": "Visible staff and admin screens."
+     },
+     {
+      "id": "Q-19",
+      "category": "existing-data",
+      "text": "What does seven-year retention mean in practice?",
+      "options": [
+       "Keep orders and invoices for at least seven years and never delete them automatically",
+       "Delete or anonymise orders and invoices automatically after seven years",
+       "Archive them to cheaper storage after a period and delete them after seven years"
+      ],
+      "recommended": "Keep orders and invoices for at least seven years and never delete them automatically",
+      "reason": "Meets the requirement without building a purge job.",
+      "spans": [
+       "Seven-year order/invoice retention."
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether data is deleted."
+     },
+     {
+      "id": "Q-20",
+      "category": "scope",
+      "topic": "volumes",
+      "text": "The request mentions 'expected scale'. How many customers, users, products and orders per day are expected?",
+      "options": [
+       "Small: under 500 customer companies, about 50k products, a few hundred orders a day",
+       "Medium: a few thousand customers, about 500k products, thousands of orders a day",
+       "Client to provide figures"
+      ],
+      "recommended": "Client to provide figures",
+      "reason": "The request refers to an expected scale but never states it.",
+      "spans": [
+       "The chosen technology should support the expected scale"
+      ],
+      "impact": 2,
+      "impactReason": "Affects technology and hosting choices."
+     },
+     {
+      "id": "Q-21",
+      "category": "data-model",
+      "text": "Which currency and tax rules apply to prices and invoices?",
+      "options": [
+       "A single currency, with prices shown excluding VAT and VAT added at a single standard rate on invoices",
+       "A single currency, with VAT rates set per product",
+       "Several currencies"
+      ],
+      "recommended": "A single currency, with prices shown excluding VAT and VAT added at a single standard rate on invoices",
+      "reason": "The simplest model that still produces valid B2B invoices.",
+      "spans": [
+       "Invoices.",
+       "Pricing."
+      ],
+      "impact": 3,
+      "impactReason": "Affects the money amounts on invoices."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

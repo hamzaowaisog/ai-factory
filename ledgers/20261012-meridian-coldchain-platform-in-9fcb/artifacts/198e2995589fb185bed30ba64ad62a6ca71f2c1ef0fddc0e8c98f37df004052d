@@ -1,0 +1,169 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "Driver route, loading, handover and refusal / driver-route-loading-handover",
+      "topic": "Missing or unrecognized box scan handling",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "A scanned box is identified and its scan is recorded, without explicitly specifying what happens if the scan cannot identify a route box."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 16,
+        "summary": "An unrecognized scan is explicitly reported and does not count toward loading or stop completion."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "Driver route, loading, handover and refusal / driver-route-loading-handover",
+      "topic": "Location unavailable or denied",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 5,
+        "summary": "Handover location is recorded automatically, without specifying how to handle unavailable or denied browser location."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 19,
+        "summary": "If location is unavailable or browser location access is denied, do not invent a location and indicate that it could not be recorded."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "Driver route, loading, handover and refusal / driver-route-loading-handover",
+      "topic": "Route loading scan coverage",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Loading scans are required for every expected route box, and loading cannot complete if any wrong box is treated as loaded."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Loading completes after every box on the route has been scanned, without the explicit condition that no wrong box is treated as loaded."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "US-010: Decide What Happens to Affected Stock / US-010-affected-stock-decisions / US-010",
+      "topic": "Tier-exception decision authority",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "A Quality Officer may decide alone when the excursion stayed within the first adjacent tier and allowance remains."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "A Quality Officer may decide alone only if the excursion stayed within the first tier, allowance remains, and the decision agrees with the recommendation."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "US-010: Decide What Happens to Affected Stock / US-010-affected-stock-decisions / US-010",
+      "topic": "Contrary recommendation and approval",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "A decision contrary to the recommendation requires proposal and manager approval, but does not explicitly require different people."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "A contrary decision requires proposal and approval roles and written justification, without expressly requiring a different approver."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "A contrary decision requires a Quality Officer proposal and approval by a different Quality Manager, plus written justification."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "US-010: Decide What Happens to Affected Stock / US-010-affected-stock-decisions / US-010",
+      "topic": "Decision replacement terminology",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 5,
+        "summary": "A later signed decision must explicitly supersede the earlier decision."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 7,
+        "summary": "A correction can be made as a new signed decision that supersedes the earlier one."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 6,
+        "summary": "A replacement is a new signed decision while the original remains available, without explicitly requiring it to supersede the original."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "US-011: Recall a Lot / US-011-lot-recall / US-011",
+      "topic": "Recall trace quantity reconciliation",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "The trace must ensure its quantities reconcile exactly to the lot's total quantity received."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 5,
+        "summary": "The trace exposes a discrepancy if quantities do not reconcile, rather than requiring exact reconciliation."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "The trace quantities reconcile exactly to the total quantity received."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "US-012: Follow Orders in the Customer Portal / US-012-customer-portal / US-012",
+      "topic": "Certificate availability before delivery completion",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "A PDF certificate is available for each completed delivery."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 7,
+        "summary": "A certificate is not offered as a completed-delivery certificate until delivery is complete."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,253 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Core API bootstrap, authentication, dashboard, and lot list",
+      "reqs": [
+       "REQ-2"
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/appsettings.json",
+       "App.Api/Endpoints/IEndpointDefinition.cs",
+       "App.Api/Endpoints/EndpointRegistration.cs",
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Endpoints/DashboardLotEndpoints.cs",
+       "App.Api/Entities/Identity/**",
+       "App.Api/Configurations/Identity/**",
+       "App.Api/Entities/Yards/**",
+       "App.Api/Configurations/Yards/**",
+       "App.Api/Seeders/IDemoSeeder.cs",
+       "App.Api/Seeders/IdentitySeeder.cs",
+       "App.Api/Seeders/YardSeeder.cs",
+       "App.Api/Migrations/202610130001_InitialCore.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Endpoint implementation classes implement IEndpointDefinition and are discovered by convention; only this task changes the startup/registration files.",
+       "Entities stay internal and are registered through IEntityTypeConfiguration discovery, so later slices add tables without changing AppDb.cs.",
+       "IDemoSeeder implementations are discovered and ordered; each writes 3–5 representative rows only to its own empty tables and surfaces write failures.",
+       "Use custom bearer-token authentication and contract-shaped error responses without introducing a package dependency or an undocumented API route.",
+       "Migration is additive and non-destructive; call Database.Migrate at startup while retaining the existing OpenAPI/Swagger and root health endpoint."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 1900,
+      "complexity": "standard",
+      "approach": "Wire startup once: add migration execution, authentication, shared error handling, and convention discovery for endpoint definitions, EF configurations, migrations, and seeders. Implement /api/auth/sign-in, /api/session, /api/dashboard, and /api/lots in this slice, with exact contract names/statuses. Add core identity/yard/pen/lot entities and initial migration here. Declare Authentication:SigningKey with an empty value in appsettings.json; allow deployments to supply it through configuration."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Procurement imports and traceability allocations",
+      "reqs": [
+       "REQ-3"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ImportAllocationEndpoints.cs",
+       "App.Api/Imports/ISourceRecordsAdapter.cs",
+       "App.Api/Imports/MockSourceRecordsAdapter.cs",
+       "App.Api/Entities/Imports/**",
+       "App.Api/Configurations/Imports/**",
+       "App.Api/Seeders/ImportSeeder.cs",
+       "App.Api/Migrations/202610130002_ImportsAllocations.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Add a discovered endpoint-definition class; do not edit Program.cs or the shared route registration.",
+       "The source adapter has one injectable interface seam; the mock implementation is registered with services and tests may substitute a stand-in.",
+       "Persist import matching and allocations using the task's entity configurations; validate conflict/invalid cases to the exact 409/422 operation responses.",
+       "The mock adapter has no remote host, port, sender, or key settings."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1500,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add the source adapter seam and in-process mock provider, then implement GET /imports/source-records, POST /imports, GET /allocations, and PUT /allocations as a complete API slice. Import is an upsert by source identifier: repeat imports update rather than duplicate, return accurate createdCount/updatedCount, and report mapped-head conflicts. Add its schema migration and an ordered demo seeder."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Operational inventory, movements, projections, and export",
+      "reqs": [
+       "REQ-5"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/InventoryEndpoints.cs",
+       "App.Api/Entities/Inventory/**",
+       "App.Api/Configurations/Inventory/**",
+       "App.Api/Seeders/InventorySeeder.cs",
+       "App.Api/Migrations/202610130003_Inventory.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use the endpoint-definition discovery and configuration discovery established by TASK-1; do not edit shared startup or AppDb files.",
+       "Persist receipt/adjustment movements and derive stock from opening stock plus movements; use exact horizon enum validation and contract response field names.",
+       "Keep sample and operational records distinguishable, and build exports from operational database rows only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1500,
+      "complexity": "standard",
+      "approach": "Add inventory item/movement entities, their configuration, migration, and empty-table-only seeder. Wire GET /inventory, POST /inventory/items, PATCH /inventory/items/{itemId}, POST /inventory/movements, GET /inventory/projections, and GET /inventory/export in the same slice; compute stock totals and projection rows from persisted movements/plans and return the contract's exact statuses and shapes."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Rations, optimization, approvals, and feed plans",
+      "reqs": [
+       "REQ-6",
+       "REQ-7"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/RationPlanEndpoints.cs",
+       "App.Api/Entities/Rations/**",
+       "App.Api/Configurations/Rations/**",
+       "App.Api/Entities/FeedPlans/**",
+       "App.Api/Configurations/FeedPlans/**",
+       "App.Api/Seeders/RationPlanSeeder.cs",
+       "App.Api/Migrations/202610130004_RationsFeedPlans.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Register endpoints and EF configurations by the established conventions; leave shared files unchanged.",
+       "Ration ingredient rows reference inventory items; plan lot membership and audit history are explicit persisted relations.",
+       "Compute ration and plan response quantities/cost/energy from saved inputs and enforce optimization qualification, approval, review, and status rules."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3"
+      ],
+      "plannedLoc": 2400,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add ration, ingredient, candidate-mix, feed-plan, plan-lot, and audit entities with their migration and ordered seeder. In the same slice wire GET/POST/PATCH /rations, POST /rations/optimization, POST /rations/{rationId}/approval, GET/POST /feed-plans, POST /feed-plans/{planId}/review, and PATCH /feed-plans/{planId}/status. Return computed values and exact contract statuses; reject invalid and conflicting transitions rather than silently changing state."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Feeding event ledger and inventory reconciliation",
+      "reqs": [
+       "REQ-8"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/FeedingEventEndpoints.cs",
+       "App.Api/Entities/Feeding/**",
+       "App.Api/Configurations/Feeding/**",
+       "App.Api/Seeders/FeedingSeeder.cs",
+       "App.Api/Migrations/202610130005_FeedingEvents.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use event and per-lot allocation entities plus the existing inventory-movement entity; do not add a second independent stock ledger.",
+       "Corrections deactivate/replace the prior movement effect, and voids are idempotently rejected or reported as conflicts so reversals cannot be applied twice.",
+       "Write event, allocation, movement, and affected stock state transactionally; use exact declared 201/200/409/422 responses."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3",
+       "TASK-4"
+      ],
+      "plannedLoc": 1900,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add feeding events, event-to-lot allocations, and migration/seeder. Wire GET/POST /feeding-events, PATCH /feeding-events/{eventId}, and POST /feeding-events/{eventId}/void together with calculations and database transactions. Reconcile inventory from opening stock and persisted active receipts, adjustments, and event movements; retain the audit trail while ensuring a corrected or voided event is counted once or not at all."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Lot forecasts, metrics, insights, and weight history",
+      "reqs": [
+       "REQ-4"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/LotAnalyticsEndpoints.cs",
+       "App.Api/Entities/Weights/**",
+       "App.Api/Configurations/Weights/**",
+       "App.Api/Seeders/WeightSeeder.cs",
+       "App.Api/Migrations/202610130006_LotAnalytics.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Forecast defaults are stored on Yard and lot overrides on Lot as introduced in TASK-1; do not duplicate those columns or edit their configuration files.",
+       "Persist weight measurements with a user relation; expose GET weight history directly and order measurements by date.",
+       "Use feeding event and lot records already available for calculated feed metrics; insights are explainable and actions change only the explicitly selected plan/sale value."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-5"
+      ],
+      "plannedLoc": 1800,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add weight-measurement persistence and migration/seeder, then wire GET /lots/{lotId}/forecast, PATCH /forecast-settings, PATCH /lots/{lotId}/forecast-settings, GET /lots/{lotId}/metrics, GET /lots/{lotId}/insights, POST /lots/{lotId}/insights/actions, and GET/POST /lots/{lotId}/weights. Handle missing lots and invalid weight/settings inputs with exact contract errors; return the GET history itself in date order."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Reports, exports, and sample-data management; contract completion",
+      "reqs": [
+       "REQ-9",
+       "REQ-10",
+       "REQ-1",
+       "REQ-11",
+       "REQ-12",
+       "REQ-13"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ReportSampleEndpoints.cs",
+       "App.Api/Entities/Samples/**",
+       "App.Api/Configurations/Samples/**",
+       "App.Api/Seeders/SampleSeeder.cs",
+       "App.Api/Migrations/202610130007_ReportsSamples.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "All new routes/configurations/seeders use the conventions established in TASK-1; do not modify startup, OpenAPI contract, test, CI, or build files.",
+       "Reports are calculated from saved authorized operational data and exports contain only filtered permitted rows; profitability view and export grants are independent.",
+       "Sample operations mutate only records marked sample; missing confirmation returns the exact contract-declared 422 validation error and makes no change.",
+       "Verify every OpenAPI operation is routed by its exact /api path and method and that no product screen or undocumented API route was added."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6"
+      ],
+      "plannedLoc": 2600,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add sample-record management persistence and migration/seeder, then wire the six report/export operations and GET/POST load/reset/replace sample operations. Use the existing saved data for report calculations and authorized exports. Finish with an operation-by-operation contract audit, empty-DB behavior check, migration-upgrade check, and 3–5 rows per empty application table check; do not change contracts/openapi.yaml."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

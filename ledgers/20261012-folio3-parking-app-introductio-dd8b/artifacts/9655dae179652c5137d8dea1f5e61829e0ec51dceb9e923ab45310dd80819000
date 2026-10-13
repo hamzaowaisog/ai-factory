@@ -1,0 +1,1731 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Employees authenticate with Folio3 Google Workspace, then land on their own parking view to release a dedicated space, manage vehicles, schedule future releases, or claim an available temporary space. Administrators use the same responsive web app to inspect the roster, entrance verification activity, utilization reports and audit history, and to configure office-local release time and report recipients.",
+    "theme": {
+     "mood": "precise, reassuring",
+     "mode": "light",
+     "brand": "#164B78",
+     "neutral": "cool",
+     "chrome": "plain",
+     "font": "grotesk",
+     "heading": "condensed",
+     "mark": "emblem",
+     "radius": "sharp",
+     "density": "compact",
+     "surface": "soft",
+     "motion": "calm",
+     "fx": "quiet",
+     "shell": "sidebar",
+     "hero": "none",
+     "charts": "mono",
+     "imagery": "icons",
+     "reading": {
+      "users": "Employees releasing or claiming workplace parking; parking administrators monitoring a shared office roster and utilization.",
+      "context": "Employees act near arrival, often on a phone browser; administrators review exceptions and settings at a desk.",
+      "device": "both",
+      "tone": "Calm, exact and reassuring",
+      "hero": "A released stall becomes claimable, then the authorized plate and assigned floor are clear before arrival at the gate.",
+      "traits": [
+       "One-action space release",
+       "First-claim allocation",
+       "Plate-authorized entry",
+       "Office-local audit trail"
+      ]
+     },
+     "basis": [
+      {
+       "ref": "Progressive",
+       "took": "Blue on white and a clear first action keep parking tasks familiar and legible."
+      },
+      {
+       "ref": "BMW",
+       "took": "Crisp technical hierarchy informs the stall, floor and plate authorization details."
+      },
+      {
+       "ref": "Allianz",
+       "took": "Formal, calm presentation suits employee identity and access-control records."
+      }
+     ]
+    },
+    "refUse": [
+     {
+      "id": "Progressive",
+      "use": "used",
+      "how": "Blue-on-white task clarity informs the employee release and claim entry point."
+     },
+     {
+      "id": "BMW",
+      "use": "used",
+      "how": "Technical hierarchy informs the presentation of floors, plates and gate authorization."
+     },
+     {
+      "id": "Allianz",
+      "use": "used",
+      "how": "Calm formal treatment informs identity, permissions and utilization reporting."
+     }
+    ],
+    "screens": [
+     {
+      "id": "S-1",
+      "route": "/sign-in",
+      "file": "src/pages/auth/sign-in.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-2"
+      ],
+      "states": [
+       "loading",
+       "error",
+       "success"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Sign in to Folio3 Parking",
+       "subtitle": "Use your Folio3 Google Workspace account to continue.",
+       "blocks": [
+        {
+         "type": "text",
+         "body": "Personal Gmail and other non-Folio3 identities cannot access workplace parking. After sign-in, your corporate identity determines the records and permissions available to you."
+        },
+        {
+         "type": "actions",
+         "buttons": [
+          {
+           "label": "Folio3 Workspace sign-in",
+           "variant": "primary"
+          }
+         ]
+        }
+       ]
+      },
+      "copy": {
+       "error": "That account is not a Folio3 Google Workspace identity. Try your corporate account.",
+       "success": "Identity verified. Opening your parking workspace.",
+       "validation": "Choose your Folio3 Google Workspace account to continue."
+      }
+     },
+     {
+      "id": "S-2",
+      "route": "/parking",
+      "file": "src/pages/parking/home.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-4",
+       "REQ-5",
+       "REQ-8",
+       "REQ-10",
+       "REQ-11"
+      ],
+      "group": "My parking",
+      "states": [
+       "empty",
+       "loading",
+       "error",
+       "success"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Your parking today",
+       "subtitle": "Tuesday, 16 June · office time",
+       "blocks": [
+        {
+         "type": "detail",
+         "title": "Dedicated space",
+         "lead": {
+          "label": "Today's assignment",
+          "value": "B2 · 114"
+         },
+         "rows": [
+          {
+           "label": "Space status",
+           "value": "Reserved",
+           "badge": true
+          },
+          {
+           "label": "Release time",
+           "value": "8:00 AM office time"
+          },
+          {
+           "label": "Temporary spaces",
+           "value": "3 available"
+          }
+         ]
+        },
+        {
+         "type": "actions",
+         "buttons": [
+          {
+           "label": "Release today's space",
+           "variant": "primary"
+          },
+          {
+           "label": "Schedule a release",
+           "variant": "secondary"
+          },
+          {
+           "label": "Claim a temporary space",
+           "variant": "secondary"
+          }
+         ]
+        },
+        {
+         "type": "alert",
+         "tone": "info",
+         "title": "When spaces become available",
+         "text": "Scheduled releases are claimable at 8:00 AM office time. A same-day release before then is claimable at 8:00 AM; after then, it is available immediately."
+        }
+       ],
+       "links": [
+        {
+         "from": "Schedule a release",
+         "to": "S-4"
+        },
+        {
+         "from": "Claim a temporary space",
+         "to": "S-5"
+        }
+       ]
+      },
+      "mockFull": {
+       "title": "Your parking today",
+       "subtitle": "Tuesday, 16 June · office time",
+       "blocks": [
+        {
+         "type": "detail",
+         "title": "Dedicated space",
+         "lead": {
+          "label": "Today's assignment",
+          "value": "B2 · 114"
+         },
+         "rows": [
+          {
+           "label": "Space status",
+           "value": "Reserved",
+           "badge": true
+          },
+          {
+           "label": "Release time",
+           "value": "8:00 AM office time"
+          },
+          {
+           "label": "Temporary spaces",
+           "value": "3 available"
+          },
+          {
+           "label": "Office working days",
+           "value": "Monday–Friday, including holidays"
+          }
+         ]
+        },
+        {
+         "type": "actions",
+         "buttons": [
+          {
+           "label": "Release today's space",
+           "variant": "primary"
+          },
+          {
+           "label": "Schedule a release",
+           "variant": "secondary"
+          },
+          {
+           "label": "Claim a temporary space",
+           "variant": "secondary"
+          }
+         ]
+        },
+        {
+         "type": "alert",
+         "tone": "info",
+         "title": "When spaces become available",
+         "text": "Scheduled releases are claimable at 8:00 AM office time. A same-day release before then is claimable at 8:00 AM; after then, it is available immediately."
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No parking assignment today",
+       "emptyHint": "Check available spaces or review your upcoming releases.",
+       "error": "Parking availability could not refresh. Your last confirmed details remain here.",
+       "success": "Today's space is released and available to eligible employees.",
+       "validation": "Today's space has already been released; duplicate releases are not accepted."
+      }
+     },
+     {
+      "id": "S-3",
+      "route": "/vehicles",
+      "file": "src/pages/parking/vehicles.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-3",
+       "REQ-12"
+      ],
+      "group": "My parking",
+      "states": [
+       "empty",
+       "loading",
+       "error",
+       "success",
+       "validation"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Registered vehicles",
+       "subtitle": "A registered plate is required before you can claim temporary parking.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "License plate",
+           "kind": "text",
+           "placeholder": "Enter plate as shown on the vehicle",
+           "required": true,
+           "help": "The plate is activated as soon as it is saved."
+          },
+          {
+           "label": "Make",
+           "kind": "text",
+           "placeholder": "Optional"
+          },
+          {
+           "label": "Model",
+           "kind": "text",
+           "placeholder": "Optional"
+          },
+          {
+           "label": "Color",
+           "kind": "text",
+           "placeholder": "Optional"
+          }
+         ],
+         "submit": "Add vehicle"
+        },
+        {
+         "type": "list",
+         "items": [
+          {
+           "title": "KLG-4821",
+           "meta": "Toyota Corolla · Silver",
+           "badge": "Active"
+          },
+          {
+           "title": "LEA-9073",
+           "meta": "Honda City · White",
+           "badge": "Active"
+          }
+         ]
+        }
+       ]
+      },
+      "mockFull": {
+       "title": "Registered vehicles",
+       "subtitle": "A registered plate is required before you can claim temporary parking.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "License plate",
+           "kind": "text",
+           "placeholder": "Enter plate as shown on the vehicle",
+           "required": true,
+           "help": "The plate is activated as soon as it is saved."
+          },
+          {
+           "label": "Make",
+           "kind": "text",
+           "placeholder": "Optional"
+          },
+          {
+           "label": "Model",
+           "kind": "text",
+           "placeholder": "Optional"
+          },
+          {
+           "label": "Color",
+           "kind": "text",
+           "placeholder": "Optional"
+          }
+         ],
+         "submit": "Add vehicle"
+        },
+        {
+         "type": "list",
+         "items": [
+          {
+           "title": "KLG-4821",
+           "meta": "Toyota Corolla · Silver",
+           "badge": "Active"
+          },
+          {
+           "title": "LEA-9073",
+           "meta": "Honda City · White",
+           "badge": "Active"
+          },
+          {
+           "title": "RWP-3168",
+           "meta": "Suzuki Swift · Blue",
+           "badge": "Active"
+          },
+          {
+           "title": "ICT-6612",
+           "meta": "Kia Sportage · Grey",
+           "badge": "Active"
+          },
+          {
+           "title": "LHR-2594",
+           "meta": "Hyundai Tucson · Black",
+           "badge": "Active"
+          },
+          {
+           "title": "ISB-7405",
+           "meta": "Honda Civic · White",
+           "badge": "Active"
+          }
+         ]
+        }
+       ]
+      },
+      "links": [
+       {
+        "from": "KLG-4821",
+        "to": "S-5"
+       }
+      ],
+      "toasts": [
+       {
+        "after": "Add vehicle",
+        "text": "KLG-4821 is active and ready to use.",
+        "tone": "ok"
+       }
+      ],
+      "copy": {
+       "emptyTitle": "No vehicles registered",
+       "emptyHint": "Add at least one license plate before claiming temporary parking.",
+       "error": "Vehicle details could not be saved. Your existing plates are unchanged.",
+       "success": "Vehicle registered and activated immediately.",
+       "validation": "Enter a license plate before saving."
+      }
+     },
+     {
+      "id": "S-4",
+      "route": "/parking/releases",
+      "file": "src/pages/parking/releases.tsx",
+      "reqs": [
+       "REQ-4",
+       "REQ-6",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9"
+      ],
+      "group": "My parking",
+      "states": [
+       "empty",
+       "loading",
+       "error",
+       "success",
+       "validation"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Schedule parking releases",
+       "subtitle": "Choose one or more dates within the next 30 calendar days. Weekdays count as working days, including holidays.",
+       "blocks": [
+        {
+         "type": "calendar",
+         "month": "June 2026",
+         "startsOn": 0,
+         "days": 30,
+         "picked": 18,
+         "marks": [
+          {
+           "day": 18,
+           "label": "Scheduled · B2-114",
+           "tone": "info"
+          },
+          {
+           "day": 22,
+           "label": "Claimed",
+           "tone": "ok"
+          },
+          {
+           "day": 25,
+           "label": "Scheduled · B2-114",
+           "tone": "info"
+          }
+         ],
+         "off": []
+        },
+        {
+         "type": "detail",
+         "title": "Release timing",
+         "rows": [
+          {
+           "label": "Default time",
+           "value": "8:00 AM"
+          },
+          {
+           "label": "Timezone",
+           "value": "Folio3 Islamabad office"
+          },
+          {
+           "label": "Scheduling window",
+           "value": "Through 16 July 2026"
+          }
+         ]
+        },
+        {
+         "type": "actions",
+         "buttons": [
+          {
+           "label": "Schedule selected dates",
+           "variant": "primary"
+          },
+          {
+           "label": "Cancel selected release",
+           "variant": "secondary",
+           "hint": "Cancellation is available only before the space is claimed."
+          }
+         ]
+        }
+       ],
+       "overlays": [
+        {
+         "kind": "confirm",
+         "trigger": "Cancel selected release",
+         "title": "Cancel this scheduled release?",
+         "text": "The space will return to Reserved. A release that has already been claimed cannot be cancelled.",
+         "actions": [
+          {
+           "label": "Cancel release",
+           "variant": "danger"
+          },
+          {
+           "label": "Keep release",
+           "variant": "secondary"
+          }
+         ]
+        }
+       ],
+       "toasts": [
+        {
+         "after": "Cancel release",
+         "text": "The scheduled release was cancelled.",
+         "tone": "ok"
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No releases scheduled",
+       "emptyHint": "Select an eligible date to make your dedicated space available.",
+       "error": "Release dates could not be refreshed. Your last saved calendar is still shown.",
+       "success": "Your selected release dates are saved.",
+       "validation": "Choose a date within the next 30 calendar days."
+      }
+     },
+     {
+      "id": "S-5",
+      "route": "/parking/claim",
+      "file": "src/pages/parking/claim.tsx",
+      "reqs": [
+       "REQ-3",
+       "REQ-10",
+       "REQ-11",
+       "REQ-12"
+      ],
+      "group": "My parking",
+      "states": [
+       "empty",
+       "loading",
+       "error",
+       "success",
+       "validation"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Claim a temporary space",
+       "subtitle": "Available spaces are assigned to the first eligible claim accepted.",
+       "blocks": [
+        {
+         "type": "detail",
+         "title": "Spaces available",
+         "lead": {
+          "label": "Today · Islamabad office",
+          "value": "3 spaces"
+         },
+         "rows": [
+          {
+           "label": "Floor assignment",
+           "value": "Most remaining capacity; ties use fixed floor order"
+          },
+          {
+           "label": "Availability",
+           "value": "Released spaces become claimable at their release time"
+          }
+         ]
+        },
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Vehicle for this claim",
+           "kind": "select",
+           "options": [
+            "KLG-4821 · Toyota Corolla",
+            "LEA-9073 · Honda City"
+           ],
+           "value": "KLG-4821 · Toyota Corolla",
+           "required": true,
+           "help": "Only this registered plate will be authorized for the allocation."
+          }
+         ],
+         "submit": "Claim next available space"
+        }
+       ],
+       "links": [
+        {
+         "from": "Claim next available space",
+         "to": "S-6"
+        }
+       ],
+       "copy": {
+        "emptyTitle": "No spaces available",
+        "emptyHint": "We will show spaces here when an eligible release becomes claimable.",
+        "error": "That space was claimed before your request was accepted. Refresh to see current availability.",
+        "success": "Your space is assigned and your selected plate is authorized for today's allocation.",
+        "validation": "Register a vehicle before claiming a temporary space."
+       }
+      },
+      "mockFull": {
+       "title": "Claim a temporary space",
+       "subtitle": "Available spaces are assigned to the first eligible claim accepted.",
+       "blocks": [
+        {
+         "type": "detail",
+         "title": "Spaces available",
+         "lead": {
+          "label": "Today · Islamabad office",
+          "value": "3 spaces"
+         },
+         "rows": [
+          {
+           "label": "Floor assignment",
+           "value": "Most remaining capacity; ties use fixed floor order"
+          },
+          {
+           "label": "Availability",
+           "value": "Released spaces become claimable at their release time"
+          }
+         ]
+        },
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Vehicle for this claim",
+           "kind": "select",
+           "options": [
+            "KLG-4821 · Toyota Corolla",
+            "LEA-9073 · Honda City"
+           ],
+           "value": "KLG-4821 · Toyota Corolla",
+           "required": true,
+           "help": "Only this registered plate will be authorized for the allocation."
+          }
+         ],
+         "submit": "Claim next available space"
+        }
+       ]
+      }
+     },
+     {
+      "id": "S-6",
+      "route": "/parking/claims/today",
+      "file": "src/pages/parking/claim-pass.tsx",
+      "reqs": [
+       "REQ-12",
+       "REQ-14",
+       "REQ-16"
+      ],
+      "group": "My parking",
+      "states": [
+       "loading",
+       "error",
+       "success"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Temporary parking pass",
+       "subtitle": "Show the assigned plate at the entrance. Authorization is valid for the office-local date only.",
+       "badge": "Authorized",
+       "blocks": [
+        {
+         "type": "detail",
+         "style": "pass",
+         "title": "Today's allocation",
+         "lead": {
+          "label": "Assigned space",
+          "value": "B2 · 08"
+         },
+         "rows": [
+          {
+           "label": "Floor",
+           "value": "B2"
+          },
+          {
+           "label": "Authorized plate",
+           "value": "KLG-4821",
+           "badge": true
+          },
+          {
+           "label": "Claim date",
+           "value": "16 June 2026"
+          },
+          {
+           "label": "Entry status",
+           "value": "Awaiting vehicle detection"
+          },
+          {
+           "label": "Claim cancellation",
+           "value": "Unavailable in Phase 1"
+          }
+         ]
+        },
+        {
+         "type": "actions",
+         "buttons": [
+          {
+           "label": "Cancel parking claim",
+           "variant": "secondary",
+           "state": "disabled",
+           "hint": "Employee cancellation of temporary claims is not available in Phase 1."
+          }
+         ]
+        }
+       ]
+      },
+      "copy": {
+       "error": "Your pass could not refresh. Entry authorization is checked at the gate against the active allocation.",
+       "success": "The selected plate is authorized for this space today.",
+       "validation": "Temporary parking claims cannot be cancelled by employees in Phase 1."
+      }
+     },
+     {
+      "id": "S-7",
+      "route": "/admin/roster",
+      "file": "src/pages/admin/roster.tsx",
+      "reqs": [
+       "REQ-2"
+      ],
+      "group": "People",
+      "states": [
+       "empty",
+       "loading",
+       "error"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Employee parking roster",
+       "subtitle": "Directory identity with parking assignments and registered vehicles from the administrator-maintained roster.",
+       "blocks": [
+        {
+         "type": "toolbar",
+         "search": "Search employee, email or plate",
+         "selects": [
+          {
+           "label": "Assignment",
+           "options": [
+            "All assignments",
+            "Dedicated",
+            "Non-dedicated"
+           ],
+           "value": "All assignments"
+          }
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Employee",
+          "Corporate email",
+          "Assignment",
+          "Vehicle plate",
+          "Access"
+         ],
+         "rows": [
+          [
+           "Aisha Rahman",
+           "aisha.rahman@folio3.com",
+           "Dedicated · B2-114",
+           "KLG-4821",
+           "Employee"
+          ],
+          [
+           "Bilal Ahmed",
+           "bilal.ahmed@folio3.com",
+           "Non-dedicated",
+           "LEA-9073",
+           "Employee"
+          ],
+          [
+           "Hina Shah",
+           "hina.shah@folio3.com",
+           "Dedicated · C1-032",
+           "ICT-6612",
+           "Employee"
+          ],
+          [
+           "Omar Farooq",
+           "omar.farooq@folio3.com",
+           "Non-dedicated",
+           "RWP-3168",
+           "Employee"
+          ],
+          [
+           "Sara Malik",
+           "sara.malik@folio3.com",
+           "Dedicated · B1-207",
+           "ISB-7405",
+           "Employee"
+          ]
+         ],
+         "sortBy": 0,
+         "sortDir": "asc",
+         "pages": 18,
+         "page": 1
+        }
+       ]
+      },
+      "mockFull": {
+       "title": "Employee parking roster",
+       "subtitle": "Directory identity with parking assignments and registered vehicles from the administrator-maintained roster.",
+       "blocks": [
+        {
+         "type": "toolbar",
+         "search": "Search employee, email or plate",
+         "selects": [
+          {
+           "label": "Assignment",
+           "options": [
+            "All assignments",
+            "Dedicated",
+            "Non-dedicated"
+           ],
+           "value": "All assignments"
+          }
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Employee",
+          "Corporate email",
+          "Assignment",
+          "Vehicle plate",
+          "Access"
+         ],
+         "rows": [
+          [
+           "Aisha Rahman",
+           "aisha.rahman@folio3.com",
+           "Dedicated · B2-114",
+           "KLG-4821",
+           "Employee"
+          ],
+          [
+           "Bilal Ahmed",
+           "bilal.ahmed@folio3.com",
+           "Non-dedicated",
+           "LEA-9073",
+           "Employee"
+          ],
+          [
+           "Hina Shah",
+           "hina.shah@folio3.com",
+           "Dedicated · C1-032",
+           "ICT-6612",
+           "Employee"
+          ],
+          [
+           "Omar Farooq",
+           "omar.farooq@folio3.com",
+           "Non-dedicated",
+           "RWP-3168",
+           "Employee"
+          ],
+          [
+           "Sara Malik",
+           "sara.malik@folio3.com",
+           "Dedicated · B1-207",
+           "ISB-7405",
+           "Employee"
+          ],
+          [
+           "Zara Iqbal",
+           "zara.iqbal@folio3.com",
+           "Non-dedicated",
+           "LHR-2594",
+           "Employee"
+          ],
+          [
+           "Usman Tariq",
+           "usman.tariq@folio3.com",
+           "Dedicated · C2-019",
+           "KLG-4821",
+           "Employee"
+          ],
+          [
+           "Nadia Khan",
+           "nadia.khan@folio3.com",
+           "Non-dedicated",
+           "ICT-1149",
+           "Employee"
+          ],
+          [
+           "Faraz Siddiqui",
+           "faraz.siddiqui@folio3.com",
+           "Dedicated · B1-144",
+           "LEA-2278",
+           "Employee"
+          ],
+          [
+           "Mariam Ali",
+           "mariam.ali@folio3.com",
+           "Non-dedicated",
+           "ISB-9081",
+           "Employee"
+          ]
+         ],
+         "sortBy": 0,
+         "sortDir": "asc",
+         "pages": 18,
+         "page": 1
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No roster records found",
+       "emptyHint": "Try another employee name, corporate email or plate.",
+       "error": "The roster could not be refreshed. Access remains limited to your administrator permissions."
+      }
+     },
+     {
+      "id": "S-8",
+      "route": "/admin/entry-checks",
+      "file": "src/pages/admin/entry-checks.tsx",
+      "reqs": [
+       "REQ-15",
+       "REQ-16",
+       "REQ-17"
+      ],
+      "group": "Operations",
+      "states": [
+       "empty",
+       "loading",
+       "error"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Entrance verification activity",
+       "subtitle": "Gate attempts recorded against active temporary allocations and permanent-sticker vehicles.",
+       "blocks": [
+        {
+         "type": "alert",
+         "tone": "warn",
+         "title": "No manual verification path",
+         "text": "Camera, plate-reading, network or indicator failures keep green authorization off and deny entry until service is restored."
+        },
+        {
+         "type": "toolbar",
+         "search": "Search plate or result",
+         "selects": [
+          {
+           "label": "Result",
+           "options": [
+            "All results",
+            "Authorized",
+            "Denied",
+            "Permanent sticker",
+            "Unsuccessful"
+           ],
+           "value": "All results"
+          }
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Time · office date",
+          "Plate",
+          "Verification",
+          "Entry status",
+          "Detail"
+         ],
+         "rows": [
+          [
+           "8:12 AM · 16 Jun",
+           "KLG-4821",
+           "Authorized",
+           "Green requested",
+           "Active temporary allocation"
+          ],
+          [
+           "8:06 AM · 16 Jun",
+           "LEA-9073",
+           "Denied",
+           "Blocked",
+           "No active allocation"
+          ],
+          [
+           "7:54 AM · 16 Jun",
+           "ICT-6612",
+           "Permanent sticker",
+           "Not blocked",
+           "Utilization recorded"
+          ],
+          [
+           "7:43 AM · 16 Jun",
+           "RWP-3168",
+           "Unsuccessful",
+           "Denied",
+           "Plate unreadable"
+          ],
+          [
+           "7:19 AM · 16 Jun",
+           "ISB-7405",
+           "Allocation cancelled",
+           "Denied",
+           "Permanent holder used released space"
+          ]
+         ],
+         "statusColumn": 2,
+         "sortBy": 0,
+         "sortDir": "desc",
+         "pages": 4,
+         "page": 1
+        }
+       ]
+      },
+      "mockFull": {
+       "title": "Entrance verification activity",
+       "subtitle": "Gate attempts recorded against active temporary allocations and permanent-sticker vehicles.",
+       "blocks": [
+        {
+         "type": "alert",
+         "tone": "warn",
+         "title": "No manual verification path",
+         "text": "Camera, plate-reading, network or indicator failures keep green authorization off and deny entry until service is restored."
+        },
+        {
+         "type": "toolbar",
+         "search": "Search plate or result",
+         "selects": [
+          {
+           "label": "Result",
+           "options": [
+            "All results",
+            "Authorized",
+            "Denied",
+            "Permanent sticker",
+            "Unsuccessful"
+           ],
+           "value": "All results"
+          }
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Time · office date",
+          "Plate",
+          "Verification",
+          "Entry status",
+          "Detail"
+         ],
+         "rows": [
+          [
+           "8:12 AM · 16 Jun",
+           "KLG-4821",
+           "Authorized",
+           "Green requested",
+           "Active temporary allocation"
+          ],
+          [
+           "8:06 AM · 16 Jun",
+           "LEA-9073",
+           "Denied",
+           "Blocked",
+           "No active allocation"
+          ],
+          [
+           "7:54 AM · 16 Jun",
+           "ICT-6612",
+           "Permanent sticker",
+           "Not blocked",
+           "Utilization recorded"
+          ],
+          [
+           "7:43 AM · 16 Jun",
+           "RWP-3168",
+           "Unsuccessful",
+           "Denied",
+           "Plate unreadable"
+          ],
+          [
+           "7:19 AM · 16 Jun",
+           "ISB-7405",
+           "Allocation cancelled",
+           "Denied",
+           "Permanent holder used released space"
+          ],
+          [
+           "7:02 AM · 16 Jun",
+           "KLG-1093",
+           "Unsuccessful",
+           "Denied",
+           "Camera connection unavailable"
+          ],
+          [
+           "6:58 AM · 16 Jun",
+           "LEA-8820",
+           "Unsuccessful",
+           "Denied",
+           "Indicator service unavailable"
+          ],
+          [
+           "5:44 PM · 15 Jun",
+           "RWP-3168",
+           "Denied",
+           "Blocked",
+           "Allocation date ended"
+          ],
+          [
+           "4:51 PM · 15 Jun",
+           "KLG-4821",
+           "Authorized",
+           "Green requested",
+           "Active temporary allocation"
+          ],
+          [
+           "3:18 PM · 15 Jun",
+           "ICT-6612",
+           "Permanent sticker",
+           "Not blocked",
+           "Utilization recorded"
+          ]
+         ],
+         "statusColumn": 2,
+         "sortBy": 0,
+         "sortDir": "desc",
+         "pages": 4,
+         "page": 1
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No entrance checks yet",
+       "emptyHint": "Camera attempts and verification outcomes will appear here.",
+       "error": "Entrance activity could not refresh. Previous verification records remain visible."
+      }
+     },
+     {
+      "id": "S-9",
+      "route": "/admin/utilization",
+      "file": "src/pages/admin/utilization.tsx",
+      "reqs": [
+       "REQ-4",
+       "REQ-18",
+       "REQ-19",
+       "REQ-21"
+      ],
+      "group": "Reports",
+      "states": [
+       "empty",
+       "loading",
+       "error"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Weekly utilization report",
+       "subtitle": "8–12 June 2026 · Generated Monday, 15 June at 8:05 AM Islamabad time",
+       "blocks": [
+        {
+         "type": "stats",
+         "items": [
+          {
+           "label": "Spaces released",
+           "value": "14",
+           "delta": "This week"
+          },
+          {
+           "label": "Temporary claims",
+           "value": "21",
+           "delta": "This week"
+          },
+          {
+           "label": "Overall utilization",
+           "value": "83.6%",
+           "delta": "5 working days"
+          }
+         ]
+        },
+        {
+         "type": "chart",
+         "kind": "bar",
+         "title": "Daily utilization",
+         "points": [
+          {
+           "label": "Mon 8",
+           "value": 82
+          },
+          {
+           "label": "Tue 9",
+           "value": 86
+          },
+          {
+           "label": "Wed 10",
+           "value": 79
+          },
+          {
+           "label": "Thu 11",
+           "value": 91
+          },
+          {
+           "label": "Fri 12",
+           "value": 80
+          },
+          {
+           "label": "Sat 13",
+           "value": 0
+          },
+          {
+           "label": "Sun 14",
+           "value": 0
+          }
+         ],
+         "max": 100,
+         "unit": "%",
+         "series": [
+          "Dedicated",
+          "Temporary"
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Employee",
+          "Parking",
+          "Unused event",
+          "Date"
+         ],
+         "rows": [
+          [
+           "Bilal Ahmed",
+           "Temporary",
+           "Unused Temporary Parking",
+           "8 Jun"
+          ],
+          [
+           "Aisha Rahman",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "9 Jun"
+          ],
+          [
+           "Omar Farooq",
+           "Temporary",
+           "Unused Temporary Parking",
+           "10 Jun"
+          ],
+          [
+           "Sara Malik",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "11 Jun"
+          ],
+          [
+           "Zara Iqbal",
+           "Temporary",
+           "Unused Temporary Parking",
+           "12 Jun"
+          ]
+         ],
+         "sortBy": 3,
+         "sortDir": "asc",
+         "pages": 1,
+         "page": 1
+        },
+        {
+         "type": "text",
+         "body": "Monday–Friday are working days, including holidays. Utilization reporting in Phase 1 does not create warnings, suspensions or penalties."
+        }
+       ]
+      },
+      "mockFull": {
+       "title": "Weekly utilization report",
+       "subtitle": "8–12 June 2026 · Generated Monday, 15 June at 8:05 AM Islamabad time",
+       "blocks": [
+        {
+         "type": "stats",
+         "items": [
+          {
+           "label": "Spaces released",
+           "value": "14",
+           "delta": "This week"
+          },
+          {
+           "label": "Temporary claims",
+           "value": "21",
+           "delta": "This week"
+          },
+          {
+           "label": "Overall utilization",
+           "value": "83.6%",
+           "delta": "5 working days"
+          }
+         ]
+        },
+        {
+         "type": "chart",
+         "kind": "bar",
+         "title": "Daily utilization",
+         "points": [
+          {
+           "label": "Mon 8",
+           "value": 82
+          },
+          {
+           "label": "Tue 9",
+           "value": 86
+          },
+          {
+           "label": "Wed 10",
+           "value": 79
+          },
+          {
+           "label": "Thu 11",
+           "value": 91
+          },
+          {
+           "label": "Fri 12",
+           "value": 80
+          },
+          {
+           "label": "Sat 13",
+           "value": 0
+          },
+          {
+           "label": "Sun 14",
+           "value": 0
+          }
+         ],
+         "max": 100,
+         "unit": "%",
+         "series": [
+          "Dedicated",
+          "Temporary"
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Employee",
+          "Parking",
+          "Unused event",
+          "Date"
+         ],
+         "rows": [
+          [
+           "Bilal Ahmed",
+           "Temporary",
+           "Unused Temporary Parking",
+           "8 Jun"
+          ],
+          [
+           "Aisha Rahman",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "9 Jun"
+          ],
+          [
+           "Omar Farooq",
+           "Temporary",
+           "Unused Temporary Parking",
+           "10 Jun"
+          ],
+          [
+           "Sara Malik",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "11 Jun"
+          ],
+          [
+           "Zara Iqbal",
+           "Temporary",
+           "Unused Temporary Parking",
+           "12 Jun"
+          ],
+          [
+           "Hina Shah",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "8 Jun"
+          ],
+          [
+           "Usman Tariq",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "10 Jun"
+          ],
+          [
+           "Nadia Khan",
+           "Temporary",
+           "Unused Temporary Parking",
+           "11 Jun"
+          ],
+          [
+           "Faraz Siddiqui",
+           "Dedicated",
+           "Unused Dedicated Parking",
+           "12 Jun"
+          ],
+          [
+           "Mariam Ali",
+           "Temporary",
+           "Unused Temporary Parking",
+           "9 Jun"
+          ]
+         ],
+         "sortBy": 3,
+         "sortDir": "asc",
+         "pages": 2,
+         "page": 1
+        },
+        {
+         "type": "text",
+         "body": "Monday–Friday are working days, including holidays. Utilization reporting in Phase 1 does not create warnings, suspensions or penalties."
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No utilization records for this week",
+       "emptyHint": "The report will appear after the Monday morning office-time run.",
+       "error": "The latest utilization report could not load. The last generated report remains available."
+      }
+     },
+     {
+      "id": "S-10",
+      "route": "/admin/settings/office",
+      "file": "src/pages/admin/office-settings.tsx",
+      "reqs": [
+       "REQ-8",
+       "REQ-9",
+       "REQ-20"
+      ],
+      "group": "Administration",
+      "states": [
+       "loading",
+       "error",
+       "success",
+       "validation"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Office parking settings",
+       "subtitle": "Release cutoffs and weekly report schedules use the office-local timezone.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Office timezone",
+           "kind": "select",
+           "options": [
+            "Asia/Karachi · Islamabad office",
+            "Asia/Dubai",
+            "UTC"
+           ],
+           "value": "Asia/Karachi · Islamabad office",
+           "required": true
+          },
+          {
+           "label": "Daily release time",
+           "kind": "time",
+           "value": "08:00",
+           "required": true,
+           "help": "Default is 8:00 AM. Applies to scheduled releases and weekly report timing."
+          },
+          {
+           "label": "Weekly report recipients",
+           "kind": "multiselect",
+           "options": [
+            "parking-ops@folio3.com",
+            "facilities@folio3.com",
+            "people-team@folio3.com"
+           ],
+           "value": "parking-ops@folio3.com, facilities@folio3.com",
+           "required": true,
+           "help": "Only authenticated parking administrators can change this list."
+          }
+         ],
+         "submit": "Save office settings"
+        },
+        {
+         "type": "detail",
+         "title": "Report schedule",
+         "rows": [
+          {
+           "label": "Run time",
+           "value": "Monday morning · office time"
+          },
+          {
+           "label": "Delivery",
+           "value": "Email to the saved stakeholder list"
+          },
+          {
+           "label": "Access",
+           "value": "Parking administrators only"
+          }
+         ]
+        }
+       ]
+      },
+      "copy": {
+       "error": "Office settings could not be saved. Your previous release time and recipients remain active.",
+       "success": "Office release time and report recipients are saved.",
+       "validation": "Choose a timezone and release time, and keep at least one report recipient."
+      }
+     },
+     {
+      "id": "S-11",
+      "route": "/admin/activity",
+      "file": "src/pages/admin/activity.tsx",
+      "reqs": [
+       "REQ-5",
+       "REQ-7",
+       "REQ-18",
+       "REQ-22"
+      ],
+      "group": "Operations",
+      "states": [
+       "empty",
+       "loading",
+       "error"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Parking activity history",
+       "subtitle": "Release, claim, entry-verification and utilization events retained under Folio3's records-retention policy.",
+       "blocks": [
+        {
+         "type": "toolbar",
+         "search": "Search employee, plate or event",
+         "selects": [
+          {
+           "label": "Event type",
+           "options": [
+            "All events",
+            "Release",
+            "Claim",
+            "LPR verification",
+            "Utilization"
+           ],
+           "value": "All events"
+          }
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Office time",
+          "Employee",
+          "Event",
+          "Space / plate",
+          "Outcome"
+         ],
+         "rows": [
+          [
+           "16 Jun · 8:04 AM",
+           "Aisha Rahman",
+           "Same-day release",
+           "B2-114",
+           "Released"
+          ],
+          [
+           "16 Jun · 8:07 AM",
+           "Bilal Ahmed",
+           "Temporary claim",
+           "B2-08 · KLG-4821",
+           "Claimed"
+          ],
+          [
+           "15 Jun · 3:22 PM",
+           "Hina Shah",
+           "Release cancelled",
+           "C1-032",
+           "Reserved"
+          ],
+          [
+           "15 Jun · 8:14 AM",
+           "Omar Farooq",
+           "LPR verification",
+           "RWP-3168",
+           "Unused Temporary Parking"
+          ],
+          [
+           "15 Jun · 8:05 AM",
+           "System",
+           "Weekly utilization",
+           "8–12 Jun",
+           "Report generated"
+          ]
+         ],
+         "statusColumn": 4,
+         "sortBy": 0,
+         "sortDir": "desc",
+         "pages": 12,
+         "page": 1
+        }
+       ]
+      },
+      "mockFull": {
+       "title": "Parking activity history",
+       "subtitle": "Release, claim, entry-verification and utilization events retained under Folio3's records-retention policy.",
+       "blocks": [
+        {
+         "type": "toolbar",
+         "search": "Search employee, plate or event",
+         "selects": [
+          {
+           "label": "Event type",
+           "options": [
+            "All events",
+            "Release",
+            "Claim",
+            "LPR verification",
+            "Utilization"
+           ],
+           "value": "All events"
+          }
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Office time",
+          "Employee",
+          "Event",
+          "Space / plate",
+          "Outcome"
+         ],
+         "rows": [
+          [
+           "16 Jun · 8:04 AM",
+           "Aisha Rahman",
+           "Same-day release",
+           "B2-114",
+           "Released"
+          ],
+          [
+           "16 Jun · 8:07 AM",
+           "Bilal Ahmed",
+           "Temporary claim",
+           "B2-08 · KLG-4821",
+           "Claimed"
+          ],
+          [
+           "15 Jun · 3:22 PM",
+           "Hina Shah",
+           "Release cancelled",
+           "C1-032",
+           "Reserved"
+          ],
+          [
+           "15 Jun · 8:14 AM",
+           "Omar Farooq",
+           "LPR verification",
+           "RWP-3168",
+           "Unused Temporary Parking"
+          ],
+          [
+           "15 Jun · 8:05 AM",
+           "System",
+           "Weekly utilization",
+           "8–12 Jun",
+           "Report generated"
+          ],
+          [
+           "15 Jun · 7:54 AM",
+           "Hina Shah",
+           "Permanent sticker entry",
+           "ICT-6612",
+           "Temporary allocation cancelled"
+          ],
+          [
+           "15 Jun · 7:43 AM",
+           "System",
+           "LPR verification",
+           "RWP-3168",
+           "Denied · plate unreadable"
+          ],
+          [
+           "12 Jun · 8:00 AM",
+           "Zara Iqbal",
+           "Scheduled release",
+           "B1-207",
+           "Released"
+          ],
+          [
+           "11 Jun · 8:26 AM",
+           "Sara Malik",
+           "Dedicated entry",
+           "ISB-7405",
+           "Utilized"
+          ],
+          [
+           "10 Jun · 8:05 AM",
+           "System",
+           "Utilization event",
+           "KLG-4821",
+           "Unused Temporary Parking"
+          ]
+         ],
+         "statusColumn": 4,
+         "sortBy": 0,
+         "sortDir": "desc",
+         "pages": 12,
+         "page": 1
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No parking activity yet",
+       "emptyHint": "Saved releases, claims, entrance checks and utilization events will appear here.",
+       "error": "Activity history could not refresh. Previously loaded records are still shown."
+      }
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-13",
+      "reason": "Eligible employees receive the fixed-template availability email in their mail client; automated delivery does not require a page in the parking web app."
+     },
+     {
+      "req": "REQ-20",
+      "reason": "Sending each generated report to the saved recipients is an office-time email job; the administrator-facing recipient editor is on S-10."
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

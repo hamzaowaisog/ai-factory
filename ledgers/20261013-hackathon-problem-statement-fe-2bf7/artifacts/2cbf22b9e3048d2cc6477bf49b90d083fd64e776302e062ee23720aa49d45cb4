@@ -1,0 +1,1490 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Core API bootstrap, authentication, dashboard, and lot list",
+      "reqs": [
+       "REQ-2: deliver sign-in/session, dashboard ranking, and filtered lot-list operations, including the stated absence of an extra authorizedYards list restriction.",
+       "Establish the endpoint-discovery, authentication/error, persistence-model discovery, migration, and seed-discovery conventions used by later working slices."
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/appsettings.json",
+       "App.Api/Endpoints/IEndpointDefinition.cs",
+       "App.Api/Endpoints/EndpointRegistration.cs",
+       "App.Api/Endpoints/AuthEndpoints.cs",
+       "App.Api/Endpoints/DashboardLotEndpoints.cs",
+       "App.Api/Entities/Identity/**",
+       "App.Api/Configurations/Identity/**",
+       "App.Api/Entities/Yards/**",
+       "App.Api/Configurations/Yards/**",
+       "App.Api/Seeders/IDemoSeeder.cs",
+       "App.Api/Seeders/IdentitySeeder.cs",
+       "App.Api/Seeders/YardSeeder.cs",
+       "App.Api/Migrations/202610130001_InitialCore.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Endpoint implementation classes implement IEndpointDefinition and are discovered by convention; only this task changes the startup/registration files.",
+       "Entities stay internal and are registered through IEntityTypeConfiguration discovery, so later slices add tables without changing AppDb.cs.",
+       "IDemoSeeder implementations are discovered and ordered; each writes 3–5 representative rows only to its own empty tables and surfaces write failures.",
+       "Use custom bearer-token authentication and contract-shaped error responses without introducing a package dependency or an undocumented API route.",
+       "Migration is additive and non-destructive; call Database.Migrate at startup while retaining the existing OpenAPI/Swagger and root health endpoint."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 1900,
+      "complexity": "standard",
+      "approach": "Wire startup once: add migration execution, authentication, shared error handling, and convention discovery for endpoint definitions, EF configurations, migrations, and seeders. Implement /api/auth/sign-in, /api/session, /api/dashboard, and /api/lots in this slice, with exact contract names/statuses. Add core identity/yard/pen/lot entities and initial migration here. Declare Authentication:SigningKey with an empty value in appsettings.json; allow deployments to supply it through configuration."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Procurement imports and traceability allocations",
+      "reqs": [
+       "REQ-3: preview mock source records, import selected records with correct matching/count/conflict results, and persist/read PO-line-to-lot and lot-to-pen allocations."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ImportAllocationEndpoints.cs",
+       "App.Api/Imports/ISourceRecordsAdapter.cs",
+       "App.Api/Imports/MockSourceRecordsAdapter.cs",
+       "App.Api/Entities/Imports/**",
+       "App.Api/Configurations/Imports/**",
+       "App.Api/Seeders/ImportSeeder.cs",
+       "App.Api/Migrations/202610130002_ImportsAllocations.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Add a discovered endpoint-definition class; do not edit Program.cs or the shared route registration.",
+       "The source adapter has one injectable interface seam; the mock implementation is registered with services and tests may substitute a stand-in.",
+       "Persist import matching and allocations using the task's entity configurations; validate conflict/invalid cases to the exact 409/422 operation responses.",
+       "The mock adapter has no remote host, port, sender, or key settings."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1500,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add the source adapter seam and in-process mock provider, then implement GET /imports/source-records, POST /imports, GET /allocations, and PUT /allocations as a complete API slice. Import is an upsert by source identifier: repeat imports update rather than duplicate, return accurate createdCount/updatedCount, and report mapped-head conflicts. Add its schema migration and an ordered demo seeder."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Operational inventory, movements, projections, and export",
+      "reqs": [
+       "REQ-5: read and persist inventory items and movements; calculate operational totals and horizon projections; validate inputs and export operational inventory as a Base64 CSV artifact."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/InventoryEndpoints.cs",
+       "App.Api/Entities/Inventory/**",
+       "App.Api/Configurations/Inventory/**",
+       "App.Api/Seeders/InventorySeeder.cs",
+       "App.Api/Migrations/202610130003_Inventory.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use the endpoint-definition discovery and configuration discovery established by TASK-1; do not edit shared startup or AppDb files.",
+       "Persist receipt/adjustment movements and derive stock from opening stock plus movements; use exact horizon enum validation and contract response field names.",
+       "Keep sample and operational records distinguishable, and build exports from operational database rows only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1500,
+      "complexity": "standard",
+      "approach": "Add inventory item/movement entities, their configuration, migration, and empty-table-only seeder. Wire GET /inventory, POST /inventory/items, PATCH /inventory/items/{itemId}, POST /inventory/movements, GET /inventory/projections, and GET /inventory/export in the same slice; compute stock totals and projection rows from persisted movements/plans and return the contract's exact statuses and shapes."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Rations, optimization, approvals, and feed plans",
+      "reqs": [
+       "REQ-6: read/create/revise rations, evaluate candidate mixes against requirements, and approve eligible rations with contract results.",
+       "REQ-7: list/create feed plans and persist review and execution-state changes with calculated response values."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/RationPlanEndpoints.cs",
+       "App.Api/Entities/Rations/**",
+       "App.Api/Configurations/Rations/**",
+       "App.Api/Entities/FeedPlans/**",
+       "App.Api/Configurations/FeedPlans/**",
+       "App.Api/Seeders/RationPlanSeeder.cs",
+       "App.Api/Migrations/202610130004_RationsFeedPlans.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Register endpoints and EF configurations by the established conventions; leave shared files unchanged.",
+       "Ration ingredient rows reference inventory items; plan lot membership and audit history are explicit persisted relations.",
+       "Compute ration and plan response quantities/cost/energy from saved inputs and enforce optimization qualification, approval, review, and status rules."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3"
+      ],
+      "plannedLoc": 2400,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add ration, ingredient, candidate-mix, feed-plan, plan-lot, and audit entities with their migration and ordered seeder. In the same slice wire GET/POST/PATCH /rations, POST /rations/optimization, POST /rations/{rationId}/approval, GET/POST /feed-plans, POST /feed-plans/{planId}/review, and PATCH /feed-plans/{planId}/status. Return computed values and exact contract statuses; reject invalid and conflicting transitions rather than silently changing state."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Feeding event ledger and inventory reconciliation",
+      "reqs": [
+       "REQ-8: list/create/correct/void feeding events with per-lot allocations, variance/cost/energy, movements, and updated lot totals; persist writes across restart and reconcile stock without double-applying corrections or voids."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/FeedingEventEndpoints.cs",
+       "App.Api/Entities/Feeding/**",
+       "App.Api/Configurations/Feeding/**",
+       "App.Api/Seeders/FeedingSeeder.cs",
+       "App.Api/Migrations/202610130005_FeedingEvents.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use event and per-lot allocation entities plus the existing inventory-movement entity; do not add a second independent stock ledger.",
+       "Corrections deactivate/replace the prior movement effect, and voids are idempotently rejected or reported as conflicts so reversals cannot be applied twice.",
+       "Write event, allocation, movement, and affected stock state transactionally; use exact declared 201/200/409/422 responses."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3",
+       "TASK-4"
+      ],
+      "plannedLoc": 1900,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add feeding events, event-to-lot allocations, and migration/seeder. Wire GET/POST /feeding-events, PATCH /feeding-events/{eventId}, and POST /feeding-events/{eventId}/void together with calculations and database transactions. Reconcile inventory from opening stock and persisted active receipts, adjustments, and event movements; retain the audit trail while ensuring a corrected or voided event is counted once or not at all."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Lot forecasts, metrics, insights, and weight history",
+      "reqs": [
+       "REQ-4: return forecasts and effective settings; persist yard/lot setting updates; calculate metrics; return explainable insights; execute explicit planner actions; read and write weight history."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/LotAnalyticsEndpoints.cs",
+       "App.Api/Entities/Weights/**",
+       "App.Api/Configurations/Weights/**",
+       "App.Api/Seeders/WeightSeeder.cs",
+       "App.Api/Migrations/202610130006_LotAnalytics.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Forecast defaults are stored on Yard and lot overrides on Lot as introduced in TASK-1; do not duplicate those columns or edit their configuration files.",
+       "Persist weight measurements with a user relation; expose GET weight history directly and order measurements by date.",
+       "Use feeding event and lot records already available for calculated feed metrics; insights are explainable and actions change only the explicitly selected plan/sale value."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-5"
+      ],
+      "plannedLoc": 1800,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add weight-measurement persistence and migration/seeder, then wire GET /lots/{lotId}/forecast, PATCH /forecast-settings, PATCH /lots/{lotId}/forecast-settings, GET /lots/{lotId}/metrics, GET /lots/{lotId}/insights, POST /lots/{lotId}/insights/actions, and GET/POST /lots/{lotId}/weights. Handle missing lots and invalid weight/settings inputs with exact contract errors; return the GET history itself in date order."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Reports, exports, and sample-data management; contract completion",
+      "reqs": [
+       "REQ-9: serve filtered operational, feed-to-gain, and profitability reports/exports with the independent view/export permission behavior in the approved criteria.",
+       "REQ-10: read/load/reset/replace sample records, avoid duplicate loads, and require confirmation before destructive operations.",
+       "REQ-1: complete all and only the locked OpenAPI operations with exact methods, paths, status codes, request/response fields, authentication behavior, and no product screens.",
+       "REQ-11: complete additive PostgreSQL schema upgrades without losing prior data and verify the final schema includes all persisted domain tables.",
+       "REQ-12: demonstrate startup seeding of 3–5 representative rows per application table only when empty, with surfaced failures.",
+       "REQ-13: ensure empty database collections are empty and valid write-created records are returned, while source-adapter preview remains independent of App database emptiness."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ReportSampleEndpoints.cs",
+       "App.Api/Entities/Samples/**",
+       "App.Api/Configurations/Samples/**",
+       "App.Api/Seeders/SampleSeeder.cs",
+       "App.Api/Migrations/202610130007_ReportsSamples.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "All new routes/configurations/seeders use the conventions established in TASK-1; do not modify startup, OpenAPI contract, test, CI, or build files.",
+       "Reports are calculated from saved authorized operational data and exports contain only filtered permitted rows; profitability view and export grants are independent.",
+       "Sample operations mutate only records marked sample; missing confirmation returns the exact contract-declared 422 validation error and makes no change.",
+       "Verify every OpenAPI operation is routed by its exact /api path and method and that no product screen or undocumented API route was added."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6"
+      ],
+      "plannedLoc": 2600,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add sample-record management persistence and migration/seeder, then wire the six report/export operations and GET/POST load/reset/replace sample operations. Use the existing saved data for report calculations and authorized exports. Finish with an operation-by-operation contract audit, empty-DB behavior check, migration-upgrade check, and 3–5 rows per empty application table check; do not change contracts/openapi.yaml."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPT-1",
+      "summary": "Convention-discovered Minimal API endpoint slices with normalized EF Core entities, additive migrations, and injectable source adapter.",
+      "simplest": false,
+      "tradeoffs": "More initial conventions and explicit relational/migration work, but routes are wired in their first functional slice, later tasks add only their own files, and normalized relations support traceability, reconciliation, and persistence checks."
+     },
+     {
+      "id": "OPT-2",
+      "summary": "Simplest: implement all operations in one large Program.cs endpoint map backed by a small set of JSON payload tables.",
+      "simplest": true,
+      "tradeoffs": "Fewer setup abstractions and initially faster, but one file becomes a high-conflict monolith, JSON payloads weaken database relation/key guarantees, and later endpoint/seed/schema changes are harder to isolate and verify."
+     }
+    ],
+    "chosen": "OPT-1",
+    "adr": "Choose convention-discovered Minimal API endpoint slices and normalized EF Core storage.\nTASK-1 owns startup wiring; later slices add only endpoint/entity/configuration/migration/seeder files.\nUse additive migrations, empty-table-only seeders, and an injectable in-process mock procurement seam; add no NuGet packages.\nKeep contracts/openapi.yaml locked and implement only its declared operations.",
+    "protectedPathsDeclared": [
+     "App.Api/Migrations/**"
+    ],
+    "newDependencies": [],
+    "stubs": [
+     {
+      "path": "App.Api/Endpoints/AuthEndpoints.cs",
+      "reason": "HTTP placeholder routes let API tests compile and call the declared operation paths before their implementations are complete; replace each throwing body in TASK-1.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class AuthEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapPost(\"/auth/sign-in\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/session\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Endpoints/DashboardLotEndpoints.cs",
+      "reason": "HTTP placeholder routes for TASK-1 operations; replace throwing bodies with contract-backed handlers.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class DashboardLotEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/dashboard\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/lots\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Endpoints/ImportAllocationEndpoints.cs",
+      "reason": "HTTP placeholder routes for the imports and allocation operations; replace throwing bodies in TASK-2.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class ImportAllocationEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/imports/source-records\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/imports\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/allocations\", () => { throw new NotImplementedException(); });\n        api.MapPut(\"/allocations\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Imports/ISourceRecordsAdapter.cs",
+      "reason": "Public seam for a test stand-in for the mock procurement/receiving source adapter.",
+      "content": "namespace App.Api.Imports;\npublic interface ISourceRecordsAdapter\n{\n    Task<IReadOnlyList<ImportSourceRecordDto>> GetAvailableRecordsAsync(CancellationToken cancellationToken);\n}\npublic sealed record ImportSourceRecordDto(\n    int Id,\n    string Vendor,\n    string SourceIdentifier,\n    double Cost,\n    int HeadCount,\n    double AnimalWeight,\n    string Breed,\n    string Age,\n    string Source,\n    string PurchaseOrder,\n    string Receiving,\n    string AnimalDescription,\n    string SourceLineId,\n    bool ExistingMatch,\n    string TargetPen,\n    string ReceivedResult,\n    string AdapterStatus,\n    bool SampleData);"
+     },
+     {
+      "path": "App.Api/Endpoints/InventoryEndpoints.cs",
+      "reason": "HTTP placeholder routes for inventory operations; replace throwing bodies in TASK-3.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class InventoryEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/inventory\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/inventory/items\", () => { throw new NotImplementedException(); });\n        api.MapPatch(\"/inventory/items/{itemId}\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/inventory/movements\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/inventory/projections\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/inventory/export\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Endpoints/RationPlanEndpoints.cs",
+      "reason": "HTTP placeholder routes for ration and feed-plan operations; replace throwing bodies in TASK-4.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class RationPlanEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/rations\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/rations\", () => { throw new NotImplementedException(); });\n        api.MapPatch(\"/rations/{rationId}\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/rations/optimization\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/rations/{rationId}/approval\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/feed-plans\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/feed-plans\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/feed-plans/{planId}/review\", () => { throw new NotImplementedException(); });\n        api.MapPatch(\"/feed-plans/{planId}/status\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Endpoints/FeedingEventEndpoints.cs",
+      "reason": "HTTP placeholder routes for feeding activity and correction/void operations; replace throwing bodies in TASK-5.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class FeedingEventEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/feeding-events\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/feeding-events\", () => { throw new NotImplementedException(); });\n        api.MapPatch(\"/feeding-events/{eventId}\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/feeding-events/{eventId}/void\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Endpoints/LotAnalyticsEndpoints.cs",
+      "reason": "HTTP placeholder routes for forecasts, metrics, insights, and weights; replace throwing bodies in TASK-6.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class LotAnalyticsEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/lots/{lotId}/forecast\", () => { throw new NotImplementedException(); });\n        api.MapPatch(\"/forecast-settings\", () => { throw new NotImplementedException(); });\n        api.MapPatch(\"/lots/{lotId}/forecast-settings\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/lots/{lotId}/metrics\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/lots/{lotId}/insights\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/lots/{lotId}/insights/actions\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/lots/{lotId}/weights\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/lots/{lotId}/weights\", () => { throw new NotImplementedException(); });\n    }\n}"
+     },
+     {
+      "path": "App.Api/Endpoints/ReportSampleEndpoints.cs",
+      "reason": "HTTP placeholder routes for reports and sample-data operations; replace throwing bodies in TASK-7.",
+      "content": "using Microsoft.AspNetCore.Routing;\nnamespace App.Api.Endpoints;\ninternal sealed class ReportSampleEndpoints : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints)\n    {\n        var api = endpoints.MapGroup(\"/api\");\n        api.MapGet(\"/reports/operational\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/reports/operational/export\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/reports/feed-to-gain\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/reports/feed-to-gain/export\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/reports/profitability\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/reports/profitability/export\", () => { throw new NotImplementedException(); });\n        api.MapGet(\"/sample-data\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/sample-data/load\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/sample-data/reset\", () => { throw new NotImplementedException(); });\n        api.MapPost(\"/sample-data/replace\", () => { throw new NotImplementedException(); });\n    }\n}"
+     }
+    ],
+    "dataModel": {
+     "tables": [
+      {
+       "name": "Yards",
+       "purpose": "Stores yard identity and default forecast assumptions.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "TargetWeight",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "ExpectedGainRate",
+         "type": "decimal",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Pens",
+       "purpose": "Stores pen capacity and yard membership.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "YardId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Yards",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "PenCode",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Capacity",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "CurrentHead",
+         "type": "int",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "YardId",
+         "PenCode"
+        ]
+       ]
+      },
+      {
+       "name": "Lots",
+       "purpose": "Stores lot identity, physical state, forecast overrides, and source financial facts.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "PenId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "LotCode",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Breed",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "AnimalClass",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Sex",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "Head",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "ReceivingDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "EntryAverageWeight",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "CurrentAverageWeight",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "TargetWeightOverride",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "ExpectedGainRateOverride",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "ReturnedInvestment",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "TotalGainValue",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "PlannedSaleDate",
+         "type": "date",
+         "required": false
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Users",
+       "purpose": "Stores sign-in identity and password hash for API users.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Email",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "PasswordHash",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "LandingPage",
+         "type": "string",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Permissions",
+       "purpose": "Stores permission codes returned in sessions and enforced for protected actions.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Code",
+         "type": "string",
+         "required": true,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "name": "UserPermissions",
+       "purpose": "Links users to their granted permissions.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "UserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "PermissionId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Permissions",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ],
+       "uniques": [
+        [
+         "UserId",
+         "PermissionId"
+        ]
+       ]
+      },
+      {
+       "name": "UserYards",
+       "purpose": "Links users to the yards authorized in their session response.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "UserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "YardId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Yards",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        }
+       ],
+       "uniques": [
+        [
+         "UserId",
+         "YardId"
+        ]
+       ]
+      },
+      {
+       "name": "ImportRecords",
+       "purpose": "Stores procurement records accepted by import and their current associated lot.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "SourceIdentifier",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Vendor",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Cost",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "HeadCount",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "AnimalWeight",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Breed",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Age",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Source",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "PurchaseOrder",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Receiving",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "AnimalDescription",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "TargetPen",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "LotId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "Lots",
+          "column": "Id",
+          "onDelete": "set-null"
+         }
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "PoLineAllocations",
+       "purpose": "Maps one imported PO line to a lot and stores its allocated head count.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ImportRecordId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "ImportRecords",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "LotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "AllocatedHead",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "TraceabilityStatus",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "ImportRecordId"
+        ]
+       ]
+      },
+      {
+       "name": "LotPenAllocations",
+       "purpose": "Stores lot-to-pen head allocation quantities.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "LotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "PenId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "AllocatedHead",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "LotId",
+         "PenId"
+        ]
+       ]
+      },
+      {
+       "name": "InventoryItems",
+       "purpose": "Stores inventory item definitions and opening-stock source quantity.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Category",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Unit",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "UnitCost",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "DryMatterPercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "EnergyValue",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "StorageLocation",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "WastagePercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "OpeningStock",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "InventoryMovements",
+       "purpose": "Stores receipts, adjustments, consumption, and reversal ledger entries.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "InventoryItemId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "InventoryItems",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "MovementTime",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "StaffUserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "MovementType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Quantity",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "NetStockEffect",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Result",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Notes",
+         "type": "text",
+         "required": false
+        },
+        {
+         "name": "FeedingEventId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "FeedingEvents",
+          "column": "Id",
+          "onDelete": "set-null"
+         }
+        },
+        {
+         "name": "IsActive",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Rations",
+       "purpose": "Stores ration definitions and their approval state; nutrition and cost outputs are calculated from ingredients.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Type",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "IntendedAnimalType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "MinimumWeight",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "MaximumWeight",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "ApprovalStatus",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "RationIngredients",
+       "purpose": "Links ration definitions to inventory ingredients and their proportions.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Rations",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "InventoryItemId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "InventoryItems",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Proportion",
+         "type": "decimal",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "RationId",
+         "InventoryItemId"
+        ]
+       ]
+      },
+      {
+       "name": "RationCandidateMixes",
+       "purpose": "Stores candidate mix component proportions and supplied nutrition/cost profile inputs for optimization.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Corn",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Distillers",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Alfalfa",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Premix",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "CrudeProtein",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "NetEnergy",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "CostPerPound",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "FeedPlans",
+       "purpose": "Stores dated pen/ration plans, operator assignment, and mutable execution/review state.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Date",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "PenId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "RationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Rations",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "BunkRate",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "AnimalCount",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "PlannedTime",
+         "type": "time",
+         "required": true
+        },
+        {
+         "name": "AssignedOperatorUserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ReviewRequired",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "Date",
+         "PenId"
+        ]
+       ]
+      },
+      {
+       "name": "FeedPlanLots",
+       "purpose": "Links plans to the lots included in each pen-level plan.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "FeedPlanId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "FeedPlans",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "LotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        }
+       ],
+       "uniques": [
+        [
+         "FeedPlanId",
+         "LotId"
+        ]
+       ]
+      },
+      {
+       "name": "PlanAudits",
+       "purpose": "Stores feed-plan review and execution state changes for audit history.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "FeedPlanId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "FeedPlans",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "ChangedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ChangedByUserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "Action",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "PreviousStatus",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "NewStatus",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Notes",
+         "type": "text",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "FeedingEvents",
+       "purpose": "Stores feeding event source quantities, pen/ration/operator, and current event state.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "DateTime",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "PenId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "RationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Rations",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "OperatorUserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "PlannedQuantity",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "DeliveredQuantity",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "FeedingEventLotAllocations",
+       "purpose": "Stores delivered feed allocation and head count for each event lot.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "FeedingEventId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "FeedingEvents",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "LotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "DeliveredQuantity",
+         "type": "decimal",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "FeedingEventId",
+         "LotId"
+        ]
+       ]
+      },
+      {
+       "name": "WeightMeasurements",
+       "purpose": "Stores dated lot weight measurements and recorder identity.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "LotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "MeasuredAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "AnimalsWeighed",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "AverageAnimalWeight",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "TotalLotWeight",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "Notes",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "RecordedByUserId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Users",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "SampleRecords",
+       "purpose": "Tracks sample-record identity, classification, status, and isolation explanation.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Entity",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "RecordId",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "RecordType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "IsolationScope",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "SampleData",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 15,
+   "resultChars": 148,
+   "isError": true,
+   "result": "The result doesn't match the schema: dataModel.tables.8.uniques.0: Too small: expected array to have >=2 items. Fix it and call submit_result again."
+  }
+ ]
+}

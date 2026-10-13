@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "asyncUtilTimeout|configure\\(|waitFor\\s*\\(",
+    "glob": "tests/**"
+   },
+   "ms": 2,
+   "resultChars": 732,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;asyncUtilTimeout|configure\\\\(|waitFor\\\\s*\\\\(&quot;,&quot;glob&quot;:&quot;tests/**&quot;}\">\ntests/acceptance.test.tsx:121: await waitFor(() => expect(blobs).toHaveLength(1));\ntests/acceptance.test.tsx:137: await waitFor(() => expect(nav.went).toContain(\"/yard\"));\ntests/acceptance.test.tsx:457: await waitFor(() => expect(requestedHorizons.slice(callsBeforeSelection)).toContain(value));\ntests/acceptance.test.tsx:1042: await waitFor(() => expect(requestedMeasures.slice(callsBeforeSelection)).toContain(value));\ntests/acceptance.test.tsx:1108: await waitFor(() => expect(reportQueries.some((query) => query.includes(\"penId=12\"))).toBe(true));\n</untrusted_document>"
+  }
+ ]
+}

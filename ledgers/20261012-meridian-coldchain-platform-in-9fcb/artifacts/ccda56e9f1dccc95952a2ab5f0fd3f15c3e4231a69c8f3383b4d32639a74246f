@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route stops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-page: #F7F7F7;
+      --bg-panel: #FFFFFF;
+      --text-main: #202020;
+      --text-muted: #626262;
+      --border-color: #D5D5D5;
+      --accent: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* 2px corners rule */
+    .corner-2px {
+      border-radius: 2px;
+    }
+
+    /* Motion tokens & keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-handoff-anim {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Control interaction states */
+    .btn-primary {
+      background-color: var(--accent);
+      color: #FFFFFF;
+      height: 48px;
+      border-radius: 2px;
+      font-weight: 600;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+      transition: background-color 150ms ease, transform 90ms ease;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary:hover {
+      background-color: #933f17;
+    }
+    .btn-primary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--accent);
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: var(--text-main);
+      height: 48px;
+      border-radius: 2px;
+      border: 1px solid var(--border-color);
+      font-weight: 500;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #BFBFBF;
+    }
+    .btn-secondary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--accent);
+    }
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .control-link {
+      color: var(--text-main);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      font-weight: 500;
+      transition: color 150ms ease;
+    }
+    .control-link:hover {
+      color: var(--accent);
+    }
+    .control-link:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    /* Menu item active */
+    .menu-item-active {
+      border-bottom: 2px solid var(--accent);
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-delay: -1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        background-attachment: initial !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Header (Identical across application) -->
+  <header class="bg-white border-b border-[#D5D5D5] h-16 w-full">
+    <div class="max-w-[1280px] mx-auto px-6 h-full flex items-center justify-between">
+      <!-- Left: Logo + Menu -->
+      <div class="flex items-center space-x-8">
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 bg-[#202020] corner-2px flex items-center justify-center">
+            <span class="text-white font-heading font-bold text-xs leading-none">M</span>
+          </div>
+          <span class="font-heading font-bold text-lg text-[#202020] tracking-tight">Meridian</span>
+        </div>
+
+        <nav class="flex items-center space-x-6 h-16">
+          <a href="#" class="h-full flex items-center text-[#202020] text-sm menu-item-active px-1">Today's routes</a>
+          <a href="#" class="h-full flex items-center text-[#626262] text-sm hover:text-[#202020] px-1 transition-colors">Pending work</a>
+        </nav>
+      </div>
+
+      <!-- Right: Driver Info + Lang -->
+      <div class="flex items-center space-x-6 text-sm text-[#202020]">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-7 h-7 bg-[#EAEAEA] corner-2px border border-[#D5D5D5] flex items-center justify-center text-xs font-semibold text-[#202020]">
+            TM
+          </div>
+          <span class="font-medium">Tariq Mansour · Driver</span>
+        </div>
+        <div class="text-[#626262] text-sm">
+          <span>EN</span> / <span class="text-[#626262]">العربية</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-[1280px] mx-auto px-6 py-8 animate-entrance">
+    <!-- Page Heading -->
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="font-heading text-[28px] font-[650] leading-tight text-[#202020]">Route stops</h1>
+      <div>
+        <a href="#" class="btn-primary">Load boxes</a>
+      </div>
+    </div>
+
+    <!-- Route summary banner / vehicle panel -->
+    <div class="bg-white border border-[#D5D5D5] corner-2px p-4 mb-8">
+      <div class="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+        <!-- Route and Vehicle Details -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <span class="text-[#626262] text-sm">Route</span>
+            <span class="font-mono-num font-semibold text-2xl text-[#202020]">R-204</span>
+            <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+              <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+              good
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[#202020]">
+            <div>
+              <span class="text-[#626262]">Vehicle:</span>
+              <span class="font-mono-num font-medium ml-1">VAN-27</span>
+              <span class="text-[#626262] ml-1">(plate <span class="font-mono-num">MTR-482</span>)</span>
+            </div>
+            <div>
+              <span class="text-[#626262]">Driver:</span>
+              <span class="font-medium ml-1">Tariq Mansour</span>
+            </div>
+            <div>
+              <span class="text-[#626262]">Consigned cargo:</span>
+              <span class="ml-1">Order <span class="font-mono-num">O-299</span> (<span class="font-mono-num">20</span> packs in <span class="font-mono-num">B-701</span> & <span class="font-mono-num">B-702</span>)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact Real White-Van Photograph (4:3 aspect ratio) -->
+        <div class="w-48 h-36 flex-shrink-0 corner-2px overflow-hidden border border-[#D5D5D5] bg-[#F7F7F7]">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1V6kxYXeODWvoVpe_AFHY4zsq216s3f0d3gRHvPhp40XlRK89pWY1jPW_fFhbYpRHAg1_GLjHxB-FI97c57LzSDBD1Hkjp0ljamOnEHEiCjXr-WXPbXNQohpZVStaEUMYdNNPm4wCbrUKRHPk9LUzi8cPB4mbUsQFeYIrxYsTYCb9B7tJ5XwjSuUWt4duyQ8iGzf2XMDVg_eov4oLCi_E4150eyJh3A7ZJyCpDoqQIYq3sgPEIJV-QGZSw" alt="White refrigerated delivery van VAN-27" class="w-full h-full object-cover">
+        </div>
+      </div>
+    </div>
+
+    <!-- Ordered Stops Section -->
+    <section class="space-y-8">
+      <div class="flex items-center justify-between">
+        <h2 class="font-heading text-[20px] font-[650] text-[#202020]">Ordered stops</h2>
+        <span class="text-sm text-[#626262]">1 stop planned</span>
+      </div>
+
+      <!-- Stop 1 Container Panel -->
+      <div class="bg-white border border-[#D5D5D5] corner-2px overflow-hidden">
+        <!-- Stop Header Bar -->
+        <div class="p-4 border-b border-[#D5D5D5] flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-start gap-4">
+            <div class="w-8 h-8 bg-[#202020] text-white corner-2px flex items-center justify-center font-mono-num font-semibold text-sm">
+              1
+            </div>
+            <div>
+              <div class="flex items-center gap-3">
+                <h3 class="font-heading text-[16px] font-[600] text-[#202020]">Cedar Clinic</h3>
+                <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                  <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                  good
+                </span>
+              </div>
+              <p class="text-sm text-[#626262] mt-0.5">42 River Road, London</p>
+            </div>
+          </div>
+
+          <!-- Planned Time and Actions -->
+          <div class="flex items-center gap-6">
+            <div class="text-right">
+              <span class="text-xs text-[#626262] block">Planned arrival</span>
+              <span class="font-mono-num font-semibold text-base text-[#202020]">15:00 BST</span>
+              <span class="text-xs text-[#626262] block">14 May 2026</span>
+            </div>
+            <a href="#" class="btn-secondary">Stop detail</a>
+          </div>
+        </div>
+
+        <!-- Stop Specifications & Boxes Telemetry -->
+        <div class="p-4 space-y-4">
+          <!-- Consignment info summary -->
+          <div class="text-sm text-[#626262] flex flex-wrap items-center gap-x-6 gap-y-1 pb-2 border-b border-[#D5D5D5]">
+            <div>Consignment order: <span class="font-mono-num font-medium text-[#202020]">O-299</span></div>
+            <div>Product: <span class="text-[#202020]">Insulin Glargine 100 units/mL</span> (<span class="font-mono-num text-[#202020]">Lot IG-2511</span>)</div>
+            <div>Total allocated: <span class="font-mono-num font-medium text-[#202020]">20</span> packs</div>
+            <div>Packaging: <span class="text-[#202020]">Profile v3 (2.0°C – 8.0°C)</span></div>
+          </div>
+
+          <!-- Gateway Box Telemetry Table -->
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <span class="text-xs font-semibold text-[#626262] tracking-wider uppercase">Gateway box temperatures & reading times</span>
+              <span class="text-xs text-[#626262]">Assigned gateway datalogger telemetry</span>
+            </div>
+
+            <div class="border border-[#D5D5D5] corner-2px overflow-hidden">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-[#F7F7F7] border-b border-[#D5D5D5] h-10 text-xs text-[#626262]">
+                    <th class="px-4 font-semibold">Box identifier</th>
+                    <th class="px-4 font-semibold">Allocated packs</th>
+                    <th class="px-4 font-semibold">Datalogger gateway</th>
+                    <th class="px-4 font-semibold">Latest reading temperature</th>
+                    <th class="px-4 font-semibold">Reading time (BST)</th>
+                    <th class="px-4 font-semibold">Connection status</th>
+                    <th class="px-4 font-semibold text-right">Condition</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[#D5D5D5] text-sm text-[#202020]">
+                  <!-- Row 1: B-701 -->
+                  <tr class="h-12 hover:bg-[#FDFDFD]">
+                    <td class="px-4 font-mono-num font-semibold text-[#202020]">B-701</td>
+                    <td class="px-4"><span class="font-mono-num">12</span> packs</td>
+                    <td class="px-4 font-mono-num text-[#626262]">LOG-9921</td>
+                    <td class="px-4">
+                      <span class="font-mono-num font-semibold text-[#202020]">4.4°C</span>
+                      <span class="text-xs text-[#626262] ml-1.5">(permitted 2–8°C)</span>
+                    </td>
+                    <td class="px-4 font-mono-num">14:40</td>
+                    <td class="px-4">
+                      <span class="inline-flex items-center gap-1.5 text-xs text-[#24704B]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+                        Connected
+                      </span>
+                    </td>
+                    <td class="px-4 text-right">
+                      <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                        <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                        good
+                      </span>
+                    </td>
+                  </tr>
+
+                  <!-- Row 2: B-702 (Demonstrating cached reading stale while disconnected) -->
+                  <tr class="h-12 hover:bg-[#FDFDFD]">
+                    <td class="px-4 font-mono-num font-semibold text-[#202020]">B-702</td>
+                    <td class="px-4"><span class="font-mono-num">8</span> packs</td>
+                    <td class="px-4 font-mono-num text-[#626262]">LOG-8819</td>
+                    <td class="px-4">
+                      <span class="font-mono-num font-semibold text-[#202020]">4.8°C</span>
+                      <span class="text-xs text-[#805800] ml-1.5 font-medium">[cached reading stale]</span>
+                    </td>
+                    <td class="px-4 font-mono-num text-[#626262]">11:45</td>
+                    <td class="px-4">
+                      <span class="inline-flex items-center gap-1.5 text-xs text-[#805800]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#805800]"></span>
+                        Disconnected
+                      </span>
+                    </td>
+                    <td class="px-4 text-right">
+                      <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#24704B]">
+                        <span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+                        good
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Route changes notice row -->
+          <div class="pt-2 flex items-center justify-between text-sm">
+            <span class="text-[#626262]">Schedule and sequence updates returned from dispatch:</span>
+            <a href="#" class="control-link">Route changes</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

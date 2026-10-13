@@ -1,0 +1,1060 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recall response</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-failed: #AE2C2C;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Public Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFade {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-waiting {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-waiting);
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .status-dot-failed {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-failed);
+    }
+
+    .status-dot-good {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background-color: var(--text);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    nav.header-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-item {
+      color: var(--text-quiet);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      background-color: #EBEBEB;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+    }
+
+    .lang-switcher {
+      color: var(--text-quiet);
+      font-size: 13px;
+      border-left: 1px solid var(--border);
+      padding-left: 16px;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    /* Page Heading & Sub-bar */
+    .page-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    .action-header-link {
+      display: inline-flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .action-header-link:hover {
+      background: #FAFAFA;
+      border-color: #BDBDBD;
+    }
+
+    .metadata-line {
+      font-size: 14px;
+      color: var(--text-quiet);
+      margin-bottom: 24px;
+    }
+
+    .metadata-line .mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Panel Specifications */
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 650;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    /* Recall Lead Banner Panel */
+    .recall-lead-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+    }
+
+    .product-photo-wrap {
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background-color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .product-photo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .lead-info-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .lead-top-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .lead-headline {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .badge-status.refused {
+      color: var(--status-failed);
+    }
+
+    .badge-status.waiting {
+      color: var(--status-waiting);
+    }
+
+    .badge-status.good {
+      color: var(--status-good);
+    }
+
+    .lead-desc {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .lead-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .summary-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .summary-label {
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+
+    .summary-value {
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .summary-value.mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Form Section */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .label-hint {
+      font-size: 13px;
+      color: var(--text-quiet);
+      font-weight: 400;
+    }
+
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      color: var(--text);
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    input[type="number"] {
+      font-family: var(--font-mono);
+      font-size: 16px;
+    }
+
+    textarea {
+      height: 96px;
+      padding: 12px 16px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    /* Arithmetic Feedback Strip */
+    .arithmetic-bar {
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 16px 20px;
+      background: #FAFAFA;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .arithmetic-stat-group {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-quiet);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .arithmetic-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .arithmetic-status-pill.waiting {
+      color: var(--status-waiting);
+    }
+
+    .arithmetic-status-pill.failed {
+      color: var(--status-failed);
+    }
+
+    .arithmetic-status-pill.good {
+      color: var(--status-good);
+    }
+
+    .form-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+
+    button.btn-primary {
+      height: 48px;
+      padding: 0 24px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      border: 1px solid var(--primary);
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 150ms ease, transform 90ms ease;
+    }
+
+    button.btn-primary:hover {
+      opacity: 0.95;
+    }
+
+    button.btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-primary:disabled {
+      background-color: #C0C0C0;
+      border-color: #C0C0C0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.btn-secondary {
+      height: 48px;
+      padding: 0 20px;
+      background-color: var(--surface);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    button.btn-secondary:hover {
+      background: #FAFAFA;
+      border-color: #BDBDBD;
+    }
+
+    /* Returned Outcomes Panel (Initially hidden, revealed on primary save) */
+    #outcome-panel {
+      display: none;
+    }
+
+    #outcome-panel.visible {
+      display: block;
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Structured Table in Panel */
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+
+    .ledger-table th {
+      height: 48px;
+      padding: 0 16px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      background-color: #FAFAFA;
+    }
+
+    .ledger-table td {
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .ledger-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Key-Value Split in Panel */
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .kv-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kv-label {
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+
+    .kv-val {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .reconciliation-notice {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      background-color: #FAFAFA;
+      border-radius: 2px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .notice-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header: exact specification across Meridian platform -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="brand-icon">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="header-nav">
+        <a href="#" class="nav-item">Orders</a>
+        <a href="#" class="nav-item">Deliveries</a>
+        <a href="#" class="nav-item active">Recall notices</a>
+        <a href="#" class="nav-item">Account</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-avatar">HY</div>
+        <span>Hana Youssef · Cedar Health</span>
+      </div>
+      <div class="lang-switcher">
+        <span>EN / العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Work Area -->
+  <main>
+    <div class="page-title-row">
+      <h1>Recall response</h1>
+      <a href="#" class="action-header-link">Delivery detail</a>
+    </div>
+    <div class="metadata-line">
+      Prototype date: <span class="mono">14 May 2026</span> · Europe/London (BST) · Scope: Cedar Clinic consignment
+    </div>
+
+    <!-- Lead Section: Delivery reference & pack photo -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Lead consignment specification</h2>
+        <div class="badge-status refused">
+          <span class="status-dot-failed"></span>
+          <span>refused active (RC-12)</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="recall-lead-grid">
+          <div class="product-photo-wrap">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine 100 units/mL pack of 10 pens">
+          </div>
+          <div class="lead-info-col">
+            <div>
+              <div class="lead-top-row">
+                <div class="lead-headline">
+                  <span>RC-12 · O-290 · 20 IG-2509 packs delivered</span>
+                </div>
+              </div>
+              <p class="lead-desc">
+                Manufacturer defect notice <span class="mono">RC-12</span> covers lot <span class="mono">IG-2509</span> (expiry <span class="mono">30 Nov 2026</span>). Consignment <span class="mono">O-290</span> of 20 packs was delivered to Cedar Clinic on 13 May at 10:14 via route R-201 and received by Rania Karim. Four additional packs remain quarantined on hand at North Quay Warehouse Cold Room C2 Rack 4. Total traced scope is 24 packs.
+              </p>
+            </div>
+            <div class="lead-summary-grid">
+              <div class="summary-cell">
+                <span class="summary-label">Delivered quantity</span>
+                <span class="summary-value mono">20 packs</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Consignee destination</span>
+                <span class="summary-value">Cedar Clinic, 42 River Road</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Handover timestamp</span>
+                <span class="summary-value mono">13 May 2026 10:14 BST</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Customer reconciliation</span>
+                <span class="summary-value badge-status waiting" id="recon-status-text">
+                  <span class="status-dot-waiting"></span>
+                  <span>waiting response</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Focused Per-Delivery Response Form -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Per-delivery physical inventory form</h2>
+        <span class="badge-status waiting" id="form-header-badge">
+          <span class="status-dot-waiting"></span>
+          <span>waiting submission</span>
+        </span>
+      </div>
+      <div class="panel-body">
+        <form id="recall-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="input-onhand">
+                <span>Packs on hand (quarantined)</span>
+                <span class="label-hint">Available for pickup</span>
+              </label>
+              <input type="number" id="input-onhand" min="0" max="20" value="0" required="">
+            </div>
+
+            <div class="form-group">
+              <label for="input-used">
+                <span>Used or dispensed packs</span>
+                <span class="label-hint">Administered to patients</span>
+              </label>
+              <input type="number" id="input-used" min="0" max="20" value="0" required="">
+            </div>
+
+            <div class="form-group">
+              <label for="input-destroyed">
+                <span>Destroyed packs</span>
+                <span class="label-hint">Witnessed clinical disposal</span>
+              </label>
+              <input type="number" id="input-destroyed" min="0" max="20" value="0" required="">
+            </div>
+
+            <div class="form-group">
+              <label for="select-disposition">
+                <span>Stated disposition</span>
+              </label>
+              <select id="select-disposition" required="">
+                <option value="quarantine_return">Physical quarantine on-site pending carrier pickup</option>
+                <option value="witnessed_destruction">Clinical destruction logged under SOP-CC-204</option>
+                <option value="partial_dispensed">Mixed disposition: partial dispensed, balance segregated</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="input-notes">
+                <span>Clinical notes and technical verification</span>
+                <span class="label-hint">Authorized Cedar Health buyer statement</span>
+              </label>
+              <textarea id="input-notes" placeholder="Confirm physical storage location at clinic, serial seals, and local quarantine status...">Cedar Clinic pharmacy inspection confirms delivered shipper packs are physically isolated in secondary medicine storage awaiting logistics reconciliation.</textarea>
+            </div>
+          </div>
+
+          <!-- Live Arithmetic Feedback Strip -->
+          <div class="arithmetic-bar" id="arithmetic-bar">
+            <div class="arithmetic-stat-group">
+              <div class="stat-item">
+                <span class="stat-label">Delivered quota</span>
+                <span class="stat-val">20</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Accounted total</span>
+                <span class="stat-val" id="stat-accounted">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Remaining unaccounted</span>
+                <span class="stat-val" id="stat-unaccounted">20</span>
+              </div>
+            </div>
+            <div class="arithmetic-status-pill waiting" id="stat-pill">
+              <span class="status-dot-waiting" id="stat-dot"></span>
+              <span id="stat-message">waiting response: 20 packs remaining unaccounted</span>
+            </div>
+          </div>
+
+          <div class="form-actions-row">
+            <button type="button" class="btn-secondary">Reset fields</button>
+            <button type="submit" class="btn-primary" id="btn-save">
+              <span>Save response</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Primary Save response returned outcome panel (Rendered only after submission) -->
+    <section class="panel" id="outcome-panel">
+      <div class="panel-header">
+        <h2>Returned reconciliation and stock-block result</h2>
+        <div class="badge-status good">
+          <span class="status-dot-good"></span>
+          <span>good recorded</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="kv-grid" style="margin-bottom: 20px;">
+          <div class="kv-item">
+            <span class="kv-label">Reconciliation status</span>
+            <span class="kv-val mono badge-status good">
+              <span class="status-dot-good"></span>
+              <span id="out-recon-status">good complete (20/20 accounted)</span>
+            </span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Consignee stock block</span>
+            <span class="kv-val mono badge-status refused">
+              <span class="status-dot-failed"></span>
+              <span>refused locked (RC-12)</span>
+            </span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Authorized actor</span>
+            <span class="kv-val">Hana Youssef (Cedar Health)</span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Recorded timestamp</span>
+            <span class="kv-val mono">14 May 2026 10:25 BST</span>
+          </div>
+        </div>
+
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Audit parameter</th>
+              <th>Consignment scope</th>
+              <th>Customer declaration</th>
+              <th>Stock balance outcome</th>
+              <th>Governance state</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>On-hand quarantined</td>
+              <td class="mono">O-290 (20 packs)</td>
+              <td class="mono" id="out-onhand">0 packs</td>
+              <td>Segregated in Cedar Clinic fridge</td>
+              <td>
+                <span class="badge-status good">
+                  <span class="status-dot-good"></span>
+                  <span>good verified</span>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td>Used / Dispensed</td>
+              <td class="mono">O-290 (20 packs)</td>
+              <td class="mono" id="out-used">0 packs</td>
+              <td>Exempt from warehouse return</td>
+              <td>
+                <span class="badge-status good">
+                  <span class="status-dot-good"></span>
+                  <span>good acknowledged</span>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td>Destroyed on-site</td>
+              <td class="mono">O-290 (20 packs)</td>
+              <td class="mono" id="out-destroyed">0 packs</td>
+              <td>Witnessed disposal logged</td>
+              <td>
+                <span class="badge-status good">
+                  <span class="status-dot-good"></span>
+                  <span>good recorded</span>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td>Warehouse physical link</td>
+              <td class="mono">North Quay C2, Rack 4</td>
+              <td class="mono">4 packs on hand</td>
+              <td>Total 24 packs traced across depot &amp; clinic</td>
+              <td>
+                <span class="badge-status refused">
+                  <span class="status-dot-failed"></span>
+                  <span>refused (4 packs blocked)</span>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="reconciliation-notice">
+          <div class="notice-indicator" style="background-color: var(--status-good);"></div>
+          <div>
+            <strong>Returned reconciliation outcome:</strong> Customer inventory response for Order O-290 has been synchronized into the cold-chain assurance ledger. Quarantine release block is sealed against Lot IG-2509 under Recall Notice RC-12. No subsequent unverified orders can be dispatched from this batch.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Regulatory Audit & Custody Ledger -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Trace and custody audit ledger</h2>
+        <span class="mono" style="font-size: 14px; color: var(--text-quiet);">Lot IG-2509 · 24 packs scope</span>
+      </div>
+      <div class="panel-body" style="padding: 0;">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Timestamp (BST)</th>
+              <th>Operation / Event</th>
+              <th>Actor</th>
+              <th>Consignment &amp; Location</th>
+              <th>Recorded status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">14 May 2026 10:00</td>
+              <td>Active manufacturer recall RC-12 initiated</td>
+              <td>Nadia Farouk · Quality Manager</td>
+              <td>Lot IG-2509 (4 North Quay + 20 Cedar Clinic)</td>
+              <td>
+                <span class="badge-status refused">
+                  <span class="status-dot-failed"></span>
+                  <span>refused active</span>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">13 May 2026 10:14</td>
+              <td>Handover completed to Cedar Clinic</td>
+              <td>Tariq Mansour · Driver (VAN-27)</td>
+              <td>Order O-290, 20 packs (Rania Karim)</td>
+              <td>
+                <span class="badge-status good">
+                  <span class="status-dot-good"></span>
+                  <span>good delivered</span>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">12 May 2026 10:05</td>
+              <td>Quality release to available stock</td>
+              <td>Omar Saleh · Quality Officer</td>
+              <td>North Quay Cold Room C2, Rack 4</td>
+              <td>
+                <span class="badge-status good">
+                  <span class="status-dot-good"></span>
+                  <span>good released</span>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">12 May 2026 09:10</td>
+              <td>Inbound delivery received at North Quay</td>
+              <td>Leila Haddad · Operator</td>
+              <td>Sanofi Pasteur UK, 24 packs IG-2509</td>
+              <td>
+                <span class="badge-status waiting">
+                  <span class="status-dot-waiting"></span>
+                  <span>waiting quarantined</span>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"orders":"S-41","deliveries":"S-45","recall notices":"S-48","account":"S-50","delivery detail":"S-46"},A={"request password reset":"S-3","back to sign in":"S-1","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8","receipts":"S-6","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","place order":"S-42","change order":"S-44","certificates":"S-47","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-49";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,277 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Class detail",
+     "subtitle": "HIIT · High intensity · Thu 12 Mar 2026 · 18:30–19:15 · Studio 2",
+     "crumbs": [
+      "Schedule",
+      "Thu 12 Mar"
+     ],
+     "badge": "Only 3 left",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "HIIT Blast 45",
+       "lead": {
+        "label": "Thu 12 Mar 2026",
+        "value": "18:30–19:15"
+       },
+       "rows": [
+        {
+         "label": "Type",
+         "value": "HIIT"
+        },
+        {
+         "label": "Intensity",
+         "value": "High · 3 of 3"
+        },
+        {
+         "label": "Duration",
+         "value": "45 min"
+        },
+        {
+         "label": "Room",
+         "value": "Studio 2 · The Loft"
+        },
+        {
+         "label": "Availability",
+         "value": "Only 3 left",
+         "badge": true
+        }
+       ],
+       "people": [
+        "Maya Okafor"
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Maya Okafor",
+         "meta": "Ex-sprinter and Level 3 PT. Loud playlists, clear cues, scaled options.",
+         "badge": "Instructor",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "body": "Short, sharp intervals of kettlebells, bodyweight and sprints, finished with a core burner and a proper stretch. Every move has an easier and a harder option. Free cancellation until 2 hours before class."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Water bottle",
+         "meta": "Refill station by reception"
+        },
+        {
+         "title": "Sweat towel",
+         "meta": "Or hire one at the desk for £1"
+        },
+        {
+         "title": "Training shoes",
+         "meta": "Clean, non-marking soles"
+        }
+       ]
+      },
+      {
+       "type": "progress",
+       "title": "Availability",
+       "items": [
+        {
+         "label": "3 of 16 spots left",
+         "value": 81,
+         "meta": "13 booked · 0 on waitlist"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book this class",
+         "variant": "primary",
+         "hint": "3 spots left"
+        },
+        {
+         "label": "Back to schedule",
+         "variant": "ghost",
+         "icon": "arrow-left"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to schedule",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Book this class",
+       "text": "Booked ✓ HIIT Blast 45 · Thu 12 Mar · 18:30–19:15",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "This class isn't on the timetable",
+      "emptyHint": "It may have been taken off the schedule. Head back and pick another session.",
+      "error": "We couldn't reach the studio just now, so your spot hasn't changed. Try again in a moment.",
+      "success": "Booked ✓ HIIT Blast 45 · Thu 12 Mar · 18:30–19:15",
+      "validation": "You're already booked for Spin Rhythm at 18:00–18:45."
+     }
+    },
+    "mockFull": {
+     "title": "Class detail",
+     "subtitle": "HIIT · High intensity · Thu 12 Mar 2026 · 18:30–19:15 · Studio 2",
+     "crumbs": [
+      "Schedule",
+      "Thu 12 Mar"
+     ],
+     "badge": "1 spot left",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "HIIT Blast 45",
+       "lead": {
+        "label": "Thu 12 Mar 2026",
+        "value": "18:30–19:15"
+       },
+       "rows": [
+        {
+         "label": "Type",
+         "value": "HIIT"
+        },
+        {
+         "label": "Intensity",
+         "value": "High · 3 of 3"
+        },
+        {
+         "label": "Date",
+         "value": "Thursday 12 March 2026"
+        },
+        {
+         "label": "Time",
+         "value": "18:30–19:15"
+        },
+        {
+         "label": "Duration",
+         "value": "45 min"
+        },
+        {
+         "label": "Room",
+         "value": "Studio 2 · The Loft, first floor"
+        },
+        {
+         "label": "Capacity",
+         "value": "16 spots"
+        },
+        {
+         "label": "Availability",
+         "value": "1 spot left",
+         "badge": true
+        }
+       ],
+       "people": [
+        "Maya Okafor"
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Maya Okafor",
+         "meta": "Ex-county sprinter, Level 3 PT, 6 years at Pulse. Scaled option for every move.",
+         "badge": "Instructor",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "body": "Short, sharp intervals of kettlebells, bodyweight and sprints in 40/20 rounds, finished with a core burner and a proper stretch. Every move has an easier and a harder option. Free cancellation until 2 hours before class."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Water bottle",
+         "meta": "Refill station by reception"
+        },
+        {
+         "title": "Sweat towel",
+         "meta": "Or hire one at the desk for £1"
+        },
+        {
+         "title": "Training shoes",
+         "meta": "Clean, non-marking soles"
+        },
+        {
+         "title": "Light layers",
+         "meta": "The Loft warms up fast"
+        },
+        {
+         "title": "Hair tie",
+         "meta": "Lots of burpees and jumps"
+        },
+        {
+         "title": "Padlock",
+         "meta": "For the changing-room lockers"
+        }
+       ]
+      },
+      {
+       "type": "progress",
+       "title": "Availability",
+       "items": [
+        {
+         "label": "1 of 16 spots left",
+         "value": 94,
+         "meta": "15 booked · 0 on waitlist"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book this class",
+         "variant": "primary",
+         "hint": "1 spot left"
+        },
+        {
+         "label": "Back to schedule",
+         "variant": "ghost",
+         "icon": "arrow-left"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "This class isn't on the timetable",
+      "emptyHint": "It may have been taken off the schedule. Head back and pick another session.",
+      "error": "We couldn't reach the studio just now, so your spot hasn't changed. Try again in a moment.",
+      "success": "Booked ✓ HIIT Blast 45 · Thu 12 Mar · 18:30–19:15",
+      "validation": "You've reached the limit of 10 upcoming classes."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

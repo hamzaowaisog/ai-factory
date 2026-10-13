@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Addresses</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography rules */
+    h1, .page-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    h2, .section-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      line-height: 1.3;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    h3, .sub-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    .text-sm {
+      font-size: 14px;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .page-enter {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .handoff-anim {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Header component */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-item {
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 20px;
+    }
+
+    /* Layout */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+    }
+
+    .page-header-row {
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      box-shadow: none;
+      margin-bottom: 32px;
+    }
+
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-body {
+      padding: 24px;
+    }
+
+    /* Table & List Structure */
+    .address-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .address-table th {
+      height: 48px;
+      padding: 0 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+    }
+
+    .address-table td {
+      height: 56px;
+      padding: 12px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+      font-size: 15px;
+    }
+
+    .address-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .address-table tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Status indicators */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-failed {
+      color: #AE2C2C;
+    }
+    .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Form Styles */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    input[type="text"] {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    input[type="text"]:hover:not(:focus) {
+      border-color: #626262;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #923f17;
+      border-color: #923f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+
+    .btn-action-small {
+      height: 36px;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    .btn-remove {
+      color: #AE2C2C;
+      border-color: #D5D5D5;
+    }
+
+    .btn-remove:hover {
+      border-color: #AE2C2C;
+      background-color: #FFF8F8;
+    }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid #D5D5D5;
+    }
+
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* Scope Notice & Policy Callout */
+    .policy-box {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 20px 24px;
+    }
+
+    .policy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .policy-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .policy-desc {
+      font-size: 14px;
+      color: #626262;
+      line-height: 1.5;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="page-enter">
+
+  <!-- Header standard across every page -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-cluster">
+        <div class="brand-mark">M</div>
+        <div class="brand-name">Meridian</div>
+      </a>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active">Addresses</a>
+        <a href="#" class="nav-item">Team</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials">SI</div>
+        <div>
+          <span style="font-weight: 600;">Salma Idris</span>
+          <span class="text-quiet"> · Cedar Health administrator</span>
+        </div>
+      </div>
+      <div class="lang-switcher">
+        <span>EN</span> / <span class="text-quiet" dir="rtl">العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main>
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-heading">Addresses</h1>
+        <div class="text-sm text-quiet" style="margin-top: 4px;">
+          Managed delivery destinations scoped to Cedar Health consignments
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Addresses List Panel -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="section-heading">Saved destination addresses</h2>
+          <div class="text-sm text-quiet" style="margin-top: 2px;">
+            Verified receiving clinic units registered for cold-chain route assignment
+          </div>
+        </div>
+      </div>
+
+      <table class="address-table">
+        <thead>
+          <tr>
+            <th style="width: 28%;">Facility unit</th>
+            <th style="width: 42%;">Street address & locality</th>
+            <th style="width: 15%;">Assurance status</th>
+            <th style="width: 15%; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div style="font-weight: 600;">Cedar Clinic</div>
+              <div class="text-sm text-quiet">Primary delivery destination</div>
+            </td>
+            <td>
+              <div>42 River Road</div>
+              <div class="text-sm text-quiet">London</div>
+            </td>
+            <td>
+              <div class="status-indicator status-good">
+                <span class="status-dot"></span>
+                <span>good active</span>
+              </div>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn btn-secondary btn-action-small">Edit</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight: 600;">Cedar Day Unit</div>
+              <div class="text-sm text-quiet">Secondary clinic unit</div>
+            </td>
+            <td>
+              <div>18 Elm Street</div>
+              <div class="text-sm text-quiet">London</div>
+            </td>
+            <td>
+              <div class="status-indicator status-good">
+                <span class="status-dot"></span>
+                <span>good active</span>
+              </div>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn btn-secondary btn-action-small">Edit</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Primary Add Address with Inline Form Panel -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="section-heading">Add address</h2>
+          <div class="text-sm text-quiet" style="margin-top: 2px;">
+            Configure an authorized destination for Cedar Health deliveries
+          </div>
+        </div>
+        <div class="status-indicator status-waiting">
+          <span class="status-dot"></span>
+          <span>waiting submission</span>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <form onsubmit="return false;">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="facility-name">Facility or clinic name</label>
+              <input type="text" id="facility-name" value="Cedar Specialty Wing" placeholder="e.g. Cedar Clinic">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="street-address">Street address</label>
+              <input type="text" id="street-address" value="44 River Road" placeholder="e.g. 42 River Road">
+            </div>
+
+            <div class="form-group">
+              <label for="locality">Locality</label>
+              <input type="text" id="locality" value="London" placeholder="London">
+            </div>
+
+            <div class="form-group">
+              <label for="receiving-contact">Receiving department or contact</label>
+              <input type="text" id="receiving-contact" value="Pharmacy Reception" placeholder="e.g. Clinic Reception">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary btn-remove">Remove</button>
+            <button type="button" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save address</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Organization Policy: Shelf-life Rule Panel -->
+    <section class="policy-box">
+      <div class="policy-header">
+        <h3 class="policy-title">Assurance & shelf-life requirements</h3>
+        <div class="status-indicator status-good">
+          <span class="status-dot"></span>
+          <span>good compliant</span>
+        </div>
+      </div>
+      <div class="policy-desc">
+        Contractual minimum remaining shelf-life threshold enforced on cold-chain allocations:
+      </div>
+      <div style="margin-top: 12px; padding: 14px 16px; background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; display: flex; align-items: baseline; gap: 8px;">
+        <span class="mono" style="font-size: 20px; font-weight: 600; color: #202020;">90 days</span>
+        <span class="text-sm text-quiet">(read-only policy minimum)</span>
+      </div>
+      <div class="text-sm text-quiet" style="margin-top: 12px; line-height: 1.5;">
+        All inbound lots (including IG-2511 and IG-2509) allocated to Cedar Health destinations are automatically validated against this rule prior to route packing and consignment dispatch.
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

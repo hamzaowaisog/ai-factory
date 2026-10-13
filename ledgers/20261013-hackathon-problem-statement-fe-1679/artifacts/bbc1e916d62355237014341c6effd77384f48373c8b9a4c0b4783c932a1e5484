@@ -1,0 +1,24 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_SubmitsSelectedSourceRecordsAndShowsImportResult",
+      "verdict": "weak",
+      "why": "Assert the 0 and 1 values under their corresponding created and updated labels (and verify all records when selecting more than one), since the current presence-only checks can pass with misattributed counts or a truncated selection."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

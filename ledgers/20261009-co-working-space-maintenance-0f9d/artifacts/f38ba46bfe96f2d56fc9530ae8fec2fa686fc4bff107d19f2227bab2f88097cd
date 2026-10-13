@@ -1,0 +1,712 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Hive Works maintenance app shall provide exactly two screens, Requests and Request detail, and display the demo user's initials SC on the Requests screen without presenting sign-in or role-selection screens.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The app is opened in a browser.",
+        "when": "The Requests screen is rendered and the user opens a listed request.",
+        "then": "The rendered screen list shows the Hive Works wordmark and SC, and navigation shows only the Requests and Request detail screens, with no sign-in or role-selection screen.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The Hive Works maintenance app shall store one request record type with an ID, title, area, priority, description, status, and created timestamp.",
+      "op": "ADDED",
+      "sources": [
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A request has been created successfully.",
+        "when": "A client retrieves that request by ID.",
+        "then": "The response record contains ID, title, area, priority, description, status, and created timestamp fields.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When a request is submitted, the Hive Works maintenance app shall trim leading and trailing whitespace from its title and description before validation and storage, and treat a title that is blank after trimming as missing.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A client submits a title and description with surrounding whitespace and a title with at least 3 non-whitespace characters.",
+        "when": "The client creates the request and retrieves it by ID.",
+        "then": "The response record contains the trimmed title and description values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "A client submits a title containing only whitespace.",
+        "when": "The client creates the request.",
+        "then": "The response identifies the Title field as missing or invalid, and no request record is created.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When a request is created through the API, the Hive Works maintenance app shall reject a title shorter than 3 or longer than 80 characters, a missing or unsupported area, a missing or unsupported priority, or a description longer than 500 characters, with an error naming each invalid field.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4",
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "The API receives create requests with a missing title, a 2-character title, a missing area, an unsupported area, a missing priority, an unsupported priority, or a 501-character description.",
+        "when": "Each create request is sent to the API.",
+        "then": "Each response contains an error naming the corresponding invalid field, and no request record is created for any rejected request.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When a request is created successfully, the Hive Works maintenance app shall assign its ID and UTC creation timestamp and set its initial status to Open.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "The API receives a valid create request without an ID, creation timestamp, or status.",
+        "when": "The API creates the request and returns its record.",
+        "then": "The response record has a system-assigned ID, a UTC created timestamp, and status Open.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When the Hive Works maintenance app initializes an empty database, it shall seed exactly 8 requests comprising 4 Open requests, 2 In progress requests, and 2 Done requests, with at least one Urgent request and every supported area represented.",
+      "op": "ADDED",
+      "sources": [
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "The database is empty before app initialization.",
+        "when": "The app initializes the database and the client lists all requests.",
+        "then": "The response list contains exactly 8 records, with 4 Open, 2 In progress, and 2 Done statuses, at least one Urgent priority, and all five areas represented.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-7",
+      "ears": "The Hive Works maintenance app shall persist requests across page reloads and app restarts, seed requests only when initializing an empty database, and preserve existing requests when restarting with a populated database.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "A database contains requests, including any requests created after initialization.",
+        "when": "The app is restarted and the client lists all requests.",
+        "then": "The response list contains the same request records as before the restart, with no additional seed records.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "A request has been created and the Requests screen has loaded it.",
+        "when": "The browser page is reloaded and the Requests screen loads again.",
+        "then": "The screen list still shows the created request record.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-8",
+      "ears": "The Hive Works maintenance app shall expose exactly four API operations: list requests with an optional status filter, create a request, get a request by ID, and change a request's status.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "The API is available.",
+        "when": "A client invokes list, create, get-by-ID, or change-status operations.",
+        "then": "Each response reflects only the requested operation, and attempts to edit request fields or delete a request receive a non-success response.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When a client lists requests through the API, the Hive Works maintenance app shall return all requests or only requests matching the supplied single status, ordered newest first.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "Q-3",
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "The database contains requests with different statuses and creation timestamps.",
+        "when": "A client lists requests without a filter and then lists requests filtered by one status.",
+        "then": "The unfiltered response list is newest first, and the filtered response list contains only records with the requested status in newest-first order.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.93
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When a client requests a request by ID, the Hive Works maintenance app shall return that request record if it exists and answer not found if it does not.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "One ID belongs to an existing request and another ID does not exist.",
+        "when": "A client sends a get-by-ID call for each ID.",
+        "then": "The existing-ID response contains the matching record, and the unknown-ID response indicates not found.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-11",
+      "ears": "When a client changes a request's status through the API, the Hive Works maintenance app shall allow only Open to In progress, In progress to Done, and Done to Open transitions and reject all other transitions without changing the status.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "Requests exist in each of the three statuses.",
+        "when": "A client requests each of the three allowed status transitions.",
+        "then": "Each response record shows the requested new status.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "Requests exist in Open, In progress, and Done statuses.",
+        "when": "A client requests Open to Done, In progress to Open, or Done to In progress.",
+        "then": "Each response indicates rejection and a subsequent get-by-ID response record retains its original status.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.97
+     },
+     {
+      "id": "REQ-12",
+      "ears": "The Hive Works maintenance app shall prevent changes to a created request's title, area, priority, and description and shall not expose an API operation to delete a request.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "A request exists.",
+        "when": "A client attempts to change its title, area, priority, or description, or attempts to delete it.",
+        "then": "The response indicates that the operation is rejected, and the subsequent response record retains the original fields and still exists.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-13",
+      "ears": "The Requests screen shall provide All, Open, In progress, and Done status filters, with All selected by default and exactly one filter selected at a time.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "The Requests screen is opened for the first time.",
+        "when": "The screen is rendered and the user selects each available filter in turn.",
+        "then": "The screen shows All selected initially and shows exactly one selected filter from All, Open, In progress, or Done after each selection.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When the Requests screen displays a loaded list, the Hive Works maintenance app shall show every request matching the selected filter in newest-first order, with title, area, priority badge, status badge, and created date shown for each request.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "The API returns requests with different statuses and created dates.",
+        "when": "The Requests screen finishes loading with All selected and with a status filter selected.",
+        "then": "The screen list shows every returned matching request in newest-first order, and each row shows title, area, priority badge, status badge, and a date-only created date such as 8 Oct 2026.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.93
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When a user selects a request row, the Hive Works maintenance app shall open the Request detail screen for that request.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "The Requests screen displays a request row.",
+        "when": "The user selects the row.",
+        "then": "The Request detail screen shows the selected request's record.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-16",
+      "ears": "When the user selects New request, the Hive Works maintenance app shall open a dialog with labeled Title, Area, Priority, and Description fields, Area choices for Kitchen, Meeting room, Open desk, Washroom, and Reception, Priority choices for Low, Normal, and Urgent with Normal selected by default, and Create and Cancel buttons.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "The Requests screen is displayed.",
+        "when": "The user selects New request.",
+        "then": "The screen shows the labeled dialog fields, the specified Area and Priority choices, Normal selected, and Create and Cancel buttons.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-17",
+      "ears": "When a create submission fails field validation, the Hive Works maintenance app shall keep the dialog open and show the corresponding field error under each invalid field.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "The New request dialog is open.",
+        "when": "The user submits a title of 2 characters.",
+        "then": "The screen shows the dialog still open and the Title field error “Title must be 3 to 80 characters.” under the field.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "The New request dialog is open.",
+        "when": "The user submits values that fail validation for other fields.",
+        "then": "The screen shows each field-specific error under its corresponding field and keeps the dialog open.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When a request is created successfully from the dialog, the Hive Works maintenance app shall close the dialog, select All, and show the new Open request at the top of the list.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "A status filter other than All is selected and the New request dialog is open with valid values.",
+        "when": "The user creates the request successfully.",
+        "then": "The screen shows the dialog closed, All selected, and the new Open request at the top of the list.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-19",
+      "ears": "While a create request is being sent, the Hive Works maintenance app shall disable the Create button and prevent more than one request from being created by repeated clicks.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-19.1",
+        "given": "The New request dialog contains valid values and the create call is pending.",
+        "when": "The user attempts to select Create again before the call completes.",
+        "then": "The screen shows Create disabled, and the API call count and resulting record count each increase by only one.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-20",
+      "ears": "If a create request fails for a reason other than field validation, then the Hive Works maintenance app shall show a generic creation error, keep the dialog open with its entered values, and allow another submission.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-20.1",
+        "given": "The New request dialog contains entered values and the create call will fail for a non-validation reason.",
+        "when": "The user submits the request and the call fails.",
+        "then": "The screen shows a generic creation error, remains open with the entered field values, and allows another Create submission.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-21",
+      "ears": "While the Requests list is loading, empty for the selected filter, or failed to load, the Hive Works maintenance app shall show respectively “Loading requests…”, “No requests here.”, or “Could not load requests.” with a Retry button in the error state.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-21.1",
+        "given": "The Requests screen is loading, has no requests for its selected filter, or receives a list-load failure.",
+        "when": "Each corresponding state is rendered.",
+        "then": "The screen shows the specified loading or empty message, or shows “Could not load requests.” and a Retry button for the error state.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-22",
+      "ears": "When the Request detail screen loads an existing request, the Hive Works maintenance app shall show its title, area, priority badge, status badge, date-only created date, and description or “No description.” when the description is empty.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-22.1",
+        "given": "An existing request has a description and another existing request has no description.",
+        "when": "The user opens each request's detail screen.",
+        "then": "Each screen shows the corresponding record fields, date-only created date, and either the description or “No description.”",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When the Request detail screen shows a request, the Hive Works maintenance app shall show Start work for Open, Mark done for In progress, or Reopen for Done, and update the displayed status badge and action button only after a successful status-change response.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-23.1",
+        "given": "A request has each of the statuses Open, In progress, and Done in turn.",
+        "when": "The corresponding action button is selected and the status-change call succeeds.",
+        "then": "The screen shows respectively Start work, Mark done, or Reopen before the call and shows the new status badge and next action button after the successful response.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-24",
+      "ears": "If a status-change call fails, then the Hive Works maintenance app shall show “Could not update the request.” and keep the previously displayed status unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-24.1",
+        "given": "The Request detail screen shows a request status and a status-change call will fail.",
+        "when": "The user selects the status action and the call fails.",
+        "then": "The screen shows “Could not update the request.” and the status badge still shows the previous status.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-25",
+      "ears": "When the Request detail screen is opened for an unknown ID, the Hive Works maintenance app shall show “Request not found.” and a link back to the Requests screen.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-25.1",
+        "given": "No request has the ID in the address.",
+        "when": "The Request detail screen opens for that ID.",
+        "then": "The screen shows “Request not found.” and a link to the Requests screen.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-26",
+      "ears": "If loading a request detail fails for a reason other than an unknown ID, then the Hive Works maintenance app shall show a generic loading error with a Retry action and shall not show “Request not found.”.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-26.1",
+        "given": "The requested ID exists but its detail load fails for a non-not-found reason.",
+        "when": "The Request detail screen handles the failure.",
+        "then": "The screen shows a generic loading error and Retry action, and does not show “Request not found.”",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-27",
+      "ears": "When the user follows the Request detail screen's Back link, the Hive Works maintenance app shall return to the Requests screen with the status filter selected before the detail screen opened.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-27.1",
+        "given": "The user selects a status filter and opens a request detail screen.",
+        "when": "The user follows Back.",
+        "then": "The Requests screen shows the previously selected status filter still selected.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-28",
+      "ears": "The Hive Works maintenance app shall show status badges with text and the specified blue Open, amber In progress, and green Done colors, and priority badges with text and red Urgent or neutral Low and Normal colors.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-28.1",
+        "given": "Requests with each supported status and priority are displayed.",
+        "when": "The Requests and Request detail screens render their badges.",
+        "then": "Each screen shows the specified badge text and corresponding status or priority color, with badge meaning readable without color alone.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-29",
+      "ears": "The Hive Works maintenance app shall use one light theme with no dark mode, one sans-serif font, a neutral background, near-black text, and one selected primary-button brand color.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-29.1",
+        "given": "The Requests and Request detail screens are rendered.",
+        "when": "The user views each screen in the supported app theme.",
+        "then": "The screen shows the light theme, the same sans-serif font and primary-button brand color, a neutral background, and near-black text, with no dark-mode presentation.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-30",
+      "ears": "The Hive Works maintenance app shall provide a label for every field and keyboard access to every control.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-30.1",
+        "given": "The Requests, creation dialog, and Request detail screens are rendered.",
+        "when": "A keyboard user moves through the available controls and fields.",
+        "then": "The screen shows a label for every field, and every control can receive keyboard focus and be operated by keyboard.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.93
+     },
+     {
+      "id": "REQ-31",
+      "ears": "The Hive Works maintenance app shall display request rows as stacked cards at 375 px viewport width and as a table at 1280 px viewport width without horizontal page scrolling.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-31.1",
+        "given": "The Requests screen contains multiple requests.",
+        "when": "The screen is rendered at 375 px and 1280 px viewport widths.",
+        "then": "The 375 px screen shows stacked request cards, the 1280 px screen shows a table, and neither screen has horizontal page scroll.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-32",
+      "ears": "The Hive Works maintenance app shall include automated business-rule tests for request creation and initial Open status, rejected invalid inputs, all three allowed status changes, rejected invalid transitions, filtered newest-first listing, and unknown-ID handling.",
+      "op": "ADDED",
+      "sources": [
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-32.1",
+        "given": "The automated business-rule test suite is available.",
+        "when": "The test job runs.",
+        "then": "The test report lists passing tests for valid creation and Open status, missing or too-short title, missing area, too-long description, each allowed status transition, an invalid transition, status-filtered newest-first listing, and unknown-ID not found.",
+        "level": "job"
+       }
+      ],
+      "stability": 0.93
+     },
+     {
+      "id": "REQ-33",
+      "ears": "The Hive Works maintenance app shall include an automated end-to-end test for opening the list, creating a request, seeing it at the top, opening it, selecting Start work and Mark done, and filtering by Done to see the request.",
+      "op": "ADDED",
+      "sources": [
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-33.1",
+        "given": "The end-to-end test environment is initialized.",
+        "when": "The automated workflow test runs through creation, detail, status changes, and filtering.",
+        "then": "The test report shows the workflow passing and the final Done-filtered screen shows the created request record.",
+        "level": "job"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-34",
+      "ears": "The Hive Works maintenance app shall be deployed in one cloud region in the client's cloud account.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-34.1",
+        "given": "The release deployment is run using the client's cloud account.",
+        "when": "The deployment completes.",
+        "then": "The deployment record shows the app deployed in exactly one cloud region in that account.",
+        "level": "job"
+       }
+      ],
+      "stability": 0.75
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Text and control contrast shall meet WCAG AA contrast thresholds on the light theme.",
+      "metric": "Normal text contrast ratio is at least 4.5:1; large text and non-text controls have contrast ratios of at least 3:1."
+     },
+     {
+      "id": "NFR-2",
+      "text": "The Requests screen shall remain usable at the specified narrow and wide viewport widths without horizontal page scrolling.",
+      "metric": "At 375 px and 1280 px viewport widths, horizontal page overflow is 0 px."
+     },
+     {
+      "id": "NFR-3",
+      "text": "All fields and controls shall be keyboard accessible.",
+      "metric": "100% of rendered fields have labels and 100% of rendered controls can receive keyboard focus and be operated by keyboard."
+     },
+     {
+      "id": "NFR-4",
+      "text": "The deployment shall use a single cloud region in the client's account.",
+      "metric": "Exactly 1 cloud region is used."
+     }
+    ],
+    "outOfScope": [
+     "Sign-in, role management, and additional users.",
+     "Additional record types, request editing, and request deletion.",
+     "Search, user-selected sorting, and pagination.",
+     "Comments, attachments, assignees, and due dates.",
+     "Notifications, email, and live updates.",
+     "Dark mode, animation, and additional languages.",
+     "Support commitments for specific browser versions beyond a modern browser."
+    ],
+    "assumptions": [
+     "ASM-1: Select an accessible primary-button brand color that fits the light design; no specific color or brand asset was provided.",
+     "ASM-2: Deploy the app in one cloud region in the client's cloud account."
+    ],
+    "suggestions": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

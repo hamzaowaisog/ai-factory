@@ -1,0 +1,334 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Requests",
+     "subtitle": "Newest maintenance work across Hive Works",
+     "blocks": [
+      {
+       "type": "filters",
+       "segments": [
+        "All",
+        "Open",
+        "In progress",
+        "Done"
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Requests couldn't refresh",
+       "text": "Showing the last loaded list. Retry to check for newer requests.",
+       "action": "Retry"
+      },
+      {
+       "type": "toolbar",
+       "buttons": [
+        {
+         "label": "New request",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Request",
+        "Area",
+        "Priority",
+        "Status",
+        "Created (UTC)"
+       ],
+       "rows": [
+        [
+         "Kitchen tap leaking",
+         "Kitchen",
+         "Urgent",
+         "Open",
+         "2026-03-18"
+        ],
+        [
+         "Projector won't power on",
+         "Meeting room",
+         "Normal",
+         "In progress",
+         "2026-03-17"
+        ],
+        [
+         "Wobbly desk B-14",
+         "Open desk",
+         "Low",
+         "Open",
+         "2026-03-16"
+        ],
+        [
+         "Hand dryer not working",
+         "Washroom",
+         "Normal",
+         "Open",
+         "2026-03-15"
+        ],
+        [
+         "Loose floor tile by entrance",
+         "Reception",
+         "Urgent",
+         "In progress",
+         "2026-03-14"
+        ]
+       ],
+       "statusColumn": 3,
+       "sortBy": 4,
+       "sortDir": "desc",
+       "pages": 5,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "Kitchen tap leaking",
+       "to": "S-2"
+      },
+      {
+       "from": "Projector won't power on",
+       "to": "S-2"
+      },
+      {
+       "from": "Wobbly desk B-14",
+       "to": "S-2"
+      },
+      {
+       "from": "Hand dryer not working",
+       "to": "S-2"
+      },
+      {
+       "from": "Loose floor tile by entrance",
+       "to": "S-2"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "New request",
+       "title": "New request",
+       "text": "New requests start as Open. The ID and creation time are assigned automatically.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Title",
+           "kind": "text",
+           "placeholder": "e.g. Kitchen tap leaking",
+           "required": true,
+           "help": "Trimmed before saving; 3–80 characters.",
+           "error": "Title is required and must be 3–80 characters."
+          },
+          {
+           "label": "Area",
+           "kind": "select",
+           "placeholder": "Select an area",
+           "options": [
+            "Kitchen",
+            "Meeting room",
+            "Open desk",
+            "Washroom",
+            "Reception"
+           ],
+           "required": true,
+           "error": "Area is required."
+          },
+          {
+           "label": "Priority",
+           "kind": "select",
+           "value": "Normal",
+           "options": [
+            "Low",
+            "Normal",
+            "Urgent"
+           ],
+           "required": true
+          },
+          {
+           "label": "Description",
+           "kind": "textarea",
+           "placeholder": "Add useful details for the maintenance team",
+           "help": "Optional · up to 500 characters"
+          }
+         ],
+         "submit": "Create"
+        }
+       ],
+       "actions": [
+        "Cancel"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Create",
+       "text": "Request created and added to the top of the list.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No requests match this status",
+      "emptyHint": "Choose another status or create a request to get work moving.",
+      "error": "We couldn't create this request. Your entries are still here.",
+      "success": "Request created and added to the top of the list.",
+      "validation": "Check the highlighted fields. Titles must be 3–80 characters and descriptions up to 500."
+     }
+    },
+    "mockFull": {
+     "title": "Requests",
+     "subtitle": "Newest maintenance work across Hive Works",
+     "blocks": [
+      {
+       "type": "filters",
+       "segments": [
+        "All",
+        "Open",
+        "In progress",
+        "Done"
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Requests couldn't refresh",
+       "text": "Showing the last loaded list. Retry to check for newer requests.",
+       "action": "Retry"
+      },
+      {
+       "type": "toolbar",
+       "buttons": [
+        {
+         "label": "New request",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Request",
+        "Area",
+        "Priority",
+        "Status",
+        "Created (UTC)"
+       ],
+       "rows": [
+        [
+         "Kitchen tap leaking",
+         "Kitchen",
+         "Urgent",
+         "Open",
+         "2026-03-18"
+        ],
+        [
+         "Projector won't power on",
+         "Meeting room",
+         "Normal",
+         "In progress",
+         "2026-03-17"
+        ],
+        [
+         "Wobbly desk B-14",
+         "Open desk",
+         "Low",
+         "Open",
+         "2026-03-16"
+        ],
+        [
+         "Hand dryer not working",
+         "Washroom",
+         "Normal",
+         "Open",
+         "2026-03-15"
+        ],
+        [
+         "Loose floor tile by entrance",
+         "Reception",
+         "Urgent",
+         "In progress",
+         "2026-03-14"
+        ],
+        [
+         "Fridge door seal worn",
+         "Kitchen",
+         "Low",
+         "Done",
+         "2026-03-12"
+        ],
+        [
+         "Whiteboard rail coming loose",
+         "Meeting room",
+         "Normal",
+         "Done",
+         "2026-03-11"
+        ],
+        [
+         "Monitor arm won't hold position",
+         "Open desk",
+         "Low",
+         "Open",
+         "2026-03-10"
+        ],
+        [
+         "Reception door closer slams",
+         "Reception",
+         "Urgent",
+         "Open",
+         "2026-03-09"
+        ],
+        [
+         "Washroom sink draining slowly",
+         "Washroom",
+         "Normal",
+         "Done",
+         "2026-03-07"
+        ],
+        [
+         "Ceiling light flickering",
+         "Meeting room",
+         "Urgent",
+         "In progress",
+         "2026-03-06"
+        ],
+        [
+         "Kitchen cabinet hinge loose",
+         "Kitchen",
+         "Low",
+         "Done",
+         "2026-03-05"
+        ]
+       ],
+       "statusColumn": 3,
+       "sortBy": 4,
+       "sortDir": "desc",
+       "pages": 5,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No requests match this status",
+      "emptyHint": "Choose another status or create a request to get work moving.",
+      "error": "We couldn't create this request. Your entries are still here.",
+      "success": "Request created and added to the top of the list.",
+      "validation": "Check the highlighted fields. Titles must be 3–80 characters and descriptions up to 500."
+     }
+    }
+   },
+   "ms": 16,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

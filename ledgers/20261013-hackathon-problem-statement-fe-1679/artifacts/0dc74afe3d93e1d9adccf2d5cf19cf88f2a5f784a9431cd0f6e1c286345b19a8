@@ -1,0 +1,480 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Import authorization and source-data scope",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "Restricts importing and mapping to users with operational access."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Includes breed, age, and source in imported records, without specifying role restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Specifies authorized data managers importing records, including source identifiers."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-1",
+      "topic": "Pen allocation cardinality",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Links lots to pens but does not specify a lot occupying multiple pens."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Allows each lot to link to one or more pens."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Allocates lot animals to pens and preserves allocation quantities, supporting multi-pen allocation."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-2",
+      "topic": "Basis for initial market-date forecast",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Requires a configured expected gain rate for the initial forecast."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Requires a forecast but does not specify the growth-rate basis."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Uses a configured or measured growth-rate assumption, and marks forecasts unavailable without one."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-2",
+      "topic": "Forecast access and change permissions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Refreshes forecasts when new weight measurements are recorded, without defining who may change forecasting settings."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Recalculates for weight, receiving date, target weight, or performance changes, without role restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Limits changing targets and forecasting assumptions to authorized managers; others may view forecasts."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-3",
+      "topic": "Inventory access control",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Only authorized users may maintain feed items."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Allows users to view and maintain inventory items without specifying authorization."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 6,
+        "summary": "Limits stock receipt, adjustments, and wastage-setting changes to authorized inventory users."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-3",
+      "topic": "Wastage treatment for actual consumption",
+      "readings": [
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Records wastage as an inventory movement alongside receipts and consumption."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Allows consumption and adjustments, while its chosen interpretation applies wastage to projections rather than adding it to logged delivery."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Updates stock on receipt or recorded consumption, without an explicit separate wastage movement."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-4",
+      "topic": "Meaning of ration optimization",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Identifies the least-cost option among candidate rations meeting user-selected nutrition requirements."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Compares alternative mixes to identify economical options, without requiring a least-cost constrained optimization."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Provides a cost-optimization comparison over eligible ingredients and configured constraints, with user choice before saving."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "I-4",
+      "topic": "Ration management permissions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "Prevents users without ration-management access from creating or changing ration definitions."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Allows users to create and edit rations without stating role restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "Restricts ration creation, revision, optimization, and approval to authorized users."
+       }
+      ]
+     },
+     {
+      "id": "D-9",
+      "span": "I-5",
+      "topic": "Plan changes after generation",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Allows an authorized user to review and adjust a generated plan before it is marked planned."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Allows an authorized user to adjust a plan and its status, without preserving its original calculation basis."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 4,
+        "summary": "Does not silently change saved plans after inputs change; requires authorized confirmation or regeneration."
+       }
+      ]
+     },
+     {
+      "id": "D-10",
+      "span": "I-5",
+      "topic": "Feed planning permissions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Allows authorized users to review and adjust generated plans."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Allows authorized users to adjust a plan and status."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "Separates planner permissions from operator execution-status updates."
+       }
+      ]
+     },
+     {
+      "id": "D-11",
+      "span": "I-6",
+      "topic": "Inventory shortage handling on feeding",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Warns or rejects feed events that exceed available stock and prevents negative balance."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Rejects or flags insufficient-stock events."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 4,
+        "summary": "Warns or blocks insufficient inventory and requires activity, inventory, and lot roll-up to remain consistent."
+       }
+      ]
+     },
+     {
+      "id": "D-12",
+      "span": "I-6",
+      "topic": "Correction, voiding, and audit of feeding events",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Records feeding events and rolls totals up, without defining correction or void behavior."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Recalculates metrics after an event is recorded or corrected and avoids duplicate application."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Requires auditable corrections rather than erasing the original event, with correction history."
+       }
+      ]
+     },
+     {
+      "id": "D-13",
+      "span": "I-6",
+      "topic": "Feeding activity permissions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Requires an authorized user to record feeding events."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Allows users to record feeding events without specifying role restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 6,
+        "summary": "Lets assigned-pen operators record events and reserves correction or voiding for authorized managers."
+       }
+      ]
+     },
+     {
+      "id": "D-14",
+      "span": "I-7",
+      "topic": "Weight-history permissions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Allows authorized users to record dated weight activities."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Allows users to record measurements without specifying role restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 4,
+        "summary": "Limits adding measurements to authorized livestock or operations users."
+       }
+      ]
+     },
+     {
+      "id": "D-15",
+      "span": "I-8",
+      "topic": "Ship-date projection formula and basis",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Projects from the current date using remaining days to target at the latest observed ADG."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Projects remaining days using latest weight and target weight at calculated daily gain."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Uses current date plus remaining target-weight gain divided by positive ADG, described as equivalent to receiving date plus projected days on feed."
+       }
+      ]
+     },
+     {
+      "id": "D-16",
+      "span": "I-8",
+      "topic": "Definition of gain and ADG basis",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Defines gain as current average weight minus entry average weight and ADG as gain divided by days on feed."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Calculates lot metrics from receiving, feeding, and weight records, without specifying this precise calculation basis."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Specifies days on feed from receiving date and gain from entry versus current average weight."
+       }
+      ]
+     },
+     {
+      "id": "D-17",
+      "span": "I-9",
+      "topic": "Dashboard drill-down and data access",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Provides dashboard views and labels missing or stale data, without specifying drill-down or access scope."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Shows best/worst lots and makes comparison basis apparent, without requiring supporting-record drill-down."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Allows users to open summaries and inspect underlying records; restricts dashboards and financial details by authorized access."
+       }
+      ]
+     },
+     {
+      "id": "D-18",
+      "span": "I-10",
+      "topic": "Report access controls",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Provides filtered lot comparisons without specifying yard or financial access restrictions."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Provides multi-lot comparisons without specifying access restrictions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "Restricts reports and exports to authorized yards/lots and applies profitability access restrictions."
+       }
+      ]
+     },
+     {
+      "id": "D-19",
+      "span": "I-11",
+      "topic": "Sample-data loading and lifecycle",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Keeps sample data distinct and warns or prevents duplicate loading."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Provides sample data, without specifying loading, reset, or duplication controls."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Allows authorized users to load or reset sample data, with confirmation for destructive replacement and failure reporting."
+       }
+      ]
+     },
+     {
+      "id": "D-20",
+      "span": "I-11",
+      "topic": "Yard-summary access and data qualification",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Shows the summary and updates it when underlying records change, without specifying access scope or data-availability qualification."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Recomputes from active-lot data and indicates no active lots or uncalculable metrics."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Shows contributing period and data availability, and limits the yard summary to users with yard access."
+       }
+      ]
+     },
+     {
+      "id": "D-21",
+      "span": "I-12",
+      "topic": "Demo and presentation deliverables",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Calls for a usable web-app demo, prompt overview, validation results, challenges, readiness assessment, and mock-data limitations."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Requires a demonstrable responsive web app with representative sample data and a walkthrough of observable results."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Requires a working responsive demo demonstrating procurement through feeding and performance reporting, plus explicit limits when a workflow cannot be demonstrated."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,396 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Orders",
+     "subtitle": "Every customer's orders, newest first · today's cutoff 14:00",
+     "crumbs": [
+      "Orders"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search order no. or customer",
+       "selects": [
+        {
+         "label": "Customer",
+         "options": [
+          "All customers",
+          "Hallam Road Motors",
+          "Kestrel Auto Repairs",
+          "Brindley Garage",
+          "Northgate Fleet Services",
+          "Ashby Tyre & Exhaust"
+         ],
+         "value": "All customers"
+        },
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Submitted",
+          "Confirmed",
+          "In picking",
+          "Out for delivery",
+          "Delivered",
+          "Invoiced",
+          "Cancelled"
+         ],
+         "value": "All statuses"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Order date",
+         "icon": "calendar",
+         "hint": "Filter by order date range"
+        },
+        {
+         "label": "New order",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "filters",
+       "chips": [
+        "Order date: 9–13 Mar 2026",
+        "Include inactive companies"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Customer",
+        "Order date",
+        "Delivery date",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "Hallam Road Motors",
+         "13 Mar 2026",
+         "16 Mar 2026",
+         "£1,284.60",
+         "Submitted"
+        ],
+        [
+         "ORD-24816",
+         "Kestrel Auto Repairs",
+         "13 Mar 2026",
+         "14 Mar 2026",
+         "£312.40",
+         "Confirmed"
+        ],
+        [
+         "ORD-24812",
+         "Brindley Garage · Inactive",
+         "12 Mar 2026",
+         "16 Mar 2026",
+         "£96.75",
+         "Submitted"
+        ],
+        [
+         "ORD-24809",
+         "Northgate Fleet Services",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "£2,947.10",
+         "Out for delivery"
+        ],
+        [
+         "ORD-24803",
+         "Ashby Tyre & Exhaust",
+         "11 Mar 2026",
+         "12 Mar 2026",
+         "£458.00",
+         "Delivered"
+        ],
+        [
+         "ORD-24798",
+         "Kestrel Auto Repairs",
+         "11 Mar 2026",
+         "13 Mar 2026",
+         "£74.20",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 2,
+       "sortDir": "desc",
+       "page": 1,
+       "pages": 7
+      }
+     ],
+     "links": [
+      {
+       "from": "New order",
+       "to": "S-18"
+      },
+      {
+       "from": "ORD-24817",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24816",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24812",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24809",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24803",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24798",
+       "to": "S-17"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "popover",
+       "trigger": "Order date",
+       "title": "Order date",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Order date range",
+           "kind": "daterange",
+           "value": "9 Mar 2026 - 13 Mar 2026"
+          }
+         ],
+         "submit": "Apply"
+        }
+       ],
+       "actions": [
+        "Apply",
+        "Clear"
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders match these filters",
+      "emptyHint": "Try another customer, status or order date range, or clear the filters to see every customer's orders."
+     }
+    },
+    "mockFull": {
+     "title": "Orders",
+     "subtitle": "Every customer's orders, newest first · today's cutoff 14:00",
+     "crumbs": [
+      "Orders"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search order no. or customer",
+       "selects": [
+        {
+         "label": "Customer",
+         "options": [
+          "All customers",
+          "Hallam Road Motors",
+          "Kestrel Auto Repairs",
+          "Brindley Garage",
+          "Northgate Fleet Services",
+          "Ashby Tyre & Exhaust",
+          "Penrose Classic Cars",
+          "Millbrook MOT Centre"
+         ],
+         "value": "All customers"
+        },
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Submitted",
+          "Confirmed",
+          "In picking",
+          "Out for delivery",
+          "Delivered",
+          "Invoiced",
+          "Cancelled"
+         ],
+         "value": "All statuses"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Order date",
+         "icon": "calendar",
+         "hint": "Filter by order date range"
+        },
+        {
+         "label": "New order",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "filters",
+       "chips": [
+        "Order date: 9–13 Mar 2026",
+        "Include inactive companies"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Customer",
+        "Order date",
+        "Delivery date",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24819",
+         "Millbrook MOT Centre",
+         "13 Mar 2026",
+         "16 Mar 2026",
+         "£186.30",
+         "Submitted"
+        ],
+        [
+         "ORD-24818",
+         "Penrose Classic Cars",
+         "13 Mar 2026",
+         "16 Mar 2026",
+         "£2,410.00",
+         "Submitted"
+        ],
+        [
+         "ORD-24817",
+         "Hallam Road Motors",
+         "13 Mar 2026",
+         "16 Mar 2026",
+         "£1,284.60",
+         "Submitted"
+        ],
+        [
+         "ORD-24816",
+         "Kestrel Auto Repairs",
+         "13 Mar 2026",
+         "14 Mar 2026",
+         "£312.40",
+         "Confirmed"
+        ],
+        [
+         "ORD-24814",
+         "Ashby Tyre & Exhaust",
+         "13 Mar 2026",
+         "14 Mar 2026",
+         "£638.95",
+         "In picking"
+        ],
+        [
+         "ORD-24812",
+         "Brindley Garage · Inactive",
+         "12 Mar 2026",
+         "16 Mar 2026",
+         "£96.75",
+         "Submitted"
+        ],
+        [
+         "ORD-24809",
+         "Northgate Fleet Services",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "£2,947.10",
+         "Out for delivery"
+        ],
+        [
+         "ORD-24807",
+         "Hallam Road Motors",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "£421.80",
+         "Out for delivery"
+        ],
+        [
+         "ORD-24803",
+         "Ashby Tyre & Exhaust",
+         "11 Mar 2026",
+         "12 Mar 2026",
+         "£458.00",
+         "Delivered"
+        ],
+        [
+         "ORD-24798",
+         "Kestrel Auto Repairs",
+         "11 Mar 2026",
+         "13 Mar 2026",
+         "£74.20",
+         "Cancelled"
+        ],
+        [
+         "ORD-24791",
+         "Brindley Garage · Inactive",
+         "10 Mar 2026",
+         "11 Mar 2026",
+         "£1,032.45",
+         "Invoiced"
+        ],
+        [
+         "ORD-24786",
+         "Northgate Fleet Services",
+         "10 Mar 2026",
+         "11 Mar 2026",
+         "£5,318.70",
+         "Invoiced"
+        ],
+        [
+         "ORD-24779",
+         "Millbrook MOT Centre",
+         "9 Mar 2026",
+         "10 Mar 2026",
+         "£249.99",
+         "Delivered"
+        ],
+        [
+         "ORD-24772",
+         "Penrose Classic Cars",
+         "9 Mar 2026",
+         "10 Mar 2026",
+         "£87.60",
+         "Invoiced"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 2,
+       "sortDir": "desc",
+       "page": 1,
+       "pages": 7
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders match these filters",
+      "emptyHint": "Try another customer, status or order date range, or clear the filters to see every customer's orders."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

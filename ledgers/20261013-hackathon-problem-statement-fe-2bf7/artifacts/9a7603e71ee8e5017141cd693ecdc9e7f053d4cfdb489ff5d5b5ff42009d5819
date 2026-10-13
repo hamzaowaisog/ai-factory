@@ -1,0 +1,508 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Feedlot API shall implement every path, HTTP method, parameter, request and response schema, status code, and security rule declared in contracts/openapi.yaml, expose no undocumented API operations, and provide no feedlot product-screen routes or rendered screens.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-5",
+       "Q-1",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "The API is running and a client has valid contract inputs and any authentication context required by the contract.",
+        "when": "The client calls each declared operation using its contract-defined method, path, parameters, and request body.",
+        "then": "Each response status and response body field matches the operation's declared contract, including success and error responses.",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "A client calls a protected operation without valid authentication or without contract-required authorization.",
+        "when": "The client calls that operation.",
+        "then": "The response status is the contract-declared 401 or 403, as applicable, and no undeclared role rule denies an otherwise authorized request.",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.3",
+        "given": "The API host is running.",
+        "when": "A client requests an undefined path such as /yard, or uses an unsupported method for a contract path such as POST /dashboard.",
+        "then": "The response status is 404 for an undefined path or 405 for an unsupported method, and no feedlot product screen is displayed.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When an authorized client requests sign-in, session, dashboard, or lot-list operations, the Feedlot API shall return the contract-defined authentication, current-user, dashboard, and filtered lot values.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A client has valid sign-in credentials and no bearer token.",
+        "when": "The client sends POST /auth/sign-in with the contract SignInRequest body.",
+        "then": "The response status is 200 and the response contains the contract-defined accessToken and user fields, including declared permissions and authorizedYards.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "A client has a valid bearer token.",
+        "when": "The client sends GET /session.",
+        "then": "The response status is 200 and the response user field contains the current user and contract-defined permissions.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "Authorized dashboard data and a valid rankBy value of fcr, adg, or costOfGain are available.",
+        "when": "The client sends GET /dashboard with the selected rankBy value.",
+        "then": "The response status is 200 and the response rankingMeasure, bestLots, and worstLots correspond to the selected measure.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.4",
+        "given": "Lots have distinct pen, breed, sex, and status values and the client has a valid bearer token.",
+        "when": "The client sends GET /lots with supported query filters.",
+        "then": "The response status is 200 and the response lots list contains only rows matching the supplied filters and contract-defined fields.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When an authorized client previews or imports procurement records or saves allocations, the Feedlot API shall return and persist contract-defined PO-line-to-lot and lot-to-pen traceability, including import matching and allocation-conflict results.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "A client has a valid bearer token and the source adapter is available.",
+        "when": "The client sends GET /imports/source-records.",
+        "then": "The response status is 200 and the response records field is a list of available procurement and receiving records.",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.2",
+        "given": "A client has a valid bearer token and submits a valid ImportRequest selecting source records.",
+        "when": "The client sends POST /imports.",
+        "then": "The response status is 200 and the response contains status, createdCount, updatedCount, records, and allocationConflicts fields reflecting the selected records and current matches.",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.3",
+        "given": "A client has a valid bearer token and valid PO-line-to-lot and lot-to-pen allocation quantities.",
+        "when": "The client calls PUT /allocations and then GET /allocations.",
+        "then": "Both response statuses are 200 and the response poLines, lotPens, and pens contain the saved quantities, traceability status, and capacity information.",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.4",
+        "given": "A client submits an invalid selection, conflicting import, or allocation that violates saved state.",
+        "when": "The client submits the relevant import or allocation request.",
+        "then": "The response status and error response match the operation's declared 409 or 422 contract.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When an authorized client requests lot forecasts, forecast-setting updates, metrics, insights, planner actions, or weight-history operations, the Feedlot API shall return contract-defined values, calculations, explainable suggestions, and persisted updates.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "A client has a valid bearer token and the requested lot exists.",
+        "when": "The client sends GET /lots/{lotId}/forecast.",
+        "then": "The response status is 200 and the response contains the lot forecast values, forecastBasis, and effective yard and lot assumptions.",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "A client has a valid bearer token and submits a valid ForecastSettingsRequest.",
+        "when": "The client sends PATCH /forecast-settings or PATCH /lots/{lotId}/forecast-settings for an existing lot.",
+        "then": "The response status is 200 and the response contains persisted setting values; a subsequent forecast response contains the effective assumptions and projectedMarketDate declared by the contract.",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.3",
+        "given": "A client has a valid bearer token and the requested lot exists with feeding and weight records where applicable.",
+        "when": "The client sends GET /lots/{lotId}/metrics or GET /lots/{lotId}/insights.",
+        "then": "The response status is 200 and the response contains contract-defined metrics or suggestions with their basis, including null unavailable metric values where applicable.",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.4",
+        "given": "A client has a valid bearer token, an existing lot, and a valid planner-selected insight action or WeightMeasurementRequest.",
+        "when": "The client sends POST /lots/{lotId}/insights/actions, GET /lots/{lotId}/weights, or POST /lots/{lotId}/weights as applicable.",
+        "then": "The response status and response fields match the contract, and the returned action or measurement is present in the subsequent relevant response.",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.5",
+        "given": "A client submits a weight measurement that fails contract validation, or requests forecast data or settings for a nonexistent lot.",
+        "when": "The client sends the applicable weight, forecast, or forecast-settings request.",
+        "then": "The response status is the contract-declared 422 with VALIDATION_ERROR for invalid measurement data or 404 with NOT_FOUND for a nonexistent lot.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When an authorized client reads or changes inventory, the Feedlot API shall return contract-defined stock, movement, projection, and export values and persist valid inventory changes in PostgreSQL.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "A client has a valid bearer token and inventory items or movements exist, or the inventory is empty.",
+        "when": "The client sends GET /inventory.",
+        "then": "The response status is 200 and the response contains operationalTotals, items, movements, and contract-defined stock fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "A client has a valid bearer token and submits a valid InventoryItemRequest for creation or update.",
+        "when": "The client sends POST /inventory/items or PATCH /inventory/items/{itemId}.",
+        "then": "The response status is 201 for creation or 200 for update and the response item contains the saved contract fields and stock values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.3",
+        "given": "A client has a valid bearer token and submits a valid receipt or adjustment InventoryMovementRequest for an existing item.",
+        "when": "The client sends POST /inventory/movements.",
+        "then": "The response status is 201 and the response contains the saved movement and item with updated stock values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.4",
+        "given": "A client has a valid bearer token, a supported horizon, and inventory with applicable plans and wastage settings.",
+        "when": "The client sends GET /inventory/projections separately for daily, weekly, monthly, quarterly, semiAnnual, and annual horizons.",
+        "then": "Each response status is 200 and each response contains the selected horizon, projection rows with projected consumption and balance, and movement distinctions.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.5",
+        "given": "A client has a valid bearer token and submits an inventory request that fails contract validation or a projection horizon outside the contract enum.",
+        "when": "The client sends the applicable inventory write or projection request.",
+        "then": "The response status is 422 and the response error code is VALIDATION_ERROR.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.6",
+        "given": "A client has a valid bearer token and authorized operational inventory rows exist.",
+        "when": "The client sends GET /inventory/export.",
+        "then": "The response status is 200 and the response contains fileName, contentType text/csv, and a Base64 CSV file derived from operational records.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When an authorized client reads, creates, revises, optimizes, or approves a ration, the Feedlot API shall return contract-defined ration data and optimization or approval results and persist valid ration changes.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "A client has a valid bearer token and saved ration definitions exist, or the ration collection is empty.",
+        "when": "The client sends GET /rations.",
+        "then": "The response status is 200 and the response rations list contains saved ingredient, proportion, nutrition, cost, and approval fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "A client has a valid bearer token and submits a valid RationRequest for creation or revision.",
+        "when": "The client sends POST /rations or PATCH /rations/{rationId}.",
+        "then": "The response status is 201 for creation or 200 for revision and the response ration contains the persisted definition and calculated contract fields, including costPerPound where declared.",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.3",
+        "given": "A client has a valid bearer token and submits a valid ration optimization request with candidate mixes and nutrition requirements.",
+        "when": "The client sends POST /rations/optimization.",
+        "then": "The response status is 200 and the response contains the contract optimization result and cost comparison, including the lowest-cost qualifying candidate or qualifyingMixFound=false as applicable.",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.4",
+        "given": "A client has a valid bearer token and the requested ration exists in a state eligible for approval.",
+        "when": "The client sends POST /rations/{rationId}/approval.",
+        "then": "The response status is 200 and the response contains the rationId and updated approvalStatus, which is Approved where specified by the contract.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When an authorized client reads, creates, reviews, or changes the execution status of a feed plan, the Feedlot API shall return and persist contract-defined pen-level plan details, calculated quantities, audit state, and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "A client has a valid bearer token and saved feed plans exist, or the plan collection is empty.",
+        "when": "The client sends GET /feed-plans.",
+        "then": "The response status is 200 and the response plans list contains saved plan details, execution state, and audit-related fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "A client has a valid bearer token and submits a valid FeedPlanRequest with dated pen, ration, bunk rate, and animal-count values.",
+        "when": "The client sends POST /feed-plans.",
+        "then": "The response status is 201 and the response plan contains calculated planned quantity, quantity per animal, total feed cost, expected energy intake, and status fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.3",
+        "given": "A client has a valid bearer token, an existing plan, and a valid PlanReviewRequest or PlanStatusRequest.",
+        "when": "The client sends POST /feed-plans/{planId}/review or PATCH /feed-plans/{planId}/status.",
+        "then": "The response status is 200 and the response plan contains the saved reviewRequired value or requested execution status.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When an authorized client records, corrects, or voids a feeding event, the Feedlot API shall persist the event and return its contract-defined variance, cost, energy, inventory movements, and updated lot feed totals.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "A client has a valid bearer token and saved feeding events and lot allocations exist, or the event collection is empty.",
+        "when": "The client sends GET /feeding-events.",
+        "then": "The response status is 200 and the response events list contains saved activity, lot allocations, and inventory movements.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "A client has a valid bearer token and submits a valid FeedingEventRequest with planned and delivered quantities.",
+        "when": "The client sends POST /feeding-events.",
+        "then": "The response status is 201 and the response contains the saved event, variance equal to deliveredQuantity minus plannedQuantity, calculated cost and energy, inventoryMovements, and updated lotFeedTotals.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "A client has a valid bearer token, an existing feeding event, and a valid correction request or an event eligible to be voided.",
+        "when": "The client sends PATCH /feeding-events/{eventId} or POST /feeding-events/{eventId}/void.",
+        "then": "The response status is 200 and the response event has the applicable Corrected or Voided status with corresponding reversal or correction movements and recalculated lotFeedTotals.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "A client submits a feeding event that conflicts with current inventory or fails contract validation.",
+        "when": "The client sends POST /feeding-events.",
+        "then": "The response status is the contract-declared 409 or 422 and the response contains the contract ApiError fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.5",
+        "given": "A feeding event has been successfully saved and the App PostgreSQL database is available.",
+        "when": "The API process restarts and the client reads the event and inventory.",
+        "then": "The response contains the saved event and corresponding stock and lot totals.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When an authorized client requests an operational, feed-to-gain, or profitability report or export, the Feedlot API shall return contract-defined permission-filtered rows, calculations, summaries, and requested export artifacts.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A client has a valid bearer token and operational feeding, performance, and inventory data with supported filters.",
+        "when": "The client sends GET /reports/operational or GET /reports/operational/export.",
+        "then": "The response status is 200 and the response rows and summary match the filters, or the response contains a CSV file derived only from the authorized filtered rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "A client has a valid bearer token and supplies a required date range plus optional breed, sex, or pen filters.",
+        "when": "The client sends GET /reports/feed-to-gain.",
+        "then": "The response status is 200 and the response rows contain contract-defined ADG, feed, FCR, cost-of-gain, and energy fields for matching lots.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.3",
+        "given": "A client has a valid bearer token and supplies a valid feed-to-gain date range, supported filters, and format csv or pdf.",
+        "when": "The client sends GET /reports/feed-to-gain/export.",
+        "then": "The response status is 200 and the response file artifact has contentType and content corresponding to the requested format and filtered authorized rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.4",
+        "given": "A client omits a required feed-to-gain date or supplies an export format outside the contract enum.",
+        "when": "The client sends a feed-to-gain report or export request.",
+        "then": "The response status is 422 and the response error code is VALIDATION_ERROR.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.5",
+        "given": "A client has a valid bearer token and supplies supported profitability horizon, breed, penId, or roiStatus filters.",
+        "when": "The client sends GET /reports/profitability or GET /reports/profitability/export.",
+        "then": "The response status is 200 and the response contains authorized matching profitability rows and canViewProfitability where declared, or a CSV file with those filtered authorized rows.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When an authorized client reads, loads, resets, or replaces sample records, the Feedlot API shall return contract-defined sample status and records, avoid duplicate loading, and require explicit confirmation for reset or replacement.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "A client has a valid bearer token and sample records may be absent, not yet loaded, or already loaded.",
+        "when": "The client sends GET /sample-data or POST /sample-data/load.",
+        "then": "The response status is 200 and the response loaded, recordCount, records, and load status distinguish an empty set, a successful load, and already_loaded without duplicating records.",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "A client has a valid bearer token and sends reset or replacement first without required confirmation and then with explicit confirmation.",
+        "when": "The client sends POST /sample-data/reset or POST /sample-data/replace.",
+        "then": "The unconfirmed response status is the contract-declared 422 or 409, and the confirmed response has the completed operation status and resulting recordCount.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The Feedlot API shall store contract domain data in PostgreSQL using the configured connection string named App, preserve successful writes across API process restarts, and upgrade an existing App database to the contract domain schema without losing existing data.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 8,
+        "lineEnd": 9,
+        "quote": "builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\n    ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_4»")));"
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 22,
+        "quote": "        using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();"
+       },
+       {
+        "path": "App.Api/AppDb.cs",
+        "lineStart": 5,
+        "lineEnd": 7,
+        "quote": "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n}"
+       }
+      ],
+      "sources": [
+       "I-2",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "The API is configured with an App PostgreSQL connection and a client successfully creates or updates a contract resource.",
+        "when": "The API process restarts and the client retrieves the resource through its contract-defined read operation.",
+        "then": "The response contains the saved value and the returned record has the same id and field values as the successful write response.",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "The API is configured with a connection string named App and a successful contract write has completed.",
+        "when": "A test queries the configured PostgreSQL database for the affected entity.",
+        "then": "A row with the values written by the request is present in the App database.",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "An existing App PostgreSQL database contains data and lacks one or more tables required by the contract domain schema.",
+        "when": "The API starts and upgrades the database schema.",
+        "then": "The pre-existing row values are unchanged and PostgreSQL contains the tables required by the contract operations.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When Seed:Demo is false, the Feedlot API shall serve contract collection operations based only on persisted records, including empty collections when no records exist.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "An isolated App PostgreSQL database has no records and Seed:Demo is false.",
+        "when": "An authorized client calls contract collection endpoints, including GET /lots, GET /inventory, GET /rations, GET /feed-plans, and GET /feeding-events.",
+        "then": "Each response status is 200 and each response collection field is an empty list rather than an error or an assumed demo record.",
+        "level": "api"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "Seed:Demo is false and a test creates its own records through contract write operations.",
+        "when": "The test reads the corresponding contract list operation.",
+        "then": "The response list contains the test-created records without depending on demo-seed record ids, counts, or values.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

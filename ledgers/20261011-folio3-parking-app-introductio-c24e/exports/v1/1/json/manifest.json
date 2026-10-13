@@ -1,0 +1,1770 @@
+{
+  "kind": "ai-factory/design-package",
+  "schemaVersion": 1,
+  "line": "20261011-folio3-parking-app-introductio-c24e",
+  "version": 1,
+  "designSha": "eb69f957c48abecd39d1332eafccde7af2f66f8efb4aed1c0d598bc023f2f77c",
+  "demoSha": "f823f08acc40dbd86c501127f727c258e2fe8b4dada5751c65ff8adfb837f956",
+  "run": {
+    "id": "20261011-folio3-parking-app-introductio-c24e",
+    "mode": "design",
+    "project": "standalone-estimates"
+  },
+  "product": {
+    "name": "Parking App",
+    "client": "Folio3"
+  },
+  "approved": {
+    "by": "Hamza (via web)",
+    "at": "2026-10-11T22:38:40.836Z"
+  },
+  "templateVersion": "21",
+  "designSchemaVersion": 1,
+  "look": "design",
+  "references": [],
+  "screens": [
+    {
+      "id": "S-1",
+      "title": "S-1 /sign-in",
+      "route": "/sign-in",
+      "reqs": [
+        "REQ-1",
+        "REQ-26"
+      ],
+      "states": [
+        "default",
+        "loading",
+        "error"
+      ]
+    },
+    {
+      "id": "S-2",
+      "title": "S-2 /access-error",
+      "route": "/access-error",
+      "reqs": [
+        "REQ-4"
+      ],
+      "states": [
+        "default",
+        "loading"
+      ]
+    },
+    {
+      "id": "S-3",
+      "title": "S-3 /onboarding/vehicle",
+      "route": "/onboarding/vehicle",
+      "reqs": [
+        "REQ-3",
+        "REQ-2"
+      ],
+      "states": [
+        "default",
+        "validation",
+        "loading"
+      ]
+    },
+    {
+      "id": "S-4",
+      "title": "S-4 /dashboard",
+      "route": "/dashboard",
+      "reqs": [
+        "REQ-14",
+        "REQ-15",
+        "REQ-16",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "success",
+        "loading",
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "id": "S-5",
+      "title": "S-5 /dashboard/holder",
+      "route": "/dashboard/holder",
+      "reqs": [
+        "REQ-10",
+        "REQ-12",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "success",
+        "loading",
+        "error"
+      ]
+    },
+    {
+      "id": "S-6",
+      "title": "S-6 /releases/schedule",
+      "route": "/releases/schedule",
+      "reqs": [
+        "REQ-11",
+        "REQ-12",
+        "REQ-10"
+      ],
+      "states": [
+        "default",
+        "success",
+        "validation",
+        "loading"
+      ]
+    },
+    {
+      "id": "S-7",
+      "title": "S-7 /profile",
+      "route": "/profile",
+      "reqs": [
+        "REQ-2",
+        "REQ-3",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "validation"
+      ]
+    },
+    {
+      "id": "S-8",
+      "title": "S-8 /guard/verifications",
+      "route": "/guard/verifications",
+      "reqs": [
+        "REQ-18",
+        "REQ-19",
+        "REQ-20",
+        "REQ-21",
+        "REQ-22",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "id": "S-9",
+      "title": "S-9 /admin/spaces",
+      "route": "/admin/spaces",
+      "reqs": [
+        "REQ-6",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "validation",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-10",
+      "title": "S-10 /admin/employees",
+      "route": "/admin/employees",
+      "reqs": [
+        "REQ-6",
+        "REQ-2",
+        "REQ-3"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-11",
+      "title": "S-11 /admin/employees/:id",
+      "route": "/admin/employees/:id",
+      "reqs": [
+        "REQ-6",
+        "REQ-2"
+      ],
+      "states": [
+        "default",
+        "success",
+        "validation"
+      ]
+    },
+    {
+      "id": "S-12",
+      "title": "S-12 /admin/roles",
+      "route": "/admin/roles",
+      "reqs": [
+        "REQ-26",
+        "REQ-5",
+        "REQ-1"
+      ],
+      "states": [
+        "default",
+        "success",
+        "validation"
+      ]
+    },
+    {
+      "id": "S-13",
+      "title": "S-13 /admin/settings",
+      "route": "/admin/settings",
+      "reqs": [
+        "REQ-12"
+      ],
+      "states": [
+        "default",
+        "success",
+        "validation"
+      ]
+    },
+    {
+      "id": "S-14",
+      "title": "S-14 /admin/reports/recipients",
+      "route": "/admin/reports/recipients",
+      "reqs": [
+        "REQ-24"
+      ],
+      "states": [
+        "default",
+        "success",
+        "validation",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-15",
+      "title": "S-15 /admin/reports",
+      "route": "/admin/reports",
+      "reqs": [
+        "REQ-23",
+        "REQ-22",
+        "REQ-5"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    },
+    {
+      "id": "S-16",
+      "title": "S-16 /admin/audit",
+      "route": "/admin/audit",
+      "reqs": [
+        "REQ-16",
+        "REQ-21",
+        "REQ-20",
+        "REQ-15"
+      ],
+      "states": [
+        "default",
+        "empty"
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "file": "s-1-default-phone.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-1-loading-phone.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "loading",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-1-error-phone.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "error",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-2-default-phone.png",
+      "id": "S-2",
+      "screen": "S-2 /access-error",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-2-loading-phone.png",
+      "id": "S-2",
+      "screen": "S-2 /access-error",
+      "state": "loading",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-3-default-phone.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-3-validation-phone.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-3-loading-phone.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "loading",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-4-default-phone.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-4-success-phone.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-4-loading-phone.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "loading",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-4-empty-phone.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-4-error-phone.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "error",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-5-default-phone.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-5-success-phone.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-5-loading-phone.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "loading",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-5-error-phone.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "error",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-6-default-phone.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-6-success-phone.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-6-validation-phone.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-6-loading-phone.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "loading",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-7-default-phone.png",
+      "id": "S-7",
+      "screen": "S-7 /profile",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-7-validation-phone.png",
+      "id": "S-7",
+      "screen": "S-7 /profile",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-8-default-phone.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-8-empty-phone.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-8-error-phone.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "error",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-9-default-phone.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-9-validation-phone.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-9-empty-phone.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-10-default-phone.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-10-empty-phone.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-11-default-phone.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-11-success-phone.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-11-validation-phone.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-12-default-phone.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-12-success-phone.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-12-validation-phone.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-13-default-phone.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-13-success-phone.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-13-validation-phone.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-14-default-phone.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-14-success-phone.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "success",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-14-validation-phone.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "validation",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-14-empty-phone.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-15-default-phone.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-15-empty-phone.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-16-default-phone.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "default",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-16-empty-phone.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "empty",
+      "viewport": "phone"
+    },
+    {
+      "file": "s-1-default-desktop.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-1-loading-desktop.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "loading",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-1-error-desktop.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "error",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-2-default-desktop.png",
+      "id": "S-2",
+      "screen": "S-2 /access-error",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-2-loading-desktop.png",
+      "id": "S-2",
+      "screen": "S-2 /access-error",
+      "state": "loading",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-3-default-desktop.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-3-validation-desktop.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-3-loading-desktop.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "loading",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-4-default-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-4-success-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-4-loading-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "loading",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-4-empty-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-4-error-desktop.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "error",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-5-default-desktop.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-5-success-desktop.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-5-loading-desktop.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "loading",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-5-error-desktop.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "error",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-6-default-desktop.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-6-success-desktop.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-6-validation-desktop.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-6-loading-desktop.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "loading",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-7-default-desktop.png",
+      "id": "S-7",
+      "screen": "S-7 /profile",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-7-validation-desktop.png",
+      "id": "S-7",
+      "screen": "S-7 /profile",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-8-default-desktop.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-8-empty-desktop.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-8-error-desktop.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "error",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-9-default-desktop.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-9-validation-desktop.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-9-empty-desktop.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-10-default-desktop.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-10-empty-desktop.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-11-default-desktop.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-11-success-desktop.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-11-validation-desktop.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-12-default-desktop.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-12-success-desktop.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-12-validation-desktop.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-13-default-desktop.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-13-success-desktop.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-13-validation-desktop.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-14-default-desktop.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-14-success-desktop.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "success",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-14-validation-desktop.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "validation",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-14-empty-desktop.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-15-default-desktop.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-15-empty-desktop.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-16-default-desktop.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "default",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-16-empty-desktop.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "empty",
+      "viewport": "desktop"
+    },
+    {
+      "file": "s-1-default-tablet.png",
+      "id": "S-1",
+      "screen": "S-1 /sign-in",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-2-default-tablet.png",
+      "id": "S-2",
+      "screen": "S-2 /access-error",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-3-default-tablet.png",
+      "id": "S-3",
+      "screen": "S-3 /onboarding/vehicle",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-4-default-tablet.png",
+      "id": "S-4",
+      "screen": "S-4 /dashboard",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-5-default-tablet.png",
+      "id": "S-5",
+      "screen": "S-5 /dashboard/holder",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-6-default-tablet.png",
+      "id": "S-6",
+      "screen": "S-6 /releases/schedule",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-7-default-tablet.png",
+      "id": "S-7",
+      "screen": "S-7 /profile",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-8-default-tablet.png",
+      "id": "S-8",
+      "screen": "S-8 /guard/verifications",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-9-default-tablet.png",
+      "id": "S-9",
+      "screen": "S-9 /admin/spaces",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-10-default-tablet.png",
+      "id": "S-10",
+      "screen": "S-10 /admin/employees",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-11-default-tablet.png",
+      "id": "S-11",
+      "screen": "S-11 /admin/employees/:id",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-12-default-tablet.png",
+      "id": "S-12",
+      "screen": "S-12 /admin/roles",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-13-default-tablet.png",
+      "id": "S-13",
+      "screen": "S-13 /admin/settings",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-14-default-tablet.png",
+      "id": "S-14",
+      "screen": "S-14 /admin/reports/recipients",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-15-default-tablet.png",
+      "id": "S-15",
+      "screen": "S-15 /admin/reports",
+      "state": "default",
+      "viewport": "tablet"
+    },
+    {
+      "file": "s-16-default-tablet.png",
+      "id": "S-16",
+      "screen": "S-16 /admin/audit",
+      "state": "default",
+      "viewport": "tablet"
+    }
+  ],
+  "files": [
+    {
+      "path": "demo/index.html",
+      "sha256": "f823f08acc40dbd86c501127f727c258e2fe8b4dada5751c65ff8adfb837f956",
+      "bytes": 10603825
+    },
+    {
+      "path": "design.json",
+      "sha256": "6fc8ae6d1435582925643fcef0f417e236ed533b8b3e0f919029d7370b83b60d",
+      "bytes": 41740
+    },
+    {
+      "path": "screens/DESIGN.md",
+      "sha256": "3f034b42aafbc756361f2b821a13a420f27f7fe654a79c9e1d2de5d6ed5d5e9e",
+      "bytes": 14741
+    },
+    {
+      "path": "screens/S-1-error.html",
+      "sha256": "910b77af21c3f9796244e1ba1ade34ef3750131c0e60976dfb2f9d17cbc5dfdd",
+      "bytes": 16873
+    },
+    {
+      "path": "screens/S-1.html",
+      "sha256": "f1aa1cf002446ad2a4b5278d88bbb7dc0cb733f1d59b846a0e24c29f31e93c65",
+      "bytes": 16011
+    },
+    {
+      "path": "screens/S-10-empty.html",
+      "sha256": "f8d45c6f04dcdf02e59e3a359cb63f932256258d4c94a421418713765f15056e",
+      "bytes": 45848
+    },
+    {
+      "path": "screens/S-10.html",
+      "sha256": "47eb2474ab1fd6bed8b00660481f926bf44e38d72187bf2502323aa02bd5fbb7",
+      "bytes": 41338
+    },
+    {
+      "path": "screens/S-11.html",
+      "sha256": "8962cf8c1808a505299522ac38187c5dc9cbae0d604d3d27948e4e3a84aef4a0",
+      "bytes": 43480
+    },
+    {
+      "path": "screens/S-12.html",
+      "sha256": "68ad57d4d4917c2bd0d5de1f2ef5ff67be6a065cb6f9b0a7c49facbdfc435809",
+      "bytes": 30276
+    },
+    {
+      "path": "screens/S-13.html",
+      "sha256": "7f3679c654ea1c69ed2b7887bbefc75592e7a5f529c880744b929c11eef735cb",
+      "bytes": 30182
+    },
+    {
+      "path": "screens/S-14-empty.html",
+      "sha256": "d4daa3ff8b7226d2c156c98752bf2ec8f33bb0ef0e1987cb6f39172bad12ec5b",
+      "bytes": 34622
+    },
+    {
+      "path": "screens/S-14.html",
+      "sha256": "f00b537985269e6bc97953640de339429c4d7ba73ad07953c30e1cffd5b9daad",
+      "bytes": 39870
+    },
+    {
+      "path": "screens/S-15-empty.html",
+      "sha256": "d2b9f88133e1ac2b621f391e807e4bdf0897675571d5669725188d0c948d6485",
+      "bytes": 38382
+    },
+    {
+      "path": "screens/S-15.html",
+      "sha256": "11989f53a35734bf6ae59f4e59ccf9b37f714eb5b062fa67f246ea94ac1a12ca",
+      "bytes": 37245
+    },
+    {
+      "path": "screens/S-16-empty.html",
+      "sha256": "d4c5f5d470c49580f85a9c3f93f495cc9a831788f2546b3f0d4805e5d48b332e",
+      "bytes": 36752
+    },
+    {
+      "path": "screens/S-16.html",
+      "sha256": "75b93f6bb66b4a2a99494150db4fbe0f214a6201c0cb9fc58d2bfd1eca98cf35",
+      "bytes": 29560
+    },
+    {
+      "path": "screens/S-2.html",
+      "sha256": "1182f387c8755d47eeecd4e49f0045f29f1b5becf3a2209841efe292f31958e9",
+      "bytes": 16983
+    },
+    {
+      "path": "screens/S-3.html",
+      "sha256": "7588b93b41e1af414c751379795301a852f21a37e943eb33cb136ded18661bf1",
+      "bytes": 21332
+    },
+    {
+      "path": "screens/S-4-empty.html",
+      "sha256": "623ce544deaa420626c4ff5bab431d14dcaaa727ea9776e0d21036a055f28ef0",
+      "bytes": 26194
+    },
+    {
+      "path": "screens/S-4-error.html",
+      "sha256": "3d894c3e6af1fb363015a2258ad6518f8e89af5397ffc0460aca71ad32859adb",
+      "bytes": 28475
+    },
+    {
+      "path": "screens/S-4.html",
+      "sha256": "b3c25e363e9f05617bedf2b8a53b7adf22ca487c7a5e70feb96e6176c541ba01",
+      "bytes": 32555
+    },
+    {
+      "path": "screens/S-5-error.html",
+      "sha256": "bea1eafaad18053b8dc9535bbe8a4bd265c30bbcb34c2e739509e2af98839d87",
+      "bytes": 37039
+    },
+    {
+      "path": "screens/S-5.html",
+      "sha256": "909b0775c06fdcffafc908aac009e68832c0e0cba3a64ce2b547dead35ee735a",
+      "bytes": 37827
+    },
+    {
+      "path": "screens/S-6.html",
+      "sha256": "36b4fb24687ee4fdf68b914af08e566449f7ef26bf9bfc892fad5e1dac969c03",
+      "bytes": 52051
+    },
+    {
+      "path": "screens/S-7.html",
+      "sha256": "b31f64eb3e51797398ce14324e387c02974bf6bf461a25deddfe827ae177d644",
+      "bytes": 28604
+    },
+    {
+      "path": "screens/S-8-empty.html",
+      "sha256": "7820f4b1d24bf860beab3dd53ed96dd974c4a5ed28d90560d3399cd7d9b28c72",
+      "bytes": 38714
+    },
+    {
+      "path": "screens/S-8-error.html",
+      "sha256": "3e4f65ecabde86114a594a2747200af3075eb45d4fb9a62717e70cb1199f02b7",
+      "bytes": 34177
+    },
+    {
+      "path": "screens/S-8.html",
+      "sha256": "aa4e769e682380828fc752f269c1ae24eec0ca41409cdc4892083b9a7f64d841",
+      "bytes": 28863
+    },
+    {
+      "path": "screens/S-9-empty.html",
+      "sha256": "4dd9c3c8f2d3e36e1af4b489f2d4ff14e78afd14f3cfe5a356f5a0224c25ff1b",
+      "bytes": 38799
+    },
+    {
+      "path": "screens/S-9.html",
+      "sha256": "62fdfc4ebe9c91475f004936254a80b91455154eb2bbe0721d33582fe5b27edc",
+      "bytes": 36797
+    },
+    {
+      "path": "shots/s-1-default-desktop.png",
+      "sha256": "3c1e2bd46dfed449ae0054ccd476c8a83d4ac7bb3bf16298547f9862deabf00b",
+      "bytes": 190876
+    },
+    {
+      "path": "shots/s-1-default-phone.png",
+      "sha256": "995fc11df34e93ee9c7c27662e4ed0ea7f973f784c18a1f7e7b14a28c21a3d7c",
+      "bytes": 128114
+    },
+    {
+      "path": "shots/s-1-default-tablet.png",
+      "sha256": "157dae83630f8432dc4e0c59a8be1bebfff97c533b19a4787662b3f8bb68a5ab",
+      "bytes": 161920
+    },
+    {
+      "path": "shots/s-1-error-desktop.png",
+      "sha256": "c40a3f29f85d0fae1366c82c5825bf88dfbb18e62feb1df032aa714683629e4c",
+      "bytes": 358407
+    },
+    {
+      "path": "shots/s-1-error-phone.png",
+      "sha256": "c31f9f140c5ee429803438d330e33292ce524059e348e259f78c2b7cbba6b68c",
+      "bytes": 167139
+    },
+    {
+      "path": "shots/s-1-loading-desktop.png",
+      "sha256": "6a6e537bf0b15e8e9b96401fd71d100256096516a77e150c6f8df4e6ee08a973",
+      "bytes": 146146
+    },
+    {
+      "path": "shots/s-1-loading-phone.png",
+      "sha256": "7ef1fa7dfea8c31a793579ec8bac6a668c5ce709f113649ef39a1b62992f6365",
+      "bytes": 119878
+    },
+    {
+      "path": "shots/s-10-default-desktop.png",
+      "sha256": "446d06104b9e9648f60ba8c8d73e339f573be4ffbbdff6f8c0af4b34014471cf",
+      "bytes": 224922
+    },
+    {
+      "path": "shots/s-10-default-phone.png",
+      "sha256": "6ccb5b3b81fc31305c45f71525fb2ad378d26f510d9da55869bac6a84621c51a",
+      "bytes": 138191
+    },
+    {
+      "path": "shots/s-10-default-tablet.png",
+      "sha256": "6e653bd2a6f94abe13e08d72971fd159afd2baf0b03e144d281c60e315adcf8e",
+      "bytes": 178201
+    },
+    {
+      "path": "shots/s-10-empty-desktop.png",
+      "sha256": "06c95ec77d19d2e0a8b3ae4bdfd61f3d6f15bf10cf659abf6b83c2003e7a72fd",
+      "bytes": 249578
+    },
+    {
+      "path": "shots/s-10-empty-phone.png",
+      "sha256": "d93a0b0abef8be59e8226bc3008160551378b2fb682b1629ab65fe8a67dec3e5",
+      "bytes": 143923
+    },
+    {
+      "path": "shots/s-11-default-desktop.png",
+      "sha256": "68aacfbbde0390f53ca617e7d97aa77d0bd40da631af9f21b933b64c099aec3e",
+      "bytes": 312632
+    },
+    {
+      "path": "shots/s-11-default-phone.png",
+      "sha256": "92e4064c608484bb6762e7e7e2604c0232a234d9cfcc326324292c6cd0603fa5",
+      "bytes": 161147
+    },
+    {
+      "path": "shots/s-11-default-tablet.png",
+      "sha256": "856caf8977ee9fce33cf954bbd0c0393f8306dc5b22925bda36d885d8008ea9f",
+      "bytes": 212845
+    },
+    {
+      "path": "shots/s-11-success-desktop.png",
+      "sha256": "1e437ce5b19695454837485691ca1ebe1ed15b4ee669761c42cb6659209ad121",
+      "bytes": 151704
+    },
+    {
+      "path": "shots/s-11-success-phone.png",
+      "sha256": "35d50a23ef6f524d6f2a80c33273f3f169530dfb7d412832e89d738a3a442175",
+      "bytes": 123964
+    },
+    {
+      "path": "shots/s-11-validation-desktop.png",
+      "sha256": "cb3d6f87796d04199f4d4dbe345f12445e85138ca4bfa36f1ce954c61ffe208b",
+      "bytes": 152315
+    },
+    {
+      "path": "shots/s-11-validation-phone.png",
+      "sha256": "b88088bb200168eb1dc47978117408f458fea10ae13a81f33ac9b50e1fa78f35",
+      "bytes": 124599
+    },
+    {
+      "path": "shots/s-12-default-desktop.png",
+      "sha256": "c78d9ba2196e6695db8213ab55488d246100f053fd9521ce5b9e75afd6c0430d",
+      "bytes": 292866
+    },
+    {
+      "path": "shots/s-12-default-phone.png",
+      "sha256": "118750e9fb4342bd72d9fc6236e40924dd15415f3c9773fb2b18f3a7f9166218",
+      "bytes": 155392
+    },
+    {
+      "path": "shots/s-12-default-tablet.png",
+      "sha256": "32bbfa9df8eed6c933f7db167f6633da15c19122ecb268d8308b9022e55120fa",
+      "bytes": 203130
+    },
+    {
+      "path": "shots/s-12-success-desktop.png",
+      "sha256": "c7d3428e94effb415579a5603a1077dde37920e47348505b7e9e14bea284a95f",
+      "bytes": 148300
+    },
+    {
+      "path": "shots/s-12-success-phone.png",
+      "sha256": "87f393d6eaeb6c2d5963a71037fce938cb51783a6666bdcfecb59168adf6c8e9",
+      "bytes": 121413
+    },
+    {
+      "path": "shots/s-12-validation-desktop.png",
+      "sha256": "d80e07fbd1ded06780f911e156fbe66722ef0288b35c1d6a7acac94eb480615f",
+      "bytes": 148908
+    },
+    {
+      "path": "shots/s-12-validation-phone.png",
+      "sha256": "a299aa70ae52161a0fdcc3b1314b47144beece17fbc78d8b9682fc100aea0993",
+      "bytes": 122051
+    },
+    {
+      "path": "shots/s-13-default-desktop.png",
+      "sha256": "59d56a79b77a085408dbab868954dc066a386b257464541afe97b9fa5eb30348",
+      "bytes": 277442
+    },
+    {
+      "path": "shots/s-13-default-phone.png",
+      "sha256": "267f465f4a0ddf6f9b7a97c45ccb9532c75b29b0f1a84caae5880ed930e9b1dd",
+      "bytes": 148639
+    },
+    {
+      "path": "shots/s-13-default-tablet.png",
+      "sha256": "8fd750787b0f3ee273662d48b3476f575d5ea02b8e6f8f026884728b291c31fe",
+      "bytes": 195841
+    },
+    {
+      "path": "shots/s-13-success-desktop.png",
+      "sha256": "f9de348f7d23b0e72e8746dbb0fa0ff34f3267e88d423c7aac09a16232992950",
+      "bytes": 149843
+    },
+    {
+      "path": "shots/s-13-success-phone.png",
+      "sha256": "dd9fb112c9e9226dc5171f8115c6d55075d216eda09463f359f8a130dc4d899c",
+      "bytes": 121550
+    },
+    {
+      "path": "shots/s-13-validation-desktop.png",
+      "sha256": "527546be8c0ee20ce22d6065a757f2b5d3ddda905fc688da2c6a3cc4810916cb",
+      "bytes": 150458
+    },
+    {
+      "path": "shots/s-13-validation-phone.png",
+      "sha256": "e31028a7743f05a6ed7ae37d394f8063349decee5f4ff537663444b50e375d2b",
+      "bytes": 122191
+    },
+    {
+      "path": "shots/s-14-default-desktop.png",
+      "sha256": "bd8bcb3250685fc0c486115b271e0b9884009e54e96b76503177b1f7b0055ea9",
+      "bytes": 279488
+    },
+    {
+      "path": "shots/s-14-default-phone.png",
+      "sha256": "18edcdf73971a9a29d871fcb15c15765ef4fe8c57a97f330fff274b6bd43780b",
+      "bytes": 152486
+    },
+    {
+      "path": "shots/s-14-default-tablet.png",
+      "sha256": "ac3df0c0ec6100f29e58b9506daf05aeaa8d5ac060c7a00b85df6c968b844e0c",
+      "bytes": 199469
+    },
+    {
+      "path": "shots/s-14-empty-desktop.png",
+      "sha256": "20defe4b3572a37ee8c4bdfa794db1a96d53e1e550a345c55247676e997a1bea",
+      "bytes": 260566
+    },
+    {
+      "path": "shots/s-14-empty-phone.png",
+      "sha256": "2a661a0a35d72c9362a1af089608eefef5a0211abd6fde69bbe894298dc19683",
+      "bytes": 147950
+    },
+    {
+      "path": "shots/s-14-success-desktop.png",
+      "sha256": "ca7a1b6ab2e970c7a0692fe7d91832960bd4aa6d96b9a594baa225a3a1fcfb77",
+      "bytes": 152590
+    },
+    {
+      "path": "shots/s-14-success-phone.png",
+      "sha256": "65a6605a988c9475fb9c8aa7b546e6988503cc984e2bb6c94cb29ca89c43fffc",
+      "bytes": 124023
+    },
+    {
+      "path": "shots/s-14-validation-desktop.png",
+      "sha256": "211da140f3390d1614fca97e1e7b4174d392d91b85c92f56e57fad40fd677f15",
+      "bytes": 153304
+    },
+    {
+      "path": "shots/s-14-validation-phone.png",
+      "sha256": "a32d1e0afc025613be16198d6d3c5e35c7685c0d7614ed5849ceefa334687df1",
+      "bytes": 124819
+    },
+    {
+      "path": "shots/s-15-default-desktop.png",
+      "sha256": "bc2c0b6f89ad06c063e8a249d4a207adb99d3c8ea11912509333665bfdbe16bd",
+      "bytes": 296595
+    },
+    {
+      "path": "shots/s-15-default-phone.png",
+      "sha256": "58045fc46a463c50734b7556eba45468cad1c834d8e4dedc97898dbb88c43d28",
+      "bytes": 155746
+    },
+    {
+      "path": "shots/s-15-default-tablet.png",
+      "sha256": "cb1d01d61c2694793b377d9b9ebcee4259b32a6cd469b23d7ee0fc00176e9c02",
+      "bytes": 204202
+    },
+    {
+      "path": "shots/s-15-empty-desktop.png",
+      "sha256": "061c48fd96964d99607f2f34e6629201d4a0b836e55b9164a4c139067fddfbbf",
+      "bytes": 266183
+    },
+    {
+      "path": "shots/s-15-empty-phone.png",
+      "sha256": "3212a465ef7c1cb6333cb473230885623a3b71191c139b243b70fd3d97b78ad2",
+      "bytes": 148244
+    },
+    {
+      "path": "shots/s-16-default-desktop.png",
+      "sha256": "acfd20fc769bb10ec55f3e76272501ad99340f9dcceaf093c536556cd7637cb2",
+      "bytes": 257039
+    },
+    {
+      "path": "shots/s-16-default-phone.png",
+      "sha256": "e97157d909e6d7bec253d71f3081ee679c3c4a74b827fca44311019cf713fa1e",
+      "bytes": 144918
+    },
+    {
+      "path": "shots/s-16-default-tablet.png",
+      "sha256": "f18f6ed63e6f46103657b6769c737cddf1d6eb281997da7b2855ac6260bf32ab",
+      "bytes": 187367
+    },
+    {
+      "path": "shots/s-16-empty-desktop.png",
+      "sha256": "c6cb29523c6b8b7af2299bcf4d2e239b0aa1dc4ac19764226ec8bf47c5f497eb",
+      "bytes": 272636
+    },
+    {
+      "path": "shots/s-16-empty-phone.png",
+      "sha256": "96957bc0b0aeb3f41153ba3913ef9c5773824209ee780ad7a644fcee96b2047d",
+      "bytes": 148268
+    },
+    {
+      "path": "shots/s-2-default-desktop.png",
+      "sha256": "4a88823dfa0459b1d695fd2ad3b1efa1d9a51bbe6c6f547eac38d696b812c6af",
+      "bytes": 212264
+    },
+    {
+      "path": "shots/s-2-default-phone.png",
+      "sha256": "68742338bf8c3f709fe4a72eda8568ec23ba608454ed50ac4f47f9e40c451565",
+      "bytes": 133945
+    },
+    {
+      "path": "shots/s-2-default-tablet.png",
+      "sha256": "117d7795fb4380aadf5766036e6854535397f204c26371e28363256cc7b32324",
+      "bytes": 171701
+    },
+    {
+      "path": "shots/s-2-loading-desktop.png",
+      "sha256": "de28b5b1ba3298adc6cd56ff67d3551583bf5f48c4149bf20d5027e57d6dc5b6",
+      "bytes": 147424
+    },
+    {
+      "path": "shots/s-2-loading-phone.png",
+      "sha256": "b0219d2f27886aea1177101b4e61268e1ee87b12cca1c38a53146e08ef7a6485",
+      "bytes": 120276
+    },
+    {
+      "path": "shots/s-3-default-desktop.png",
+      "sha256": "679cc61050f04888192472706c35f3026d801bcdc68a1df39e6fa1afe34b28a5",
+      "bytes": 263341
+    },
+    {
+      "path": "shots/s-3-default-phone.png",
+      "sha256": "c3417b50c005cc5d63928116773d02359f6f447225059d665860a2a2a25b9e45",
+      "bytes": 149818
+    },
+    {
+      "path": "shots/s-3-default-tablet.png",
+      "sha256": "5576f3dc0d8ccc9e5d447e76604458f9581c7b02a6cfe772cfd3d908b0116c50",
+      "bytes": 189340
+    },
+    {
+      "path": "shots/s-3-loading-desktop.png",
+      "sha256": "0af3f95bb5d17fc3affefc95c675f0246abba512007d8cfc55004ff72f4cf825",
+      "bytes": 153234
+    },
+    {
+      "path": "shots/s-3-loading-phone.png",
+      "sha256": "c55fb5d2f767ad98b04ad183d5f1d7cddee39e1b92d7d610d84216077fc43aac",
+      "bytes": 124308
+    },
+    {
+      "path": "shots/s-3-validation-desktop.png",
+      "sha256": "f8cbb21bbbc9e1fc1a1e71404a29e5274faa0d9c0e84b6c8d98ad68384a1f5f0",
+      "bytes": 153545
+    },
+    {
+      "path": "shots/s-3-validation-phone.png",
+      "sha256": "8327385a240d585d2c8b931e732c7a1d956d9b3e5e17db547ec59ad785d6c968",
+      "bytes": 124712
+    },
+    {
+      "path": "shots/s-4-default-desktop.png",
+      "sha256": "75302ffa781892a62f464c3cfb95b8fecb8432eeb8760adf342cc9d69faf8277",
+      "bytes": 266765
+    },
+    {
+      "path": "shots/s-4-default-phone.png",
+      "sha256": "f502bcb617409742c2d1e305c2480fc0321f61d2d5e7cfaa77d9afa3f851fa6a",
+      "bytes": 149232
+    },
+    {
+      "path": "shots/s-4-default-tablet.png",
+      "sha256": "d932ad2f215be708da3d56a349168aaf0b88e4a80d3e6c90b7ac45cf221aec30",
+      "bytes": 193428
+    },
+    {
+      "path": "shots/s-4-empty-desktop.png",
+      "sha256": "45ffd6ea1fb292598155e53640017b9d58a1b2d402aff441f108badea7660a2f",
+      "bytes": 248137
+    },
+    {
+      "path": "shots/s-4-empty-phone.png",
+      "sha256": "cbb5bc7ac2e3759518893352770eaa9a144add4310590a15253770237b8d7572",
+      "bytes": 145583
+    },
+    {
+      "path": "shots/s-4-error-desktop.png",
+      "sha256": "e97955a3059d3eb2fa720a48fec891e94f96cf27cc7612aa1042625c1e0fff92",
+      "bytes": 263949
+    },
+    {
+      "path": "shots/s-4-error-phone.png",
+      "sha256": "7ae617c1e0b1ec8bdf8c8f6a0d3c9227df8be06d0145c14932e0c7b9bf34d12b",
+      "bytes": 148465
+    },
+    {
+      "path": "shots/s-4-loading-desktop.png",
+      "sha256": "a9971bb04400a44152a22a946c137958f898516c3729f865bca8962a2793c74b",
+      "bytes": 151167
+    },
+    {
+      "path": "shots/s-4-loading-phone.png",
+      "sha256": "5776eb677c073b220739c000bc830acc225926c80dedc2820140ab72a90bcb14",
+      "bytes": 123775
+    },
+    {
+      "path": "shots/s-4-success-desktop.png",
+      "sha256": "6531fcd386848da218f5e69c618a545fcc6fa5a20f2a1392267d499d0450d1ce",
+      "bytes": 150954
+    },
+    {
+      "path": "shots/s-4-success-phone.png",
+      "sha256": "c8b1b325780a7922e70e6a5fc93ba7417a27568dbb3ed5a349af7d3a9381447a",
+      "bytes": 123427
+    },
+    {
+      "path": "shots/s-5-default-desktop.png",
+      "sha256": "0f6e7314f5c993fcd3342bcdcbdb83e938f5308a86460426a790d96266effc41",
+      "bytes": 321772
+    },
+    {
+      "path": "shots/s-5-default-phone.png",
+      "sha256": "9e7f64a81438b9102f688aa8c321c6788a24f7cb7c7b20e32492d2821b58b821",
+      "bytes": 163630
+    },
+    {
+      "path": "shots/s-5-default-tablet.png",
+      "sha256": "f97538cc556e4ca4aff07372d0622ca8bf71932d80130a1a2698cbb4ff032fa5",
+      "bytes": 215327
+    },
+    {
+      "path": "shots/s-5-error-desktop.png",
+      "sha256": "2ae353252b06f4b77916aab3b64f9f3b81dfb0882504d7174238c4964797a2da",
+      "bytes": 307510
+    },
+    {
+      "path": "shots/s-5-error-phone.png",
+      "sha256": "30a7532cb20410b3a3749448ae3ae2e2d3d5fa89d4188fc4e17ef7f62145daca",
+      "bytes": 159239
+    },
+    {
+      "path": "shots/s-5-loading-desktop.png",
+      "sha256": "a6cd1a06f31426da3dc99b60c955d1fc4f793169805d039fcebfd283b1495a0f",
+      "bytes": 152594
+    },
+    {
+      "path": "shots/s-5-loading-phone.png",
+      "sha256": "98b0b0dcaefab60e54787bb16100757bd859cf56246b77918d19609b4245c37f",
+      "bytes": 124267
+    },
+    {
+      "path": "shots/s-5-success-desktop.png",
+      "sha256": "2717d80c0800b919d44effe18ab959a0c06d19ead63c2eba5b64943978e2b580",
+      "bytes": 152365
+    },
+    {
+      "path": "shots/s-5-success-phone.png",
+      "sha256": "77de16bd3238a0d85992e82bc68d3082dd3ee9a61719449fde884f77743f698e",
+      "bytes": 123915
+    },
+    {
+      "path": "shots/s-6-default-desktop.png",
+      "sha256": "22c4819544131a4a9cac0c0a7852da76b55050f8ae9e11799e6e1334b3dd0906",
+      "bytes": 275849
+    },
+    {
+      "path": "shots/s-6-default-phone.png",
+      "sha256": "da524c81eac9cd2984650645cf5761b99719b900ca57ab4107274fd23dc108d3",
+      "bytes": 152464
+    },
+    {
+      "path": "shots/s-6-default-tablet.png",
+      "sha256": "8563b85ac840b66cfbe1949bf3e9fce1c119f442580b3287d54229766172ec9a",
+      "bytes": 200213
+    },
+    {
+      "path": "shots/s-6-loading-desktop.png",
+      "sha256": "1a74af1206bc48afa79efb6ca8d59e651ddaa0efae86b82958339b03e013e915",
+      "bytes": 152082
+    },
+    {
+      "path": "shots/s-6-loading-phone.png",
+      "sha256": "32e0c2500bd125cc0d4d09a4d6c44494a36b8029c1b6ad731ee915ffe15edb91",
+      "bytes": 123885
+    },
+    {
+      "path": "shots/s-6-success-desktop.png",
+      "sha256": "d72718ce5f71f431ce3f9dc3aced297f31c64158f4118513f507340eccb4c9e4",
+      "bytes": 151583
+    },
+    {
+      "path": "shots/s-6-success-phone.png",
+      "sha256": "82f391213eda769bb19f85d0528df57bfb32f6dc5e22513b3068ad593844c1af",
+      "bytes": 123232
+    },
+    {
+      "path": "shots/s-6-validation-desktop.png",
+      "sha256": "5196e7708679e791793130791f830ad78a4d5f23960e0245dc32eed2f1f40865",
+      "bytes": 152308
+    },
+    {
+      "path": "shots/s-6-validation-phone.png",
+      "sha256": "4416ea58f1ee21d2e95d4a739ab594cbaf7e101eec340fab2f2fe419f9436a1d",
+      "bytes": 124136
+    },
+    {
+      "path": "shots/s-7-default-desktop.png",
+      "sha256": "325c923500b3e04ccb02898c1dc3ebe4082a5da28627584ae87c936054a5fda2",
+      "bytes": 311278
+    },
+    {
+      "path": "shots/s-7-default-phone.png",
+      "sha256": "c2c12e1c9a397709620a2e1b8ca812ebe56e3ccff6b2b11f2366110201617227",
+      "bytes": 157613
+    },
+    {
+      "path": "shots/s-7-default-tablet.png",
+      "sha256": "905b4062eef27413d5e03513af4ac1ca4184fd95de6ce48772f02b7673b83760",
+      "bytes": 208340
+    },
+    {
+      "path": "shots/s-7-validation-desktop.png",
+      "sha256": "75c30a8999a53c1765445dbb480542fde740e3f786109d7ce749b83548790541",
+      "bytes": 147304
+    },
+    {
+      "path": "shots/s-7-validation-phone.png",
+      "sha256": "f9f7978593e5133f8d9034c5fc27b6dced6b158ae6f1fecc07a2060bc827d124",
+      "bytes": 120316
+    },
+    {
+      "path": "shots/s-8-default-desktop.png",
+      "sha256": "37f0d9f32849aa1b2dafeb41d4afad9b0d95c67ab9265490197bbae49cca9008",
+      "bytes": 255661
+    },
+    {
+      "path": "shots/s-8-default-phone.png",
+      "sha256": "cdffb359bedd08ed4a4d35d13d2a39ace65579023bd55c4dfc761e2c3bd54352",
+      "bytes": 147680
+    },
+    {
+      "path": "shots/s-8-default-tablet.png",
+      "sha256": "14f471b7e4da44df4aa33ee7ab85e802d8bee43fa15ed6d9057e339b5d801abc",
+      "bytes": 191952
+    },
+    {
+      "path": "shots/s-8-empty-desktop.png",
+      "sha256": "bb471571642aaba9c8a8eeeda1186b82baf356a52984ec39adf17c4c58707ed9",
+      "bytes": 283044
+    },
+    {
+      "path": "shots/s-8-empty-phone.png",
+      "sha256": "d852900dd9dc4824a700d233559f41bca4bdfd694936fe6b0f06c24f11cf4f16",
+      "bytes": 153430
+    },
+    {
+      "path": "shots/s-8-error-desktop.png",
+      "sha256": "0b141bb7d0b6b58217c409ad77f94c4089389165e3cb2b40233b5cbf81e3ca1c",
+      "bytes": 249123
+    },
+    {
+      "path": "shots/s-8-error-phone.png",
+      "sha256": "c8bc320f9a648e8419ea91fde46b8698389e7787b2f14453d7450b6c31786542",
+      "bytes": 146533
+    },
+    {
+      "path": "shots/s-9-default-desktop.png",
+      "sha256": "98a7943fc734a72801928e6e46652964f983e87de6fe7951a6a73779a0021ab4",
+      "bytes": 237908
+    },
+    {
+      "path": "shots/s-9-default-phone.png",
+      "sha256": "95821993c2082e881ef77c7527f18f85e617efa50dd5d0e495af1d84beee2841",
+      "bytes": 142627
+    },
+    {
+      "path": "shots/s-9-default-tablet.png",
+      "sha256": "fdf2305b59680ad5e0ac0952575e8a884082c9a5f5637fb3a6ae72d807ace25c",
+      "bytes": 182375
+    },
+    {
+      "path": "shots/s-9-empty-desktop.png",
+      "sha256": "6e4b867fda3370c2e93e60a33ebeb62078567c32e69d809478a9ed7611483dfb",
+      "bytes": 277063
+    },
+    {
+      "path": "shots/s-9-empty-phone.png",
+      "sha256": "d0590ed879fd6a94768d56be8a85fcc460f463df6e781e8b1788f2536f82cd74",
+      "bytes": 151539
+    },
+    {
+      "path": "shots/s-9-validation-desktop.png",
+      "sha256": "7bbdaeda02a4707e10cbf199f873c9ec5a950af2ba312ceec64c36ff7533c3cf",
+      "bytes": 149661
+    },
+    {
+      "path": "shots/s-9-validation-phone.png",
+      "sha256": "906ba8855fa5c3ac0f4942d8564cbf5f967e4234f945b27715bfb951f9db6bab",
+      "bytes": 122620
+    },
+    {
+      "path": "tokens.css",
+      "sha256": "c8ed49fdb75f103cc5c8deba695ce835560bfcf38ad4bd0d7ba95707183790dd",
+      "bytes": 1122
+    },
+    {
+      "path": "tokens.json",
+      "sha256": "26d2dbfcb739a03a21bd28ff7e6bd2ec9e4daf4b7fa7e0b196a0efa95376661e",
+      "bytes": 9075
+    }
+  ]
+}

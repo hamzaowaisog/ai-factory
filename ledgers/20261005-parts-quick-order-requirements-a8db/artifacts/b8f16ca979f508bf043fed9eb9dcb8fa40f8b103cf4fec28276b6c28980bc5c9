@@ -1,0 +1,60 @@
+# Parts Quick Order — requirements
+
+## Purpose
+A small web portal where a garage's parts buyer finds car parts, orders them and tracks the order. This release has exactly three screens. Anything not written here is out of scope.
+
+## Users
+- **Buyer**: one role only. Already signed in; sign-in is handled by an existing company login and is not part of this work.
+
+## Screens (exactly three)
+1. **Find parts** (`/parts`)
+2. **Cart and checkout** (`/cart`)
+3. **My orders** (`/orders`, with an order detail panel on the same page)
+
+## Data
+- **Part**: part number (text, unique), name, brand, category (Engine, Brakes, Suspension, Electrical, Filters), price (GBP, 2 decimals), stock quantity (whole number), image (optional).
+- **Cart line**: part, quantity (1–99).
+- **Order**: order number (`ORD-` + 6 digits), date placed, lines (part, quantity, unit price), delivery address (one line of text), delivery option (Standard £0, Next day £9.99), total, status (Placed, Packed, Dispatched, Delivered, Cancelled).
+
+## Requirements
+
+### Find parts
+1. The system shall list parts 20 per page, showing image, name, part number, brand, price and stock state.
+2. The system shall show stock state as "In stock" when stock is 5 or more, "Low stock (n left)" when 1–4, and "Out of stock" when 0.
+3. When the buyer types at least 2 characters in the search box, the system shall show only parts whose name or part number contains that text (not case sensitive).
+4. When the buyer picks a category or brand filter, the system shall show only matching parts; filters combine with the search.
+5. When no part matches, the system shall show "No parts match" and a button that clears the search and filters.
+6. When the buyer presses "Add to cart" on a part that is in stock, the system shall add one to the cart (or raise its quantity by one) and update the cart count in the header.
+7. The system shall disable "Add to cart" for parts that are out of stock.
+
+### Cart and checkout
+8. The system shall show each cart line with name, part number, unit price, a quantity field and the line total.
+9. When the buyer changes a quantity, the system shall update the line total and the order total straight away.
+10. If the buyer enters a quantity above the part's stock, then the system shall reset it to the stock quantity and say "Only n available".
+11. When the buyer presses "Remove", the system shall remove that line from the cart.
+12. When the cart is empty, the system shall show "Your cart is empty" and a link to Find parts, and hide checkout.
+13. The system shall require a delivery address (5–200 characters) and a delivery option before "Place order" is enabled.
+14. The system shall show subtotal, delivery charge and total, where total = subtotal + delivery charge.
+15. When the buyer presses "Place order", the system shall create the order with status Placed, empty the cart and show the new order number.
+
+### My orders
+16. The system shall list the buyer's orders newest first, showing order number, date, number of items, total and status.
+17. When the buyer picks a status filter, the system shall show only orders with that status.
+18. When the buyer opens an order, the system shall show its lines, delivery address, delivery option, total and a status timeline (Placed → Packed → Dispatched → Delivered).
+19. While an order's status is Placed, the system shall show a "Cancel order" button; when pressed and confirmed, the system shall set the status to Cancelled.
+20. When the buyer has no orders, the system shall show "No orders yet" and a link to Find parts.
+
+## Non-functional
+- Works on desktop and phone widths (360 px and up).
+- Pages load in under 2 seconds with 5,000 parts.
+- WCAG 2.1 AA: keyboard use, labels on every field, colour is never the only signal for stock or status.
+- English only; prices in GBP.
+
+## Out of scope
+Sign-in and accounts, payments and invoices, admin or staff screens, adding or editing parts, stock management, returns, emails and notifications, multiple addresses, discounts, vehicle (VIN) lookup, reports, mobile apps, other languages or currencies.
+
+## Decisions already made (no need to ask)
+- Stack: React web app with a Node.js API and PostgreSQL.
+- Parts and stock already exist in a database the API reads; this work reads them and writes orders.
+- One buyer sees only their own orders.
+- No integrations with other systems.

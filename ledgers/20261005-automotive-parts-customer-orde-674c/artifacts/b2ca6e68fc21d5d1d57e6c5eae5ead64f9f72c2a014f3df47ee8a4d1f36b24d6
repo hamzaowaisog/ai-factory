@@ -1,0 +1,249 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Basket templates",
+     "subtitle": "Load a saved basket at today's prices from your price list. Retired parts are skipped.",
+     "crumbs": [
+      "Basket",
+      "Basket templates"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "2 retired products skipped from “Weekly service stock”",
+       "text": "Not added: Bosch S4 005 battery (0 092 S40 050) and Mann W 712/75 oil filter. The other 14 lines were added at today's prices.",
+       "action": "Open basket"
+      },
+      {
+       "type": "toolbar",
+       "search": "Search templates by name or part number",
+       "selects": [
+        {
+         "label": "Sort by",
+         "options": [
+          "Last used",
+          "Name A–Z",
+          "Most lines"
+         ],
+         "value": "Last used"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Weekly service stock",
+         "meta": "16 lines · £412.60 today · last used 3 Mar 2026 by Imran Ali",
+         "badge": "2 retired"
+        },
+        {
+         "title": "Brake jobs – VAG",
+         "meta": "9 lines · £286.45 today · last used 27 Feb 2026 by Sara Khan",
+         "badge": "Up to date"
+        },
+        {
+         "title": "Ford Transit clutch kit",
+         "meta": "5 lines · £318.20 today · last used 19 Feb 2026 by Imran Ali",
+         "badge": "Up to date"
+        },
+        {
+         "title": "Winter top-up: wipers, bulbs, screenwash",
+         "meta": "12 lines · £97.80 today · last used 14 Jan 2026 by Dan Hughes",
+         "badge": "1 retired"
+        },
+        {
+         "title": "MOT prep consumables",
+         "meta": "7 lines · £64.15 today · last used 8 Dec 2025 by Sara Khan",
+         "badge": "Up to date"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Load into basket",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Go to basket",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Open basket",
+       "to": "S-7"
+      },
+      {
+       "from": "Go to basket",
+       "to": "S-7"
+      },
+      {
+       "from": "Load template",
+       "to": "S-7"
+      },
+      {
+       "from": "Weekly service stock",
+       "to": "S-7"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Load into basket",
+       "title": "Load “Weekly service stock”?",
+       "text": "16 lines will be added to your basket at today's price-list prices. Retired products are skipped and listed for you.",
+       "actions": [
+        {
+         "label": "Load template",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Load template",
+       "text": "14 lines added to your basket · 2 retired products skipped",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No saved templates yet",
+      "emptyHint": "Save a basket as a template from the Basket page to reorder the same parts in one go.",
+      "success": "Template loaded. 14 lines added to your basket at today's prices.",
+      "error": "We couldn't load your templates. Check your connection and try again."
+     }
+    },
+    "mockFull": {
+     "title": "Basket templates",
+     "subtitle": "Load a saved basket at today's prices from your price list. Retired parts are skipped.",
+     "crumbs": [
+      "Basket",
+      "Basket templates"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "2 retired products skipped from “Weekly service stock”",
+       "text": "Not added: Bosch S4 005 battery (0 092 S40 050) and Mann W 712/75 oil filter. The other 14 lines were added at today's prices.",
+       "action": "Open basket"
+      },
+      {
+       "type": "toolbar",
+       "search": "Search templates by name or part number",
+       "selects": [
+        {
+         "label": "Sort by",
+         "options": [
+          "Last used",
+          "Name A–Z",
+          "Most lines"
+         ],
+         "value": "Last used"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Weekly service stock",
+         "meta": "16 lines · £412.60 today · last used 3 Mar 2026 by Imran Ali",
+         "badge": "2 retired"
+        },
+        {
+         "title": "Brake jobs – VAG",
+         "meta": "9 lines · £286.45 today · last used 27 Feb 2026 by Sara Khan",
+         "badge": "Up to date"
+        },
+        {
+         "title": "Ford Transit clutch kit",
+         "meta": "5 lines · £318.20 today · last used 19 Feb 2026 by Imran Ali",
+         "badge": "Up to date"
+        },
+        {
+         "title": "Timing belt kits – PSA 1.6 HDi",
+         "meta": "6 lines · £541.90 today · last used 12 Feb 2026 by Dan Hughes",
+         "badge": "Up to date"
+        },
+        {
+         "title": "Fleet van service – Vauxhall Vivaro",
+         "meta": "11 lines · £233.75 today · last used 4 Feb 2026 by Sara Khan",
+         "badge": "1 retired"
+        },
+        {
+         "title": "Winter top-up: wipers, bulbs, screenwash",
+         "meta": "12 lines · £97.80 today · last used 14 Jan 2026 by Dan Hughes",
+         "badge": "1 retired"
+        },
+        {
+         "title": "Aircon regas consumables",
+         "meta": "4 lines · £128.40 today · last used 2 Jan 2026 by Imran Ali",
+         "badge": "Up to date"
+        },
+        {
+         "title": "MOT prep consumables",
+         "meta": "7 lines · £64.15 today · last used 8 Dec 2025 by Sara Khan",
+         "badge": "Up to date"
+        },
+        {
+         "title": "Suspension arms – BMW 3 Series F30",
+         "meta": "8 lines · £674.30 today · last used 21 Nov 2025 by Dan Hughes",
+         "badge": "3 retired"
+        },
+        {
+         "title": "Workshop oils and fluids",
+         "meta": "10 lines · £389.00 today · last used 6 Nov 2025 by Imran Ali",
+         "badge": "Up to date"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Load into basket",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Go to basket",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No saved templates yet",
+      "emptyHint": "Save a basket as a template from the Basket page to reorder the same parts in one go.",
+      "success": "Template loaded. 14 lines added to your basket at today's prices.",
+      "error": "We couldn't load your templates. Check your connection and try again."
+     }
+    }
+   },
+   "ms": 5,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

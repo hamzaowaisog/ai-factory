@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 15,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 78,
+    "end": 84
+   },
+   "ms": 0,
+   "resultChars": 1201,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:78,&quot;end&quot;:84}\">\nlib/api/client.msw.ts lines 78-84\n78\t\n79\texport const getActOnLotInsightResponseMock = (): InsightActionResponse => ({\"permissions\":[\"plans.manage\"],\"status\":\"completed\",\"message\":\"Suggested sale date saved.\",\"planId\":3301,\"saleDate\":\"2026-09-18\"})\n80\t\n81\texport const getGetWeightHistoryResponseMock = (): WeightHistoryResponse => ({\"permissions\":[\"weights.view\",\"weights.manage\"],\"measurements\":[{\"id\":401,\"lotId\":2407,\"measuredAt\":\"2026-08-15T09:30:00-06:00\",\"animalsWeighed\":25,\"averageAnimalWeight\":711,\"totalLotWeight\":99540,\"gainSincePrevious\":48,\"notes\":\"Routine weigh day\",\"recordedBy\":\"Riley Morgan\",\"status\":\"Saved\"}]})\n82\t\n83\texport const getAddWeightMeasurementResponseMock = (): WeightMeasurementResponse => ({\"permissions\":[\"weights.manage\"],\"measurement\":{\"id\":402,\"lotId\":2407,\"measuredAt\":\"2026-08-20T09:30:00-06:00\",\"animalsWeighed\":25,\"averageAnimalWeight\":714,\"totalLotWeight\":99960,\"gainSincePrevious\":3,\"notes\":\"Follow-up weigh\",\"recordedBy\":\"Riley Morgan\",\"status\":\"Saved\"}})\n84\t\n… (730 lines total; ask for start=85)\n</untrusted_document>"
+  }
+ ]
+}

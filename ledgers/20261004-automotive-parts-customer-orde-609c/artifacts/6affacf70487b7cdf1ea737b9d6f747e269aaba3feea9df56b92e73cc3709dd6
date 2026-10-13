@@ -1,0 +1,218 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "errors",
+      "topic": "sign-in",
+      "difference": "D-1.52",
+      "text": "When a sign-in fails, what should the error message say?",
+      "options": [
+       "One generic 'invalid email or password' message that never says which part was wrong",
+       "Separate messages for 'unknown email' and 'wrong password'"
+      ],
+      "recommended": "One generic 'invalid email or password' message that never says which part was wrong",
+      "reason": "This meets the security requirement and doesn't reveal which accounts exist.",
+      "spans": [
+       "52-error-handling",
+       "49-security"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what users see on the sign-in screen and whether account existence leaks."
+     },
+     {
+      "id": "Q-7",
+      "category": "errors",
+      "difference": "D-2.54",
+      "text": "How should we stop an order being submitted twice?",
+      "options": [
+       "Disable the submit button and show a loading indicator until the server responds",
+       "Disable the button and also reject repeat submissions on the server using a one-time submission token",
+       "Only show a loading indicator, with no protection against duplicates"
+      ],
+      "recommended": "Disable the submit button and show a loading indicator until the server responds",
+      "reason": "This is the smallest change that covers the loading-state and duplicate-submission tests.",
+      "spans": [
+       "54-loading-states",
+       "71-testing-requirements"
+      ],
+      "impact": 3,
+      "impactReason": "Duplicate submissions create duplicate orders."
+     },
+     {
+      "id": "Q-8",
+      "category": "roles",
+      "topic": "sign-in",
+      "difference": "D-3.56",
+      "text": "Is staff sign-in a separate screen from customer sign-in?",
+      "options": [
+       "Separate staff sign-in page using the same login system; customer users can't sign in there",
+       "One shared sign-in page that sends each user to the customer or staff area based on their role",
+       "A completely separate login system for staff"
+      ],
+      "recommended": "Separate staff sign-in page using the same login system; customer users can't sign in there",
+      "reason": "The request lists a staff sign-in screen separately but asks for no separate login system.",
+      "spans": [
+       "56-main-staff-screens",
+       "55-main-customer-screens"
+      ],
+      "impact": 2,
+      "impactReason": "Decides the sign-in routes and who can get into which area."
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "difference": "D-6.64",
+      "text": "When is the invoice PDF created?",
+      "options": [
+       "Built fresh from the stored invoice data on every download",
+       "Built once when the invoice is created, stored, and reused for every later download",
+       "Built on the first download, then stored and reused"
+      ],
+      "recommended": "Built fresh from the stored invoice data on every download",
+      "reason": "Invoice data doesn't change after creation, so no file storage is needed, and a PDF failure can't block the Delivered save.",
+      "spans": [
+       "64-pdf-generation",
+       "63-file-storage"
+      ],
+      "impact": 2,
+      "impactReason": "Affects file storage and what happens when a download fails."
+     },
+     {
+      "id": "Q-10",
+      "category": "data-model",
+      "text": "Can staff mark an Overdue invoice as Paid?",
+      "options": [
+       "Yes, staff can mark both Unpaid and Overdue invoices Paid",
+       "No, only Unpaid invoices can be marked Paid"
+      ],
+      "recommended": "Yes, staff can mark both Unpaid and Overdue invoices Paid",
+      "reason": "Late payments still have to be recorded.",
+      "spans": [
+       "59-invoice-lifecycle"
+      ],
+      "impact": 3,
+      "impactReason": "Controls invoice status changes, which involve money."
+     },
+     {
+      "id": "Q-11",
+      "category": "data-model",
+      "text": "Can an invoice that was marked Paid by mistake be set back to unpaid?",
+      "options": [
+       "No undo in phase 1",
+       "Staff can undo it, and the undo is recorded with who did it and when",
+       "Only admins can undo it"
+      ],
+      "recommended": "No undo in phase 1",
+      "reason": "The request only asks for marking invoices Paid.",
+      "spans": [
+       "59-invoice-lifecycle",
+       "42-audit-history"
+      ],
+      "impact": 3,
+      "impactReason": "Changes invoice payment status and who is allowed to change it."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "Is the payment term (default 30 days) one setting for everyone, or can it differ per customer?",
+      "options": [
+       "One system-wide setting for all customers",
+       "A different term can be set for each customer, falling back to the system-wide default"
+      ],
+      "recommended": "One system-wide setting for all customers",
+      "reason": "Your answer described a single configurable term with a default.",
+      "spans": [
+       "59-invoice-lifecycle"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which invoices become Overdue."
+     },
+     {
+      "id": "Q-13",
+      "category": "data-model",
+      "text": "If the configured VAT rate changes, what happens to invoices that already exist?",
+      "options": [
+       "Each invoice stores the VAT rate and amounts at the moment it is created, so existing invoices never change",
+       "Invoices always use the current VAT rate"
+      ],
+      "recommended": "Each invoice stores the VAT rate and amounts at the moment it is created, so existing invoices never change",
+      "reason": "Issued invoices must stay the same over the 7-year retention period.",
+      "spans": [
+       "59-invoice-lifecycle",
+       "46-data-retention",
+       "64-pdf-generation"
+      ],
+      "impact": 3,
+      "impactReason": "Changes invoice amounts, which are money."
+     },
+     {
+      "id": "Q-14",
+      "category": "scope",
+      "topic": "admin",
+      "text": "Where are the VAT rate and the payment term set?",
+      "options": [
+       "Application configuration set when deploying (no screen)",
+       "A settings screen in the admin area"
+      ],
+      "recommended": "Application configuration set when deploying (no screen)",
+      "reason": "No settings screen is in the admin screen list.",
+      "spans": [
+       "57-main-admin-screens"
+      ],
+      "impact": 2,
+      "impactReason": "Adds or leaves out an admin screen and decides who can change financial settings."
+     },
+     {
+      "id": "Q-15",
+      "category": "scope",
+      "topic": "reporting",
+      "text": "Now that prices exclude VAT, how should report revenue be calculated?",
+      "options": [
+       "Order line totals excluding VAT, leaving out cancelled and rejected orders",
+       "Invoice totals including VAT, counting delivered and invoiced orders only",
+       "Order line totals excluding VAT, including every order"
+      ],
+      "recommended": "Order line totals excluding VAT, leaving out cancelled and rejected orders",
+      "reason": "This uses the net prices already on orders, and orders that won't be fulfilled aren't revenue.",
+      "spans": [
+       "39-reporting",
+       "41-report-export"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the money figures staff see in reports."
+     },
+     {
+      "id": "Q-16",
+      "category": "scope",
+      "topic": "notifications",
+      "text": "Should anyone get an email when an invoice becomes Overdue?",
+      "options": [
+       "No email; the status is only shown in the portal",
+       "Email the customer when their invoice becomes Overdue"
+      ],
+      "recommended": "No email; the status is only shown in the portal",
+      "reason": "Overdue isn't in the list of required notifications.",
+      "spans": [
+       "43-notifications",
+       "59-invoice-lifecycle"
+      ],
+      "impact": 2,
+      "impactReason": "Adds or leaves out an email that customers see."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,274 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-2",
+      "ears": "The Meridian responsive web app shall provide staff authentication through Meridian Microsoft accounts and customer authentication using email and password followed by a one-time code, with reset links requested by email and no social sign-in or single-sign-on option for customer accounts.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "I-7",
+       "ASM-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A staff user opens staff sign-in",
+        "when": "the user selects the staff sign-in flow",
+        "then": "the screen shows the Meridian Microsoft sign-in option and no external staff-account form",
+        "level": "ui"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "The API returns a one-time-code challenge after a customer submits email and password",
+        "when": "the customer submits the credentials",
+        "then": "the screen shows a code-entry field, no customer social sign-in or single-sign-on option, and no customer account content before a successful code response",
+        "level": "ui"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "A customer user requests a password reset",
+        "when": "the reset request is submitted",
+        "then": "the request contains the customer email address and the screen shows the reset-link-by-email confirmation returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-2.4",
+        "given": "A disabled or removed account attempts online sign-in or access",
+        "when": "the API returns an access-denied response",
+        "then": "the screen shows an access-denied message and no protected page or record is displayed",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When a temperature-profile version takes effect, the Meridian responsive web app shall show the new version and API-returned recalculated budgets, decisions, and current statuses for stock in Meridian inventory on or after the effective date, including resulting order, box, and route statuses for affected allocated or packed stock.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "I-9",
+       "I-11",
+       "I-17",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "The API returns a new effective profile version and recalculated values for stock still held from the effective date onward",
+        "when": "a user opens the profile and affected stock views",
+        "then": "the screen shows the new version's effective date and the returned budget and decision values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "A profile effective date is backdated and the API returns recalculation results for stock remaining in Meridian inventory on or after that effective date",
+        "when": "a user opens the affected stock, order, box, or route view",
+        "then": "the screen shows the returned recalculated budget and decision values and current workflow status without displaying a superseded status as current",
+        "level": "ui"
+       },
+       {
+        "id": "AC-6.3",
+        "given": "A System Administrator submits a profile change with a reason and effective date",
+        "when": "the API returns the updated profile and affected-stock results",
+        "then": "the screen shows the new version, reason, effective date, and returned recalculated budget and decision values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-6.4",
+        "given": "A backdated profile recalculation affects stock that is allocated, packed, or on a route and the API returns resulting allocation, box, or route statuses or action requirements",
+        "when": "an authorized user opens or refreshes the affected order, box, or route",
+        "then": "the screen shows the returned allocation, box, and route statuses and any returned action-required message or handover restriction",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-21",
+      "ears": "When the API returns an unresolved temperature-history gap affecting stock, the Meridian responsive web app shall show the gap, review status, the stock status returned by the API, and no estimated temperature tier.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "I-8",
+       "I-13",
+       "I-14",
+       "Q-2",
+       "ASM-2",
+       "ASM-18",
+       "ASM-11",
+       "ASM-24"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "The API returns an unresolved temperature-history gap for affected stock, its review status, and its stock status",
+        "when": "a Quality Officer opens the quality status",
+        "then": "the screen shows the gap, review status, and returned stock status without estimating a temperature tier",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-22",
+      "ears": "When the API returns an unresolved temperature-history gap affecting stock, the Meridian responsive web app shall show the returned stock status and budget values without presenting an estimated charge to an unobserved temperature tier.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "I-13",
+       "I-14",
+       "Q-2",
+       "Q-5",
+       "Q-8",
+       "ASM-2",
+       "ASM-4",
+       "ASM-10",
+       "ASM-18"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "The API returns an unresolved temperature-history gap affecting stock, along with stock status and budget values",
+        "when": "a user opens the affected stock detail",
+        "then": "the screen shows the returned stock status and budget values without presenting an estimated charge to an unobserved tier",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.3333333333333333
+     },
+     {
+      "id": "REQ-24",
+      "ears": "The Meridian responsive web app shall provide an installable, responsive driver web experience that caches the current workday's assigned route, queues supported loading and delivery actions for synchronization when connectivity returns, shows stale-route and queued-action outcomes returned by the API, clears cached route and delivery data when the driver signs out, the workday ends, or the API reports the account disabled, and retains unsynchronized actions for a subsequent synchronization attempt or returned rejection.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-7",
+       "I-10",
+       "I-12",
+       "I-15",
+       "ASM-1",
+       "ASM-13",
+       "ASM-17",
+       "ASM-25",
+       "Q-3",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "A driver has opened today's assigned route while connected and then loses connectivity",
+        "when": "the driver opens the cached route",
+        "then": "the screen shows the route, stops, and delivery details while offline",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.2",
+        "given": "A driver records a supported action while offline",
+        "when": "the action is saved without a connection",
+        "then": "the screen shows the action as queued and retains its entered values until synchronization is attempted",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.3",
+        "given": "A driver reconnects with an enabled account",
+        "when": "queued actions synchronize",
+        "then": "the screen shows the returned synchronization result for each queued action",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.4",
+        "given": "A queued action is submitted after the API reports the driver's account disabled or removed",
+        "when": "synchronization is attempted",
+        "then": "the screen shows the returned rejection message or error and marks the action as not accepted or synchronized",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.5",
+        "given": "A Dispatcher changes a cached route or cancels an order while the driver is offline and the API returns the updated route or order on reconnection",
+        "when": "the driver refreshes or synchronizes the cached work",
+        "then": "the screen identifies the cached route or stop as stale, shows the returned changed route or cancellation status, and does not present a removed stop or cancelled order as actionable",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.6",
+        "given": "A queued loading or handover action refers to a moved or removed stop or a cancelled order",
+        "when": "the action synchronizes and the API returns an acceptance or refusal",
+        "then": "the screen shows the returned result for that action and does not mark a refused handover as completed or accepted",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.7",
+        "given": "The browser has cached route or delivery data, including recipient details",
+        "when": "the driver signs out, the cached workday ends, or an API response reports that the account is disabled, and the driver next opens the driver experience",
+        "then": "the screen shows the sign-in or access-denied page and no cached route, stop, delivery, or recipient details",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.8",
+        "given": "One or more supported actions remain queued when the driver signs out, the cached workday ends, or the API reports the account disabled",
+        "when": "the driver next opens the driver experience and later reconnects to attempt synchronization",
+        "then": "the screen shows a pending-action count without cached route or recipient details and shows the returned synchronization result or rejection for each queued action",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     }
+    ],
+    "assumptions": [
+     "If a driver records actions offline and their account is disabled or removed before synchronization, should those queued actions be accepted into the shared record? → assumed: No; online only.",
+     "Staff sign in through Meridian Microsoft accounts; customers use email/password, an emailed one-time code, and an emailed reset link, as specified in US-001; ASM-23's no-social/no-SSO constraint applies to customer sign-in, while the one-time code remains required.",
+     "The web app presents access, persistence, revocation, and workflow outcomes returned by the separate API; API authorization and data isolation are not asserted by UI requirements.",
+     "For temperature-history gaps, the web app shows the stock status returned by the API, does not infer or set a stock status, and shows no charge to an unobserved temperature tier; the API-side gap disposition is not specified by this web requirement.",
+     "Warehouse-local time governs cutoff, working-day, holiday, delivery-date, and route rules; dates and times are displayed in the user's local zone with the warehouse zone identified.",
+     "Numeric policy values stated in the drafts include a 15-minute silence interval, two-minute alert target, 25% budget warning, three consecutive in-band readings, and 30-day expiry restriction; server calculations and timing are API-side.",
+     "Logger gateway and inbound exports use the supplier's documented interface and file format; gateway ingestion is API-side. The logger export is separate from receipt-evidence files; separate evidence uploads, if used, are images or PDFs up to 10 MB each and are kept in cloud storage. The supported format contract needs confirmation.",
+     "Supported browsers are the latest two versions of Chrome, Edge, Safari, and Firefox; WCAG 2.1 AA applies to main flows.",
+     "The source request ends during US-009; driver behavior is limited to stated intent spans and Q-3/Q-4 decisions, with no unstated behavior inferred.",
+     "Recall responses record quantity and disposition per affected delivery, reconciling located, used, returned, disposed of, or otherwise accounted-for quantities; supporting documents are not required.",
+     "Planning volumes are up to 1,000 users and 100,000 records in the first year plus 5,000 reporting devices; backend capacity is API-side.",
+     "One minimum shelf-life value is set per customer organisation; customers and Dispatchers cannot set it per order.",
+     "When readings are missing, do not charge an assumed temperature tier automatically; the web app shows the gap, review status, and stock status returned by the API.",
+     "Treat on-hand as a total and show non-overlapping quantities for available, allocated, quarantined, On Hold, Rejected, Recalled, and Expired stock.",
+     "Keep the stated numeric policy values fixed: 15-minute silence, two-minute alert target, 25% remaining-budget alert, three consecutive in-band readings, and 30-day expiry restriction.",
+     "A System Administrator sets one minimum remaining shelf-life value per customer organisation; Dispatchers and customers cannot change it per order.",
+     "Use the serving warehouse's configured local time zone for its cut-off, working-day, and route rules; display dates and times in the user's local zone with the warehouse zone identified.",
+     "No existing spreadsheet or operational data is migrated; the system starts empty with seed data for setup.",
+     "Use the supplier gateway's existing documented batch API; Meridian provides interface documentation, credentials, and sample payloads.",
+     "Alerts are sent by email from fixed templates; no SMS or push notifications.",
+     "Who created and last changed each record, and when, are retained; no full audit trail is required.",
+     "Provide on-screen lists with filters and CSV export; no custom report builder is required.",
+     "The latest two versions of Chrome, Edge, Safari, and Firefox are supported.",
+     "WCAG 2.1 AA applies to the main flows.",
+     "For each affected delivery, record the customer's response, quantity, and stated disposition; accept the response as accounted for without supporting documents.",
+     "Support up to 1,000 users and 100,000 records in the first year in addition to 5,000 reporting devices.",
+     "If a driver records actions offline and their account is disabled before those actions synchronize, queued actions are not accepted into the shared record.",
+     "When a logger or sensor has a reading gap, do not charge an assumed temperature tier automatically; flag the gap for quality review and show the stock status returned by the API.",
+     "A customer recall response reconciles each quantity as located, used, returned, disposed of, or otherwise accounted for.",
+     "No existing paper-record or spreadsheet information is migrated; the system starts empty with seed data for setup.",
+     "Use Meridian's existing supplier gateway and documented interface, and accept the supplier's documented inbound logger export format.",
+     "Excursion and route alerts use email only from fixed templates; no SMS or push.",
+     "Customer users use email and password, an emailed one-time code, and an emailed reset link; customer social sign-in and customer SSO are excluded. Staff use Meridian Microsoft accounts.",
+     "Who created and last changed each record, and when, are retained; no full audit trail is required.",
+     "The latest two versions of Chrome, Edge, Safari, and Firefox are supported.",
+     "WCAG 2.1 AA applies to the main flows.",
+     "Use the configured local time zone of the serving warehouse for order cut-offs, working days, delivery dates, and route times.",
+     "Support up to 1,000 users and 100,000 records in the first year in addition to 5,000 reporting devices."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

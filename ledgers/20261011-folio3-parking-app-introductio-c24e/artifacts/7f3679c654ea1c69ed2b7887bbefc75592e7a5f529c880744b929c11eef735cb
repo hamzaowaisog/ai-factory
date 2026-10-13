@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Parking Release Settings — Folio3 Parking</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-container": "#1f6f5c",
+            "surface-tint": "#186a57",
+            "inverse-primary": "#8ad5be",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "primary-fixed": "#a5f2d9",
+            "on-primary-container": "#a3efd7",
+            "on-tertiary-container": "#ffd7d0",
+            "on-secondary": "#ffffff",
+            "on-background": "#181c1b",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#ecefeb",
+            "secondary-container": "#c8e6db",
+            "secondary": "#49645b",
+            "outline": "#6f7975",
+            "outline-variant": "#bec9c4",
+            "on-secondary-fixed-variant": "#314c44",
+            "on-secondary-container": "#4d685f",
+            "on-surface": "#181c1b",
+            "tertiary-container": "#945044",
+            "surface-bright": "#f7faf7",
+            "on-primary-fixed": "#002019",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "primary": "#005645",
+            "surface-variant": "#e0e3e0",
+            "error": "#ba1a1a",
+            "inverse-on-surface": "#eef1ee",
+            "tertiary": "#77392e",
+            "error-container": "#ffdad6",
+            "surface-container-highest": "#e0e3e0",
+            "secondary-fixed": "#cbe9dd",
+            "inverse-surface": "#2d312f",
+            "primary-fixed-dim": "#8ad5be",
+            "on-surface-variant": "#3f4945",
+            "on-secondary-fixed": "#042019",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#ffdad4",
+            "surface-container-high": "#e6e9e6",
+            "surface": "#f7faf7",
+            "on-tertiary-fixed": "#3a0a05",
+            "surface-dim": "#d8dbd8",
+            "on-tertiary-fixed-variant": "#72352a",
+            "surface-container-low": "#f1f4f1",
+            "on-tertiary": "#ffffff",
+            "background": "#f7faf7",
+            "on-primary-fixed-variant": "#005141"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .mono-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    .live-dot {
+      animation: live-breathe 6s ease-in-out infinite;
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .btn-press:active {
+      transform: scale(0.97);
+      transition: transform var(--dur-instant) var(--ease-out);
+    }
+  </style>
+</head>
+<body class="bg-[#F7F7F8] text-[#18181B] font-body text-[15px] antialiased min-h-screen flex selection:bg-secondary-container selection:text-on-surface">
+<!-- LEFT SIDEBAR NAVIGATION (Matching Shared Components JSON & Design System) -->
+<aside class="fixed left-0 top-0 h-full w-58 bg-surface-container-lowest dark:bg-inverse-surface border-r border-[#E4E4E7] flex flex-col justify-between py-6 px-3 z-40 select-none">
+<div class="space-y-6">
+<!-- Header Brand -->
+<div class="px-3 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-white flex items-center justify-center font-bold text-sm tracking-tight font-headline">
+          F3
+        </div>
+<div>
+<h1 class="font-headline text-sm font-bold text-[#18181B] tracking-tight leading-tight">Folio3 Parking</h1>
+<p class="font-label text-[11px] text-[#71717A] uppercase tracking-wider font-medium">Bay Management</p>
+</div>
+</div>
+<!-- Quick Action Claim Space -->
+<div class="px-2">
+<button class="w-full btn-press bg-primary-container hover:bg-[#195C4C] text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors duration-160">
+<span class="material-symbols-outlined text-[16px]">local_parking</span>
+<span>Claim space</span>
+</button>
+</div>
+<!-- Navigation Tabs (JSON: Claim & Release, Daily Allocations, Guard Console, Vehicle Roster, Audit Log) -->
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#71717A] font-normal hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors duration-160 text-sm" href="#">
+<span class="material-symbols-outlined">local_parking</span>
+<span>Claim &amp; Release</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#71717A] font-normal hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors duration-160 text-sm" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span>Daily Allocations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#71717A] font-normal hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors duration-160 text-sm" href="#">
+<span class="material-symbols-outlined">security</span>
+<span>Guard Console</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#71717A] font-normal hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors duration-160 text-sm" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+<span>Vehicle Roster</span>
+</a>
+<!-- Active Tab: Settings & Policy (Audit Log / System Settings) -->
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container dark:bg-primary-container text-[#18181B] dark:text-inverse-on-surface font-medium border-l-2 border-primary-container rounded-r-md transition-colors text-sm" href="#">
+<span class="material-symbols-outlined text-primary-container font-medium">receipt_long</span>
+<span>Audit Log</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Footer -->
+<div class="space-y-1 pt-4 border-t border-[#E4E4E7]">
+<div class="px-3 py-1 mb-2">
+<span class="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#71717A]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C] live-dot"></span>
+          KHI-B2 ONLINE
+        </span>
+</div>
+<a class="flex items-center gap-3 px-3 py-2 text-[#71717A] font-normal hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors duration-160 text-sm" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#71717A] font-normal hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors duration-160 text-sm" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Sign out</span>
+</a>
+</div>
+</aside>
+<!-- MAIN VIEWPORT CONTAINER -->
+<div class="pl-58 flex-1 flex flex-col min-w-0">
+<!-- TOP NAVIGATION BAR (Shared Components JSON & Screen standard) -->
+<header class="h-16 bg-surface-container-lowest border-b border-[#E4E4E7] flex items-center justify-between px-8 sticky top-0 z-30">
+<!-- Search on Left -->
+<div class="flex items-center gap-4 w-96">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-[#71717A] text-[18px]">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 text-xs bg-[#F7F7F8] border border-[#E4E4E7] rounded-md text-[#18181B] placeholder-[#71717A] focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-[#E6F0ED] font-body transition-all" placeholder="Search plates, bays, employee ID..." type="search"/>
+</div>
+</div>
+<!-- Right cluster: Live Clock, Trailing Primary Action, Icons & Employee Profile -->
+<div class="flex items-center gap-5">
+<!-- Live PKT Clock -->
+<div class="hidden lg:flex items-center gap-2 border-r border-[#E4E4E7] pr-5">
+<span class="text-xs text-[#71717A] uppercase font-label tracking-wider font-semibold">PKT Karachi</span>
+<span class="font-mono text-xs font-semibold text-[#18181B] bg-[#EFEFF1] px-2 py-0.5 rounded mono-nums" id="live-pkt-clock">07:42:19</span>
+</div>
+<!-- Trailing primary action from JSON -->
+<button class="btn-press text-xs font-medium text-[#18181B] border border-[#E4E4E7] bg-white hover:bg-[#EFEFF1] px-3 py-1.5 rounded-md transition-colors">
+          Release today
+        </button>
+<div class="flex items-center gap-1 text-[#71717A]">
+<button class="p-2 hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="p-2 hover:text-[#18181B] hover:bg-[#EFEFF1] rounded-md transition-colors" title="Help &amp; Guides">
+<span class="material-symbols-outlined text-[20px]">help</span>
+</button>
+</div>
+<!-- User profile badge (Ayesha Siddiqui, Admin F3-0921) -->
+<div class="flex items-center gap-3 pl-2 border-l border-[#E4E4E7]">
+<div class="w-8 h-8 rounded-full bg-[#EFEFF1] text-[#3F3F46] font-semibold text-xs flex items-center justify-center font-headline border border-[#E4E4E7]">
+            AS
+          </div>
+<div class="text-left hidden sm:block">
+<div class="text-xs font-semibold text-[#18181B] leading-tight">Ayesha Siddiqui</div>
+<div class="text-[11px] font-mono text-[#71717A]">Admin F3-0921</div>
+</div>
+</div>
+</div>
+</header>
+<!-- INTERACTIVE STATE SIMULATOR BAR (Requirement 4) -->
+<div class="bg-white border-b border-[#E4E4E7] px-8 py-2.5 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#71717A] text-[18px]">tune</span>
+<span class="font-label text-xs uppercase tracking-wider font-semibold text-[#71717A]">State Simulator &amp; Test Bar:</span>
+<span class="text-xs text-[#3F3F46]">Preview operational validation states:</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 text-xs font-medium rounded border border-primary-container bg-primary-container text-white transition-all btn-press" id="sim-default-btn" onclick="setSimulatorState('default')">
+          Default State
+        </button>
+<button class="px-3 py-1 text-xs font-medium rounded border border-[#E4E4E7] bg-white text-[#18181B] hover:bg-[#EFEFF1] transition-all btn-press" id="sim-success-btn" onclick="setSimulatorState('success')">
+          Success Confirmation
+        </button>
+<button class="px-3 py-1 text-xs font-medium rounded border border-[#E4E4E7] bg-white text-[#18181B] hover:bg-[#EFEFF1] transition-all btn-press" id="sim-error-btn" onclick="setSimulatorState('error')">
+          Validation Error State
+        </button>
+</div>
+</div>
+<!-- MAIN CONTENT CANVAS -->
+<main class="flex-1 px-8 py-8 max-w-7xl w-full">
+<!-- SUCCESS TOAST BANNER (Requirement 4: 'Release time updated to 07:45 PKT.') -->
+<div class="hidden mb-6 bg-[#E6F0ED] border-l-4 border-[#1F6F5C] p-4 rounded-r-lg shadow-sm transition-all duration-260" id="success-banner">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#1F6F5C] text-[22px]">check_circle</span>
+<div>
+<p class="text-sm font-semibold text-[#18181B]">Release time updated to 07:45 PKT.</p>
+<p class="text-xs text-[#3F3F46] mt-0.5">Automated release batch job rescheduled for Basement Level 1 &amp; Level 2. Timestamp: <span class="font-mono" id="toast-timestamp">Today at 07:42:19 PKT</span>.</p>
+</div>
+</div>
+<button class="text-[#71717A] hover:text-[#18181B] p-1" onclick="dismissBanner()">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<!-- SECTION 1: Top header & breadcrumbs -->
+<div class="mb-7">
+<div class="flex items-center gap-2 text-xs font-medium text-[#71717A] mb-2">
+<span>Admin</span>
+<span class="text-[#D4D4D8]">/</span>
+<span>System Settings</span>
+<span class="text-[#D4D4D8]">/</span>
+<span class="text-[#18181B]">Release Schedule</span>
+<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#EFEFF1] text-[#3F3F46] border border-[#E4E4E7] tracking-wider uppercase font-label">
+            Policy Config
+          </span>
+</div>
+<h1 class="text-2xl font-bold font-headline text-[#18181B] tracking-tight">Parking release settings</h1>
+<p class="text-sm text-[#71717A] mt-1 max-w-3xl leading-relaxed">
+          Configure system-wide automatic claim cutoff thresholds and lottery release execution schedules for corporate basement bays.
+        </p>
+</div>
+<!-- 12-COLUMN MAIN GRID (Design System: Columns 1-8 Main Settings Form, Columns 9-12 Rail Context) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- COLUMNS 1–8: MAIN SETTINGS FORM CONTAINER -->
+<div class="lg:col-span-8 bg-white border border-[#E4E4E7] rounded-lg shadow-none overflow-hidden">
+<!-- Panel Header -->
+<div class="px-6 py-4 border-b border-[#E4E4E7] bg-white flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[20px]">schedule</span>
+<h2 class="font-headline font-semibold text-base text-[#18181B]">Daily Release Policy Schedule</h2>
+</div>
+<span class="inline-flex items-center gap-1.5 text-xs text-[#71717A] font-mono">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span> ACTIVE RULESET
+            </span>
+</div>
+<div class="p-6 space-y-7">
+<!-- SECTION 2: TIME FIELD -->
+<div class="space-y-2">
+<div class="flex items-baseline justify-between">
+<label class="block text-sm font-semibold text-[#18181B]" for="release-time-input">
+                  Daily Parking Release Time
+                </label>
+<span class="text-xs text-[#71717A] font-medium">Office-local time (PKT, Asia/Karachi)</span>
+</div>
+<div class="max-w-md">
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#71717A]">
+<span class="material-symbols-outlined text-[18px]">alarm</span>
+</div>
+<input class="w-full pl-10 pr-24 py-2.5 font-mono text-base font-semibold text-[#18181B] bg-white border border-[#E4E4E7] rounded-md focus:outline-none focus:border-[#1F6F5C] focus:ring-2 focus:ring-[#E6F0ED] tracking-wider transition-all" id="release-time-input" maxlength="5" placeholder="08:00" type="text" value="08:00"/>
+<!-- Timezone chip badge on the right -->
+<div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-[#EFEFF1] text-[#3F3F46] border border-[#E4E4E7]">
+                      PKT (UTC+5)
+                    </span>
+</div>
+</div>
+<!-- Red inline validation error (hidden by default) -->
+<div class="hidden mt-1.5 flex items-center gap-1.5 text-xs text-[#B42318] font-medium" id="validation-error-msg">
+<span class="material-symbols-outlined text-[16px]">error</span>
+<span>Enter a valid time in HH:MM format.</span>
+</div>
+<!-- Note underneath -->
+<div class="mt-2 flex items-center justify-between text-xs text-[#71717A]">
+<span>Default 08:00</span>
+<span class="font-mono text-[11px]">Next auto-trigger: Tomorrow 08:00 PKT</span>
+</div>
+</div>
+</div>
+<!-- SECTION 3: EXPLANATION CARD & TIMELINE MICRO-CALLOUT -->
+<div class="space-y-4">
+<!-- Prominent callout card with exact text -->
+<div class="bg-[#F7F7F8] border border-[#E4E4E7] border-l-4 border-l-[#1F6F5C] p-4 rounded-r-lg">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-[#1F6F5C] text-[20px] shrink-0 mt-0.5">info</span>
+<div class="text-xs sm:text-[13.5px] leading-relaxed text-[#18181B]">
+<p class="font-medium">
+                      Pre-scheduled releases and same-day releases made before this time become claimable at this time. Same-day releases made at or after this time are claimable immediately.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Visual Diagram / Timeline Micro-Callout -->
+<div class="border border-[#E4E4E7] bg-white rounded-lg p-4">
+<div class="text-xs font-semibold text-[#71717A] uppercase tracking-wider font-label mb-3">
+                  Batch Execution Mechanics Visualizer
+                </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<!-- Flow 1: Before 08:00 PKT -->
+<div class="p-3 bg-[#F7F7F8] border border-[#E4E4E7] rounded-md flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<span class="inline-flex items-center text-xs font-semibold text-[#3F3F46]">
+                          Window 1: Prior Release
+                        </span>
+<span class="font-mono text-[11px] bg-white border border-[#E4E4E7] px-1.5 py-0.5 rounded text-[#18181B]">&lt; 08:00</span>
+</div>
+<p class="text-xs font-medium text-[#18181B]">
+                        Before 08:00 PKT → <span class="text-[#1F6F5C] font-semibold">Batched release at 08:00</span>
+</p>
+</div>
+<p class="text-[11px] text-[#71717A] mt-2">
+                      Held in pooling queue. Available simultaneously to ensure equitable lottery claiming across staff.
+                    </p>
+</div>
+<!-- Flow 2: At or after 08:00 PKT -->
+<div class="p-3 bg-[#F7F7F8] border border-[#E4E4E7] rounded-md flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<span class="inline-flex items-center text-xs font-semibold text-[#3F3F46]">
+                          Window 2: Ad-hoc Release
+                        </span>
+<span class="font-mono text-[11px] bg-white border border-[#E4E4E7] px-1.5 py-0.5 rounded text-[#18181B]">≥ 08:00</span>
+</div>
+<p class="text-xs font-medium text-[#18181B]">
+                        At or after 08:00 PKT → <span class="text-[#1F6F5C] font-semibold">Instant claimable</span>
+</p>
+</div>
+<p class="text-[11px] text-[#71717A] mt-2">
+                      Bypasses batch queue. Immediately published as live claimable inventory on the employee console.
+                    </p>
+</div>
+</div>
+<!-- Timeline Bar Graphic -->
+<div class="mt-4 pt-4 border-t border-[#E4E4E7]">
+<div class="relative h-7 flex items-center">
+<!-- Base line -->
+<div class="absolute left-0 right-0 h-1 bg-[#E4E4E7] rounded"></div>
+<!-- Batch point marker at 50% -->
+<div class="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+<div class="w-3.5 h-3.5 rounded-full border-2 border-[#1F6F5C] bg-white z-10"></div>
+</div>
+<!-- Active range colored -->
+<div class="absolute left-0 w-1/2 h-1 bg-[#C8E6DB]"></div>
+<div class="absolute left-1/2 right-0 h-1 bg-[#1F6F5C]"></div>
+</div>
+<div class="flex justify-between text-[11px] font-mono text-[#71717A] mt-1">
+<span>00:00 (Midnight)</span>
+<span class="font-semibold text-[#18181B] -ml-2">Cutoff: 08:00 PKT</span>
+<span>23:59 (EOD)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bay Inventory Preview Strip (Design System Signature: Plate & Bay chips) -->
+<div class="pt-2 border-t border-[#E4E4E7]">
+<div class="flex items-center justify-between text-xs text-[#71717A] mb-2 font-label uppercase tracking-wider font-semibold">
+<span>Applicable Basement Zones</span>
+<span>Active Bay Count: 48</span>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center px-2 py-1 bg-white border border-[#1F6F5C] rounded text-xs font-mono font-medium text-[#18181B]">
+                  B1-01 – B1-24
+                </span>
+<span class="inline-flex items-center px-2 py-1 bg-white border border-[#1F6F5C] rounded text-xs font-mono font-medium text-[#18181B]">
+                  B2-01 – B2-24
+                </span>
+<span class="inline-flex items-center px-2 py-1 bg-[#F7F7F8] border border-[#E4E4E7] rounded text-xs font-mono text-[#71717A]">
+                  EV-CHARGING (EXCLUDED)
+                </span>
+</div>
+</div>
+<!-- SECTION 4: ACTION BUTTON AREA -->
+<div class="pt-5 border-t border-[#E4E4E7] flex items-center justify-between">
+<div class="text-xs text-[#71717A]">
+                Unsaved modifications affect next scheduled morning release.
+              </div>
+<div class="flex items-center gap-3">
+<button class="btn-press px-4 py-2 text-sm font-medium text-[#18181B] bg-white border border-[#E4E4E7] hover:bg-[#EFEFF1] rounded-lg transition-colors duration-160" onclick="discardChanges()" type="button">
+                  Discard changes
+                </button>
+<button class="btn-press px-6 py-2.5 text-sm font-medium text-white bg-[#1F6F5C] hover:bg-[#185849] rounded-lg transition-colors duration-160 flex items-center gap-2 shadow-sm" onclick="saveChanges()" type="button">
+<span class="material-symbols-outlined text-[18px]">check</span>
+<span>Save</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- COLUMNS 9–12: ADMINISTRATIVE CONTEXT RAIL (Requirement 5) -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Card: Audit trail & Impact summary -->
+<div class="bg-white border border-[#E4E4E7] rounded-lg p-5">
+<div class="flex items-center justify-between pb-3 border-b border-[#E4E4E7] mb-4">
+<h3 class="font-headline font-semibold text-sm text-[#18181B]">Audit trail &amp; Impact summary</h3>
+<span class="material-symbols-outlined text-[#71717A] text-[18px]">history</span>
+</div>
+<div class="space-y-4 text-xs">
+<!-- Item 1: Last Updated -->
+<div>
+<span class="text-[#71717A] block font-label uppercase tracking-wider text-[11px] font-semibold mb-1">Last Configured By</span>
+<div class="flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-full bg-[#EFEFF1] text-[#3F3F46] font-semibold text-[10px] flex items-center justify-center font-headline border border-[#E4E4E7]">
+                    AS
+                  </div>
+<div>
+<span class="font-medium text-[#18181B]">Ayesha Siddiqui</span>
+<span class="text-[#71717A] font-mono ml-1">(F3-0921)</span>
+</div>
+</div>
+<div class="text-[#71717A] font-mono text-[11px] mt-1 pl-8">
+                  3 Nov 2025 at 17:14:02 PKT
+                </div>
+</div>
+<!-- Item 2: Affected Employees -->
+<div class="pt-3 border-t border-[#E4E4E7]">
+<span class="text-[#71717A] block font-label uppercase tracking-wider text-[11px] font-semibold mb-1">Affected Fleet Roster</span>
+<div class="flex items-center justify-between">
+<span class="text-[#3F3F46]">Registered active staff:</span>
+<span class="font-mono font-semibold text-[#18181B]">142 drivers</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="text-[#3F3F46]">Daily slot contention:</span>
+<span class="font-mono text-[#1F6F5C] font-semibold">1.8x oversubscription</span>
+</div>
+</div>
+<!-- Item 3: Automated Cron Worker Status -->
+<div class="pt-3 border-t border-[#E4E4E7]">
+<span class="text-[#71717A] block font-label uppercase tracking-wider text-[11px] font-semibold mb-2">Automated Cron Worker Status</span>
+<div class="p-2.5 bg-[#F7F7F8] border border-[#E4E4E7] rounded space-y-1.5 font-mono text-[11px]">
+<div class="flex items-center justify-between">
+<span class="text-[#71717A]">Worker:</span>
+<span class="text-[#18181B] font-medium">cron-khi-release-v2</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[#71717A]">Status:</span>
+<span class="inline-flex items-center gap-1 text-[#2F7D4A] font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2F7D4A]"></span> Healthy
+                    </span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[#71717A]">Last heartbeat:</span>
+<span class="text-[#18181B]">42s ago</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[#71717A]">Queue lag:</span>
+<span class="text-[#18181B]">0.04 ms</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card: Related Release Policy Guidelines -->
+<div class="bg-white border border-[#E4E4E7] rounded-lg p-5">
+<h4 class="font-headline font-semibold text-xs text-[#18181B] uppercase tracking-wider font-label mb-2">Operational Protocol</h4>
+<ul class="text-xs text-[#3F3F46] space-y-2 list-disc list-inside marker:text-[#1F6F5C]">
+<li>Guards verify actual arrival plates against release tags at the gate booth.</li>
+<li>Releases initiated past 11:30 PKT automatically trigger emergency reassignment.</li>
+<li>Any schedule change issues an instantaneous push notification to the Bay Management mobile channel.</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- INTERACTIVE LOGIC (Micro-interactions & State Simulator) -->
+<script>
+    // Live Clock Simulation (PKT)
+    function updateClock() {
+      const now = new Date();
+      // Format in UTC+5 (PKT)
+      const options = {
+        timeZone: "Asia/Karachi",
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      };
+      const timeStr = now.toLocaleTimeString("en-GB", options);
+      const clockEl = document.getElementById("live-pkt-clock");
+      if (clockEl) {
+        clockEl.textContent = timeStr;
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // DOM Elements
+    const inputField = document.getElementById('release-time-input');
+    const errorMsg = document.getElementById('validation-error-msg');
+    const successBanner = document.getElementById('success-banner');
+    const toastTimestamp = document.getElementById('toast-timestamp');
+
+    const btnDefault = document.getElementById('sim-default-btn');
+    const btnSuccess = document.getElementById('sim-success-btn');
+    const btnError = document.getElementById('sim-error-btn');
+
+    function resetSimulatorButtonStyles() {
+      const inactiveClass = 'px-3 py-1 text-xs font-medium rounded border border-[#E4E4E7] bg-white text-[#18181B] hover:bg-[#EFEFF1] transition-all btn-press';
+      btnDefault.className = inactiveClass;
+      btnSuccess.className = inactiveClass;
+      btnError.className = inactiveClass;
+    }
+
+    function setActiveSimButton(btn) {
+      resetSimulatorButtonStyles();
+      btn.className = 'px-3 py-1 text-xs font-medium rounded border border-primary-container bg-primary-container text-white transition-all btn-press';
+    }
+
+    function setSimulatorState(state) {
+      if (state === 'default') {
+        setActiveSimButton(btnDefault);
+        inputField.value = '08:00';
+        inputField.classList.remove('border-[#B42318]', 'focus:border-[#B42318]', 'focus:ring-[#FBEAE8]');
+        inputField.classList.add('border-[#E4E4E7]', 'focus:border-[#1F6F5C]', 'focus:ring-[#E6F0ED]');
+        errorMsg.classList.add('hidden');
+        successBanner.classList.add('hidden');
+      } 
+      else if (state === 'success') {
+        setActiveSimButton(btnSuccess);
+        inputField.value = '07:45';
+        inputField.classList.remove('border-[#B42318]', 'focus:border-[#B42318]', 'focus:ring-[#FBEAE8]');
+        inputField.classList.add('border-[#E4E4E7]', 'focus:border-[#1F6F5C]', 'focus:ring-[#E6F0ED]');
+        errorMsg.classList.add('hidden');
+        
+        // Show banner with current time
+        const now = new Date();
+        const timeOptions = { timeZone: "Asia/Karachi", hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" };
+        toastTimestamp.textContent = `Today at ${now.toLocaleTimeString("en-GB", timeOptions)} PKT`;
+        successBanner.classList.remove('hidden');
+      } 
+      else if (state === 'error') {
+        setActiveSimButton(btnError);
+        inputField.value = '8:99';
+        inputField.classList.remove('border-[#E4E4E7]', 'focus:border-[#1F6F5C]', 'focus:ring-[#E6F0ED]');
+        inputField.classList.add('border-[#B42318]', 'focus:border-[#B42318]', 'focus:ring-[#FBEAE8]');
+        errorMsg.classList.remove('hidden');
+        successBanner.classList.add('hidden');
+      }
+    }
+
+    function dismissBanner() {
+      successBanner.classList.add('hidden');
+    }
+
+    function saveChanges() {
+      const val = inputField.value.trim();
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      if (!timeRegex.test(val)) {
+        setSimulatorState('error');
+      } else {
+        setSimulatorState('success');
+      }
+    }
+
+    function discardChanges() {
+      setSimulatorState('default');
+    }
+
+    // Live validation listener on user keystrokes
+    inputField.addEventListener('input', function(e) {
+      const val = e.target.value.trim();
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      if (val.length === 5) {
+        if (!timeRegex.test(val)) {
+          inputField.classList.add('border-[#B42318]');
+          errorMsg.classList.remove('hidden');
+        } else {
+          inputField.classList.remove('border-[#B42318]');
+          errorMsg.classList.add('hidden');
+        }
+      } else if (val.length < 5) {
+        errorMsg.classList.add('hidden');
+        inputField.classList.remove('border-[#B42318]');
+      }
+    });
+  </script>
+</body></html>

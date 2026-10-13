@@ -1,0 +1,106 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Build the Hive Works maintenance app with exactly two screens, Requests and Request detail, for demo user Sam Carter (SC), without sign-in or role-selection screens."
+     },
+     {
+      "n": 2,
+      "text": "Define a maintenance request record with a system-generated ID, UTC creation timestamp, required title, area, priority, and status, and optional description; trim title and description before validation and storage, and reject blank-after-trimming titles."
+     },
+     {
+      "n": 3,
+      "text": "Validate titles at 3–80 characters, areas against Kitchen, Meeting room, Open desk, Washroom, and Reception, priorities against Low, Normal, and Urgent, and supplied descriptions at no more than 500 characters; identify every invalid field and create no row on validation failure."
+     },
+     {
+      "n": 4,
+      "text": "On creation, set status to Open and generate the ID and UTC creation timestamp regardless of caller-supplied system-controlled values."
+     },
+     {
+      "n": 5,
+      "text": "Initialize an empty database with exactly eight seed requests: four Open, including one Urgent; two In progress; and two Done, with every supported area represented; on a nonempty database, preserve all existing requests without adding seeds."
+     },
+     {
+      "n": 6,
+      "text": "Expose exactly four API operations: list requests with an optional single-status filter, create, get by ID, and change status; prevent changes to title, area, priority, and description after creation, and expose no deletion operation."
+     },
+     {
+      "n": 7,
+      "text": "List all requests or only those matching the optional status, ordered newest first by creation timestamp, without guaranteeing order among equal timestamps; return a matching record by ID or report not found."
+     },
+     {
+      "n": 8,
+      "text": "Allow only Open to In progress, In progress to Done, and Done to Open status transitions; reject all other status changes, including unknown IDs and unsupported status values, without changing any existing status."
+     },
+     {
+      "n": 9,
+      "text": "On the Requests screen, show the Hive Works wordmark, SC, mutually exclusive All, Open, In progress, and Done filters with All selected by default, and a New request button."
+     },
+     {
+      "n": 10,
+      "text": "Show each matching request’s title, area, priority and status badges, and UTC creation date in date-only form, newest first; selecting a row opens its detail screen."
+     },
+     {
+      "n": 11,
+      "text": "Open a creation dialog from New request with labeled Title, Area, Priority, and Description fields; provide supported Area and Priority choices, default Priority to Normal, and include Create and Cancel buttons."
+     },
+     {
+      "n": 12,
+      "text": "Keep the creation dialog open and show each validation message beneath its field when validation fails; on successful creation, close it, show the new Open request at the top, and switch the selected filter to All if necessary."
+     },
+     {
+      "n": 13,
+      "text": "Disable Create and prevent duplicate create calls while a request is pending; after a non-validation creation failure, show a generic error, retain the dialog and entered values, and allow another submission."
+     },
+     {
+      "n": 14,
+      "text": "Show “Loading requests…” while the list loads, “No requests here.” when the selected filter has no matches, and “Could not load requests.” with Retry on failure."
+     },
+     {
+      "n": 15,
+      "text": "On the detail screen, show a Back link, title, area, priority and status badges, UTC creation date in date-only form, and the description or “No description.”; Back returns to the list with its prior filter selected."
+     },
+     {
+      "n": 16,
+      "text": "Show Start work for Open requests, Mark done for In progress requests, and Reopen for Done requests; update the status badge and action only after a successful status-change response."
+     },
+     {
+      "n": 17,
+      "text": "On status-update failure, show “Could not update the request.” and retain the previously displayed status and action."
+     },
+     {
+      "n": 18,
+      "text": "For an unknown ID, show “Request not found.” with a link to Requests; for another detail-loading failure, show a generic loading error with Retry, not “Request not found.”."
+     },
+     {
+      "n": 19,
+      "text": "Use one light theme with a neutral background, near-black text, one primary-button brand color, one sans-serif font, Open blue badges, In progress amber badges, Done green badges, Urgent red badges, and neutral Low and Normal badges; show text on every badge."
+     },
+     {
+      "n": 20,
+      "text": "Provide labeled fields and keyboard-reachable controls on both screens; use stacked request cards at 375 px and a request table at 1280 px, without horizontal page scrolling, and meet WCAG AA text and control contrast on the light theme."
+     },
+     {
+      "n": 21,
+      "text": "Include automated tests for request creation and validation, all allowed and disallowed status transitions, filtered newest-first listing, and unknown-ID handling."
+     },
+     {
+      "n": 22,
+      "text": "Include an end-to-end test covering list, create, detail, Start work, Mark done, and filtering by Done, verifying the created request appears in the Done list."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

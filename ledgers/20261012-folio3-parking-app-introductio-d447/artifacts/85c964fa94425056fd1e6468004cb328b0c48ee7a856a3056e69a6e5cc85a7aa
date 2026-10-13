@@ -1,0 +1,90 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Require successful Google authentication with a verified corporate email matching an active directory employee before granting an employee session; refresh employee profiles and parking assignments from current source records, and deny dashboard access with retry or support guidance if the profile cannot be retrieved."
+     },
+     {
+      "n": 2,
+      "text": "Populate refreshed dedicated-employee profiles with employee ID and name, dedicated-parking status, assigned floor, and registered vehicle details; require non-dedicated employees without a registered plate to register one before vehicle-dependent parking actions, showing a registration screen on first login and a prompt on a returning employee’s dashboard."
+     },
+     {
+      "n": 3,
+      "text": "Allow employees to add, update, or deactivate only their own vehicle records, and allow Parking Administrators to manage employee vehicle records."
+     },
+     {
+      "n": 4,
+      "text": "Treat assigned dedicated parking as reserved on operating days unless released; let holders release today’s space with one home-screen action, view its current status, and schedule releases for operating dates within the next 30 calendar dates in the office’s local timezone."
+     },
+     {
+      "n": 5,
+      "text": "Make scheduled releases claimable at the configured daily release time, and make today’s release claimable at that time if released earlier or immediately if released at or after that time."
+     },
+     {
+      "n": 6,
+      "text": "Let holders cancel unclaimed releases; require administrator intervention to reverse claimed releases, record the intervention, and preserve the claimant’s temporary parking authorization."
+     },
+     {
+      "n": 7,
+      "text": "Notify every eligible non-dedicated employee with push notifications enabled when spaces become available, while keeping available spaces claimable in the application if notification delivery fails or is disabled."
+     },
+     {
+      "n": 8,
+      "text": "Allocate each released space to the first successfully committed eligible claim, reject competing claims and duplicate claims by the same employee for a date, and return the current claimable-space count to non-dedicated employees and display it in the application."
+     },
+     {
+      "n": 9,
+      "text": "Require an employee claiming a temporary space to select one registered vehicle and authorize only that vehicle’s plate; assign and return a parking floor for each successful claim, and do not allow employees to cancel or relinquish successful claims."
+     },
+     {
+      "n": 10,
+      "text": "Allow Parking Administrators to manage employee and parking records, operating-day calendars, release-time settings, report settings, and stakeholder email addresses; restrict administrative employee, parking, configuration, and report-management actions to authenticated Parking Administrators."
+     },
+     {
+      "n": 11,
+      "text": "Ignore pedestrians, motorcycles, and other non-car objects reported by entrance LPR, and record plate-entry events for vehicles with permanent Folio3 parking stickers without temporary-authorization verification."
+     },
+     {
+      "n": 12,
+      "text": "For non-stickered vehicles, normalize plate case and permitted spacing, require an exact match to a current-day temporary authorization, and activate the green indicator only for a match."
+     },
+     {
+      "n": 13,
+      "text": "Fail closed when a plate is unreadable or the camera, indicator, connection, or authorization service is unavailable; keep the green indicator inactive, alert security for a service failure, and record the failure when service is restored."
+     },
+     {
+      "n": 14,
+      "text": "Record each entrance verification attempt with its timestamp, plate when available, verification result, and entry status; permit only authenticated Security Guards to view verification results and record vehicle entry status."
+     },
+     {
+      "n": 15,
+      "text": "At reporting-period close, record unused dedicated parking when the holder neither released nor used the space, and unused temporary parking when the claimant’s registered vehicle did not enter."
+     },
+     {
+      "n": 16,
+      "text": "Calculate utilization as occupied spaces divided by total available spaces, report released and claimed totals separately, exclude released-but-unclaimed spaces from occupied counts, and provide daily and weekly values with the total available-space denominator."
+     },
+     {
+      "n": 17,
+      "text": "At the configured Monday report time in the office’s local timezone, generate and email the weekly utilization report to configured stakeholders, including unused-parking records, daily and weekly utilization, released totals, temporary-claim totals, and utilization percentage."
+     },
+     {
+      "n": 18,
+      "text": "Provide Parking Administrators with on-screen parking reports, filters, and CSV export, and do not apply automated warnings, suspensions, or penalties based on utilization records."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

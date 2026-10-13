@@ -1,0 +1,169 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Your parking today",
+     "subtitle": "Tuesday, 16 June 2026 · Lahore office time",
+     "blocks": [
+      {
+       "type": "detail",
+       "style": "card",
+       "title": "Dedicated space",
+       "lead": {
+        "label": "Today's assignment",
+        "value": "B2 · 114"
+       },
+       "rows": [
+        {
+         "label": "Space status",
+         "value": "Reserved",
+         "badge": true
+        },
+        {
+         "label": "Release time",
+         "value": "8:00 AM office time"
+        },
+        {
+         "label": "Temporary spaces",
+         "value": "3 available"
+        },
+        {
+         "label": "Registered vehicle",
+         "value": "Honda Civic · LEB-7421"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Release space",
+         "variant": "primary"
+        },
+        {
+         "label": "Schedule release",
+         "variant": "secondary"
+        },
+        {
+         "label": "Claim a space",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "When spaces become available",
+       "text": "Scheduled releases and same-day releases before 8:00 AM are claimable at 8:00 AM. Same-day releases after 8:00 AM are available immediately."
+      }
+     ],
+     "links": [
+      {
+       "from": "Schedule release",
+       "to": "S-4"
+      },
+      {
+       "from": "Claim a space",
+       "to": "S-5"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Release space",
+       "text": "Your space is released for today.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No dedicated space assigned",
+      "emptyHint": "You can still check temporary spaces available at the Lahore office.",
+      "error": "Parking details couldn't refresh. Your last saved assignment is still shown.",
+      "success": "Your space is released for today and is claimable at 8:00 AM office time.",
+      "validation": "Today's space has already been released."
+     }
+    },
+    "mockFull": {
+     "title": "Your parking today",
+     "subtitle": "Tuesday, 16 June 2026 · Lahore office time",
+     "blocks": [
+      {
+       "type": "detail",
+       "style": "card",
+       "title": "Dedicated space",
+       "lead": {
+        "label": "Today's assignment",
+        "value": "B2 · 114"
+       },
+       "rows": [
+        {
+         "label": "Space status",
+         "value": "Reserved",
+         "badge": true
+        },
+        {
+         "label": "Release time",
+         "value": "8:00 AM office time"
+        },
+        {
+         "label": "Temporary spaces",
+         "value": "3 available"
+        },
+        {
+         "label": "Registered vehicle",
+         "value": "Honda Civic · LEB-7421"
+        },
+        {
+         "label": "Office working days",
+         "value": "Monday–Friday, including holidays"
+        },
+        {
+         "label": "Office timezone",
+         "value": "Asia/Karachi · PKT"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Release space",
+         "variant": "primary"
+        },
+        {
+         "label": "Schedule release",
+         "variant": "secondary"
+        },
+        {
+         "label": "Claim a space",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "When spaces become available",
+       "text": "Scheduled releases and same-day releases before 8:00 AM are claimable at 8:00 AM. Same-day releases after 8:00 AM are available immediately."
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No dedicated space assigned",
+      "emptyHint": "You can still check temporary spaces available at the Lahore office.",
+      "error": "Parking details couldn't refresh. Your last saved assignment is still shown.",
+      "success": "Your space is released for today and is claimable at 8:00 AM office time.",
+      "validation": "Today's space has already been released."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,1759 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Design system and scaffold build",
+      "reqs": [],
+      "fileScope": [
+       "app/layout.tsx",
+       "package.json",
+       "app/globals.css"
+      ],
+      "exemplars": [
+       "app/layout.tsx",
+       "app/globals.css"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Follow the ui-scaffold designSystemTask.todo exactly: install the packages and build the app once so the scaffold compiles as written. Add the approved design tokens as CSS variables in the global stylesheet and retain the generated responsive frame, theme, and navigation.",
+      "conventions": [
+       "Keep the generated component kit and frame; do not rebuild generated pages."
+      ],
+      "dependsOn": []
+     },
+     {
+      "id": "TASK-2",
+      "title": "S-1 Sign in and generated API client",
+      "reqs": [
+       "REQ-2",
+       "REQ-29"
+      ],
+      "fileScope": [
+       "components/screens/s-1/container.tsx",
+       "lib/api/**"
+      ],
+      "exemplars": [
+       "app/sign-in/page.tsx",
+       "components/screens/s-3/container.tsx"
+      ],
+      "plannedLoc": 115,
+      "complexity": "standard",
+      "approach": "Wire the generated sign-in container to the staff and customer authentication operations, password reset entry point, and access-denied handling. Generate the SDK under lib/api from contracts/openapi.yaml; use generated operations only, never hand-write fetch calls. Include configurable staff identity-provider entry as an API redirect/result.",
+      "conventions": [
+       "Keep page styling and layout in factory-generated pages; containers own data, validation, requests, and state.",
+       "Use the generated lib/api SDK for every API call."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ]
+     },
+     {
+      "id": "TASK-3",
+      "title": "S-2 One-time code",
+      "reqs": [
+       "REQ-2"
+      ],
+      "fileScope": [
+       "components/screens/s-2/container.tsx"
+      ],
+      "exemplars": [
+       "app/sign-in/code/page.tsx",
+       "components/screens/s-1/container.tsx"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Submit and resend the customer one-time code through the generated SDK; show wrong/expired-code errors and do not reveal protected account content until verification succeeds.",
+      "conventions": [
+       "Use generated lib/api operations; keep presentation in the scaffold page."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-4",
+      "title": "S-3 Request password reset",
+      "reqs": [
+       "REQ-2",
+       "REQ-29"
+      ],
+      "fileScope": [
+       "components/screens/s-3/container.tsx"
+      ],
+      "exemplars": [
+       "app/reset/page.tsx",
+       "components/screens/s-1/container.tsx"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Validate the email field, call the reset-request operation, and show the returned email confirmation or error.",
+      "conventions": [
+       "Use generated lib/api operations; keep presentation in the scaffold page."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-5",
+      "title": "S-4 Set new password",
+      "reqs": [
+       "REQ-29"
+      ],
+      "fileScope": [
+       "components/screens/s-4/container.tsx"
+      ],
+      "exemplars": [
+       "app/reset/[token]/page.tsx",
+       "components/screens/s-3/container.tsx"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Validate the reset token, password and confirmation, call the reset operation, and present invalid/expired-link and saved states with a path back to request another email.",
+      "conventions": [
+       "Use generated lib/api operations; keep presentation in the scaffold page."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-6",
+      "title": "S-5 Access refused",
+      "reqs": [
+       "REQ-3",
+       "REQ-24",
+       "REQ-40"
+      ],
+      "fileScope": [
+       "components/screens/s-5/container.tsx"
+      ],
+      "exemplars": [
+       "app/access-refused/page.tsx",
+       "components/screens/s-1/container.tsx"
+      ],
+      "plannedLoc": 35,
+      "complexity": "standard",
+      "approach": "Render the access-refused state without protected data and provide the scaffolded return-to-sign-in action.",
+      "conventions": [
+       "Do not retain or display protected response data after access refusal."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-7",
+      "title": "S-6 Receipts",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-7",
+       "REQ-27",
+       "REQ-28"
+      ],
+      "fileScope": [
+       "components/screens/s-6/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/receipts/page.tsx",
+       "components/screens/s-9/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Wire receipt listing, search/status/date filters, empty/loading/access-refused states, and filtered CSV export. Connect the generated navigation entry for warehouse receipts through the scaffold's existing navigation convention without changing generated frame files.",
+      "conventions": [
+       "Use generated lib/api operations; use shared design tokens and factory page components.",
+       "CSV export uses the filtered result set."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-8",
+      "title": "S-7 Record receipt",
+      "reqs": [
+       "REQ-7"
+      ],
+      "fileScope": [
+       "components/screens/s-7/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/receipts/new/page.tsx",
+       "components/screens/s-6/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Validate product, lot, expiry, packs, supplier and destination; submit the receipt and show API validation errors beside fields and returned quarantine status.",
+      "conventions": [
+       "Use generated lib/api operations; keep presentation in the scaffold page."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-9",
+      "title": "S-8 Receipt detail and inbound evidence",
+      "reqs": [
+       "REQ-7",
+       "REQ-8",
+       "REQ-11",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-8/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/receipts/[receiptId]/page.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "plannedLoc": 115,
+      "complexity": "standard",
+      "approach": "Load receipt details and returned inbound readings/history; submit logger and receipt-evidence files through the generated API operations, show progress and returned rejection states, validate evidence type and the 10 MB limit, and show handling units when returned.",
+      "conventions": [
+       "Use generated lib/api operations; file uploads go through API request bodies, not a direct vendor integration."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-10",
+      "title": "S-9 Stock",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-10",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-9/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/stock/page.tsx",
+       "components/screens/s-6/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Wire stock rows, search and filters, returned mutually exclusive status totals, empty/loading/access-refused states, and filtered CSV export. Display returned quantities as provided and flag a reconciliation discrepancy instead of presenting inconsistent totals as reconciled.",
+      "conventions": [
+       "Use generated lib/api operations; use shared design tokens and factory page components."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-11",
+      "title": "S-10 Handling unit",
+      "reqs": [
+       "REQ-10",
+       "REQ-11",
+       "REQ-19",
+       "REQ-20",
+       "REQ-21",
+       "REQ-22",
+       "REQ-59"
+      ],
+      "fileScope": [
+       "components/screens/s-10/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/stock/[unitId]/page.tsx",
+       "components/screens/s-8/container.tsx"
+      ],
+      "plannedLoc": 120,
+      "complexity": "standard",
+      "approach": "Load unit, lot, history, tier budgets, gap flags, alerts, and history events. Render returned data without inferring On Hold or estimating a charge for an unobserved tier; provide chart/table data and an empty-history state.",
+      "conventions": [
+       "Use generated lib/api operations; display API-returned stock status without client-side status inference."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-12",
+      "title": "S-11 Move stock",
+      "reqs": [
+       "REQ-12"
+      ],
+      "fileScope": [
+       "components/screens/s-11/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/stock/[unitId]/move/page.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Validate source, destination and quantity, submit the move, and show returned movement details or API/network failure without representing a refused move as saved.",
+      "conventions": [
+       "Use generated lib/api operations; keep presentation in the scaffold page."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-13",
+      "title": "S-12 Moves",
+      "reqs": [
+       "REQ-12",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-12/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/moves/page.tsx",
+       "components/screens/s-6/container.tsx"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Load and filter movement history, render its empty state, and export the filtered rows as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; use shared design tokens and factory page components."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-14",
+      "title": "S-13 Boxes",
+      "reqs": [
+       "REQ-17",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-13/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/boxes/page.tsx",
+       "components/screens/s-9/container.tsx"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Wire box listing and filters with returned compatibility/sealing values, empty state, CSV export if present in the page, and navigation to the pack-box flow.",
+      "conventions": [
+       "Use generated lib/api operations; do not rebuild the generated table."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-15",
+      "title": "S-14 Pack box",
+      "reqs": [
+       "REQ-16",
+       "REQ-17"
+      ],
+      "fileScope": [
+       "components/screens/s-14/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/boxes/[boxId]/page.tsx",
+       "components/screens/s-13/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "standard",
+      "approach": "Submit box contents and exactly one logger; show returned compatibility, incompatibility/logger-association errors, sealed details and resulting stock/order status. Keep unsuccessful attempts visibly unsealed.",
+      "conventions": [
+       "Use generated lib/api operations; compatibility and status decisions come from the API."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-16",
+      "title": "S-15 Opening stock",
+      "reqs": [
+       "REQ-61"
+      ],
+      "fileScope": [
+       "components/screens/s-15/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/stock/opening/page.tsx",
+       "components/screens/s-7/container.tsx"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Validate and submit opening-lot fields; display the API result or rejection without fabricating a saved stock row.",
+      "conventions": [
+       "Use generated lib/api operations; keep presentation in the scaffold page."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-17",
+      "title": "S-16 Cold rooms",
+      "reqs": [
+       "REQ-19",
+       "REQ-20"
+      ],
+      "fileScope": [
+       "components/screens/s-16/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/cold-rooms/page.tsx",
+       "components/screens/s-9/container.tsx"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load cold-room readings and alert status from the gateway-backed API and render empty, silence and alert states.",
+      "conventions": [
+       "Use generated lib/api operations; do not call the gateway directly."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-18",
+      "title": "S-17 Cold room detail",
+      "reqs": [
+       "REQ-19",
+       "REQ-20",
+       "REQ-21"
+      ],
+      "fileScope": [
+       "components/screens/s-17/container.tsx"
+      ],
+      "exemplars": [
+       "app/warehouse/cold-rooms/c2/page.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load chart/table telemetry, gaps, silence and alerts; preserve the API's time ordering and flags, identify excluded readings, and provide an empty-data state.",
+      "conventions": [
+       "Use generated lib/api operations; display returned status and never infer a hold from a gap."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-19",
+      "title": "S-18 Dispatch orders",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-15",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-18/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/orders/page.tsx",
+       "components/screens/s-9/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load, search and filter dispatch orders, show empty/access-refused states and returned allocation/status rows, and export filtered records as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; use shared design tokens and factory page components."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-20",
+      "title": "S-19 Dispatch order detail",
+      "reqs": [
+       "REQ-6",
+       "REQ-13",
+       "REQ-15",
+       "REQ-16"
+      ],
+      "fileScope": [
+       "components/screens/s-19/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/orders/[orderId]/page.tsx",
+       "components/screens/s-18/container.tsx"
+      ],
+      "plannedLoc": 125,
+      "complexity": "standard",
+      "approach": "Load allocations and returned profile-recalculation/status effects; submit lot overrides with a required reason and dispatcher cancellation when available; show API refusal and current returned order/box/route state.",
+      "conventions": [
+       "Use generated lib/api operations; do not compute allocations or stock transitions in the browser."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-21",
+      "title": "S-20 Routes",
+      "reqs": [
+       "REQ-1",
+       "REQ-18",
+       "REQ-27",
+       "REQ-33"
+      ],
+      "fileScope": [
+       "components/screens/s-20/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/routes/page.tsx",
+       "components/screens/s-18/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load and filter routes, expose route creation/navigation, show stop status and last-update times, and export filtered route data as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; route ordering and qualification are API results."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-22",
+      "title": "S-21 Route plan",
+      "reqs": [
+       "REQ-18"
+      ],
+      "fileScope": [
+       "components/screens/s-21/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/routes/plan/[routeId]/page.tsx",
+       "components/screens/s-20/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "standard",
+      "approach": "Validate vehicle, driver, date, ordered stops and arrival times; submit and confirm routes, show returned qualification-margin errors, and display returned schedule/notification status for route changes.",
+      "conventions": [
+       "Use generated lib/api operations; report configured safety-margin values returned by the API."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-23",
+      "title": "S-22 Route detail",
+      "reqs": [
+       "REQ-6",
+       "REQ-16",
+       "REQ-18",
+       "REQ-33",
+       "REQ-34"
+      ],
+      "fileScope": [
+       "components/screens/s-22/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/routes/[routeId]/page.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "standard",
+      "approach": "Load ordered stops, boxes, current temperatures, alerts and returned stock/order/route effects; mark cached readings stale while disconnected and show returned route changes.",
+      "conventions": [
+       "Use generated lib/api operations; do not access the gateway directly."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-24",
+      "title": "S-23 Box temperature",
+      "reqs": [
+       "REQ-19",
+       "REQ-20",
+       "REQ-34"
+      ],
+      "fileScope": [
+       "components/screens/s-23/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/boxes/[boxId]/temperature/page.tsx",
+       "components/screens/s-17/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Render returned box telemetry as chart and table, including flags, gaps, excursions, alert state and stale cached readings; handle unavailable and empty feed results explicitly.",
+      "conventions": [
+       "Use generated lib/api operations; gateway data is consumed only through the supplied API."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-25",
+      "title": "S-24 Delivery evidence",
+      "reqs": [
+       "REQ-25",
+       "REQ-37",
+       "REQ-62"
+      ],
+      "fileScope": [
+       "components/screens/s-24/container.tsx"
+      ],
+      "exemplars": [
+       "app/dispatch/deliveries/[deliveryId]/evidence/page.tsx",
+       "components/screens/s-29/container.tsx"
+      ],
+      "plannedLoc": 80,
+      "complexity": "standard",
+      "approach": "Load authorized evidence and display returned signature/photo links and delivery fields; show unavailable/not-yet-delivered/retention states and clear protected evidence on access refusal.",
+      "conventions": [
+       "Use generated lib/api operations; respect API access responses and do not expose evidence URLs after refusal."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-26",
+      "title": "S-25 Today's routes and browser route cache",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-24",
+       "REQ-31",
+       "REQ-40"
+      ],
+      "fileScope": [
+       "components/screens/s-25/container.tsx",
+       "lib/driver/route-cache.ts"
+      ],
+      "exemplars": [
+       "app/driver/today/page.tsx",
+       "components/screens/s-26/container.tsx"
+      ],
+      "plannedLoc": 125,
+      "complexity": "standard",
+      "approach": "Load only the driver's assigned routes for the serving workday, show the no-routes state, and cache route/stop/expected-box data for offline browser use. Clear cached route and recipient data on sign-out/access refusal; implement route cache here as the first slice that needs it.",
+      "conventions": [
+       "Responsive browser experience only; no native-app or app-store work.",
+       "Use generated lib/api operations; do not cache protected route data after access refusal."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-27",
+      "title": "S-26 Route stops",
+      "reqs": [
+       "REQ-24",
+       "REQ-31",
+       "REQ-34",
+       "REQ-41"
+      ],
+      "fileScope": [
+       "components/screens/s-26/container.tsx"
+      ],
+      "exemplars": [
+       "app/driver/routes/[routeId]/page.tsx",
+       "components/screens/s-25/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Read current or cached route details from the route cache; display ordered stops and stale offline temperatures, reconcile the returned route and block continuation when affected work remains unresolved.",
+      "conventions": [
+       "Use browser cache and generated lib/api operations; mark offline telemetry stale."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-26"
+      ]
+     },
+     {
+      "id": "TASK-28",
+      "title": "S-27 Load boxes and offline action queue",
+      "reqs": [
+       "REQ-24",
+       "REQ-32",
+       "REQ-35",
+       "REQ-36",
+       "REQ-40"
+      ],
+      "fileScope": [
+       "components/screens/s-27/container.tsx",
+       "lib/driver/pending-work.ts"
+      ],
+      "exemplars": [
+       "app/driver/routes/[routeId]/load/page.tsx",
+       "components/screens/s-25/container.tsx"
+      ],
+      "plannedLoc": 135,
+      "complexity": "rules-or-algorithm",
+      "approach": "Compare scanned and expected boxes, support removing a wrong-route scan, and block departure until all expected boxes are scanned and wrong-route boxes cleared. Queue supported offline loading actions only after complete local persistence; show storage failures and online On Hold/Recall blocks. Implement the queue helper in this first queued-action slice.",
+      "conventions": [
+       "Use browser storage for offline web work; do not sync until the originating driver re-authenticates.",
+       "Use generated lib/api operations; do not infer recall blocks from stale offline data."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-26"
+      ]
+     },
+     {
+      "id": "TASK-29",
+      "title": "S-28 Stop detail",
+      "reqs": [
+       "REQ-25",
+       "REQ-31",
+       "REQ-34",
+       "REQ-35",
+       "REQ-36",
+       "REQ-39"
+      ],
+      "fileScope": [
+       "components/screens/s-28/container.tsx"
+      ],
+      "exemplars": [
+       "app/driver/routes/[routeId]/stops/[stopId]/page.tsx",
+       "components/screens/s-26/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load stop boxes and delivery eligibility; show returned On Hold reason and online Recalled blocks, stale offline telemetry, whole-box refusal choices and the stop's partial-delivery outcome.",
+      "conventions": [
+       "Use generated lib/api operations and the browser route cache; only API-returned status controls deliverability."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-27"
+      ]
+     },
+     {
+      "id": "TASK-30",
+      "title": "S-29 Record handover",
+      "reqs": [
+       "REQ-24",
+       "REQ-25",
+       "REQ-35",
+       "REQ-36",
+       "REQ-37",
+       "REQ-38",
+       "REQ-39",
+       "REQ-40",
+       "REQ-42"
+      ],
+      "fileScope": [
+       "components/screens/s-29/container.tsx"
+      ],
+      "exemplars": [
+       "app/driver/routes/[routeId]/stops/[stopId]/handover/page.tsx",
+       "components/screens/s-28/container.tsx"
+      ],
+      "plannedLoc": 150,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate receiver, explicit acknowledgment, signature/photo evidence, delivered/refused whole-box quantities and per-box reasons; capture actual time and browser location when available without blocking if unavailable. Queue the complete payload with stable handover id/time when offline, preserve it until acknowledged or refused, and show sync restrictions/conflicts without falsely completing delivery.",
+      "conventions": [
+       "Use browser location permission and responsive web capture controls, never native APIs.",
+       "Use lib/driver/pending-work.ts and generated lib/api; only clear payload on successful acknowledgement or returned rejection/refusal."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-28",
+       "TASK-29"
+      ]
+     },
+     {
+      "id": "TASK-31",
+      "title": "S-30 Pending work",
+      "reqs": [
+       "REQ-24",
+       "REQ-40",
+       "REQ-41",
+       "REQ-42"
+      ],
+      "fileScope": [
+       "components/screens/s-30/container.tsx"
+      ],
+      "exemplars": [
+       "app/driver/pending/page.tsx",
+       "components/screens/s-29/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Display queued payload summaries and returned sync outcomes, trigger automatic eligible sync after the same driver re-authenticates, and hide originating-driver work from a different signed-in user. Show storage failure and rejected/refused status deterministically.",
+      "conventions": [
+       "Use lib/driver/pending-work.ts; do not expose another driver's recipient or payload details."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-28"
+      ]
+     },
+     {
+      "id": "TASK-32",
+      "title": "S-31 Route changes",
+      "reqs": [
+       "REQ-24",
+       "REQ-41"
+      ],
+      "fileScope": [
+       "components/screens/s-31/container.tsx"
+      ],
+      "exemplars": [
+       "app/driver/routes/[routeId]/changes/page.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "rules-or-algorithm",
+      "approach": "Show route differences on reconciliation, identify affected unsent actions, offer explicit keep/reassign/discard resolution choices supported by the API, block continuation while unresolved, and preserve completed offline handovers with original times.",
+      "conventions": [
+       "Use generated lib/api and pending-work helper; never erase completed handovers during route reconciliation."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-28",
+       "TASK-30"
+      ]
+     },
+     {
+      "id": "TASK-33",
+      "title": "S-32 Quality cases",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-9",
+       "REQ-20",
+       "REQ-23",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-32/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality/cases/page.tsx",
+       "components/screens/s-18/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load, filter and export quality cases; show empty/access-refused states, returned alerts, delivered-stock cases and proposal/review statuses.",
+      "conventions": [
+       "Use generated lib/api operations; show only API-returned role-scoped records."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-34",
+      "title": "S-33 Quality review",
+      "reqs": [
+       "REQ-6",
+       "REQ-9",
+       "REQ-19",
+       "REQ-20",
+       "REQ-21",
+       "REQ-22",
+       "REQ-23",
+       "REQ-43",
+       "REQ-44",
+       "REQ-45",
+       "REQ-46"
+      ],
+      "fileScope": [
+       "components/screens/s-33/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality/cases/[caseId]/page.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "plannedLoc": 155,
+      "complexity": "rules-or-algorithm",
+      "approach": "Render full returned telemetry, allowance ledger, gap/alert status and recommendation. After proposed action is selected, use returned tier/allowance/recommendation to select single-person versus two-person flow; require justification when opposing recommendation, submit proposal/signing through API, and show recalculated not-permitted outcomes as requiring the returned approval flow rather than treating them as signed decisions.",
+      "conventions": [
+       "Business decision rules are reflected from API results; do not calculate budgets or infer holds.",
+       "Use generated lib/api operations; signed values are read-only."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-35",
+      "title": "S-34 Signed decision",
+      "reqs": [
+       "REQ-45",
+       "REQ-46"
+      ],
+      "fileScope": [
+       "components/screens/s-34/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality/decisions/[decisionId]/page.tsx",
+       "components/screens/s-33/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Show current and earlier signed dispositions read-only; submit a separate superseding decision with identity reconfirmation and reason, preserve entered values on failure, and show API refusal and unchanged resulting stock/order/route status.",
+      "conventions": [
+       "Use generated lib/api operations; never edit or delete signed records."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-36",
+      "title": "S-35 Record destruction",
+      "reqs": [
+       "REQ-47"
+      ],
+      "fileScope": [
+       "components/screens/s-35/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality/stock/[unitId]/destruction/page.tsx",
+       "components/screens/s-34/container.tsx"
+      ],
+      "plannedLoc": 80,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate role returned by the API, date, quantity against the still-undestroyed quantity, and witness before submitting; show validation without sending an invalid request and render returned result/refusal.",
+      "conventions": [
+       "Use generated lib/api operations; client validation complements API enforcement."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-37",
+      "title": "S-36 Waiting decisions",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-9",
+       "REQ-44",
+       "REQ-48"
+      ],
+      "fileScope": [
+       "components/screens/s-36/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality-manager/waiting/page.tsx",
+       "components/screens/s-33/container.tsx"
+      ],
+      "plannedLoc": 80,
+      "complexity": "standard",
+      "approach": "Load waiting proposals and returned escalation states, provide empty/access-refused states, and link each decision to its review/approval route.",
+      "conventions": [
+       "Use generated lib/api operations; do not calculate escalation time in the browser."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-38",
+      "title": "S-37 Decision approval",
+      "reqs": [
+       "REQ-9",
+       "REQ-43",
+       "REQ-44",
+       "REQ-45",
+       "REQ-46"
+      ],
+      "fileScope": [
+       "components/screens/s-37/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality-manager/decisions/[proposalId]/page.tsx",
+       "components/screens/s-34/container.tsx"
+      ],
+      "plannedLoc": 135,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load proposal and telemetry; disallow proposer self-approval, support manager approve or return/decline, require justification for opposing recommendations and identity confirmation, retain entered reason on failure, and show returned signed/rejected status and impacts.",
+      "conventions": [
+       "Use generated lib/api operations; expose only returned approval actions and never treat a refused action as signed."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-39",
+      "title": "S-38 Recalls",
+      "reqs": [
+       "REQ-26",
+       "REQ-27",
+       "REQ-49",
+       "REQ-53"
+      ],
+      "fileScope": [
+       "components/screens/s-38/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality-manager/recalls/page.tsx",
+       "components/screens/s-32/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Load and filter recall/progress rows, show outstanding responses/reminder status and returned accounting progress, and export filtered rows as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; use the API's recall status and eligibility."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-40",
+      "title": "S-39 Start recall",
+      "reqs": [
+       "REQ-26",
+       "REQ-49"
+      ],
+      "fileScope": [
+       "components/screens/s-39/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality-manager/recalls/new/page.tsx",
+       "components/screens/s-38/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Validate product, one or more lots, reason, severity and identity reconfirmation; submit start and show returned record or refusal without claiming a failed recall started.",
+      "conventions": [
+       "Use generated lib/api operations; signing is an API-confirmed action."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-41",
+      "title": "S-40 Recall detail and trace",
+      "reqs": [
+       "REQ-26",
+       "REQ-49",
+       "REQ-50",
+       "REQ-53"
+      ],
+      "fileScope": [
+       "components/screens/s-40/container.tsx"
+      ],
+      "exemplars": [
+       "app/quality-manager/recalls/[recallId]/page.tsx",
+       "components/screens/s-38/container.tsx"
+      ],
+      "plannedLoc": 145,
+      "complexity": "rules-or-algorithm",
+      "approach": "Render full returned trace and reconciliation/progress data; submit signed write-off only for an authorized Quality Manager and close with identity confirmation. Block client submission when unaccounted quantity lacks signed write-off, preserve API refusal, and show returned close status.",
+      "conventions": [
+       "Use generated lib/api operations; trace is fully accessible within the specified client rendering window after the response.",
+       "Do not compute or authorize recall closure in the client."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-42",
+      "title": "S-41 Customer orders",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-14",
+       "REQ-15",
+       "REQ-54"
+      ],
+      "fileScope": [
+       "components/screens/s-41/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/orders/page.tsx",
+       "components/screens/s-45/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load only authenticated organisation-scoped orders; show status, lots, expiry and empty/access-refused states; navigate to place/order detail.",
+      "conventions": [
+       "Use generated lib/api operations; never send a caller-supplied organisation identifier."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-43",
+      "title": "S-42 Place order",
+      "reqs": [
+       "REQ-13",
+       "REQ-14"
+      ],
+      "fileScope": [
+       "components/screens/s-42/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/orders/new/page.tsx",
+       "components/screens/s-41/container.tsx"
+      ],
+      "plannedLoc": 115,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate at least one product line and positive pack quantities; load saved address, shelf-life rule and API-returned eligible delivery dates/time zone; submit once with a stable retry key and show returned order/no-stock/ineligible outcomes.",
+      "conventions": [
+       "Use generated lib/api operations; the API supplies eligible dates and warehouse cut-off results."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-44",
+      "title": "S-43 Customer order detail",
+      "reqs": [
+       "REQ-6",
+       "REQ-15",
+       "REQ-16",
+       "REQ-54"
+      ],
+      "fileScope": [
+       "components/screens/s-43/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/orders/[orderId]/page.tsx",
+       "components/screens/s-41/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Load organisation-scoped order lines, lots, allocated/outstanding quantities, status and returned recalculation/stock effects; expose customer changes/cancel only before Packed and show API outcomes.",
+      "conventions": [
+       "Use generated lib/api operations; returned status governs available controls."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-45",
+      "title": "S-44 Change customer order",
+      "reqs": [
+       "REQ-14",
+       "REQ-15"
+      ],
+      "fileScope": [
+       "components/screens/s-44/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/orders/[orderId]/change/page.tsx",
+       "components/screens/s-42/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Validate changed lines, address and eligible date, submit changes only when returned status permits, and show status changes or API refusal without applying unsaved form values as confirmed.",
+      "conventions": [
+       "Use generated lib/api operations; only show eligible dates returned by the API."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-46",
+      "title": "S-45 Customer deliveries",
+      "reqs": [
+       "REQ-27",
+       "REQ-54",
+       "REQ-55"
+      ],
+      "fileScope": [
+       "components/screens/s-45/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/deliveries/page.tsx",
+       "components/screens/s-41/container.tsx"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load customer-organisation delivery rows, including in-transit arrival/temperature state; show empty state and export the filtered displayed result as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; do not expose other customers' route details."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-47",
+      "title": "S-46 Customer delivery detail",
+      "reqs": [
+       "REQ-23",
+       "REQ-54",
+       "REQ-55",
+       "REQ-62"
+      ],
+      "fileScope": [
+       "components/screens/s-46/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/deliveries/[deliveryId]/page.tsx",
+       "components/screens/s-45/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Load organisation-scoped delivery, lots, transit status, quality-case and available evidence; hide evidence and clear protected fields on 403/404.",
+      "conventions": [
+       "Use generated lib/api operations; do not show cross-organisation delivery or evidence data."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-48",
+      "title": "S-47 Certificates",
+      "reqs": [
+       "REQ-55",
+       "REQ-56",
+       "REQ-57"
+      ],
+      "fileScope": [
+       "components/screens/s-47/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/deliveries/[deliveryId]/certificates/page.tsx",
+       "components/screens/s-46/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "standard",
+      "approach": "Load certificate history and returned versions, apply account language/time zone and RTL layout from the scaffold, and expose PDF downloads only for returned accessible versions; show unavailable and access-denied states.",
+      "conventions": [
+       "Use generated lib/api operations; PDF bytes are downloaded only after an authorized API response.",
+       "Use responsive web layout and the shared English/Arabic direction setting."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-49",
+      "title": "S-48 Customer recall notices",
+      "reqs": [
+       "REQ-26",
+       "REQ-51",
+       "REQ-54"
+      ],
+      "fileScope": [
+       "components/screens/s-48/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/recalls/page.tsx",
+       "components/screens/s-41/container.tsx"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Load organisation-scoped recall notices and affected deliveries, show no-notice state and link each notice to its recall response.",
+      "conventions": [
+       "Use generated lib/api operations; do not send SMS or push notifications."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-50",
+      "title": "S-49 Customer recall response",
+      "reqs": [
+       "REQ-26",
+       "REQ-51",
+       "REQ-52"
+      ],
+      "fileScope": [
+       "components/screens/s-49/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/recalls/[recallId]/deliveries/[deliveryId]/page.tsx",
+       "components/screens/s-48/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate nonnegative on-hand/used/destroyed quantities against delivered quantity; allow an unaccounted remainder, block overshoot before request, submit updates for the delivery, and show returned accounted/unaccounted status.",
+      "conventions": [
+       "Use generated lib/api operations; the API remains authoritative for reconciliation and closed/write-off state."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-51",
+      "title": "S-50 Customer account and language",
+      "reqs": [
+       "REQ-13",
+       "REQ-28",
+       "REQ-57"
+      ],
+      "fileScope": [
+       "components/screens/s-50/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer/account/page.tsx",
+       "components/screens/s-51/container.tsx"
+      ],
+      "plannedLoc": 80,
+      "complexity": "standard",
+      "approach": "Load account organization, time zone and shelf-life policy; persist language selection and set the page direction to RTL for Arabic or LTR for English across portal sessions.",
+      "conventions": [
+       "Use generated lib/api operations and shared design tokens; preserve LTR rendering for identifiers within RTL content."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-52",
+      "title": "S-51 Customer addresses",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-13"
+      ],
+      "fileScope": [
+       "components/screens/s-51/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer-admin/addresses/page.tsx",
+       "components/screens/s-50/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load and maintain saved organization addresses; validate fields and show returned save/remove outcome or refusal without changing another organization's data.",
+      "conventions": [
+       "Use generated lib/api operations; no direct API fetch."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-53",
+      "title": "S-52 Customer team",
+      "reqs": [
+       "REQ-3",
+       "REQ-4"
+      ],
+      "fileScope": [
+       "components/screens/s-52/container.tsx"
+      ],
+      "exemplars": [
+       "app/customer-admin/team/page.tsx",
+       "components/screens/s-51/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Load scoped team members, invite/remove through the API, validate email/role and duplicate/refusal responses, and display returned invitation/removal status.",
+      "conventions": [
+       "Use generated lib/api operations; organization scope is supplied by authenticated API context."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-54",
+      "title": "S-53 Products",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-5",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-53/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/products/page.tsx",
+       "components/screens/s-9/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Load/search/filter products, identify deactivated products as unavailable, show empty/access-refused states, and export the filtered list as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; use shared design tokens and factory page components."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-55",
+      "title": "S-54 Product detail",
+      "reqs": [
+       "REQ-5",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-54/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/products/[productId]/page.tsx",
+       "components/screens/s-53/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Load product details and metadata; submit updates/deactivation and show confirmation, returned status, and refusal without changing earlier profile versions.",
+      "conventions": [
+       "Use generated lib/api operations; earlier profile versions remain read-only."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-56",
+      "title": "S-55 Temperature profiles",
+      "reqs": [
+       "REQ-5",
+       "REQ-6"
+      ],
+      "fileScope": [
+       "components/screens/s-55/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/products/[productId]/profiles/page.tsx",
+       "components/screens/s-56/container.tsx"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Load chronological profile versions and API recalculation values; display reasons/effective dates/creator metadata and preserve earlier decisions as returned and unchanged.",
+      "conventions": [
+       "Use generated lib/api operations; do not recalculate temperature budgets in the browser."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-57",
+      "title": "S-56 New profile version",
+      "reqs": [
+       "REQ-5"
+      ],
+      "fileScope": [
+       "components/screens/s-56/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/products/[productId]/profiles/new/page.tsx",
+       "components/screens/s-55/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate required profile reason/effective date (not before today) and contiguous non-overlapping tiers; submit valid versions and show API errors or returned created profile.",
+      "conventions": [
+       "Use generated lib/api operations; server remains authoritative for profile validation."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-58",
+      "title": "S-57 Organisations",
+      "reqs": [
+       "REQ-13",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-57/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/organisations/page.tsx",
+       "components/screens/s-53/container.tsx"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Load, search and filter organizations, show empty state and export the filtered rows as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; keep the factory-generated list presentation."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-59",
+      "title": "S-58 Organisation detail",
+      "reqs": [
+       "REQ-13",
+       "REQ-30"
+      ],
+      "fileScope": [
+       "components/screens/s-58/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/organisations/[orgId]/page.tsx",
+       "components/screens/s-57/container.tsx"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load organization accounts, facilities and addresses; validate and save the organization-level minimum remaining shelf life and show returned status/errors.",
+      "conventions": [
+       "Use generated lib/api operations; organization access is API-authorized."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-60",
+      "title": "S-59 Accounts",
+      "reqs": [
+       "REQ-27",
+       "REQ-30"
+      ],
+      "fileScope": [
+       "components/screens/s-59/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/accounts/page.tsx",
+       "components/screens/s-53/container.tsx"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load/search/filter accounts, show empty state, and export the filtered account list as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; no client-side access-control substitute."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-61",
+      "title": "S-60 Account detail",
+      "reqs": [
+       "REQ-29",
+       "REQ-30",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "components/screens/s-60/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/accounts/[accountId]/page.tsx",
+       "components/screens/s-59/container.tsx"
+      ],
+      "plannedLoc": 110,
+      "complexity": "standard",
+      "approach": "Load or create account details, validate name/email/role/facility assignments, submit account/access changes and deactivation, and show returned status/refusal and access-denied state.",
+      "conventions": [
+       "Use generated lib/api operations; account authorization and state are API-enforced."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-62",
+      "title": "S-61 Administrator audit trail",
+      "reqs": [
+       "REQ-27",
+       "REQ-58"
+      ],
+      "fileScope": [
+       "components/screens/s-61/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/audit/page.tsx",
+       "components/screens/s-64/container.tsx"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Load audit entries and filter by record, user, date range and action; display returned old/new values and supplied reasons and export the filtered view; handle denied access without exposing entries or export controls.",
+      "conventions": [
+       "Use generated lib/api operations; audit details are read-only."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-63",
+      "title": "S-62 Administrator reports",
+      "reqs": [
+       "REQ-27",
+       "REQ-60"
+      ],
+      "fileScope": [
+       "components/screens/s-62/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/reports/page.tsx",
+       "components/screens/s-66/container.tsx"
+      ],
+      "plannedLoc": 105,
+      "complexity": "standard",
+      "approach": "Request report results by date range and in-scope warehouse, render all returned figures and no-data/loading/access-denied states, and export the displayed filtered figures as CSV.",
+      "conventions": [
+       "Use generated lib/api operations; report calculations are supplied by the API."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-64",
+      "title": "S-63 Administrator lot history",
+      "reqs": [
+       "REQ-27",
+       "REQ-59"
+      ],
+      "fileScope": [
+       "components/screens/s-63/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/lots/[lotId]/history/page.tsx",
+       "components/screens/s-65/container.tsx"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load returned receipt-to-delivery/destruction history in chronological order and render the no-later-events state.",
+      "conventions": [
+       "Use generated lib/api operations; returned event order is authoritative."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-65",
+      "title": "S-64 Auditor audit trail",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-27",
+       "REQ-58"
+      ],
+      "fileScope": [
+       "components/screens/s-64/container.tsx"
+      ],
+      "exemplars": [
+       "app/auditor/audit/page.tsx",
+       "components/screens/s-61/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load auditor read-only audit entries, apply filters and export the filtered view; on access refusal show no entries, filters or export action.",
+      "conventions": [
+       "Use generated lib/api operations; auditor views are read-only."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-66",
+      "title": "S-65 Auditor lot history",
+      "reqs": [
+       "REQ-3",
+       "REQ-59"
+      ],
+      "fileScope": [
+       "components/screens/s-65/container.tsx"
+      ],
+      "exemplars": [
+       "app/auditor/lots/[lotId]/history/page.tsx",
+       "components/screens/s-63/container.tsx"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load chronological lot-history events in a read-only view; show no-later-events or access-denied without exposing records.",
+      "conventions": [
+       "Use generated lib/api operations; auditor views are read-only."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     },
+     {
+      "id": "TASK-67",
+      "title": "S-66 Auditor reports",
+      "reqs": [
+       "REQ-3",
+       "REQ-27",
+       "REQ-60"
+      ],
+      "fileScope": [
+       "components/screens/s-66/container.tsx"
+      ],
+      "exemplars": [
+       "app/auditor/reports/page.tsx",
+       "components/screens/s-62/container.tsx"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load returned date-range/warehouse report figures in read-only form and export displayed figures; show no-data and access-denied states without figures or export action.",
+      "conventions": [
+       "Use generated lib/api operations; auditor views are read-only."
+      ],
+      "dependsOn": [
+       "TASK-2"
+      ]
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Use the generated Next/shadcn scaffold, implement one container per approved screen, and generate the sole API client from the shared OpenAPI contract.",
+      "simplest": true,
+      "tradeoffs": "Keeps generated pages and shared UI untouched and gives the two repositories a single typed contract; requires the contract/codegen step before feature work."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Build custom shared workflow components and manually authored endpoint wrappers before implementing screens.",
+      "simplest": false,
+      "tradeoffs": "Could centralize some behavior, but duplicates the generated UI/client approach, increases cross-screen coupling and violates the requirement to use the contract-generated API client."
+     }
+    ],
+    "chosen": "OPTION-1",
+    "adr": "Use the scaffold's generated responsive pages and implement behavior in screen containers, one slice per approved screen.\nGenerate the web SDK in lib/api from the shared OpenAPI 3.0.3 contract; no hand-written API client.\nUse browser-based offline storage and location permission for driver workflows; no native apps or app-store work.\nAPI persistence, authorization, transitions, audit retention, scheduling, and outbound email remain API-side.",
+    "protectedPathsDeclared": [
+     "package.json"
+    ],
+    "newDependencies": [
+     {
+      "name": "openapi-typescript-codegen",
+      "version": "0.29.0",
+      "registry": "npm"
+     }
+    ],
+    "stubs": [
+     {
+      "path": "contracts/openapi.yaml",
+      "reason": "Shared API contract consumed by SDK generation in this web repository and by the separate API repository; outside all task scopes.",
+      "content": "openapi: 3.0.3\ninfo:\n  title: Meridian Coldchain API\n  version: 1.0.0\n  description: Shared contract for the Meridian responsive web app and API. API-side authorization, persistence and business enforcement are implemented in the separate API repository.\nservers:\n  - url: /api\nsecurity:\n  - bearerAuth: []\npaths:\n  /auth/staff:\n    post:\n      operationId: staffSignIn\n      security: []\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SignInInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /auth/customer:\n    post:\n      operationId: customerSignIn\n      security: []\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SignInInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /auth/code:\n    post:\n      operationId: verifyOneTimeCode\n      security: []\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CodeInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /auth/code/resend:\n    post:\n      operationId: resendOneTimeCode\n      security: []\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ChallengeInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /auth/password-reset:\n    post:\n      operationId: requestPasswordReset\n      security: []\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ResetRequestInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /auth/password-reset/{token}:\n    parameters: [{name: token, in: path, required: true, schema: {type: string}}]\n    get:\n      operationId: validatePasswordResetToken\n      security: []\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    post:\n      operationId: setPassword\n      security: []\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SetPasswordInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /auth/logout:\n    post:\n      operationId: signOut\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/receipts:\n    get:\n      operationId: listReceipts\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}, {name: date, in: query, schema: {type: string, format: date}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: createReceipt\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReceiptInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/receipts/{receiptId}:\n    parameters: [{name: receiptId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getReceipt\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/receipts/{receiptId}/logger:\n    parameters: [{name: receiptId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: uploadReceiptLogger\n      requestBody: {required: true, content: {multipart/form-data: {schema: {$ref: '#/components/schemas/FileInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/receipts/{receiptId}/evidence:\n    parameters: [{name: receiptId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: uploadReceiptEvidence\n      requestBody: {required: true, content: {multipart/form-data: {schema: {$ref: '#/components/schemas/FileInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/stock:\n    get:\n      operationId: listStock\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}, {name: handlingUnit, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /warehouse/stock/units/{unitId}:\n    parameters: [{name: unitId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getHandlingUnit\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/stock/units/{unitId}/move:\n    parameters: [{name: unitId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: moveStock\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/MovementInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/moves:\n    get:\n      operationId: listStockMoves\n      parameters: [{name: date, in: query, schema: {type: string, format: date}}, {name: unit, in: query, schema: {type: string}}, {name: location, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /warehouse/boxes:\n    get:\n      operationId: listBoxes\n      parameters: [{name: order, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: sealBox\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/BoxInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/boxes/{boxId}/seal:\n    parameters: [{name: boxId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: sealExistingBox\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/BoxInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/stock/opening:\n    post:\n      operationId: recordOpeningStock\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OpeningStockInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/cold-rooms:\n    get:\n      operationId: listColdRooms\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /warehouse/cold-rooms/{roomId}:\n    parameters: [{name: roomId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getColdRoomHistory\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /warehouse/lots/{lotId}/history:\n    parameters: [{name: lotId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getWarehouseLotHistory\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /dispatch/orders:\n    get:\n      operationId: listDispatchOrders\n      parameters: [{name: status, in: query, schema: {type: string}}, {name: date, in: query, schema: {type: string, format: date}}, {name: search, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /dispatch/orders/{orderId}:\n    parameters: [{name: orderId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getDispatchOrder\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /dispatch/orders/{orderId}/allocation-overrides:\n    parameters: [{name: orderId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: overrideOrderAllocation\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AllocationOverrideInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /dispatch/orders/{orderId}/cancel:\n    parameters: [{name: orderId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: cancelDispatchOrder\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReasonInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /dispatch/routes:\n    get:\n      operationId: listRoutes\n      parameters: [{name: date, in: query, schema: {type: string, format: date}}, {name: driver, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: createRoute\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RouteInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /dispatch/routes/{routeId}:\n    parameters: [{name: routeId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getRoute\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    patch:\n      operationId: changeRoute\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RouteInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /dispatch/boxes/{boxId}/temperature:\n    parameters: [{name: boxId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getBoxTemperatureHistory\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /dispatch/deliveries/{deliveryId}/evidence:\n    parameters: [{name: deliveryId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getDeliveryEvidence\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/routes/today:\n    get:\n      operationId: listDriversTodayRoutes\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /driver/routes/{routeId}:\n    parameters: [{name: routeId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getDriverRoute\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/routes/{routeId}/load-scans:\n    parameters: [{name: routeId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: recordLoadScan\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ScanInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/routes/{routeId}/departure:\n    parameters: [{name: routeId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: confirmRouteDeparture\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ActionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/routes/{routeId}/stops/{stopId}:\n    parameters: [{name: routeId, in: path, required: true, schema: {type: integer}}, {name: stopId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getDriverStop\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/handovers:\n    post:\n      operationId: submitHandover\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/HandoverInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/pending-work:\n    get:\n      operationId: getPendingWorkSyncStatus\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: synchronizePendingWork\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PendingWorkInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /driver/routes/{routeId}/changes:\n    parameters: [{name: routeId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getRouteChanges\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    post:\n      operationId: resolveRouteChanges\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ActionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality/cases:\n    get:\n      operationId: listQualityCases\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /quality/cases/{caseId}:\n    parameters: [{name: caseId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getQualityCase\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality/cases/{caseId}/release:\n    parameters: [{name: caseId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: releaseReceiptStock\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DecisionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality/cases/{caseId}/proposals:\n    parameters: [{name: caseId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: proposeQualityDisposition\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DecisionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality/decisions/{decisionId}:\n    parameters: [{name: decisionId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getSignedDecision\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    post:\n      operationId: supersedeQualityDecision\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DecisionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality/proposals/{proposalId}/decision:\n    parameters: [{name: proposalId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: decideQualityProposal\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DecisionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality/stock/units/{unitId}/destruction:\n    parameters: [{name: unitId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: recordStockDestruction\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DestructionInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality-manager/waiting-decisions:\n    get:\n      operationId: listWaitingDecisions\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /quality-manager/recalls:\n    get:\n      operationId: listRecalls\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: startRecall\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RecallInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality-manager/recalls/{recallId}:\n    parameters: [{name: recallId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getRecall\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality-manager/recalls/{recallId}/trace:\n    parameters: [{name: recallId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getRecallTrace\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality-manager/recalls/{recallId}/write-offs:\n    parameters: [{name: recallId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: writeOffRecallRemainder\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/WriteOffInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /quality-manager/recalls/{recallId}/close:\n    parameters: [{name: recallId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: closeRecall\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/IdentityInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/orders:\n    get:\n      operationId: listCustomerOrders\n      parameters: [{name: status, in: query, schema: {type: string}}, {name: destination, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: placeCustomerOrder\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrderInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/orders/eligible-dates:\n    get:\n      operationId: listEligibleDeliveryDates\n      parameters: [{name: addressId, in: query, required: true, schema: {type: integer}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /customer/orders/{orderId}:\n    parameters: [{name: orderId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getCustomerOrder\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    patch:\n      operationId: changeCustomerOrder\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrderInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/orders/{orderId}/cancel:\n    parameters: [{name: orderId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: cancelCustomerOrder\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReasonInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/deliveries:\n    get:\n      operationId: listCustomerDeliveries\n      parameters: [{name: date, in: query, schema: {type: string, format: date}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /customer/deliveries/{deliveryId}:\n    parameters: [{name: deliveryId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getCustomerDelivery\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/deliveries/{deliveryId}/certificates:\n    parameters: [{name: deliveryId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: listDeliveryCertificates\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /customer/deliveries/{deliveryId}/certificates/{certificateId}/file:\n    parameters: [{name: deliveryId, in: path, required: true, schema: {type: integer}}, {name: certificateId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: downloadDeliveryCertificate\n      responses:\n        '200': {description: PDF certificate, content: {application/pdf: {schema: {type: string, format: binary}}}}\n        '403': {$ref: '#/components/responses/Forbidden'}\n        '404': {$ref: '#/components/responses/NotFound'}\n  /customer/recalls:\n    get:\n      operationId: listCustomerRecallNotices\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /customer/recalls/{recallId}/deliveries/{deliveryId}:\n    parameters: [{name: recallId, in: path, required: true, schema: {type: integer}}, {name: deliveryId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getCustomerRecallResponse\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    put:\n      operationId: submitCustomerRecallResponse\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RecallResponseInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/account:\n    get:\n      operationId: getCustomerAccount\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    patch:\n      operationId: updateCustomerAccount\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AccountPreferencesInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/addresses:\n    get:\n      operationId: listCustomerAddresses\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: createCustomerAddress\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AddressInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/addresses/{addressId}:\n    parameters: [{name: addressId, in: path, required: true, schema: {type: integer}}]\n    patch:\n      operationId: updateCustomerAddress\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AddressInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    delete:\n      operationId: removeCustomerAddress\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/team:\n    get:\n      operationId: listCustomerTeam\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: inviteCustomerTeamMember\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TeamMemberInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /customer/team/{memberId}:\n    parameters: [{name: memberId, in: path, required: true, schema: {type: integer}}]\n    delete:\n      operationId: removeCustomerTeamMember\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/products:\n    get:\n      operationId: listProducts\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: createProduct\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProductInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/products/{productId}:\n    parameters: [{name: productId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getProduct\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    patch:\n      operationId: updateProduct\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProductInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/products/{productId}/deactivate:\n    parameters: [{name: productId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: deactivateProduct\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReasonInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/products/{productId}/profiles:\n    parameters: [{name: productId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: listTemperatureProfiles\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: createTemperatureProfileVersion\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/organisations:\n    get:\n      operationId: listOrganisations\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /admin/organisations/{orgId}:\n    parameters: [{name: orgId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getOrganisation\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    patch:\n      operationId: updateOrganisation\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrganisationInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/accounts:\n    get:\n      operationId: listAccounts\n      parameters: [{name: search, in: query, schema: {type: string}}, {name: role, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n    post:\n      operationId: createAccount\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AccountInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/accounts/{accountId}:\n    parameters: [{name: accountId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getAccount\n      responses: {$ref: '#/components/responses/StandardResponses'}\n    patch:\n      operationId: updateAccount\n      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AccountInput'}}}}\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/accounts/{accountId}/deactivate:\n    parameters: [{name: accountId, in: path, required: true, schema: {type: integer}}]\n    post:\n      operationId: deactivateAccount\n      responses: {$ref: '#/components/responses/StandardResponses'}\n  /admin/audit:\n    get:\n      operationId: listAuditEntries\n      parameters: [{name: record, in: query, schema: {type: string}}, {name: user, in: query, schema: {type: string}}, {name: from, in: query, schema: {type: string, format: date}}, {name: to, in: query, schema: {type: string, format: date}}, {name: actionType, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /admin/reports:\n    get:\n      operationId: getOperationalReports\n      parameters: [{name: from, in: query, required: true, schema: {type: string, format: date}}, {name: to, in: query, required: true, schema: {type: string, format: date}}, {name: warehouseId, in: query, schema: {type: integer}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /admin/lots/{lotId}/history:\n    parameters: [{name: lotId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getLotHistory\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /auditor/audit:\n    get:\n      operationId: getAuditorAuditEntries\n      parameters: [{name: record, in: query, schema: {type: string}}, {name: user, in: query, schema: {type: string}}, {name: from, in: query, schema: {type: string, format: date}}, {name: to, in: query, schema: {type: string, format: date}}, {name: actionType, in: query, schema: {type: string}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /auditor/lots/{lotId}/history:\n    parameters: [{name: lotId, in: path, required: true, schema: {type: integer}}]\n    get:\n      operationId: getAuditorLotHistory\n      responses: {$ref: '#/components/responses/ListResponses'}\n  /auditor/reports:\n    get:\n      operationId: getAuditorReports\n      parameters: [{name: from, in: query, required: true, schema: {type: string, format: date}}, {name: to, in: query, required: true, schema: {type: string, format: date}}, {name: warehouseId, in: query, schema: {type: integer}}]\n      responses: {$ref: '#/components/responses/ListResponses'}\ncomponents:\n  securitySchemes:\n    bearerAuth: {type: http, scheme: bearer}\n  responses:\n    StandardResponses:\n      description: Standard operation outcomes\n      content: {application/json: {schema: {$ref: '#/components/schemas/ApiRecord'}, example: {id: 1042, status: \"Quarantined\", message: \"Saved; receipt LOT-2026-014 is quarantined.\"}}}\n    ListResponses:\n      description: List operation outcomes\n      content: {application/json: {schema: {$ref: '#/components/schemas/RecordList'}, example: {items: [{id: 1042, name: \"Cedar Clinic\", lotNumber: \"LOT-2026-014\", status: \"Available\"}]}}}\n    Forbidden:\n      description: Access denied\n      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}, example: {message: \"Access denied for this record.\"}}}\n    NotFound:\n      description: Record not found\n      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}, example: {message: \"Record was not found.\"}}}\n  schemas:\n    ApiRecord:\n      type: object\n      required: [id, status]\n      properties:\n        id: {type: integer, example: 1042}\n        status: {type: string, example: \"Available\"}\n        name: {type: string, example: \"Cedar Clinic\"}\n        lotNumber: {type: string, example: \"LOT-2026-014\"}\n        message: {type: string, example: \"Saved successfully.\"}\n        data: {type: object, additionalProperties: true}\n    RecordList:\n      type: object\n      required: [items]\n      properties:\n        items: {type: array, items: {$ref: '#/components/schemas/ApiRecord'}}\n    ApiError:\n      type: object\n      required: [message]\n      properties:\n        message: {type: string, example: \"The request could not be completed.\"}\n        field: {type: string, example: \"lotNumber\"}\n    SignInInput:\n      type: object\n      required: [email, password]\n      properties:\n        email: {type: string, format: email}\n        password: «SECRET_1» string, format: password}\n    CodeInput:\n      type: object\n      required: [challengeId, code]\n      properties:\n        challengeId: {type: string}\n        code: {type: string}\n    ChallengeInput:\n      type: object\n      required: [challengeId]\n      properties:\n        challengeId: {type: string}\n    ResetRequestInput:\n      type: object\n      required: [email]\n      properties:\n        email: {type: string, format: email}\n    SetPasswordInput:\n      type: object\n      required: [password]\n      properties:\n        password: «SECRET_1» string, format: password}\n    FileInput:\n      type: object\n      required: [file]\n      properties:\n        file: {type: string, format: binary}\n    ReceiptInput:\n      type: object\n      required: [productId, lotNumber, expiryDate, packs, supplier, destinationLocation]\n      properties:\n        productId: {type: integer}\n        lotNumber: {type: string}\n        expiryDate: {type: string, format: date}\n        packs: {type: integer}\n        supplier: {type: string}\n        destinationLocation: {type: string}\n    MovementInput:\n      type: object\n      required: [sourceLocation, destinationLocation, quantity]\n      properties:\n        sourceLocation: {type: string}\n        destinationLocation: {type: string}\n        quantity: {type: integer}\n    BoxInput:\n      type: object\n      required: [boxType, loggerId, products]\n      properties:\n        boxType: {type: string}\n        loggerId: {type: string}\n        products: {type: array, items: {type: object, required: [productId, lotNumber, quantity], properties: {productId: {type: integer}, lotNumber: {type: string}, quantity: {type: integer}}}}\n    OpeningStockInput:\n      type: object\n      required: [productId, lotNumber, expiryDate, location, quantity]\n      properties:\n        productId: {type: integer}\n        lotNumber: {type: string}\n        expiryDate: {type: string, format: date}\n        location: {type: string}\n        quantity: {type: integer}\n    AllocationOverrideInput:\n      type: object\n      required: [lotNumber, quantity, reason]\n      properties:\n        lotNumber: {type: string}\n        quantity: {type: integer}\n        reason: {type: string}\n    ReasonInput:\n      type: object\n      required: [reason]\n      properties:\n        reason: {type: string}\n    RouteInput:\n      type: object\n      required: [vehicleId, driverId, routeDate, stops]\n      properties:\n        vehicleId: {type: integer}\n        driverId: {type: integer}\n        routeDate: {type: string, format: date}\n        stops: {type: array, items: {type: object, required: [stopId, plannedArrival], properties: {stopId: {type: integer}, plannedArrival: {type: string, format: date-time}}}}\n    ScanInput:\n      type: object\n      required: [boxIdentifier]\n      properties:\n        boxIdentifier: {type: string}\n    HandoverInput:\n      type: object\n      required: [handoverId, receiverName, acknowledgment, handedOver, refused, actualTime, location]\n      properties:\n        handoverId: {type: string}\n        receiverName: {type: string}\n        acknowledgment: {type: boolean}\n        handedOver: {type: array, items: {type: object, required: [boxId, quantity], properties: {boxId: {type: integer}, quantity: {type: integer}}}}\n        refused: {type: array, items: {type: object, required: [boxId, reason], properties: {boxId: {type: integer}, reason: {type: string}}}}\n        signature: {type: string, format: byte}\n        photo: {type: string, format: byte}\n        actualTime: {type: string, format: date-time}\n        location: {type: string, nullable: true}\n    PendingWorkInput:\n      type: object\n      required: [actions]\n      properties:\n        actions: {type: array, items: {type: object, required: [actionId, kind, payload], properties: {actionId: {type: string}, kind: {type: string}, payload: {type: object, additionalProperties: true}}}}\n    ActionInput:\n      type: object\n      required: [action]\n      properties:\n        action: {type: string}\n        reason: {type: string}\n        data: {type: object, additionalProperties: true}\n    DecisionInput:\n      type: object\n      required: [disposition, reason]\n      properties:\n        disposition: {type: string}\n        reason: {type: string}\n        justification: {type: string}\n        identityConfirmation: {type: string}\n    DestructionInput:\n      type: object\n      required: [destructionDate, quantity, witness]\n      properties:\n        destructionDate: {type: string, format: date}\n        quantity: {type: integer}\n        witness: {type: string}\n    RecallInput:\n      type: object\n      required: [productId, lots, reason, severity, identityConfirmation]\n      properties:\n        productId: {type: integer}\n        lots: {type: array, items: {type: string}}\n        reason: {type: string}\n        severity: {type: string}\n        identityConfirmation: {type: string}\n    WriteOffInput:\n      type: object\n      required: [quantity, category, justification, identityConfirmation]\n      properties:\n        quantity: {type: integer}\n        category: {type: string}\n        justification: {type: string}\n        identityConfirmation: {type: string}\n    IdentityInput:\n      type: object\n      required: [identityConfirmation]\n      properties:\n        identityConfirmation: {type: string}\n    OrderInput:\n      type: object\n      required: [lines, addressId, requestedDeliveryDate, fulfillmentPreference]\n      properties:\n        lines: {type: array, items: {type: object, required: [productId, quantity], properties: {productId: {type: integer}, quantity: {type: integer}}}}\n        addressId: {type: integer}\n        requestedDeliveryDate: {type: string, format: date}\n        fulfillmentPreference: {type: string, enum: [partial, complete]}\n        submissionKey: {type: string}\n    RecallResponseInput:\n      type: object\n      required: [onHand, usedOrDispensed, destroyed, disposition]\n      properties:\n        onHand: {type: integer}\n        usedOrDispensed: {type: integer}\n        destroyed: {type: integer}\n        disposition: {type: string}\n    AccountPreferencesInput:\n      type: object\n      required: [language]\n      properties:\n        language: {type: string, enum: [en, ar]}\n        timeZone: {type: string}\n    AddressInput:\n      type: object\n      required: [facilityName, streetAddress, locality, contact]\n      properties:\n        facilityName: {type: string}\n        streetAddress: {type: string}\n        locality: {type: string}\n        contact: {type: string}\n    TeamMemberInput:\n      type: object\n      required: [email, role]\n      properties:\n        email: {type: string, format: email}\n        role: {type: string}\n    ProductInput:\n      type: object\n      required: [name, packSize, profileId, shelfLifeDays]\n      properties:\n        name: {type: string}\n        packSize: {type: string}\n        profileId: {type: integer}\n        shelfLifeDays: {type: integer}\n    ProfileInput:\n      type: object\n      required: [effectiveDate, label, lowerLimit, upperLimit, tiers, reason]\n      properties:\n        effectiveDate: {type: string, format: date}\n        label: {type: string}\n        lowerLimit: {type: number, format: float}\n        upperLimit: {type: number, format: float}\n        tiers: {type: array, items: {type: object, required: [order, designation, lowerBound, upperBound, allowance], properties: {order: {type: integer}, designation: {type: string}, lowerBound: {type: number}, upperBound: {type: number}, allowance: {type: number}}}}\n        reason: {type: string}\n    OrganisationInput:\n      type: object\n      required: [minimumRemainingShelfLifeDays]\n      properties:\n        minimumRemainingShelfLifeDays: {type: integer}\n    AccountInput:\n      type: object\n      required: [fullName, email, role]\n      properties:\n        fullName: {type: string}\n        email: {type: string, format: email}\n        role: {type: string}\n        warehouses: {type: array, items: {type: integer}}\n        organisationIds: {type: array, items: {type: integer}}\n  examples:\n    ReceiptRow:\n      value: {id: 1042, lotNumber: \"LOT-2026-014\", product: \"Pneumococcal vaccine\", packs: 120, received: \"2026-10-12T08:15:00Z\", warehouse: \"North Warehouse\", status: \"Quarantined\"}\n    RouteRow:\n      value: {id: 208, name: \"Route 208\", driver: \"Leila Haddad\", vehicle: \"Van 14\", status: \"Confirmed\"}\n    OrderRow:\n      value: {id: 381, name: \"Cedar Clinic\", lotNumber: \"LOT-2026-014\", status: \"Allocated\"}\n"
+     }
+    ],
+    "dataModel": {
+     "tables": []
+    }
+   },
+   "ms": 6,
+   "resultChars": 136,
+   "isError": true,
+   "result": "The result doesn't match the schema: dataModel.tables: Too small: expected array to have >=1 items. Fix it and call submit_result again."
+  }
+ ]
+}

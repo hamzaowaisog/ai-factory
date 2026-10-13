@@ -1,0 +1,1116 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "AC_1_1_ShowsPermittedModules",
+      "verdict": "weak",
+      "why": "Add assertions for the permitted staff modules and applicable stock, temperature, and quality links; this test checks only a customer navigation subset."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_KeepsWorkflowControlsAccessibleAcrossViewports",
+      "verdict": "weak",
+      "why": "Assert horizontal overflow and measured phone control dimensions of at least 44 by 44 CSS pixels at each viewport; button presence alone proves neither."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "AC_2_1_OffersMeridianMicrosoftStaffSignIn",
+      "verdict": "weak",
+      "why": "Assert that no external staff-account form or its fields are displayed, rather than checking only for the absence of a staff password label."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_ShowsCodeChallengeBeforeCustomerAccess",
+      "verdict": "weak",
+      "why": "Check for social or single-sign-on links and broader customer account content, not only matching buttons and two record strings."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "AC_2_3_RequestsResetForCustomerEmail",
+      "verdict": "weak",
+      "why": "Assert the specific reset-link-by-email confirmation returned by the API instead of the generic “The request was recorded” text."
+     },
+     {
+      "acId": "AC-2.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned access-denied message and checks that protected record content is absent."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "AC_3_1_ShowsOnlyReturnedScopedRecords",
+      "verdict": "weak",
+      "why": "Exercise both staff warehouse scope and customer organisation scope with returned and excluded records, and assert only the returned records appear."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies records from two warehouses and asserts that the Auditor sees both returned records."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "AC_3_3_KeepsAuditorRecordReadOnly",
+      "verdict": "weak",
+      "why": "Attempt a refused write and assert that its returned error message is displayed; the test checks only read-only controls."
+     },
+     {
+      "acId": "AC-3.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts an access-denied message and verifies protected record fields are cleared."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "AC_4_1_ShowsReturnedInvitationStatus",
+      "verdict": "weak",
+      "why": "Also submit a removal and assert its returned status; the test covers invitation status only."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_ShowsRefusedTeamActionWithoutChangingUser",
+      "verdict": "weak",
+      "why": "Set up an action against another organisation’s user and assert that user remains unchanged as well as checking the refusal message."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "AC_5_1_FindsProductsAndMarksDeactivatedUnavailable",
+      "verdict": "weak",
+      "why": "Actually search by both product name and code, and assert the deactivated product is identified as unavailable for ordering rather than merely deactivated."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "AC_5_2_ShowsReturnedProfileValidationError",
+      "verdict": "weak",
+      "why": "Cover incomplete profiles and gapped tiers as well as overlapping tiers, asserting each returned error and that no profile is saved."
+     },
+     {
+      "acId": "AC-5.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the submitted tiers, reason, and effective date in the request and asserts the returned new version."
+     },
+     {
+      "acId": "AC-5.4",
+      "testId": "AC_5_4_ListsReadOnlyEarlierProfileVersions",
+      "verdict": "weak",
+      "why": "Assert the returned earlier profile tier or other profile values are displayed; the test checks version, date, reason, and creator but no profile values."
+     },
+     {
+      "acId": "AC-5.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts that the product is displayed as deactivated after the API returns its updated status."
+     },
+     {
+      "acId": "AC-5.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits a past effective date, checks a validation message, and asserts that no save request was made."
+     },
+     {
+      "acId": "AC-6.1",
+      "testId": "AC_6_1_ShowsEffectiveProfileAndRecalculatedStockValues",
+      "verdict": "weak",
+      "why": "Open an affected stock view and assert its returned recalculated values there, not only values attached to the profile listing."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "AC_6_2_PreservesEarlierQualityDecisionValues",
+      "verdict": "weak",
+      "why": "Assert the displayed earlier decision’s returned values and status remain unchanged when a new profile version is present, rather than relying on a generic hidden phrase."
+     },
+     {
+      "acId": "AC-6.3",
+      "testId": "AC_6_3_ShowsNewVersionReasonAndReturnedRecalculation",
+      "verdict": "weak",
+      "why": "Assert the returned recalculated values in the affected-stock view as well as the new profile version details."
+     },
+     {
+      "acId": "AC-6.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned allocation, box, and route statuses together with the handover restriction."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "AC_7_1_ProvidesReceiptEntryFields",
+      "verdict": "weak",
+      "why": "Assert separate cold-room and shelf fields; a single destination-location label does not prove both fields are available."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_ShowsQuarantinedReceiptAndInboundValues",
+      "verdict": "weak",
+      "why": "Assert all submitted receipt details, including expiry, supplier, and cold-room/shelf, are displayed with the receipt record."
+     },
+     {
+      "acId": "AC-7.3",
+      "testId": "AC_7_3_ShowsReceiptFieldErrorWithoutSavedRecord",
+      "verdict": "weak",
+      "why": "Assert the returned message is beside the relevant field and that no saved receipt record or its details are displayed."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the uploaded file in the request, returned readings and budget use, and absence of release controls before release."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned file error and asserts that no successful-upload indicator is shown."
+     },
+     {
+      "acId": "AC-8.3",
+      "testId": "AC_8_3_RejectsOversizedOrUnsupportedEvidenceBeforeSave",
+      "verdict": "weak",
+      "why": "Assert that no saved receipt is displayed after either validation failure, in addition to checking the alert and absence of a request."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_ShowsReceiptBudgetAndDecisionControls",
+      "verdict": "weak",
+      "why": "Assert the returned receipt data and actual release decision controls, not only one receipt identifier, budget value, and a disposition label."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "AC_9_2_ShowsReleaseRefusalReasonWithoutReleasedStock",
+      "verdict": "weak",
+      "why": "Also test an API-refused release and assert its returned reason and that stock remains unreleased."
+     },
+     {
+      "acId": "AC-9.3",
+      "testId": "AC_9_3_SendsDispositionProposalAndShowsPendingApproval",
+      "verdict": "weak",
+      "why": "Assert that the pending proposal is explicitly awaiting approval by a different Quality Manager, not only that its status is pending."
+     },
+     {
+      "acId": "AC-9.4",
+      "testId": "AC_9_4_DoesNotApproveOwnOrUnauthorizedProposal",
+      "verdict": "weak",
+      "why": "Set up and test both a proposer attempting self-approval and a non-Quality-Manager approval attempt, or assert the returned error and unapproved status for the exercised role."
+     },
+     {
+      "acId": "AC-9.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned final decision status and the decision-maker."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the on-hand quantity and each returned status quantity, whose displayed values sum to the asserted total."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "AC_10_2_FiltersStockByLotAndWarehouse",
+      "verdict": "weak",
+      "why": "Apply and verify both lot and warehouse filter values; the test filters only by lot."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_ShowsSeparateHandlingUnitHistoriesAndBudgets",
+      "verdict": "weak",
+      "why": "Assert each unit’s returned temperature history as well as its quantity and budget values."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_SendsMoveLocationsAndShowsMovementRecord",
+      "verdict": "weak",
+      "why": "Assert the movement record’s returned time; the test checks actor and quantity but not time."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "AC_13_1_ShowsReturnedAddressListAfterSave",
+      "verdict": "weak",
+      "why": "Assert that the returned address or its returned address status is displayed; the current visible value is only “In transit.”"
+     },
+     {
+      "acId": "AC-13.2",
+      "testId": "AC_13_2_SendsOrganisationShelfLifeRule",
+      "verdict": "weak",
+      "why": "Assert the API’s returned response status as well as the submitted and saved organisation-level value."
+     },
+     {
+      "acId": "AC-13.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the organisation’s shelf-life value is shown and the per-order change control is absent."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "AC_14_1_ProvidesOrderLinesAddressDateAndPreference",
+      "verdict": "weak",
+      "why": "Assert an existing product line and a saved-address selector/value; an add-line button and delivery-destination label alone do not prove those fields."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "AC_14_2_BlocksEmptyOrSubPackOrderBeforeRequest",
+      "verdict": "weak",
+      "why": "Test a quantity below one pack as well as an empty order, asserting a field error and no request for each case."
+     },
+     {
+      "acId": "AC-14.3",
+      "testId": "AC_14_3_ShowsOnlyReturnedEligibleDatesAndWarehouseTimeZone",
+      "verdict": "weak",
+      "why": "Set up configured cut-off, local time, working days, and holidays and verify the before- and after-cut-off date rules, not just returned dates and zone text."
+     },
+     {
+      "acId": "AC-14.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned deactivated status and that no orderable quantity field is available."
+     },
+     {
+      "acId": "AC-14.5",
+      "testId": "AC_14_5_ShowsCompleteOrderSummaryBeforeSubmission",
+      "verdict": "weak",
+      "why": "Assert the selected quantity and saved address in the pre-submission summary as well as product, date, and fulfillment preference."
+     },
+     {
+      "acId": "AC-15.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts allocated and outstanding quantities and both customer action controls for a pre-Packed order."
+     },
+     {
+      "acId": "AC-15.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the Packed status and absence of both customer change and cancel controls."
+     },
+     {
+      "acId": "AC-15.3",
+      "testId": "AC_15_3_ShowsReturnedCancellationOutcomeAndQuantities",
+      "verdict": "weak",
+      "why": "Also exercise a refused action and assert its returned error, current status, and any returned quantities and stock count."
+     },
+     {
+      "acId": "AC-15.4",
+      "testId": "AC_15_4_ReusesSubmissionKeyForOrderRetry",
+      "verdict": "weak",
+      "why": "Count returned order records and assert exactly one is displayed; finding the order identifier at least once does not rule out duplicates."
+     },
+     {
+      "acId": "AC-15.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test repeats submission while pending and asserts that only one order-submission request is sent."
+     },
+     {
+      "acId": "AC-15.6",
+      "testId": "AC_15_6_OffersDispatcherCancellationAfterPacked",
+      "verdict": "weak",
+      "why": "Set up a Packed-or-later order with cancellation available and assert that the returned cancellation response or refusal message is shown."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_ShowsEachAllocatedLotAndOutstandingAmount",
+      "verdict": "weak",
+      "why": "Assert each allocation’s returned expiry date and line split in addition to lot, quantity, and outstanding quantity."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_RequiresOverrideReasonAndSendsChosenLot",
+      "verdict": "weak",
+      "why": "Assert the accepted allocation or returned refusal message; the test currently checks only a generic “In transit” value."
+     },
+     {
+      "acId": "AC-16.3",
+      "testId": "AC_16_3_ShowsBackOrderOrNoStockStatusAndOutstanding",
+      "verdict": "weak",
+      "why": "Cover the returned complete-only and no-suitable-stock cases as well as back order, checking status and outstanding quantity in each."
+     },
+     {
+      "acId": "AC-16.4",
+      "testId": "AC_16_4_ShowsRemovedAndReplacementAllocationOutcome",
+      "verdict": "weak",
+      "why": "Set up one of the specified triggering stock statuses and assert that returned stock status as well as the allocation outcomes."
+     },
+     {
+      "acId": "AC-16.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts returned stock, allocation, and box statuses together with the handover restriction."
+     },
+     {
+      "acId": "AC-17.1",
+      "testId": "AC_17_1_ProvidesPackingFields",
+      "verdict": "weak",
+      "why": "Assert fields for delivery stop and product in addition to box type, logger, lot, and quantity."
+     },
+     {
+      "acId": "AC-17.2",
+      "testId": "AC_17_2_ShowsCompatibilityRefusalWithoutSealedBox",
+      "verdict": "weak",
+      "why": "Exercise each specified refusal cause and assert the returned compatibility result or error and that the box is not shown as sealed."
+     },
+     {
+      "acId": "AC-17.3",
+      "testId": "AC_17_3_ShowsOneLoggerAndReturnedSealDetails",
+      "verdict": "weak",
+      "why": "Assert the returned seal time and contents as well as operator, quantities, and logger."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "AC_18_1_ProvidesVehicleDriverDateAndOrderedStops",
+      "verdict": "weak",
+      "why": "Assert a vehicle field, one driver, and at least one ordered stop field with planned arrival time; the test checks a vehicle value and only some route controls."
+     },
+     {
+      "acId": "AC-18.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the refused status, affected box, returned overage, and configured safety-margin value."
+     },
+     {
+      "acId": "AC-18.3",
+      "testId": "AC_18_3_SendsChangedRouteAndShowsReturnedSchedule",
+      "verdict": "weak",
+      "why": "Assert the returned schedule details, including planned arrival time, are displayed along with stop order and notification status."
+     },
+     {
+      "acId": "AC-18.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned changed stops and their schedule times on the driver route view."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "AC_19_1_ShowsTimedHistoryChartTableBandsAndGaps",
+      "verdict": "weak",
+      "why": "Assert chart and table views and that readings are positioned by their times, in addition to bands, excursion markers, and gaps."
+     },
+     {
+      "acId": "AC-19.2",
+      "testId": "AC_19_2_ShowsFlaggedReadingsInTimeOrderAsExcluded",
+      "verdict": "weak",
+      "why": "Assert DOM time ordering and that excluded readings are not calculation inputs, covering the returned flagged readings beyond merely displaying their labels."
+     },
+     {
+      "acId": "AC-19.3",
+      "testId": "AC_19_3_SwitchesChartAndTableForSameHistory",
+      "verdict": "weak",
+      "why": "Assert the same returned reading and time in both chart and table views; the current assertions check different values in each view."
+     },
+     {
+      "acId": "AC-19.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts returned reading values and times alongside their associated device on the receipt-history view."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "AC_20_1_ShowsExcursionAndAffectedUnitTierBudgets",
+      "verdict": "weak",
+      "why": "Assert returned temperature readings for the excursion as well as start/end, closure, affected unit, and tier usage values."
+     },
+     {
+      "acId": "AC-20.2",
+      "testId": "AC_20_2_ShowsOpenExcursionHoldAndBudget",
+      "verdict": "weak",
+      "why": "Assert the affected unit’s tier budget values, including used and remaining amounts, rather than only a remaining amount."
+     },
+     {
+      "acId": "AC-20.3",
+      "testId": "AC_20_3_ShowsReturnedAlertCategoryAndAffectedStock",
+      "verdict": "weak",
+      "why": "Cover exhausted-tier and not-permitted-range alerts as well as the remaining-budget warning, asserting each category and affected stock or device."
+     },
+     {
+      "acId": "AC-20.4",
+      "testId": "AC_20_4_ShowsAlertTypeRecipientAndDeliveryMetadata",
+      "verdict": "weak",
+      "why": "Exercise the listed alert types and assert returned corrected-excursion or budget status where present; the test covers only device silence."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned gap, review status, stock status, and absence of an estimated tier."
+     },
+     {
+      "acId": "AC-21.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts Available and the review flag while checking that the stock is not shown as On Hold."
+     },
+     {
+      "acId": "AC-22.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts returned stock status and budget values and excludes an estimated charge."
+     },
+     {
+      "acId": "AC-23.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned case status and affected delivered lot details."
+     },
+     {
+      "acId": "AC-24.1",
+      "testId": "AC_24_1_RetainsTodayRouteAndStopsOffline",
+      "verdict": "weak",
+      "why": "Assert the cached route’s stops and delivery details are all shown offline; the test checks only one clinic name and that a snapshot exists."
+     },
+     {
+      "acId": "AC-24.2",
+      "testId": "AC_24_2_QueuesOfflineActionWithEnteredValues",
+      "verdict": "weak",
+      "why": "Record a supported action through the offline UI and assert its entered values remain queued until sync or rejection, rather than pre-enqueueing a loading action."
+     },
+     {
+      "acId": "AC-24.3",
+      "testId": "AC_24_3_ShowsPerActionSynchronizationResult",
+      "verdict": "weak",
+      "why": "Exercise the same enabled driver signing in and reconnecting through the app, and assert the returned result for each queued action."
+     },
+     {
+      "acId": "AC-24.4",
+      "testId": "AC_24_4_RejectsDisabledDriverActionWithoutRetry",
+      "verdict": "weak",
+      "why": "Assert the rejected action is marked not accepted and no longer queued, as well as the error and absence of a subsequent sync request."
+     },
+     {
+      "acId": "AC-24.5",
+      "testId": "AC_24_5_MarksChangedCachedRouteStaleAndBlocksRemovedStop",
+      "verdict": "weak",
+      "why": "Assert the cached route is explicitly marked stale; the test checks changed/cancelled text and one absent control only."
+     },
+     {
+      "acId": "AC-24.6",
+      "testId": "AC_24_6_ShowsRefusedQueuedHandoverWithoutCompletion",
+      "verdict": "weak",
+      "why": "Assert the refused action is neither completed nor accepted; the test checks only that “Completed” is absent."
+     },
+     {
+      "acId": "AC-24.7",
+      "testId": "AC_24_7_HidesCachedRouteAfterSignOutOrAccessRefusal",
+      "verdict": "weak",
+      "why": "Keep cached route data present when testing sign-out, workday end, or access refusal; the test clears the snapshot before opening the refused-access page."
+     },
+     {
+      "acId": "AC-24.8",
+      "testId": "AC_24_8_DoesNotExposeOrSyncAnotherDriversQueuedWork",
+      "verdict": "weak",
+      "why": "Simulate the originating driver signing out or workday expiry and a different user signing in before asserting no details or synchronization request."
+     },
+     {
+      "acId": "AC-24.9",
+      "testId": "AC_24_9_ResendsQueuedWorkOnlyAsOriginatingDriver",
+      "verdict": "weak",
+      "why": "Assert the sync request uses the originating driver’s authenticated identity after that driver signs in again, rather than only checking the queued object’s driverId."
+     },
+     {
+      "acId": "AC-25.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the recipient and explicit acknowledgment fields and that no drawn-signature field is present."
+     },
+     {
+      "acId": "AC-25.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The captured request is asserted to contain recipient name, acknowledgment value, and handed-over quantity."
+     },
+     {
+      "acId": "AC-25.3",
+      "testId": "AC_25_3_SendsPartialRefusalReasonAndShowsOutstanding",
+      "verdict": "weak",
+      "why": "Assert the request’s undelivered quantity as well as delivered quantity and reason, and retain the outstanding-quantity assertion."
+     },
+     {
+      "acId": "AC-25.4",
+      "testId": "AC_25_4_ShowsReturnedWarehouseReceiptAndQualityStatus",
+      "verdict": "weak",
+      "why": "Also test an API response reporting stock Available and assert that it is shown as available only in that case."
+     },
+     {
+      "acId": "AC-25.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned restriction and outstanding quantity and checks that the refused handover is not completed."
+     },
+     {
+      "acId": "AC-26.1",
+      "testId": "AC_26_1_ShowsRecallLocationsDeliveriesAndBlockedStock",
+      "verdict": "weak",
+      "why": "Assert the returned lot and its locations and affected delivery details, not just a warehouse name, clinic, quantity, and blocked status."
+     },
+     {
+      "acId": "AC-26.2",
+      "testId": "AC_26_2_ProvidesRecallResponseAndQuantityCategories",
+      "verdict": "weak",
+      "why": "Assert response and quantity fields for each delivery and the returned quantity categories for locating, using, returning, disposing, and accounting for units."
+     },
+     {
+      "acId": "AC-26.3",
+      "testId": "AC_26_3_ShowsSubmittedRecallReconciliationWithoutUpload",
+      "verdict": "weak",
+      "why": "Assert the submitted stated disposition is displayed along with the quantities and accounted-for status."
+     },
+     {
+      "acId": "AC-26.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts both the returned outstanding quantity and affected customer response."
+     },
+     {
+      "acId": "AC-26.5",
+      "testId": "AC_26_5_SendsSelectedLotsAndReasonForRecall",
+      "verdict": "weak",
+      "why": "Assert the returned recall record and status; the visible “In transit” text does not establish either."
+     },
+     {
+      "acId": "AC-26.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the recall status returned after the close action."
+     },
+     {
+      "acId": "AC-26.7",
+      "testId": "AC_26_7_ShowsRecallActionRefusalWithoutSuccess",
+      "verdict": "weak",
+      "why": "Test a refused recall start as well as close and assert the returned error with no successful-start or successful-close state."
+     },
+     {
+      "acId": "AC-27.1",
+      "testId": "AC_27_1_ExportsDisplayedFilteredOperationalRecords",
+      "verdict": "weak",
+      "why": "Inspect the downloaded CSV contents and assert they contain the filtered record and exclude the unfiltered record; the test checks only the on-screen list."
+     },
+     {
+      "acId": "AC-27.2",
+      "testId": "AC_27_2_ShowsCreatorAndLastChangeReadOnly",
+      "verdict": "weak",
+      "why": "Assert the returned actor and timestamp fields are read-only values, not merely visible text with a label absent."
+     },
+     {
+      "acId": "AC-28.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test selects Arabic and asserts both Arabic text and right-to-left document direction."
+     },
+     {
+      "acId": "AC-28.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test selects English and asserts left-to-right direction and English portal text."
+     },
+     {
+      "acId": "AC-29.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned sign-in error message after email/password submission."
+     },
+     {
+      "acId": "AC-29.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits an account email and asserts the reset confirmation returned by the request."
+     },
+     {
+      "acId": "AC-29.3",
+      "testId": "AC_29_3_ProvidesNewPasswordFormForValidLink",
+      "verdict": "weak",
+      "why": "Set up a valid, unexpired reset link/token before asserting the new-password form."
+     },
+     {
+      "acId": "AC-29.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the submitted new password and the returned reset result."
+     },
+     {
+      "acId": "AC-29.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the expired-link explanation, offers a new reset request, and hides the new-password field."
+     },
+     {
+      "acId": "AC-29.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits another reset-email request and asserts the returned confirmation."
+     },
+     {
+      "acId": "AC-30.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts account fields and returned account status on the account-management page."
+     },
+     {
+      "acId": "AC-30.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned access-denied message and absence of protected account content."
+     },
+     {
+      "acId": "AC-31.1",
+      "testId": "AC_31_1_ShowsOnlyReturnedDriverRoutesWithOrderedStops",
+      "verdict": "weak",
+      "why": "Return routes assigned to multiple drivers and assert only this driver’s routes appear and that each route’s stops are actually in sequence."
+     },
+     {
+      "acId": "AC-32.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the missing-box status and that departure control is unavailable."
+     },
+     {
+      "acId": "AC-32.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts a wrong-route warning naming the scanned box and absence of the departure control."
+     },
+     {
+      "acId": "AC-32.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts loading-complete status and an enabled departure control."
+     },
+     {
+      "acId": "AC-33.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts every returned stop’s status and last-updated time."
+     },
+     {
+      "acId": "AC-34.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned box temperature, status, and alert."
+     },
+     {
+      "acId": "AC-34.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test opens cached temperature data offline and asserts the value is marked stale."
+     },
+     {
+      "acId": "AC-35.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the held box’s do-not-deliver instruction and reason and absence of its handover control."
+     },
+     {
+      "acId": "AC-35.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts handover is available for the deliverable box and absent for the held box."
+     },
+     {
+      "acId": "AC-36.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the recalled box’s do-not-deliver instruction and absence of its handover control."
+     },
+     {
+      "acId": "AC-37.1",
+      "testId": "AC_37_1_SendsHandoverReceiverSignaturePhotoTimeAndLocation",
+      "verdict": "weak",
+      "why": "Assert the actual completion-time field in the captured request; the test checks receiver, signature, photo, and location only."
+     },
+     {
+      "acId": "AC-38.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test simulates denied browser location and asserts unavailable location in the request and completed handover result."
+     },
+     {
+      "acId": "AC-39.1",
+      "testId": "AC_39_1_RecordsWholeRefusedBoxesWithReasons",
+      "verdict": "weak",
+      "why": "Assert each selected whole box and its corresponding reason in the request or result, not only a refusal reason without a box identifier."
+     },
+     {
+      "acId": "AC-39.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned refusal and quarantine statuses for the refused box."
+     },
+     {
+      "acId": "AC-40.1",
+      "testId": "AC_40_1_ListsOfflineActionsAndEnteredValues",
+      "verdict": "weak",
+      "why": "Exercise loading, handover, and refusal entry while offline and assert each action’s entered values remain in the pending queue."
+     },
+     {
+      "acId": "AC-40.2",
+      "testId": "AC_40_2_SendsQueuedWorkAutomaticallyOnReconnect",
+      "verdict": "weak",
+      "why": "Simulate connectivity returning with queued work and assert automatic sending without resubmission and the returned sync status."
+     },
+     {
+      "acId": "AC-40.3",
+      "testId": "AC_40_3_PreservesOriginalHandoverTimeAndIdentifierOnRetry",
+      "verdict": "weak",
+      "why": "Assert the retried request’s original handover time and handover identifier fields, not only the queue action ID and occurrence timestamp."
+     },
+     {
+      "acId": "AC-40.4",
+      "testId": "AC_40_4_RetainsSignedPhotoHandoverAcrossReauthentication",
+      "verdict": "weak",
+      "why": "Simulate session expiry or sign-out and reauthentication before asserting the queued values are sent without re-entry."
+     },
+     {
+      "acId": "AC-40.6",
+      "testId": "AC_40_6_DoesNotResendAcknowledgedQueuedPayload",
+      "verdict": "weak",
+      "why": "Reload the web app and reconnect after acknowledgment before asserting there is no pending payload and no resend."
+     },
+     {
+      "acId": "AC-40.7",
+      "testId": "AC_40_7_DoesNotQueueActionAfterStorageFailure",
+      "verdict": "weak",
+      "why": "Assert the failed action is not displayed as completed as well as not queued, with zero send requests."
+     },
+     {
+      "acId": "AC-40.10",
+      "testId": "AC_40_10_KeepsExpiredSessionWorkLocalUntilReauthenticated",
+      "verdict": "weak",
+      "why": "Set up an expired driver session explicitly and assert the action and entered values remain local until reauthentication."
+     },
+     {
+      "acId": "AC-41.1",
+      "testId": "AC_41_1_ListsChangedRouteAndAffectedBoxesOnReconnection",
+      "verdict": "weak",
+      "why": "Set up unsent work and reconnect with a changed returned route before asserting route differences and affected boxes."
+     },
+     {
+      "acId": "AC-41.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts unresolved boxes are displayed and the continue-route control is unavailable."
+     },
+     {
+      "acId": "AC-41.3",
+      "testId": "AC_41_3_PreservesOfflineHandoverAndOriginalTimeAfterRouteChange",
+      "verdict": "weak",
+      "why": "Assert the offline handover is still marked completed with its original time after a route synchronization."
+     },
+     {
+      "acId": "AC-42.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the retained handover, hold conflict, and returned quality-case status."
+     },
+     {
+      "acId": "AC-43.1",
+      "testId": "AC_43_1_ShowsFullHistoryBudgetsAndRecommendation",
+      "verdict": "weak",
+      "why": "Assert the full returned history and used and remaining allowance for each tier, including each tier’s identity."
+     },
+     {
+      "acId": "AC-43.2",
+      "testId": "AC_43_2_ShowsSameConfiguredTierLimitsAcrossProducts",
+      "verdict": "weak",
+      "why": "Assert each product is associated with the returned tier-limit and allowance values; presence of the values once does not prove equality per product."
+     },
+     {
+      "acId": "AC-43.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts access denial and absence of excursion history, allowance, and recommendation content."
+     },
+     {
+      "acId": "AC-44.1",
+      "testId": "AC_44_1_OffersSinglePersonDecisionWithinFirstTier",
+      "verdict": "weak",
+      "why": "Set up and assert an excursion within the first tier and a proposed decision matching the recommendation before checking single-person controls."
+     },
+     {
+      "acId": "AC-44.2",
+      "testId": "AC_44_2_RequiresProposalAndSeparateApprovalOutsideAllowance",
+      "verdict": "weak",
+      "why": "Assert proposal controls and an actual separate-approval requirement, rather than only displaying workflow text and hiding the single-person button."
+     },
+     {
+      "acId": "AC-44.3",
+      "testId": "AC_44_3_HidesApprovalFromProposingQualityManager",
+      "verdict": "weak",
+      "why": "Set the proposer’s Quality Manager role and signed-in identity explicitly before asserting that this same person has no approval action."
+     },
+     {
+      "acId": "AC-44.4",
+      "testId": "AC_44_4_RequiresJustificationAndDifferentApproverWhenOpposing",
+      "verdict": "weak",
+      "why": "Assert a written-justification field and Quality Officer proposal plus different-Quality-Manager approval controls for the opposing decision."
+     },
+     {
+      "acId": "AC-44.5",
+      "testId": "AC_44_5_UsesSeparateApprovalForOpposingFirstTierDecision",
+      "verdict": "weak",
+      "why": "Assert the separate proposal and approval controls and different approver requirement, not just the workflow label and absence of one button."
+     },
+     {
+      "acId": "AC-45.1",
+      "testId": "AC_45_1_RequiresIdentityAndReasonBeforeSignedStatus",
+      "verdict": "weak",
+      "why": "Assert both identity confirmation and reason are required; a single regex matching either does not prove both."
+     },
+     {
+      "acId": "AC-45.2",
+      "testId": "AC_45_2_ShowsSignedDecisionReadOnlyWithSupersedeAction",
+      "verdict": "weak",
+      "why": "Assert signed values are read-only, for example by checking they are not editable, in addition to supersede and no-edit/delete controls."
+     },
+     {
+      "acId": "AC-45.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts both signed decision records and identifies the superseding record."
+     },
+     {
+      "acId": "AC-46.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts returned stock, order, and route statuses and disposition history."
+     },
+     {
+      "acId": "AC-46.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned refusal error and unchanged returned statuses while excluding an applied superseding disposition."
+     },
+     {
+      "acId": "AC-47.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The captured destruction request is asserted to contain the destruction date, quantity, and witness."
+     },
+     {
+      "acId": "AC-47.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits more than the displayed rejected quantity, asserts a validation error, and checks that no request was sent."
+     },
+     {
+      "acId": "AC-48.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned waiting decision and its escalated status."
+     },
+     {
+      "acId": "AC-49.1",
+      "testId": "AC_49_1_SendsSignedRecallStartDetails",
+      "verdict": "weak",
+      "why": "Assert a signature field in the request and the returned recall record and status; the test currently checks identity confirmation and generic “In transit” text."
+     },
+     {
+      "acId": "AC-49.2",
+      "testId": "AC_49_2_SendsSignedRecallCloseAndShowsStatus",
+      "verdict": "weak",
+      "why": "Assert the close request’s signature value and exercise the returned error path as well as the returned close status."
+     },
+     {
+      "acId": "AC-49.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts that an ineligible user sees neither recall start nor close action."
+     },
+     {
+      "acId": "AC-50.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts each returned warehouse, box, route, delivery, quantity, delivery date, and receiver."
+     },
+     {
+      "acId": "AC-50.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the trace total and received quantity are both displayed."
+     },
+     {
+      "acId": "AC-51.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the active recall notice, affected delivery, and response entry point."
+     },
+     {
+      "acId": "AC-52.1",
+      "testId": "AC_52_1_SendsRecallQuantityFieldsForDelivery",
+      "verdict": "weak",
+      "why": "Assert the request identifies the delivery whose on-hand, used, and destroyed quantities were entered."
+     },
+     {
+      "acId": "AC-52.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits quantities below the delivered total and asserts the returned unaccounted difference is displayed."
+     },
+     {
+      "acId": "AC-52.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits quantities above the delivered total, asserts a validation error, and checks that no invalid request was sent."
+     },
+     {
+      "acId": "AC-52.4",
+      "testId": "AC_52_4_UpdatesDeliveryQuantitiesAndRemainder",
+      "verdict": "weak",
+      "why": "Assert the returned response status or response details as well as the updated delivery quantities and remaining unaccounted amount."
+     },
+     {
+      "acId": "AC-53.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned accounted percentage and outstanding customer list."
+     },
+     {
+      "acId": "AC-53.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned reminder status."
+     },
+     {
+      "acId": "AC-53.3",
+      "testId": "AC_53_3_SendsSignedWriteOffJustification",
+      "verdict": "weak",
+      "why": "Assert the returned write-off status or refusal message; the test checks only generic “In transit” text after submission."
+     },
+     {
+      "acId": "AC-53.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned close error and that the recall is not shown as closed."
+     },
+     {
+      "acId": "AC-54.1",
+      "testId": "AC_54_1_ListsOnlyAuthenticatedOrganisationOrders",
+      "verdict": "weak",
+      "why": "Assert returned order status and expiry dates alongside lots, and verify the displayed orders are only those in the authenticated organisation’s response."
+     },
+     {
+      "acId": "AC-54.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts planned arrival, in-range status, and absence of another customer’s identity."
+     },
+     {
+      "acId": "AC-55.1",
+      "testId": "AC_55_1_ProvidesCompletedDeliveryCertificateDownload",
+      "verdict": "weak",
+      "why": "Download and inspect the PDF itself to assert its format and listed delivery, handover, temperature, excursion, and decision fields; visible page text and a link do not prove file contents."
+     },
+     {
+      "acId": "AC-55.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test sets a forbidden delivery URL, returns 403, and asserts an access-denied message with no certificate link or content."
+     },
+     {
+      "acId": "AC-56.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts both returned certificate versions and one download link for each."
+     },
+     {
+      "acId": "AC-56.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test returns 404 for another organisation’s history and asserts no versions or download links are displayed."
+     },
+     {
+      "acId": "AC-57.1",
+      "testId": "AC_57_1_ShowsArabicPortalAndCertificateDirection",
+      "verdict": "weak",
+      "why": "Assert right-to-left direction for the certificate’s tables and charts, not only the document root and Arabic text."
+     },
+     {
+      "acId": "AC-57.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the configured account time zone and the corresponding displayed order time."
+     },
+     {
+      "acId": "AC-58.1",
+      "testId": "AC_58_1_ShowsAuditActorTimeChangesAndReason",
+      "verdict": "weak",
+      "why": "Return multiple entries across records, users, dates, and action types and assert each entry’s actor, time, changed fields, old/new values, and reason."
+     },
+     {
+      "acId": "AC-58.2",
+      "testId": "AC_58_2_ExportsFilteredAuditView",
+      "verdict": "weak",
+      "why": "Inspect the exported file and assert it contains the filtered audit entries and excludes nonmatching entries; the test checks only the displayed list."
+     },
+     {
+      "acId": "AC-58.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the access-denied message and absence of audit entries, filters, and export action."
+     },
+     {
+      "acId": "AC-59.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test returns out-of-order receipt and movement events and asserts they are displayed in chronological order."
+     },
+     {
+      "acId": "AC-59.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts access denial and absence of lot-history events."
+     },
+     {
+      "acId": "AC-60.1",
+      "testId": "AC_60_1_ShowsAllReturnedOperationalReportFigures",
+      "verdict": "weak",
+      "why": "Assert the required breakdowns by route, driver, vehicle, box type, product, cause, and warehouse, plus recall progress; aggregate figures alone do not cover them."
+     },
+     {
+      "acId": "AC-60.2",
+      "testId": "AC_60_2_OffersOnlyInScopeWarehousesAndExportsFilteredFigures",
+      "verdict": "weak",
+      "why": "Set up the staff user’s warehouse scope, perform the filter and export, and inspect that the downloaded CSV contains the displayed filtered figures."
+     },
+     {
+      "acId": "AC-60.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts access denial and absence of report figures and the export action."
+     },
+     {
+      "acId": "AC-61.1",
+      "testId": "AC_61_1_SendsOpeningLotAndStockFields",
+      "verdict": "weak",
+      "why": "Assert a returned opening-inventory result or error message; generic “In transit” text does not establish the response."
+     },
+     {
+      "acId": "AC-61.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the access-denied message and absence of the opening-inventory form and records."
+     },
+     {
+      "acId": "AC-62.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned signature and photo evidence fields or file names are displayed."
+     },
+     {
+      "acId": "AC-62.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts access denial and absence of signature, photo, and evidence-file links."
+     }
+    ]
+   },
+   "ms": 9,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

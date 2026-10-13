@@ -1,0 +1,377 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Orders you placed, newest first",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "SO-24817",
+         "meta": "14 May 2026 · 9 items · £177.60",
+         "badge": "Placed"
+        },
+        {
+         "title": "SO-24790",
+         "meta": "9 May 2026 · 3 items · £64.20",
+         "badge": "Packed"
+        },
+        {
+         "title": "SO-24733",
+         "meta": "2 May 2026 · 22 items · £1,248.00",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "SO-24651",
+         "meta": "24 Apr 2026 · 6 items · £312.45",
+         "badge": "Delivered"
+        },
+        {
+         "title": "SO-24598",
+         "meta": "17 Apr 2026 · 1 item · £18.90",
+         "badge": "Cancelled"
+        },
+        {
+         "title": "SO-24540",
+         "meta": "8 Apr 2026 · 40 items · £96.00",
+         "badge": "Delivered"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Order SO-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "Placed on",
+         "value": "14 May 2026, 09:42"
+        },
+        {
+         "label": "Items",
+         "value": "9"
+        },
+        {
+         "label": "Delivery",
+         "value": "Next working day · £9.50"
+        },
+        {
+         "label": "Address",
+         "value": "Unit 4, Brook Ind. Estate, Leeds LS11 5QT"
+        },
+        {
+         "label": "Total",
+         "value": "£177.60"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "6204-2RS · Deep groove bearing",
+         "meta": "Qty 4 · £8.40 each",
+         "badge": "£33.60"
+        },
+        {
+         "title": "SPA-1250 · V-belt",
+         "meta": "Qty 2 · £14.75 each",
+         "badge": "£29.50"
+        },
+        {
+         "title": "M10-HFN · Flange nut, box 100",
+         "meta": "Qty 1 · £11.20 each",
+         "badge": "£11.20"
+        },
+        {
+         "title": "FLT-HY-10 · Hydraulic filter",
+         "meta": "Qty 2 · £46.90 each",
+         "badge": "£93.80"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 May 09:42",
+         "title": "Placed",
+         "meta": "Current status",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order SO-24817?",
+       "text": "This order is still Placed. Cancelling stops it before packing and can't be undone.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order SO-24817 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Find parts to order.",
+      "error": "We couldn't load your orders. Try again.",
+      "success": "Order SO-24817 cancelled.",
+      "validation": "This order has already been packed, so it can't be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Orders you placed, newest first",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "SO-24817",
+         "meta": "14 May 2026 · 9 items · £177.60",
+         "badge": "Placed"
+        },
+        {
+         "title": "SO-24812",
+         "meta": "13 May 2026 · 2 items · £41.80",
+         "badge": "Placed"
+        },
+        {
+         "title": "SO-24790",
+         "meta": "9 May 2026 · 3 items · £64.20",
+         "badge": "Packed"
+        },
+        {
+         "title": "SO-24761",
+         "meta": "6 May 2026 · 12 items · £218.35",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "SO-24733",
+         "meta": "2 May 2026 · 22 items · £1,248.00",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "SO-24702",
+         "meta": "29 Apr 2026 · 5 items · £87.10",
+         "badge": "Delivered"
+        },
+        {
+         "title": "SO-24651",
+         "meta": "24 Apr 2026 · 6 items · £312.45",
+         "badge": "Delivered"
+        },
+        {
+         "title": "SO-24598",
+         "meta": "17 Apr 2026 · 1 item · £18.90",
+         "badge": "Cancelled"
+        },
+        {
+         "title": "SO-24540",
+         "meta": "8 Apr 2026 · 40 items · £96.00",
+         "badge": "Delivered"
+        },
+        {
+         "title": "SO-24477",
+         "meta": "31 Mar 2026 · 8 items · £2,064.50",
+         "badge": "Delivered"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Order SO-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "Placed on",
+         "value": "14 May 2026, 09:42"
+        },
+        {
+         "label": "Items",
+         "value": "9"
+        },
+        {
+         "label": "Delivery",
+         "value": "Next working day · £9.50"
+        },
+        {
+         "label": "Address",
+         "value": "Unit 4, Brook Ind. Estate, Leeds LS11 5QT"
+        },
+        {
+         "label": "Total",
+         "value": "£177.60"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "6204-2RS · Deep groove bearing",
+         "meta": "Qty 4 · £8.40 each",
+         "badge": "£33.60"
+        },
+        {
+         "title": "SPA-1250 · V-belt",
+         "meta": "Qty 2 · £14.75 each",
+         "badge": "£29.50"
+        },
+        {
+         "title": "M10-HFN · Flange nut, box 100",
+         "meta": "Qty 1 · £11.20 each",
+         "badge": "£11.20"
+        },
+        {
+         "title": "FLT-HY-10 · Hydraulic filter",
+         "meta": "Qty 2 · £46.90 each",
+         "badge": "£93.80"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 May 09:42",
+         "title": "Placed",
+         "meta": "Current status",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Find parts to order.",
+      "error": "We couldn't load your orders. Try again.",
+      "success": "Order SO-24817 cancelled.",
+      "validation": "This order has already been packed, so it can't be cancelled."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

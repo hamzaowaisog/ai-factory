@@ -1,0 +1,481 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "Staff use one shared platform to receive and track stock, process customer orders, plan and record deliveries, view temperature histories, make quality decisions, and manage recalls; changes to stock availability, orders, delivery progress, temperature status, and recall status are reflected in the relevant workflows.",
+        "kind": "happy"
+       },
+       {
+        "text": "Users can see when stock or an order cannot proceed because it is quarantined, on hold, rejected, recalled, expired, or otherwise unavailable, rather than being able to treat it as usable.",
+        "kind": "error"
+       },
+       {
+        "text": "The platform retains records of operational and quality decisions so an inspector can review who acted and when.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Warehouse operators can record receipts, storage movements, picks, and packing for warehouses to which they are assigned.",
+        "kind": "permission"
+       },
+       {
+        "text": "Dispatchers can allocate or override stock choices with a reason, plan routes, assign drivers and vehicles, and follow delivery progress for their permitted warehouses.",
+        "kind": "permission"
+       },
+       {
+        "text": "Quality officers can review temperature evidence and propose stock dispositions; quality managers can approve quality decisions and start or close recalls.",
+        "kind": "permission"
+       },
+       {
+        "text": "System administrators can manage staff accounts, warehouses, vehicles, shipper types, products, and system configuration; auditors can view records and audit history but cannot create, change, or delete records.",
+        "kind": "permission"
+       },
+       {
+        "text": "Each portal page and its controls remain usable at phone, tablet, and desktop widths, with touch-sized controls on narrow screens.",
+        "kind": "happy"
+       },
+       {
+        "text": "A user without the relevant role or warehouse assignment cannot perform or view the restricted operation or record.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "An authenticated hospital, pharmacy, or clinic user can place orders for their organisation, choose one of its saved delivery addresses and a permitted delivery date, select whether available quantities may be delivered or the order must be complete, and view order status and allocated and outstanding quantities.",
+        "kind": "happy"
+       },
+       {
+        "text": "Customer users can change or cancel an order until packing begins; after packing begins, the customer is refused the change or cancellation and can see that the order is no longer customer-editable.",
+        "kind": "error"
+       },
+       {
+        "text": "Customer administrators can invite and remove users belonging to their own organisation; users from another organisation and customer users without administrator authority cannot administer those accounts.",
+        "kind": "permission"
+       },
+       {
+        "text": "A customer user sees only their organisation's orders, deliveries, and documents, including relevant delivery and quality case information; requests for another organisation's records are denied.",
+        "kind": "permission"
+       },
+       {
+        "text": "Submitting the same order twice by mistake results in one order rather than duplicate orders.",
+        "kind": "data"
+       },
+       {
+        "text": "A deactivated product, invalid quantity, missing order line, unconfigured address, or too-early delivery date is rejected with an explanation.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "A signed-in driver can open and work the current day's route in the responsive web experience when the network is unavailable, including viewing the route and recording work that can be synchronized later.",
+        "kind": "happy"
+       },
+       {
+        "text": "When connectivity returns, recorded offline work is synchronized and the driver can see whether it was accepted or needs attention; the system does not silently discard unsynchronized entries.",
+        "kind": "data"
+       },
+       {
+        "text": "A driver whose account has been disabled or removed is denied access when online; actions queued while offline are not treated as proof that access remains authorized once the system can verify the account.",
+        "kind": "permission"
+       },
+       {
+        "text": "When offline, the driver sees that data or actions cannot yet be verified or synchronized, rather than being shown a false confirmation that the server has accepted them.",
+        "kind": "error"
+       }
+      ],
+      "readingChosen": "The requested driver application is delivered as the same responsive web app, usable in a phone browser with offline route access, not as a native app."
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "The system accepts temperature readings sent through the logger supplier's gateway for known logger and cold-room sensor devices and adds valid readings to the relevant device history.",
+        "kind": "happy"
+       },
+       {
+        "text": "A reading received more than once is represented once in the history; late and out-of-order readings are placed according to the time they were taken and trigger recalculation of affected temperature assessments.",
+        "kind": "data"
+       },
+       {
+        "text": "Readings with a future timestamp or a timestamp before a shipper box was sealed are retained and visibly marked, but excluded from temperature calculations.",
+        "kind": "data"
+       },
+       {
+        "text": "A reading from an unknown device or a source other than the supplier gateway is not accepted as a trusted reading.",
+        "kind": "error"
+       },
+       {
+        "text": "A device with no reading for 15 minutes is shown as silent; if its logger is on a delivery route, an alert is raised.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "Authorized users see a shared current record of stock quantities and statuses, orders and allocations, and temperature histories, rather than independently editable warehouse copies.",
+        "kind": "data"
+       },
+       {
+        "text": "A user can view temperature history for a box, cold room, or lot as a chart or table, with temperature bands, excursions, and missing-reading gaps identified.",
+        "kind": "happy"
+       },
+       {
+        "text": "Stock receipt, movement, allocation, temperature, and decision records remain associated with the relevant lot, handling unit, warehouse, order, or delivery so that the history can be traced.",
+        "kind": "data"
+       },
+       {
+        "text": "Concurrent orders cannot cause the same physical stock quantity to be promised to more than one order.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "Meridian staff can sign in only with a Meridian Microsoft account; staff-role sign-in from other organizations is refused.",
+        "kind": "permission"
+       },
+       {
+        "text": "Customer users sign in with their organisation account credentials and must complete a one-time-code second step before gaining access; a failed or missing second step leaves the account unauthenticated.",
+        "kind": "permission"
+       },
+       {
+        "text": "A customer account belongs to one customer organisation and cannot view another organisation's orders, deliveries, or documents; customer administrators can invite or remove users only in their own organisation.",
+        "kind": "permission"
+       },
+       {
+        "text": "Staff can view records only for warehouses to which they are assigned; quality managers and auditors can view records across all warehouses.",
+        "kind": "permission"
+       },
+       {
+        "text": "A staff member can hold more than one role, and available actions reflect the roles held and warehouse permissions.",
+        "kind": "permission"
+       },
+       {
+        "text": "An auditor can inspect records and audit history but any attempt to create, change, or delete a record is refused.",
+        "kind": "permission"
+       },
+       {
+        "text": "Removing or disabling a user revokes access immediately when their device is online, including a driver's signed-in web session.",
+        "kind": "permission"
+       },
+       {
+        "text": "Access attempts with invalid credentials or insufficient permissions do not expose protected records.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "An administrator can define a product's name, code, pack size, storage temperature band, and stability-budget tiers before saving; a product without a profile cannot be saved.",
+        "kind": "happy"
+       },
+       {
+        "text": "Each profile tier defines an allowance in hours and minutes or is marked not permitted; the profile must cover the ranges adjoining the storage band without gaps or overlapping tiers.",
+        "kind": "error"
+       },
+       {
+        "text": "A profile change requires a reason and effective date and creates a new version recording who made it; prior versions remain viewable and cannot be edited.",
+        "kind": "data"
+       },
+       {
+        "text": "The system assesses temperatures and accumulated time against the profile version effective for the applicable period; time in each tier consumes that tier's allowance, and a not-permitted range prevents release except through the specified two-person quality decision.",
+        "kind": "happy"
+       },
+       {
+        "text": "Users can list and search products by name or code; an administrator can deactivate a product, after which customers cannot order it.",
+        "kind": "happy"
+       },
+       {
+        "text": "An invalid or incomplete profile, overlapping tiers, or a gap between the band and not-permitted ranges is rejected with the problem identified.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-9",
+      "behaviours": [
+       {
+        "text": "A warehouse operator records a receipt's product, lot number, expiry date, quantity, supplier, cold room, and shelf; repeated receipts for the same product and lot number remain separately traceable while reports can show them together.",
+        "kind": "data"
+       },
+       {
+        "text": "The operator can upload the manufacturer's inbound logger file; the resulting inbound budget usage is shown to quality staff before the release decision.",
+        "kind": "happy"
+       },
+       {
+        "text": "Every received quantity starts Quarantined and is unavailable for order allocation until a quality officer releases it.",
+        "kind": "permission"
+       },
+       {
+        "text": "A quality officer can release eligible quarantined stock after review; stock arriving within 30 days of expiry cannot be released.",
+        "kind": "permission"
+       },
+       {
+        "text": "A receipt with an expiry date in the past is refused; stock whose expiry date has passed becomes Expired automatically and is removed from allocations, with the dispatcher notified.",
+        "kind": "error"
+       },
+       {
+        "text": "A stock movement between shelves or cold rooms records who moved it, when, and its origin and destination.",
+        "kind": "data"
+       },
+       {
+        "text": "Users can see lot status among Quarantined, Released, On Hold, Rejected, Recalled, and Expired, and only Released stock is eligible for allocation.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-10",
+      "behaviours": [
+       {
+        "text": "A customer user submits an order with at least one product line, at least one pack per line, a saved organisation delivery address, requested delivery date, and a choice of deliver-what-is-available or deliver-complete-only.",
+        "kind": "happy"
+       },
+       {
+        "text": "The earliest selectable delivery date follows the serving warehouse's configured cut-off, working days, and public holidays: before the cut-off permits the next working day, while after it permits no earlier than the following working day.",
+        "kind": "happy"
+       },
+       {
+        "text": "After submission, the customer can see order status and each line's allocated and outstanding quantities as the order progresses through its applicable statuses.",
+        "kind": "data"
+       },
+       {
+        "text": "The customer can change or cancel an order until packing begins; afterward the customer cannot do so, and only a dispatcher may cancel it.",
+        "kind": "permission"
+       },
+       {
+        "text": "Cancelling an order returns its allocated stock to available stock; the customer is not shown the order as cancelled if the cancellation failed.",
+        "kind": "data"
+       },
+       {
+        "text": "A duplicate submission caused by a repeated tap creates only one order.",
+        "kind": "data"
+       },
+       {
+        "text": "The system refuses orders with no lines, a line quantity below one, a deactivated product, or a delivery date earlier than allowed, and explains the invalid input or date.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-11",
+      "behaviours": [
+       {
+        "text": "On submission, the system allocates from released stock at the customer's serving warehouse, choosing suitable lots by earliest expiry first and splitting a line across lots when needed.",
+        "kind": "happy"
+       },
+       {
+        "text": "A lot is skipped when its expiry would leave less than the customer's required minimum shelf life on the requested delivery date; for equal expiry dates, the lot with more stability budget used is selected first.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system never allocates more than physically available stock or allocates a unit to two orders, including when orders are submitted concurrently.",
+        "kind": "error"
+       },
+       {
+        "text": "A deliver-what-is-available order can be partly allocated, with the remainder waiting as a back order; a deliver-complete-only order holds no stock unless every line can be fully allocated.",
+        "kind": "data"
+       },
+       {
+        "text": "When suitable stock is released, eligible back orders are filled automatically in submission order.",
+        "kind": "happy"
+       },
+       {
+        "text": "A dispatcher may replace the selected lot for a line only with a recorded reason; an override that uses unreleased stock or breaches minimum shelf life is refused.",
+        "kind": "permission"
+       },
+       {
+        "text": "When allocated stock becomes On Hold, Rejected, Recalled, or Expired, it is removed from the order, replacement allocation is attempted, and the dispatcher is told the result.",
+        "kind": "data"
+       },
+       {
+        "text": "Users can view available, allocated, quarantined, and on-hand quantities by product, lot, and warehouse; the displayed categories reconcile to quantity on hand.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-12",
+      "behaviours": [
+       {
+        "text": "A warehouse operator packs picked stock into a shipper box, recording its type, lot-level contents and quantities, and exactly one scanned logger when the box is sealed; sealing also records the time and operator.",
+        "kind": "data"
+       },
+       {
+        "text": "A box can contain multiple products and lots for one delivery stop only when their storage bands match and the box type is qualified for that band.",
+        "kind": "happy"
+       },
+       {
+        "text": "A logger already assigned to another open box cannot be assigned again; a box cannot be sealed without exactly one logger.",
+        "kind": "error"
+       },
+       {
+        "text": "A dispatcher creates a dated route with one vehicle, one driver, at least one ordered stop, and a planned arrival time for each stop; the dispatcher determines stop order rather than the system optimizing it.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system refuses overlapping route assignments for the same driver or vehicle.",
+        "kind": "error"
+       },
+       {
+        "text": "Before route confirmation, the system checks each box's planned arrival against its qualified duration minus the configured safety margin; if it fails, confirmation is refused and the affected box and amount of overrun are shown.",
+        "kind": "error"
+       },
+       {
+        "text": "A dispatcher can move a stop to another route or reorder it only until the driver has left for that stop; a confirmed-route change is communicated to the driver.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-13",
+      "behaviours": [
+       {
+        "text": "The system accepts gateway batches of readings arriving late, duplicated, out of order, or in a large delayed batch, and produces the same time-ordered temperature history irrespective of arrival order.",
+        "kind": "happy"
+       },
+       {
+        "text": "A duplicate reading is stored once; a late or out-of-order valid reading is placed at its measurement time and affected temperature calculations and excursion records are brought up to date.",
+        "kind": "data"
+       },
+       {
+        "text": "A future-dated reading or a reading from before its box was sealed is retained with a visible invalid-for-calculation marker rather than silently discarded or used in calculations.",
+        "kind": "data"
+       },
+       {
+        "text": "A 15-minute absence of readings is displayed as device silence; a gap is shown in history and is not assumed to have been within the permitted temperature band.",
+        "kind": "error"
+       },
+       {
+        "text": "Authorized users can inspect temperature history for a box, cold room, or lot in chart and table views with the band and excursions marked.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-14",
+      "behaviours": [
+       {
+        "text": "An excursion opens on the first out-of-band reading and closes after three consecutive in-band readings; time is charged tier by tier to every affected handling unit that was in the box or cold room at that time.",
+        "kind": "data"
+       },
+       {
+        "text": "The system combines inbound, cold-room, and shipper-box exposure for each handling unit while retaining distinct histories and budgets for different parts of the same lot.",
+        "kind": "data"
+       },
+       {
+        "text": "For an excursion on a route, the driver, dispatcher, and warehouse quality officers receive an alert within two minutes of the reading being received; alerts are also sent when a tier's remaining allowance falls below 25%, when a tier is exhausted, or when a not-permitted range is reached.",
+        "kind": "happy"
+       },
+       {
+        "text": "Stock affected by an open or undecided excursion is automatically placed On Hold and cannot be handed over pending a quality decision.",
+        "kind": "permission"
+       },
+       {
+        "text": "Late readings that lengthen, shorten, or remove an excursion update budgets, holds, and the excursion record, with the correction recorded in the audit trail.",
+        "kind": "data"
+       },
+       {
+        "text": "If a late reading reveals an excursion on already delivered stock, the system opens a quality review case and makes it visible to the customer.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-15",
+      "behaviours": [
+       {
+        "text": "A driver can open the assigned current-day route, see its stops and delivery work, and record loading, route progress, and delivery handover from a phone-sized responsive web experience.",
+        "kind": "happy"
+       },
+       {
+        "text": "The driver can continue working the route without network coverage and record handover details for later synchronization; the interface indicates which entries are pending synchronization.",
+        "kind": "data"
+       },
+       {
+        "text": "The system records delivery handover against the relevant stop and its boxes and stock so the delivery evidence can be traced to the customer and product history.",
+        "kind": "data"
+       },
+       {
+        "text": "A driver cannot hand over stock on hold because of an open or undecided excursion, and the attempted handover is refused with the blocked stock identified.",
+        "kind": "permission"
+       },
+       {
+        "text": "If route access or an action cannot be confirmed while offline, the driver is shown the pending or unconfirmed state rather than a false server confirmation.",
+        "kind": "error"
+       }
+      ],
+      "readingChosen": "The phone-based driver experience is part of the responsive web app and supports offline work; it is not a native iOS or Android application."
+     },
+     {
+      "id": "I-16",
+      "behaviours": [
+       {
+        "text": "Users can use the staff and customer portals in English or Arabic, and portal text and controls display in the selected language where translations are provided.",
+        "kind": "happy"
+       },
+       {
+        "text": "When Arabic is selected, the interface is laid out right to left and remains usable at phone, tablet, and desktop widths.",
+        "kind": "happy"
+       },
+       {
+        "text": "Changing language does not change the user's organisation, role permissions, orders, stock, or other saved records.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-17",
+      "behaviours": [
+       {
+        "text": "A quality manager can start a recall for a lot; the system shows the lot's remaining Meridian-held stock and the units delivered to each customer, and blocks remaining stock from allocation or handover.",
+        "kind": "permission"
+       },
+       {
+        "text": "The system tracks each affected customer's response and the quantities accounted for until every recalled unit is accounted for.",
+        "kind": "data"
+       },
+       {
+        "text": "Users can see which affected units remain held, were delivered, or still require customer response; a recall can be closed by a quality manager when the recall process is complete.",
+        "kind": "happy"
+       },
+       {
+        "text": "A recalled lot is excluded from new allocations, and any stock already allocated is removed from affected orders with replacement allocation attempted and the dispatcher notified.",
+        "kind": "error"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,118 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Require successful Google authentication with a verified corporate email matching an active directory employee before granting an employee session; reject personal Gmail, other-provider, and unmatched accounts."
+     },
+     {
+      "n": 2,
+      "text": "Refresh employee profiles and current parking assignments from source records when employees sign in or administrators update those records; deny dashboard access with retry or support guidance if the corporate profile is missing or unavailable."
+     },
+     {
+      "n": 3,
+      "text": "Populate refreshed dedicated-employee profiles with employee ID, name, dedicated-parking status, assigned floor, and registered vehicle details."
+     },
+     {
+      "n": 4,
+      "text": "Require non-dedicated first-time employees without a registered vehicle to register at least one license plate before vehicle-dependent parking actions; show returning employees without a plate the dashboard with a registration prompt while blocking those actions."
+     },
+     {
+      "n": 5,
+      "text": "Allow employees to add, update, or deactivate only their own vehicle records, and allow Parking Administrators to manage employee vehicle records."
+     },
+     {
+      "n": 6,
+      "text": "Treat dedicated parking as reserved for its assigned employee on operating days unless released, and let the holder release today's space with one action and view its current status."
+     },
+     {
+      "n": 7,
+      "text": "Allow dedicated parking holders to schedule releases for operating dates within the next 30 calendar dates in the office's local timezone, and make each space claimable at the configured daily release time; today's release is claimable at that time or immediately if released at or after it."
+     },
+     {
+      "n": 8,
+      "text": "Allow holders to cancel unclaimed releases; require administrator intervention to reverse claimed releases, record the intervention, preserve the claimant's temporary authorization, and keep the space allocated to that claimant."
+     },
+     {
+      "n": 9,
+      "text": "Send push notifications to every eligible employee without dedicated parking when spaces become available, while keeping spaces claimable in the application if delivery fails or notifications are disabled."
+     },
+     {
+      "n": 10,
+      "text": "Allocate each released space to the first successfully committed eligible claim, reject competing claims and repeat claims by the same employee for a date, and return refreshed availability on conflicts."
+     },
+     {
+      "n": 11,
+      "text": "Return and display the current available-space count to employees without dedicated parking."
+     },
+     {
+      "n": 12,
+      "text": "Require a temporary-space claimant to select one active vehicle registered to them, authorize only that vehicle's plate, and reject missing, deactivated, or another employee's vehicle selections."
+     },
+     {
+      "n": 13,
+      "text": "Prevent employees from canceling or relinquishing a successful temporary parking claim."
+     },
+     {
+      "n": 14,
+      "text": "Assign a parking floor when an eligible employee successfully claims a temporary space and return and display it to the claimant."
+     },
+     {
+      "n": 15,
+      "text": "Allow Parking Administrators to manage employee and parking records, operating-day calendars, release-time and report settings, and stakeholder email addresses; restrict administrative actions and report management to authenticated Parking Administrators."
+     },
+     {
+      "n": 16,
+      "text": "Ignore pedestrians, motorcycles, and other non-car objects reported by the entrance LPR system for vehicle authorization."
+     },
+     {
+      "n": 17,
+      "text": "Record plate-entry events for vehicles with permanent Folio3 parking stickers without requiring authorization verification."
+     },
+     {
+      "n": 18,
+      "text": "For non-stickered vehicles, normalize plate case and permitted spacing, require an exact match to a current-day temporary authorization, and activate the green indicator only for a match."
+     },
+     {
+      "n": 19,
+      "text": "Fail closed when a plate is unreadable or the camera, indicator, connection, or authorization service is unavailable; keep the green indicator inactive, alert security for service failures, and record failures when service is restored."
+     },
+     {
+      "n": 20,
+      "text": "Record each entrance verification attempt's timestamp, plate when available, verification result, and entry status; allow only authenticated Security Guards to view verification results and record vehicle entry status."
+     },
+     {
+      "n": 21,
+      "text": "At reporting-period close, record unused dedicated parking when the holder neither released nor used the space, and unused temporary parking when the claimant's registered vehicle did not enter."
+     },
+     {
+      "n": 22,
+      "text": "Calculate utilization as occupied spaces divided by total available spaces, report released and claimed totals separately, exclude released-but-unclaimed spaces from occupied counts, and provide daily and weekly values with the denominator."
+     },
+     {
+      "n": 23,
+      "text": "At the configured Monday report time in the office's local timezone, generate and email the weekly utilization report to configured stakeholders, including unused-parking records, utilization values, released and temporary-claim totals, and utilization percentage."
+     },
+     {
+      "n": 24,
+      "text": "Provide Parking Administrators with on-screen parking reports, filters, and CSV export."
+     },
+     {
+      "n": 25,
+      "text": "Do not apply automated warnings, suspensions, or penalties based on utilization records."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

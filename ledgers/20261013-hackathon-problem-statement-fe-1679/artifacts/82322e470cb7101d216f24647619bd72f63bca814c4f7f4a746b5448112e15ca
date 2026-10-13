@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 145,
+    "end": 225
+   },
+   "ms": 2,
+   "resultChars": 3481,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:145,&quot;end&quot;:225}\">\ncontracts/openapi.yaml lines 145-225\n145\t                    energy: 18.6\n146\t                    returnOnInvestment: 12.4\n147\t                    status: \"Active\"\n148\t        '401':\n149\t          $ref: '#/components/responses/Unauthorized'\n150\t        '403':\n151\t          $ref: '#/components/responses/Forbidden'\n152\t        '500':\n153\t          $ref: '#/components/responses/ServerError'\n154\t  /imports/source-records:\n155\t    get:\n156\t      operationId: previewSourceRecords\n157\t      summary: \"Load available mock procurement and receiving records.\"\n158\t      responses:\n159\t        '200':\n160\t          description: \"Available records; an empty list is a valid no-records state.\"\n161\t          content:\n162\t            application/json:\n163\t              schema:\n164\t                $ref: '#/components/schemas/ImportPreviewResponse'\n165\t              example:\n166\t                permissions:\n167\t                  - \"imports.manage\"\n168\t                records:\n169\t                  - id: 701\n170\t                    vendor: \"Prairie Livestock\"\n171\t                    sourceIdentifier: \"PO-8831-L1\"\n172\t                    cost: 1875.0\n173\t                    headCount: 48\n174\t                    animalWeight: 612.0\n175\t                    breed: \"Angus cross\"\n176\t                    age: \"18 months\"\n177\t                    source: \"Prairie Auction\"\n178\t                    purchaseOrder: \"PO-8831\"\n179\t                    receiving: \"RCV-294\"\n180\t                    animalDescription: \"Angus cross steers\"\n181\t                    sourceLineId: \"PO-8831-L1\"\n182\t                    existingMatch: false\n183\t                    targetPen: \"P-12\"\n184\t                    receivedResult: \"Received\"\n185\t                    adapterStatus: \"Ready\"\n186\t                    sampleData: false\n187\t        '401':\n188\t          $ref: '#/components/responses/Unauthorized'\n189\t        '403':\n190\t          $ref: '#/components/responses/Forbidden'\n191\t        '503':\n192\t          $ref: '#/components/responses/ServiceUnavailable'\n193\t        '500':\n194\t          $ref: '#/components/responses/ServerError'\n195\t  /imports:\n196\t    post:\n197\t      operationId: importSelectedRecords\n198\t      summary: \"Import selected mock procurement and receiving records.\"\n199\t      requestBody:\n200\t        required: true\n201\t        content:\n202\t          application/json:\n203\t            schema:\n204\t              $ref: '#/components/schemas/ImportRequest'\n205\t      responses:\n206\t        '200':\n207\t          description: \"Import status, matched and imported records, and counts.\"\n208\t          content:\n209\t            application/json:\n210\t              schema:\n211\t                $ref: '#/components/schemas/ImportResult'\n212\t              example:\n213\t                permissions:\n214\t                  - \"imports.manage\"\n215\t                status: \"completed_with_matches\"\n216\t                createdCount: 0\n217\t                updatedCount: 1\n218\t                records:\n219\t                  - id: 701\n220\t                    vendor: \"Prairie Livestock\"\n221\t                    sourceIdentifier: \"PO-8831-L1\"\n222\t                    cost: 1875.0\n223\t                    headCount: 46\n224\t                    animalWeight: 612.0\n225\t                    breed: \"Angus cross\"\n… (4376 lines total; ask for start=226)\n</untrusted_document>"
+  }
+ ]
+}

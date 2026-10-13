@@ -1,0 +1,28 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261005-parts-quick-order-requirements-d7a6",
+  "version": 1,
+  "designSha": "690b3d070482ab2a539d1d601be6b4d39085c8e30af19f641b89a24aaa735275",
+  "at": "2026-10-05T16:36:47.997Z",
+  "options": {
+    "formats": [
+      "figma"
+    ]
+  },
+  "files": [
+    {
+      "format": "figma",
+      "path": "figma.json",
+      "sha256": "9ed8fe85a95122307c3b31aafd9fcf70d5b5f3f553a7577561adc7120691f73b",
+      "bytes": 10693704
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "figma.frames",
+      "status": "PASS",
+      "detail": "52 frame(s) with 10248 layer(s) cover all 23 screen states"
+    }
+  ]
+}

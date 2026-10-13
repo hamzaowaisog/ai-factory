@@ -1,0 +1,75 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Request detail",
+     "subtitle": "HW-2481 · Maintenance request",
+     "badge": "Open",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Leak under sink in 4th-floor pantry",
+       "lead": {
+        "label": "Area",
+        "value": "East Wing · 4th-floor pantry"
+       },
+       "rows": [
+        {
+         "label": "Priority",
+         "value": "High",
+         "badge": true
+        },
+        {
+         "label": "Status",
+         "value": "Open",
+         "badge": true
+        },
+        {
+         "label": "Created (UTC)",
+         "value": "2026-03-18"
+        },
+        {
+         "label": "Description",
+         "value": "Water is pooling beneath the sink; the cabinet base is swelling. Please inspect the supply line before the afternoon shift."
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Start work",
+         "variant": "primary"
+        },
+        {
+         "label": "Back",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back",
+       "to": "S-1"
+      }
+     ],
+     "copy": {
+      "error": "Could not update the request.",
+      "success": "Request status updated."
+     }
+    }
+   },
+   "ms": 8,
+   "resultChars": 151,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.0.rows.3.value: Too big: expected string to have <=60 characters. Fix it and call submit_result again."
+  }
+ ]
+}

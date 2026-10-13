@@ -1,0 +1,805 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lots — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-muted: #626262;
+      --border-rule: #D8D8D8;
+      --accent: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+      
+      --font-heading: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .status-dot-breathing {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Typography helper classes */
+    .mono {
+      font-family: var(--font-mono);
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* Header */
+    .app-header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-rule);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: var(--text-main);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 650;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-left: 32px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .header-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: color 150ms ease;
+      padding: 4px 0;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 2px;
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      margin-left: 24px;
+    }
+
+    .profile-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--border-rule);
+    }
+
+    .profile-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .profile-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .profile-role {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Main Container */
+    .page-main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+    }
+
+    .page-heading {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+      color: var(--text-main);
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    /* Top Metric Summary Panel */
+    .metric-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .metric-primary-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .metric-big-number {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-big-label {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .yard-context-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-rule);
+      padding-top: 12px;
+    }
+
+    .yard-context-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .yard-context-item strong {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    /* Filter Toolbar Panel */
+    .filter-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      padding: 16px 24px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .filter-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .filter-select {
+      height: 44px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      padding: 0 12px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--text-main);
+      width: 100%;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23626262' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 32px;
+    }
+
+    .filter-select:hover {
+      border-color: var(--text-muted);
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    /* Worklist Table */
+    .table-container {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 4px;
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+
+    .worklist-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .worklist-table th {
+      background-color: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-rule);
+      height: 44px;
+    }
+
+    .worklist-table th.num-col,
+    .worklist-table td.num-col {
+      text-align: right;
+    }
+
+    .worklist-table tbody tr {
+      height: 48px;
+      border-bottom: 1px solid var(--border-rule);
+      transition: background-color 120ms ease;
+    }
+
+    .worklist-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .worklist-table tbody tr:hover {
+      background-color: #FAFAFA;
+    }
+
+    .worklist-table td {
+      padding: 8px 16px;
+      vertical-align: middle;
+    }
+
+    /* Interactive Row Link */
+    .lot-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      padding: 4px 6px;
+      margin-left: -6px;
+      border-radius: 4px;
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .lot-link:hover {
+      background-color: #EFEFEF;
+      color: var(--accent);
+    }
+
+    .lot-link:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .lot-link:active {
+      transform: translateY(1px);
+    }
+
+    /* Status indicator chips */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+    }
+
+    .status-badge.review {
+      background-color: #FDF4E7;
+      color: var(--status-waiting);
+      border-color: #F0DDBE;
+    }
+
+    .status-badge.normal {
+      background-color: #EDF5F0;
+      color: var(--status-good);
+      border-color: #C9E2D2;
+    }
+
+    .status-indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-waiting {
+      background-color: var(--status-waiting);
+    }
+
+    .dot-good {
+      background-color: var(--status-good);
+    }
+
+    .dot-failed {
+      background-color: var(--status-failed);
+    }
+
+    .sub-conflict-note {
+      display: block;
+      font-size: 12px;
+      color: var(--status-waiting);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .forecast-target {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .forecast-main {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .forecast-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .unavailable-val {
+      color: var(--text-muted);
+      font-style: normal;
+      font-size: 13px;
+    }
+
+    /* Pen badge */
+    .pen-code {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      background-color: #EFEFEF;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      border: 1px solid var(--border-rule);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .app-header {
+        padding: 0 16px;
+      }
+      .brand-title {
+        font-size: 15px;
+      }
+      .page-main {
+        padding: 20px 16px 48px 16px;
+      }
+      .metric-panel {
+        padding: 16px;
+      }
+      .filter-panel {
+        padding: 16px;
+        gap: 12px;
+      }
+      .filter-group {
+        min-width: 100%;
+      }
+      .filter-select {
+        height: 48px;
+        font-size: 16px;
+      }
+      .worklist-table tbody tr {
+        height: 56px;
+      }
+      .worklist-table td,
+      .worklist-table th {
+        padding: 12px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header: Plain header carrying brand words and white R mark, exact order shared menu, Maya Chen right-aligned -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-mark" aria-hidden="true">R</div>
+      <span class="brand-title">Range Ledger</span>
+    </div>
+
+    <nav class="header-nav" aria-label="Main Navigation">
+      <a href="#" class="nav-item">Yard</a>
+      <a href="#" class="nav-item">Imports</a>
+      <a href="#" class="nav-item">Allocations</a>
+      <a href="#" class="nav-item active" aria-current="page">Lots</a>
+      <a href="#" class="nav-item">Inventory</a>
+      <a href="#" class="nav-item">Feed outlook</a>
+      <a href="#" class="nav-item">Rations</a>
+      <a href="#" class="nav-item">Feed plans</a>
+      <a href="#" class="nav-item">Feeding</a>
+      <a href="#" class="nav-item">Reports</a>
+      <a href="#" class="nav-item">Feed-to-gain</a>
+      <a href="#" class="nav-item">Profitability</a>
+      <a href="#" class="nav-item">Sample data</a>
+      <a href="#" class="nav-item">Delivery brief</a>
+    </nav>
+
+    <div class="user-profile">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="profile-photo" width="32" height="32">
+      <div class="profile-meta">
+        <span class="profile-name">Maya Chen</span>
+        <span class="profile-role">Yard manager</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="page-main animate-entrance">
+    <!-- The page's one heading reads "Lots" -->
+    <h1 class="page-heading">Lots</h1>
+
+    <!-- Single leading figure "360 active head" above the table with Red Mesa Yard context -->
+    <section class="metric-panel" aria-label="Lots Overview Summary">
+      <div class="metric-primary-row">
+        <span class="metric-big-number">360</span>
+        <span class="metric-big-label">active head</span>
+      </div>
+      <div class="yard-context-bar">
+        <div class="yard-context-item">
+          <span>Yard:</span>
+          <strong>Red Mesa Yard</strong>
+        </div>
+        <div class="yard-context-item">
+          <span>Timezone:</span>
+          <strong>America/Denver (Mountain Time)</strong>
+        </div>
+        <div class="yard-context-item">
+          <span>Capacity:</span>
+          <span class="mono">490 head (73.5% occupied)</span>
+        </div>
+        <div class="yard-context-item">
+          <span>Active pens:</span>
+          <span class="mono">P-04 (140), P-07 (126), P-12 (94)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Immediate Filters: Pen, Breed, Sex, Lot Status (no Apply button) -->
+    <section class="filter-panel" aria-label="Worklist Filters">
+      <div class="filter-group">
+        <label for="filter-pen" class="filter-label">Pen</label>
+        <select id="filter-pen" class="filter-select">
+          <option value="all">All pens (P-04, P-07, P-12)</option>
+          <option value="p04">P-04 (140 head)</option>
+          <option value="p07">P-07 (126 head)</option>
+          <option value="p12">P-12 (94 head)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-breed" class="filter-label">Breed</label>
+        <select id="filter-breed" class="filter-select">
+          <option value="all">All breeds</option>
+          <option value="angus">Angus</option>
+          <option value="hereford">Hereford</option>
+          <option value="charolais">Charolais-cross</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-sex" class="filter-label">Sex</label>
+        <select id="filter-sex" class="filter-select">
+          <option value="all">All sexes</option>
+          <option value="steers">Steers</option>
+          <option value="heifers">Heifers</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-status" class="filter-label">Lot status</label>
+        <select id="filter-status" class="filter-select">
+          <option value="all">All statuses</option>
+          <option value="operational">Operational</option>
+          <option value="review">Review required</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Filterable Worklist Table (Not a tile grid) -->
+    <div class="table-container">
+      <table class="worklist-table" aria-label="Active Lots Worklist">
+        <thead>
+          <tr>
+            <th scope="col">Lot</th>
+            <th scope="col">Breed &amp; class</th>
+            <th scope="col">Pen</th>
+            <th scope="col" class="num-col">Head count</th>
+            <th scope="col" class="num-col">Days on feed</th>
+            <th scope="col" class="num-col">Current wt</th>
+            <th scope="col" class="num-col">ADG (lb/d)</th>
+            <th scope="col" class="num-col">FCR</th>
+            <th scope="col" class="num-col">Cost of gain</th>
+            <th scope="col">Forecast &amp; market projection</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Row 1: L-2407 -->
+          <tr>
+            <td>
+              <a href="#lot-L-2407" class="lot-link" title="Open lot L-2407">
+                <span>L-2407</span>
+              </a>
+            </td>
+            <td>Angus steers</td>
+            <td>
+              <span class="pen-code">P-04</span>
+            </td>
+            <td class="num-col">
+              <span class="mono">80</span>
+              <span class="sub-conflict-note mono">82 mapped</span>
+            </td>
+            <td class="num-col mono">84</td>
+            <td class="num-col mono">1,146 lb</td>
+            <td class="num-col mono">3.12</td>
+            <td class="num-col mono">7.35</td>
+            <td class="num-col mono">$1.07/lb</td>
+            <td>
+              <div class="forecast-target">
+                <span class="forecast-main">Target 1,200 lb <span class="forecast-sub">(Jul 5 · ~1,199 lb)</span></span>
+                <span class="forecast-sub">Ship Jul 16 · ~1,233 lb</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge review">
+                <span class="status-indicator-dot dot-waiting status-dot-breathing" aria-hidden="true"></span>
+                <span>Review required</span>
+              </span>
+            </td>
+          </tr>
+
+          <!-- Row 2: L-2409 -->
+          <tr>
+            <td>
+              <a href="#lot-L-2409" class="lot-link" title="Open lot L-2409">
+                <span>L-2409</span>
+              </a>
+            </td>
+            <td>Hereford steers</td>
+            <td>
+              <span class="pen-code">P-07</span>
+            </td>
+            <td class="num-col mono">126</td>
+            <td class="num-col mono">72</td>
+            <td class="num-col mono">1,098 lb</td>
+            <td class="num-col mono">3.00</td>
+            <td class="num-col mono">7.38</td>
+            <td class="num-col mono">$1.14/lb</td>
+            <td>
+              <div class="forecast-target">
+                <span class="forecast-main">Default 2.85 lb/d</span>
+                <span class="forecast-sub">Projected steady gain</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge normal">
+                <span class="status-indicator-dot dot-good" aria-hidden="true"></span>
+                <span>Operational</span>
+              </span>
+            </td>
+          </tr>
+
+          <!-- Row 3: L-2411 -->
+          <tr>
+            <td>
+              <a href="#lot-L-2411" class="lot-link" title="Open lot L-2411">
+                <span>L-2411</span>
+              </a>
+            </td>
+            <td>Angus heifers</td>
+            <td>
+              <span class="pen-code">P-04</span>
+            </td>
+            <td class="num-col mono">60</td>
+            <td class="num-col mono">90</td>
+            <td class="num-col mono">1,108 lb</td>
+            <td class="num-col mono">2.68</td>
+            <td class="num-col mono">7.75</td>
+            <td class="num-col mono">$1.21/lb</td>
+            <td>
+              <span class="unavailable-val">Unavailable</span>
+            </td>
+            <td>
+              <span class="status-badge normal">
+                <span class="status-indicator-dot dot-good" aria-hidden="true"></span>
+                <span>Operational</span>
+              </span>
+            </td>
+          </tr>
+
+          <!-- Row 4: L-2413 -->
+          <tr>
+            <td>
+              <a href="#lot-L-2413" class="lot-link" title="Open lot L-2413">
+                <span>L-2413</span>
+              </a>
+            </td>
+            <td>Charolais-cross steers</td>
+            <td>
+              <span class="pen-code">P-12</span>
+            </td>
+            <td class="num-col mono">94</td>
+            <td class="num-col mono">43</td>
+            <td class="num-col mono">1,056 lb</td>
+            <td class="num-col mono">3.28</td>
+            <td class="num-col mono">7.17</td>
+            <td class="num-col mono">$1.04/lb</td>
+            <td>
+              <div class="forecast-target">
+                <span class="forecast-main">Default 2.85 lb/d</span>
+                <span class="forecast-sub">High efficiency curve</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge normal">
+                <span class="status-indicator-dot dot-good" aria-hidden="true"></span>
+                <span>Operational</span>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-5";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

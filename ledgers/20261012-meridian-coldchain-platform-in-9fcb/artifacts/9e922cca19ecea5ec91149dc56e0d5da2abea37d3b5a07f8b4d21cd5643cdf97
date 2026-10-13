@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Record receipt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-muted: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* 2px corners rule */
+    .corner-2px {
+      border-radius: 2px;
+    }
+
+    /* Inputs, buttons, panels */
+    .field-input {
+      height: 48px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      padding: 0 16px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .field-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .field-input.mono-val {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .btn-primary {
+      height: 48px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 0 24px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      opacity: 0.84;
+    }
+
+    .btn-primary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--primary);
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header: The same on every page -->
+  <header class="bg-white border-b border-[#D5D5D5] h-[64px] flex items-center px-8 justify-between shrink-0">
+    <!-- Left: Logo & Menu -->
+    <div class="flex items-center gap-8">
+      <div class="flex items-center gap-3">
+        <div class="w-6 h-6 bg-[#202020] text-white flex items-center justify-center font-bold text-sm corner-2px">
+          M
+        </div>
+        <span class="font-heading font-[650] text-lg text-[#202020] tracking-tight">Meridian</span>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="flex items-center gap-6 h-[64px]">
+        <a href="#" class="h-full flex items-center text-[#A94B1D] font-medium border-b-2 border-[#A94B1D] px-1 text-[15px]">
+          Receipts
+        </a>
+        <a href="#" class="h-full flex items-center text-[#626262] hover:text-[#202020] transition-colors font-medium border-b-2 border-transparent px-1 text-[15px]">
+          Stock
+        </a>
+        <a href="#" class="h-full flex items-center text-[#626262] hover:text-[#202020] transition-colors font-medium border-b-2 border-transparent px-1 text-[15px]">
+          Moves
+        </a>
+        <a href="#" class="h-full flex items-center text-[#626262] hover:text-[#202020] transition-colors font-medium border-b-2 border-transparent px-1 text-[15px]">
+          Boxes
+        </a>
+        <a href="#" class="h-full flex items-center text-[#626262] hover:text-[#202020] transition-colors font-medium border-b-2 border-transparent px-1 text-[15px]">
+          Cold rooms
+        </a>
+      </nav>
+    </div>
+
+    <!-- Right: User info & Locale -->
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-[#F7F7F7] border border-[#D5D5D5] text-[#202020] flex items-center justify-center text-xs font-semibold corner-2px">
+          LH
+        </div>
+        <span class="text-sm font-medium text-[#202020]">Leila Haddad · Warehouse Operator</span>
+      </div>
+
+      <div class="h-4 w-[1px] bg-[#D5D5D5]"></div>
+
+      <div class="text-sm text-[#626262]">
+        <span class="text-[#202020] font-medium">EN</span> / <span class="hover:text-[#202020] cursor-pointer">العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 p-8 max-w-[1400px] w-full mx-auto animate-entrance">
+    <!-- Page Single Heading: 28px / 650 weight -->
+    <div class="mb-8">
+      <h1 class="text-[28px] font-[650] leading-tight text-[#202020]">Record receipt</h1>
+    </div>
+
+    <!-- Main Container: Single clear form with picture beside product selection, right side open on desktop -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Form Panel: spans 7 columns on desktop, leaving right side open (5 columns open) -->
+      <section class="lg:col-span-8 bg-white border border-[#D5D5D5] corner-2px p-6">
+        <form class="space-y-6" onsubmit="event.preventDefault();">
+          
+          <!-- Product Selection with real photograph cropped 4:3 beside/above -->
+          <div>
+            <label class="block text-sm font-semibold text-[#202020] mb-2" for="product-select">
+              Product
+            </label>
+            
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+              <!-- Real photograph of Insulin Glargine pen carton (4:3 aspect ratio, 2px corners) -->
+              <div class="md:col-span-4">
+                <div class="aspect-[4/3] w-full border border-[#D5D5D5] corner-2px overflow-hidden bg-[#F7F7F7]">
+                  <img 
+                    src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" 
+                    alt="Insulin Glargine 100 units/mL pack of 10 pens carton" 
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <!-- Product details & selection field -->
+              <div class="md:col-span-8 flex flex-col justify-between h-full space-y-3">
+                <select id="product-select" class="field-input cursor-pointer">
+                  <option selected>Insulin Glargine 100 units/mL, pack of 10 pens</option>
+                </select>
+
+                <div class="bg-[#F7F7F7] border border-[#D5D5D5] corner-2px p-3 text-sm space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[#626262]">Specification</span>
+                    <span class="text-[#202020] font-medium">100 units/mL · 10 pre-filled pens</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[#626262]">Storage profile</span>
+                    <span class="text-[#202020] font-mono-code text-[13px]">profile v3 (2–8°C)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <hr class="border-[#D5D5D5] my-2" />
+
+          <!-- Form Fields: Lot, Expiry, Packs, Supplier, Location -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Lot -->
+            <div>
+              <label class="block text-sm font-semibold text-[#202020] mb-2" for="lot-number">
+                Lot number
+              </label>
+              <input 
+                type="text" 
+                id="lot-number" 
+                class="field-input mono-val" 
+                value="IG-2511" 
+                readonly
+              />
+            </div>
+
+            <!-- Expiry date -->
+            <div>
+              <label class="block text-sm font-semibold text-[#202020] mb-2" for="expiry-date">
+                Expiry date
+              </label>
+              <input 
+                type="text" 
+                id="expiry-date" 
+                class="field-input mono-val" 
+                value="31 March 2027" 
+                readonly
+              />
+            </div>
+
+            <!-- Packs -->
+            <div>
+              <label class="block text-sm font-semibold text-[#202020] mb-2" for="pack-quantity">
+                Packs
+              </label>
+              <input 
+                type="text" 
+                id="pack-quantity" 
+                class="field-input mono-val" 
+                value="120" 
+                readonly
+              />
+            </div>
+
+            <!-- Supplier -->
+            <div>
+              <label class="block text-sm font-semibold text-[#202020] mb-2" for="supplier-name">
+                Supplier
+              </label>
+              <input 
+                type="text" 
+                id="supplier-name" 
+                class="field-input" 
+                value="supplier named on the returned receipt" 
+                readonly
+              />
+            </div>
+
+            <!-- Destination location -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold text-[#202020] mb-2" for="storage-location">
+                Destination location
+              </label>
+              <input 
+                type="text" 
+                id="storage-location" 
+                class="field-input" 
+                value="North Quay Cold Room C2 Rack 4" 
+                readonly
+              />
+            </div>
+          </div>
+
+          <!-- Informational note about inbound temperatures & quarantine -->
+          <div class="border border-[#D5D5D5] bg-[#F7F7F7] corner-2px p-4 flex items-start gap-3">
+            <div class="text-[#805800] mt-0.5 font-mono-code text-sm">ⓘ</div>
+            <p class="text-sm text-[#626262] leading-relaxed m-0">
+              Inbound temperatures and quarantine appear from the service afterward.
+            </p>
+          </div>
+
+          <!-- Primary Action: Save receipt as the only primary action -->
+          <div class="pt-2">
+            <button type="submit" class="btn-primary w-full sm:w-auto">
+              Save receipt
+            </button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- Right side remains open on desktop as instructed -->
+      <div class="hidden lg:block lg:col-span-4"></div>
+
+    </div>
+  </main>
+
+</body>
+</html>

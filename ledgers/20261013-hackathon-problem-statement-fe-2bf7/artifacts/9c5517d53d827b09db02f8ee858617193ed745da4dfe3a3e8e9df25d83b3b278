@@ -1,0 +1,184 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-2",
+      "ears": "When an authorized client requests sign-in, session, dashboard, or lot-list operations, the Feedlot API shall return the contract-defined authentication, current-user, dashboard, and filtered lot values.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1",
+       "Q-6"
+      ],
+      "stability": 0.6666666666666666,
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A client has valid sign-in credentials and no bearer token.",
+        "when": "The client sends POST /auth/sign-in with the contract SignInRequest body.",
+        "then": "The response status is 200 and the response contains the contract-defined accessToken and user fields, including declared permissions and authorizedYards.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "A client has a valid bearer token.",
+        "when": "The client sends GET /session.",
+        "then": "The response status is 200 and the response user field contains the current user and contract-defined permissions.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "Authorized dashboard data and a valid rankBy value of fcr, adg, or costOfGain are available.",
+        "when": "The client sends GET /dashboard with the selected rankBy value.",
+        "then": "The response status is 200 and the response rankingMeasure, bestLots, and worstLots correspond to the selected measure.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.4",
+        "given": "Lots have distinct pen, breed, sex, and status values and the client has a valid bearer token.",
+        "when": "The client sends GET /lots with supported query filters.",
+        "then": "The response status is 200 and the response lots list contains only rows matching the supplied filters and contract-defined fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.5",
+        "given": "A client has the access required by the contract for GET /lots, and saved lots include a lot outside the client's authorizedYards that matches the supplied lot-list filters.",
+        "when": "The client sends GET /lots with those supported query filters.",
+        "then": "The response status is 200 and the response lots list includes that matching lot with its contract-defined fields, without an additional authorizedYards restriction.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When an authorized client records, corrects, or voids a feeding event, the Feedlot API shall persist the event and return its contract-defined variance, cost, energy, inventory movements, and updated lot feed totals.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "Q-1",
+       "Q-8"
+      ],
+      "stability": 0.6666666666666666,
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "A client has a valid bearer token and saved feeding events and lot allocations exist, or the event collection is empty.",
+        "when": "The client sends GET /feeding-events.",
+        "then": "The response status is 200 and the response events list contains saved activity, lot allocations, and inventory movements.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "A client has a valid bearer token and submits a valid FeedingEventRequest with planned and delivered quantities.",
+        "when": "The client sends POST /feeding-events.",
+        "then": "The response status is 201 and the response contains the saved event, variance equal to deliveredQuantity minus plannedQuantity, calculated cost and energy, inventoryMovements, and updated lotFeedTotals.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "A client has a valid bearer token, an existing feeding event, known opening stock for its affected inventory items, and persisted receipts, adjustments, or other feeding events affecting those items, and either a valid correction request or an event eligible to be voided.",
+        "when": "The client sends PATCH /feeding-events/{eventId} or POST /feeding-events/{eventId}/void, then reads GET /inventory.",
+        "then": "The response status is 200 and the response event has the applicable Corrected or Voided status with corresponding reversal or correction movements and recalculated lotFeedTotals; the subsequent inventory response shows each affected item's stock reconciled from opening stock after applying all persisted receipts, adjustments, and non-voided feeding events, with a corrected event's movement replacing its original movement or a voided event's movement omitted rather than counted twice.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "A client submits a feeding event that conflicts with current inventory or fails contract validation.",
+        "when": "The client sends POST /feeding-events.",
+        "then": "The response status is the contract-declared 409 or 422 and the response contains the contract ApiError fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.5",
+        "given": "A feeding event has been successfully saved and the App PostgreSQL database is available.",
+        "when": "The API process restarts and the client reads the event and inventory.",
+        "then": "The response contains the saved event and corresponding stock and lot totals.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When an authorized client requests an operational, feed-to-gain, or profitability report or export, the Feedlot API shall return contract-defined permission-filtered rows, calculations, summaries, and requested export artifacts.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1",
+       "Q-7"
+      ],
+      "stability": 0.6666666666666666,
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A client has a valid bearer token and operational feeding, performance, and inventory data with supported filters.",
+        "when": "The client sends GET /reports/operational or GET /reports/operational/export.",
+        "then": "The response status is 200 and the response rows and summary match the filters, or the response contains a CSV file derived only from the authorized filtered rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "A client has a valid bearer token and supplies a required date range plus optional breed, sex, or pen filters.",
+        "when": "The client sends GET /reports/feed-to-gain.",
+        "then": "The response status is 200 and the response rows contain contract-defined ADG, feed, FCR, cost-of-gain, and energy fields for matching lots.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.3",
+        "given": "A client has a valid bearer token and supplies a valid feed-to-gain date range, supported filters, and format csv or pdf.",
+        "when": "The client sends GET /reports/feed-to-gain/export.",
+        "then": "The response status is 200 and the response file artifact has contentType and content corresponding to the requested format and filtered authorized rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.4",
+        "given": "A client omits a required feed-to-gain date or supplies an export format outside the contract enum.",
+        "when": "The client sends a feed-to-gain report or export request.",
+        "then": "The response status is 422 and the response error code is VALIDATION_ERROR.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.5",
+        "given": "A client has a valid bearer token and supplies supported profitability horizon, breed, penId, or roiStatus filters.",
+        "when": "The client sends GET /reports/profitability or GET /reports/profitability/export.",
+        "then": "The response status is 200 and the response contains authorized matching profitability rows and canViewProfitability where declared, or a CSV file with those filtered authorized rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.6",
+        "given": "A client has a valid bearer token with access to lot-report rows but without profitability.view or profitability.export, and matching profitability data exists.",
+        "when": "The client sends GET /reports/profitability and GET /reports/profitability/export using supported filters.",
+        "then": "The report response status is 200, its canViewProfitability value is false, and its rows contain no non-null returnedInvestment, totalGainValue, netReturn, or roiPercent values; the export response status is 403 and contains no file artifact.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.7",
+        "given": "A client has a valid bearer token with profitability.view but without profitability.export, and matching profitability data exists.",
+        "when": "The client sends GET /reports/profitability and GET /reports/profitability/export using supported filters.",
+        "then": "The report response status is 200, its canViewProfitability value is true, and its matching rows contain the contract-defined profitability values; the export response status is 403 and contains no file artifact.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.8",
+        "given": "A client has a valid bearer token with profitability.export but without profitability.view, and matching profitability data exists.",
+        "when": "The client sends GET /reports/profitability and GET /reports/profitability/export using supported filters.",
+        "then": "The report response status is 200, its canViewProfitability value is false, and its rows contain no non-null returnedInvestment, totalGainValue, netReturn, or roiPercent values; the export response status is 200 and the response contains the contract-defined CSV file artifact.",
+        "level": "api"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

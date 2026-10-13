@@ -1,0 +1,30 @@
+:root {
+  --font-body:"Helvetica Neue",Helvetica,"Nimbus Sans","Liberation Sans",Arial,sans-serif;
+  --font-heading:"Avenir Next Condensed","DIN Condensed","Bahnschrift SemiCondensed","Roboto Condensed","Arial Narrow",sans-serif;
+  --font-heading-weight:650;
+  --font-heading-tracking:0em;
+  --radius:4px;
+  --surface-blur:none;
+  --space-pad:12px;
+  --space-row:40px;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --ease-spring:cubic-bezier(.34,1.4,.64,1);
+  --color-background:#f6fafd;
+  --color-surface:#ffffff;
+  --color-surface-muted:#eff5fa;
+  --color-border:#e1e7ed;
+  --color-border-strong:#cfd5db;
+  --color-text-muted:#676c71;
+  --color-text-secondary:#44484d;
+  --color-text:#13161a;
+  --color-brand:#164B78;
+  --color-on-brand:#ffffff;
+  --color-brand-text:#164B78;
+  --color-accent-text:#164B78;
+  --color-success:#067e3f;
+  --color-danger:#c92f33;
+  --color-warning:#976115;
+  --color-info:#1e71ac;
+  --shadow-card:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.04);
+  --shadow-raised:0 2px 4px rgba(16,24,40,.04),0 12px 28px -10px rgba(16,24,40,.14);
+}

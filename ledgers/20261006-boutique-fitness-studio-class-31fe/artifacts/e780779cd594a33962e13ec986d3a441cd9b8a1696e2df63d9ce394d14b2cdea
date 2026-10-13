@@ -1,0 +1,19 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 653,
+    "end": 700
+   },
+   "ms": 1,
+   "resultChars": 2626,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:653,&quot;end&quot;:700}\">\ncontracts/openapi.yaml lines 653-700\n653\t  /test/sessions/{sessionId}/simulate-other-member-cancellation:\n654\t    post:\n655\t      operationId: simulateOtherMemberCancellation\n656\t      tags: [test-only]\n657\t      summary: Test-only hook that simulates another member cancelling and promotes the waitlist (no UI)\n658\t      parameters:\n659\t        - $ref: \"#/components/parameters/SessionId\"\n660\t      responses:\n661\t        \"200\":\n662\t          description: Promotion applied\n663\t          content:\n664\t            application/json:\n665\t              schema:\n666\t                $ref: \"#/components/schemas/SimulationResult\"\n667\t              example:\n668\t                booking: { id: 502, sessionId: 105, status: Booked, lateCancel: false, waitlistPosition: null, skipReason: null, createdAt: \"2026-10-13T12:00:00Z\", cancelledAt: null }\n669\t                session:\n670\t                  id: 105\n671\t                  name: Fight Club Basics\n672\t                  type: Boxing\n673\t                  intensity: Medium\n674\t                  instructor: { id: 5, name: Marcus Cole, bio: \"Amateur boxing champion who teaches technique first, sweat second\", avatarUrl: \"/avatars/marcus-cole.jpg\" }\n675\t                  room: Studio B\n676\t                  startsAt: \"2026-10-14T17:30:00Z\"\n677\t                  endsAt: \"2026-10-14T18:30:00Z\"\n678\t                  durationMin: 60\n679\t                  capacity: 14\n680\t                  bookedCount: 14\n681\t                  waitlistCount: 1\n682\t                  description: \"Learn the jab, cross and hook on pads with a partner. Footwork drills and a conditioning finisher close the class.\"\n683\t                  whatToBring: [{ title: Hand wraps, note: \"Gloves are provided\" }]\n684\t                  status: Scheduled\n685\t                  availabilityLabel: \"Full · 1 on waitlist\"\n686\t                  capacityLabel: \"0 of 14 spots left\"\n687\t                  actionState: { kind: booked, canChange: true, spotsLeft: null, position: null, bookingId: 502, reason: null, skipReason: null, lateCancellation: false }\n688\t                  myBookingId: 502\n689\t        \"404\":\n690\t          $ref: \"#/components/responses/NotFound\"\n691\t        \"500\":\n692\t          $ref: \"#/components/responses/StorageFailure\"\n693\tcomponents:\n694\t  parameters:\n695\t    SessionId:\n696\t      name: sessionId\n697\t      in: path\n698\t      required: true\n699\t      schema:\n700\t        type: integer\n… (997 lines total; ask for start=701)\n</untrusted_document>"
+  }
+ ]
+}

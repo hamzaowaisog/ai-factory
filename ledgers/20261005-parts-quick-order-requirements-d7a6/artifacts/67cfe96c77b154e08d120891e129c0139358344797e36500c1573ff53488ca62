@@ -1,0 +1,498 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to see its lines and follow it to your door.",
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Search order number",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "12 Mar 2026",
+         "14",
+         "£401.16",
+         "Placed"
+        ],
+        [
+         "ORD-24790",
+         "10 Mar 2026",
+         "3",
+         "£58.95",
+         "Packed"
+        ],
+        [
+         "ORD-24752",
+         "6 Mar 2026",
+         "22",
+         "£1,204.10",
+         "Dispatched"
+        ],
+        [
+         "ORD-24703",
+         "2 Mar 2026",
+         "1",
+         "£14.20",
+         "Delivered"
+        ],
+        [
+         "ORD-24661",
+         "26 Feb 2026",
+         "8",
+         "£212.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-24618",
+         "21 Feb 2026",
+         "40",
+         "£96.80",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24817",
+       "status": "Placed",
+       "to": "Hollis Plant Maintenance, Unit 4 Brindley Rd, Coventry CV7 9EP",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "12 Mar 2026, 09:14"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day"
+        },
+        {
+         "label": "Items",
+         "value": "14"
+        }
+       ],
+       "lines": [
+        {
+         "item": "6204-2RS · Ball bearing 20×47×14 mm · £8.45 ea",
+         "qty": "6",
+         "amount": "£50.70"
+        },
+        {
+         "item": "SPZ-1250 · V-belt SPZ 1250 mm · £11.90 ea",
+         "qty": "4",
+         "amount": "£47.60"
+        },
+        {
+         "item": "HF-6553 · Hydraulic return filter · £64.50 ea",
+         "qty": "2",
+         "amount": "£129.00"
+        },
+        {
+         "item": "LC1D18-B7 · Contactor 18 A, 24 V coil · £48.75 ea",
+         "qty": "2",
+         "amount": "£97.50"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£324.80"
+        },
+        {
+         "label": "Delivery (next working day)",
+         "value": "£9.50"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£66.86"
+        },
+        {
+         "label": "Total",
+         "value": "£401.16"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "12 Mar, 09:14",
+         "title": "Placed",
+         "meta": "Current status · we have your order",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "meta": "Picked and boxed at Coventry depot",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "meta": "Handed to carrier with tracking",
+         "status": "next"
+        },
+        {
+         "time": "Expected 13 Mar",
+         "title": "Delivered",
+         "meta": "Next working day, by 17:00",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-24817?",
+       "text": "The order will be marked Cancelled and won't be packed. If it has already been packed, it can't be cancelled and nothing changes.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-24817 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place show up here. Go to Find parts to start one.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24817 is now Cancelled.",
+      "validation": "This order has already been packed, so it can't be cancelled. Its status hasn't changed."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to see its lines and follow it to your door.",
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Search order number",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "12 Mar 2026",
+         "26",
+         "£610.74",
+         "Placed"
+        ],
+        [
+         "ORD-24809",
+         "11 Mar 2026",
+         "2",
+         "£31.18",
+         "Placed"
+        ],
+        [
+         "ORD-24790",
+         "10 Mar 2026",
+         "3",
+         "£58.95",
+         "Packed"
+        ],
+        [
+         "ORD-24776",
+         "9 Mar 2026",
+         "12",
+         "£446.22",
+         "Packed"
+        ],
+        [
+         "ORD-24752",
+         "6 Mar 2026",
+         "22",
+         "£1,204.10",
+         "Dispatched"
+        ],
+        [
+         "ORD-24731",
+         "4 Mar 2026",
+         "5",
+         "£73.44",
+         "Dispatched"
+        ],
+        [
+         "ORD-24703",
+         "2 Mar 2026",
+         "1",
+         "£14.20",
+         "Delivered"
+        ],
+        [
+         "ORD-24688",
+         "28 Feb 2026",
+         "60",
+         "£188.40",
+         "Delivered"
+        ],
+        [
+         "ORD-24661",
+         "26 Feb 2026",
+         "8",
+         "£212.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-24640",
+         "24 Feb 2026",
+         "4",
+         "£352.68",
+         "Delivered"
+        ],
+        [
+         "ORD-24618",
+         "21 Feb 2026",
+         "40",
+         "£96.80",
+         "Delivered"
+        ],
+        [
+         "ORD-24597",
+         "18 Feb 2026",
+         "1",
+         "£1,875.00",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 4,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24817",
+       "status": "Placed",
+       "to": "Hollis Plant Maintenance, Unit 4 Brindley Rd, Coventry CV7 9EP",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "12 Mar 2026, 09:14"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day"
+        },
+        {
+         "label": "Items",
+         "value": "26"
+        }
+       ],
+       "lines": [
+        {
+         "item": "6204-2RS · Ball bearing 20×47×14 mm · £8.45 ea",
+         "qty": "6",
+         "amount": "£50.70"
+        },
+        {
+         "item": "SPZ-1250 · V-belt SPZ 1250 mm · £11.90 ea",
+         "qty": "4",
+         "amount": "£47.60"
+        },
+        {
+         "item": "HF-6553 · Hydraulic return filter · £64.50 ea",
+         "qty": "2",
+         "amount": "£129.00"
+        },
+        {
+         "item": "LC1D18-B7 · Contactor 18 A, 24 V coil · £48.75 ea",
+         "qty": "2",
+         "amount": "£97.50"
+        },
+        {
+         "item": "NN-M10-A2 · M10 nyloc nut A2, pack of 100 · £6.20 ea",
+         "qty": "5",
+         "amount": "£31.00"
+        },
+        {
+         "item": "HB-38-1M · 3/8\" BSP hose assembly 1 m · £17.35 ea",
+         "qty": "3",
+         "amount": "£52.05"
+        },
+        {
+         "item": "OR-KIT-382 · NBR O-ring kit, 382 pcs · £22.90 ea",
+         "qty": "4",
+         "amount": "£91.60"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£499.45"
+        },
+        {
+         "label": "Delivery (next working day)",
+         "value": "£9.50"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£101.79"
+        },
+        {
+         "label": "Total",
+         "value": "£610.74"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "12 Mar, 09:14",
+         "title": "Placed",
+         "meta": "Order received from Dan Hollis",
+         "status": "done"
+        },
+        {
+         "time": "12 Mar, 09:15",
+         "title": "Account terms approved",
+         "meta": "30-day account, credit limit OK",
+         "status": "done"
+        },
+        {
+         "time": "12 Mar, 09:22",
+         "title": "Stock reserved at Coventry depot",
+         "meta": "Current status: Placed · all 7 lines in stock",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Picking",
+         "meta": "Picking starts at 13:00 wave",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "meta": "Boxed and labelled",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "meta": "Handed to carrier with tracking",
+         "status": "next"
+        },
+        {
+         "time": "Expected 13 Mar",
+         "title": "Delivered",
+         "meta": "Next working day, by 17:00",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place show up here. Go to Find parts to start one.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24817 is now Cancelled.",
+      "validation": "This order has already been packed, so it can't be cancelled. Its status hasn't changed."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

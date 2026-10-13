@@ -1,0 +1,174 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-5",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "REQ-5 and the spec's assumptions require staff to sign in through the 'Meridian Microsoft identity provider', but the accepted ASM-1 says 'Email and password... no social or single sign-on'."
+     },
+     {
+      "reqId": "REQ-5",
+      "rubric": 8,
+      "severity": "medium",
+      "finding": "REQ-5 and AC-5.6 name one vendor (the 'Meridian Microsoft identity provider') as the token issuer instead of a configured issuer/authority, while AC-4.4 treats the authorization URL as configuration."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-12.8 and the assumptions add a server-side gateway integration 'without exposing a new public HTTP operation', but ASM-8 says to accept readings 'through the locked contract operation'. That leaves an uncontracted ingestion path, against Q-1's 'do not add uncontracted API operations'."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 4,
+      "severity": "medium",
+      "finding": "The 'configured authenticated logger-gateway integration' has no defined transport, authentication or contract surface, yet NFR-1 (120 s) and NFR-2 (5,000 devices) measure against it. This is a whole subsystem beyond the contracted operations that Q-1 limits scope to."
+     },
+     {
+      "reqId": "REQ-2",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-1.3 requires 404/405 for any path and method absent from the locked contract, but AC-2.1 requires 200 from `/`, `/openapi/v1.json` and `/swagger`, which are not in the contract."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-17.2 expects a write attempt against an audit event to return 403. If the contract has no audit write operation, AC-1.3 requires 404/405 for that path and method instead."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 1,
+      "severity": "low",
+      "finding": "AC-6.4 expects 409 when a caller alters an earlier profile version, but nothing shows the contract has a profile update operation; without one, AC-1.3 requires 404/405."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-7.6 lets one Quality Officer's decision set stock to Released, but AC-13.1 requires the same quality disposition workflow to have a proposal approved by a different Quality Manager."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-8.1–8.3 are near-duplicates that check 'database row', 'allocation row' and 'alert row' state rather than a public API response. REQ-8 also calls the internal job 'the contracted scheduled check', but no such operation exists in the contract."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "REQ-8 removes expired stock from allocations but never says what the affected order becomes (back order, re-allocation, status). It also doesn't cover stock that is already packed or out for delivery when it expires."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "AC-12.3 recalculates history and holds when late readings arrive, but doesn't say what happens to units already released, delivered or covered by a signed quality decision when the recalculation finds a new excursion."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "A new effective-dated profile version (AC-6.3) has no stated effect on existing handling units' tier budgets or on excursions already calculated under the previous version."
+     },
+     {
+      "reqId": "REQ-16",
+      "rubric": 6,
+      "severity": "low",
+      "finding": "AC-16.2 lets an organisation's minimum remaining shelf life change, but doesn't say whether existing allocations or back orders that no longer meet the new value are re-checked."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The spec keeps the current `EnsureCreated` startup (C-5), which does nothing to a database that already exists. No requirement covers creating or changing the schema on deployed databases, even though the intent carries the 'migration' risk tag."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-9.1 only covers resubmitting the same idempotency key with the same payload; nothing covers the same key with a different payload, or a missing key."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-9.4's 'reflect the applicable lifecycle rule' gives no expected status code or order status for changing or cancelling an order once it is Packed, so it cannot be verified."
+     },
+     {
+      "reqId": "REQ-16",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "No AC covers a non-administrator (customer, operator, driver) calling the administration or report operations and getting a denial; AC-16.1 only says 'within caller authorization scope'."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "AC-11.4 says drivers see only their own routes but has no negative case for a driver who requests, scans or syncs another driver's route."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "No expiry period is configured or specified for one-time codes or reset tokens, yet AC-4.6 depends on an 'expired' code. AC-4.6 also lets a deactivated account get a response that differs from the uniform failure AC-4.5 requires."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-3.3, AC-3.4 and AC-3.5 check raw 'database contains rows' state, and AC-3.3's 'no imported legacy rows' check passes trivially, so none of them is verified at a public surface."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 7,
+      "severity": "low",
+      "finding": "AC-3.5 changes `Seed:Demo` seeding from code-defined rows in `SeedData.Run` to 'deployment-supplied demo seed records', and AC-3.4 adds bootstrap rows to the empty database that C-7 says tests and the factory's checks rely on."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-18.1 is marked manual and only checks that 'startup output contains an error', with no observable exit code or defined set of invalid configurations."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 5,
+      "severity": "low",
+      "finding": "AC-18.2 states the contract defines a `server_error` code, but the cited anchors only show a `ServerError` response reference, not the error body."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 8,
+      "severity": "low",
+      "finding": "AC-7.3 hardcodes a 30-day expiry window for release, and AC-12.4/12.5 hardcode 25 percent and 15 minutes, while comparable rules (cut-off, safety margin) are deployment configuration."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-17.2's 'Time passes and the event is queried again' gives no duration, so retention without automatic expiry cannot be checked in a bounded test."
+     },
+     {
+      "reqId": "NFR-2",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "'5,000 devices reporting at once' gives no reporting rate, latency or error-rate target, so the capacity claim cannot be measured."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

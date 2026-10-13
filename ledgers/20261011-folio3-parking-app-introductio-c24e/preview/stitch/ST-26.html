@@ -1,0 +1,548 @@
+<!DOCTYPE html><html class="h-full bg-background text-on-surface" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Folio3 Parking — Audit Log</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400..700;1,400..700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:ital,wght@0,300..700;1,300..700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary": "#ffffff",
+            "inverse-on-surface": "#eef1ee",
+            "primary-container": "#1f6f5c",
+            "error-container": "#ffdad6",
+            "background": "#f7faf7",
+            "on-surface-variant": "#3f4945",
+            "primary-fixed-dim": "#8ad5be",
+            "secondary": "#49645b",
+            "primary": "#005645",
+            "surface-container-highest": "#e0e3e0",
+            "secondary-container": "#c8e6db",
+            "on-primary-fixed-variant": "#005141",
+            "on-primary-fixed": "#002019",
+            "on-secondary-container": "#4d685f",
+            "tertiary": "#77392e",
+            "on-tertiary-container": "#ffd7d0",
+            "tertiary-container": "#945044",
+            "on-primary": "#ffffff",
+            "outline-variant": "#bec9c4",
+            "surface-container-low": "#f1f4f1",
+            "outline": "#6f7975",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#ffdad4",
+            "on-secondary-fixed-variant": "#314c44",
+            "error": "#ba1a1a",
+            "on-secondary-fixed": "#042019",
+            "on-background": "#181c1b",
+            "inverse-primary": "#8ad5be",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#181c1b",
+            "on-primary-container": "#a3efd7",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "surface-container-high": "#e6e9e6",
+            "on-secondary": "#ffffff",
+            "surface-tint": "#186a57",
+            "surface-container": "#ecefeb",
+            "surface-variant": "#e0e3e0",
+            "primary-fixed": "#a5f2d9",
+            "on-tertiary-fixed": "#3a0a05",
+            "surface": "#f7faf7",
+            "secondary-fixed-dim": "#afcdc2",
+            "inverse-surface": "#2d312f",
+            "secondary-fixed": "#cbe9dd",
+            "surface-dim": "#d8dbd8",
+            "surface-bright": "#f7faf7"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+    
+    body {
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    .tabular-numbers {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 3px 8px;
+      background-color: #FFFFFF;
+      color: #18181B;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 3px 8px;
+      background-color: #E6F0ED;
+      color: #1F6F5C;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    .live-dot {
+      animation: live-breathe 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-full font-body antialiased flex flex-col bg-background selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Side Navigation Bar (Anchored from JSON) -->
+<aside class="fixed left-0 top-0 h-full w-58 flex flex-col justify-between py-6 px-3 z-40 bg-surface-container-lowest dark:bg-inverse-surface border-r border-outline-variant dark:border-outline">
+<div class="flex flex-col gap-6">
+<!-- Brand Logo / Emblem Header -->
+<div class="px-3 flex items-center gap-3">
+<div class="w-9 h-9 rounded-md bg-primary-container text-on-primary flex items-center justify-center font-headline font-bold text-base shadow-sm">
+          F3
+        </div>
+<div class="flex flex-col">
+<span class="font-headline text-lg font-bold text-on-surface dark:text-inverse-on-surface tracking-tight leading-tight">Folio3 Parking</span>
+<span class="font-label text-xs uppercase tracking-wider text-outline leading-tight">Bay Management</span>
+</div>
+</div>
+<!-- Quick Action CTA -->
+<div class="px-2">
+<button class="w-full flex items-center justify-center gap-2 bg-primary-container hover:bg-primary text-on-primary text-sm font-medium h-9 px-3 rounded transition-colors duration-160 active:scale-[0.97]">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>Claim space</span>
+</button>
+</div>
+<!-- Navigation Tabs (JSON: Claim & Release, Daily Allocations, Guard Console, Vehicle Roster, Audit Log) -->
+<nav class="flex flex-col gap-1">
+<!-- 1: Claim & Release -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant font-normal hover:text-on-surface dark:hover:text-inverse-on-surface hover:bg-surface-container-low dark:hover:bg-surface-variant rounded transition-colors duration-160" href="#claim-release">
+<span class="material-symbols-outlined text-[20px]" data-icon="local_parking">local_parking</span>
+<span class="text-sm font-medium">Claim &amp; Release</span>
+</a>
+<!-- 2: Daily Allocations -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant font-normal hover:text-on-surface dark:hover:text-inverse-on-surface hover:bg-surface-container-low dark:hover:bg-surface-variant rounded transition-colors duration-160" href="#daily-allocations">
+<span class="material-symbols-outlined text-[20px]" data-icon="calendar_today">calendar_today</span>
+<span class="text-sm font-medium">Daily Allocations</span>
+</a>
+<!-- 3: Guard Console -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant font-normal hover:text-on-surface dark:hover:text-inverse-on-surface hover:bg-surface-container-low dark:hover:bg-surface-variant rounded transition-colors duration-160" href="#guard-console">
+<span class="material-symbols-outlined text-[20px]" data-icon="security">security</span>
+<span class="text-sm font-medium">Guard Console</span>
+</a>
+<!-- 4: Vehicle Roster -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant font-normal hover:text-on-surface dark:hover:text-inverse-on-surface hover:bg-surface-container-low dark:hover:bg-surface-variant rounded transition-colors duration-160" href="#vehicle-roster">
+<span class="material-symbols-outlined text-[20px]" data-icon="directions_car">directions_car</span>
+<span class="text-sm font-medium">Vehicle Roster</span>
+</a>
+<!-- 5: Audit Log (ACTIVE TAB - Exactly specified in JSON styles) -->
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container dark:bg-primary-container text-on-surface dark:text-inverse-on-surface font-medium border-l-2 border-primary dark:border-primary-fixed rounded-r" href="#audit-log">
+<span class="material-symbols-outlined text-[20px] text-primary dark:text-primary-fixed" data-icon="receipt_long">receipt_long</span>
+<span class="text-sm font-semibold tracking-tight text-[#18181B]">Audit Log</span>
+</a>
+</nav>
+</div>
+<!-- SideNav Footer Tabs (JSON: Support, Sign out) -->
+<div class="flex flex-col gap-1 pt-4 border-t border-outline-variant/60 dark:border-outline/50">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:text-on-surface rounded hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-160" href="#support">
+<span class="material-symbols-outlined text-[19px]" data-icon="help_outline">help_outline</span>
+<span class="text-sm font-medium">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:text-error rounded hover:bg-error-container/30 transition-colors duration-160" href="#signout">
+<span class="material-symbols-outlined text-[19px]" data-icon="logout">logout</span>
+<span class="text-sm font-medium">Sign out</span>
+</a>
+</div>
+</aside>
+<!-- Top Navigation Bar (Docked full-width top, styled per JSON & Design System) -->
+<header class="flex justify-between items-center w-full h-16 pl-64 pr-8 border-b border-outline-variant dark:border-outline sticky top-0 z-30 bg-surface-container-lowest dark:bg-inverse-surface">
+<!-- Breadcrumb & Search Cluster -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 text-sm">
+<span class="text-outline font-medium">Admin</span>
+<span class="text-outline-variant">/</span>
+<span class="font-headline font-semibold text-[#18181B] dark:text-inverse-on-surface">Audit Log</span>
+</div>
+<div class="relative w-72">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[18px]">search</span>
+</span>
+<input class="w-full h-9 pl-9 pr-3 text-sm rounded border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container bg-surface-container-lowest text-[#18181B] placeholder:text-outline font-body transition-colors" placeholder="Filter logs or space ID..." type="search">
+</div>
+</div>
+<!-- Right Cluster: Telemetry Clock, Primary Action, Notifications, Profile Avatar -->
+<div class="flex items-center gap-4">
+<!-- Live Karachi Telemetry Clock -->
+<div class="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-container-low text-xs border border-outline-variant/60 tabular-numbers">
+<span class="w-2 h-2 rounded-full bg-[#2F7D4A] live-dot"></span>
+<span class="font-mono font-medium text-[#18181B]">PKT KARACHI 08:30 PKT</span>
+</div>
+<!-- JSON Action: Release Today -->
+<button class="h-9 px-3.5 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-[#18181B] text-xs uppercase tracking-wider font-semibold rounded flex items-center gap-1.5 transition-colors active:scale-[0.97]">
+<span class="material-symbols-outlined text-[17px] text-[#1F6F5C]">event_busy</span>
+<span>Release today</span>
+</button>
+<!-- Trailing Action Icons -->
+<div class="flex items-center gap-1">
+<button class="p-2 rounded text-outline hover:text-[#18181B] hover:bg-surface-container-low transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 rounded text-outline hover:text-[#18181B] hover:bg-surface-container-low transition-colors" title="Help">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- User Profile (Ayesha Siddiqui, Admin) -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#EFEFF1] text-[#3F3F46] border border-outline-variant flex items-center justify-center font-mono font-semibold text-xs tracking-tight" title="Ayesha Siddiqui (F3-0921, Admin)">
+          AS
+        </div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-semibold text-[#18181B] leading-none">Ayesha Siddiqui</span>
+<span class="font-mono text-[11px] text-outline leading-tight mt-0.5">F3-0921 · Admin</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas Container -->
+<main class="flex-1 ml-58 pl-6 pr-8 py-8 max-w-[1360px]">
+<!-- SECTION 1: Page Heading & Filter Bar -->
+<section class="mb-8">
+<!-- Title & Utility Action Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-outline-variant/60">
+<div>
+<h1 class="font-headline font-bold text-[28px] text-[#18181B] tracking-tight leading-tight">
+            Audit log
+          </h1>
+<p class="text-sm text-[#71717A] mt-1 max-w-[70ch]">
+            Immutable security audit trail of temporary parking bay claims, camera LPR detections, and gate verification events.
+          </p>
+</div>
+<div class="flex items-center gap-2 self-start md:self-auto">
+<button class="h-9 px-3 bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-[#18181B] text-xs font-medium rounded flex items-center gap-1.5 transition-colors active:scale-[0.97]">
+<span class="material-symbols-outlined text-[17px] text-[#71717A]">print</span>
+<span>Print logs</span>
+</button>
+<button class="h-9 px-3 bg-[#1F6F5C] hover:bg-[#195C4C] text-white text-xs font-medium rounded flex items-center gap-1.5 transition-colors shadow-sm active:scale-[0.97]">
+<span class="material-symbols-outlined text-[17px]">download</span>
+<span>Export CSV</span>
+</button>
+</div>
+</div>
+<!-- Controls & Filter Grid -->
+<div class="mt-5 bg-surface-container-lowest border border-outline-variant rounded-lg p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-3">
+<!-- Date Picker Pill -->
+<div class="flex items-center gap-2 h-9 px-3 bg-white border border-outline-variant rounded hover:border-[#1F6F5C] transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[18px] text-[#1F6F5C]">calendar_today</span>
+<span class="text-xs font-medium text-[#18181B] font-mono">10 Jun 2025</span>
+<span class="text-[10px] uppercase font-bold tracking-wider text-[#71717A] bg-surface-container px-1 py-0.5 rounded">Today</span>
+<span class="material-symbols-outlined text-[16px] text-[#71717A]">arrow_drop_down</span>
+</div>
+<!-- Event Type Filter Pills -->
+<div class="flex items-center p-0.5 bg-surface-container-low rounded border border-outline-variant/60" id="filter-pills">
+<button class="px-2.5 py-1 text-xs font-semibold rounded bg-white text-[#18181B] shadow-xs transition-colors" data-filter="all">All</button>
+<button class="px-2.5 py-1 text-xs font-medium rounded text-[#71717A] hover:text-[#18181B] transition-colors" data-filter="claim">Claim</button>
+<button class="px-2.5 py-1 text-xs font-medium rounded text-[#71717A] hover:text-[#18181B] transition-colors" data-filter="verification">Verification</button>
+<button class="px-2.5 py-1 text-xs font-medium rounded text-[#71717A] hover:text-[#18181B] transition-colors" data-filter="unreadable">Unreadable</button>
+<button class="px-2.5 py-1 text-xs font-medium rounded text-[#71717A] hover:text-[#18181B] transition-colors" data-filter="unverifiable">Unverifiable</button>
+<button class="px-2.5 py-1 text-xs font-medium rounded text-[#71717A] hover:text-[#18181B] transition-colors" data-filter="outage">Outage</button>
+</div>
+<!-- Employee / Plate Search Input -->
+<div class="relative min-w-[260px]">
+<span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-[#71717A]">
+<span class="material-symbols-outlined text-[17px]">search</span>
+</span>
+<input class="w-full h-9 pl-8 pr-3 text-xs rounded border border-outline-variant bg-white focus:border-[#1F6F5C] focus:ring-1 focus:ring-[#1F6F5C] text-[#18181B] placeholder:text-[#71717A] font-body" id="audit-search-input" placeholder="Search employee, badge ID, or plate..." type="text">
+</div>
+</div>
+<!-- Quick filter stats summary pill -->
+<div class="flex items-center gap-2 self-start lg:self-auto">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-[#E6F0ED] text-[#1F6F5C] border border-[#1F6F5C]/30 rounded text-xs font-mono font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-[#1F6F5C]"></span>
+<span>5 Total Events Logged on 10 Jun 2025</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: Claims Table -->
+<section class="mb-10" id="claims-section">
+<div class="flex items-center justify-between pb-3 mb-2 border-b border-outline-variant/60">
+<div class="flex items-center gap-3">
+<h2 class="font-headline font-semibold text-lg text-[#18181B] tracking-tight">Temporary Claims Log</h2>
+<span class="px-2 py-0.5 rounded text-xs font-medium bg-[#E6F0ED] text-[#1F6F5C] border border-[#1F6F5C]/20">
+            2 claims today
+          </span>
+</div>
+<p class="text-xs text-[#71717A] hidden sm:block">
+          Allocation events triggered via employee mobile and web portals
+        </p>
+</div>
+<!-- High contrast dense claims table -->
+<div class="border border-outline-variant rounded-lg overflow-hidden bg-white">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#EFEFF1] text-[#71717A] text-[11px] font-semibold uppercase tracking-wider border-b border-outline-variant">
+<th class="py-2.5 px-4 font-label">Date</th>
+<th class="py-2.5 px-4 font-label">Time</th>
+<th class="py-2.5 px-4 font-label">Employee</th>
+<th class="py-2.5 px-4 font-label">Space</th>
+<th class="py-2.5 px-4 font-label">Floor</th>
+<th class="py-2.5 px-4 font-label">Plate on record</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/60 text-sm">
+<!-- Row 1: Bilal Ahmed -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3 px-4 font-mono text-xs text-[#71717A] tabular-numbers">
+                10 Jun 2025
+              </td>
+<td class="py-3 px-4 font-mono text-xs text-[#18181B] font-medium tabular-numbers">
+                08:02:41
+              </td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-[#EFEFF1] border border-outline-variant flex items-center justify-center text-xs font-mono font-medium text-[#3F3F46]">
+                    BA
+                  </div>
+<div>
+<div class="font-semibold text-xs text-[#18181B] leading-snug">Bilal Ahmed</div>
+<div class="text-[11px] text-[#71717A] leading-none">Engineering Lead</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-4">
+<span class="space-chip text-xs">B2-14</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs font-medium text-[#3F3F46]">
+                B2
+              </td>
+<td class="py-3 px-4">
+<span class="plate-chip text-xs">BKX-482</span>
+</td>
+</tr>
+<!-- Row 2: Sara Malik -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3 px-4 font-mono text-xs text-[#71717A] tabular-numbers">
+                10 Jun 2025
+              </td>
+<td class="py-3 px-4 font-mono text-xs text-[#18181B] font-medium tabular-numbers">
+                08:02:43
+              </td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-[#EFEFF1] border border-outline-variant flex items-center justify-center text-xs font-mono font-medium text-[#3F3F46]">
+                    SM
+                  </div>
+<div>
+<div class="font-semibold text-xs text-[#18181B] leading-snug">Sara Malik</div>
+<div class="text-[11px] text-[#71717A] leading-none">Product Design</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-4">
+<span class="space-chip text-xs">B1-03</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs font-medium text-[#3F3F46]">
+                B1
+              </td>
+<td class="py-3 px-4">
+<span class="plate-chip text-xs">LED-20-6612</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- SECTION 3: Verification Events Table -->
+<section class="mb-10" id="verifications-section">
+<div class="flex items-center justify-between pb-3 mb-2 border-b border-outline-variant/60">
+<div class="flex items-center gap-3">
+<h2 class="font-headline font-semibold text-lg text-[#18181B] tracking-tight">Gate &amp; ANPR Verification Events</h2>
+<span class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-surface-container text-[#3F3F46] border border-outline-variant">
+            Gate 1 — North Barrier
+          </span>
+</div>
+<p class="text-xs text-[#71717A] hidden sm:block">
+          Automated optical number plate recognition and guard console override log
+        </p>
+</div>
+<!-- High contrast data table -->
+<div class="border border-outline-variant rounded-lg overflow-hidden bg-white">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#EFEFF1] text-[#71717A] text-[11px] font-semibold uppercase tracking-wider border-b border-outline-variant">
+<th class="py-2.5 px-4 font-label w-28">Time</th>
+<th class="py-2.5 px-4 font-label">Detected plate</th>
+<th class="py-2.5 px-4 font-label">Result</th>
+<th class="py-2.5 px-4 font-label">Guard-recorded entry</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/60 text-sm">
+<!-- Row 1: Authorized / Entered -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3 px-4 font-mono text-xs text-[#18181B] font-medium tabular-numbers">
+                08:21:05
+              </td>
+<td class="py-3 px-4">
+<span class="plate-chip text-xs">BKX-482</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium bg-[#E6F0ED] text-[#2F7D4A] border border-[#2F7D4A]/20">
+<span class="material-symbols-outlined text-[15px]">check_circle</span>
+<span>Authorized</span>
+</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-surface-container text-[#18181B] border border-outline-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2F7D4A]"></span>
+<span>Entered</span>
+</span>
+</td>
+</tr>
+<!-- Row 2: Unreadable / No authorization / Did not enter -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3 px-4 font-mono text-xs text-[#18181B] font-medium tabular-numbers">
+                08:15:12
+              </td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1 font-mono text-xs uppercase px-2 py-0.5 rounded bg-[#FBEAE8] text-[#B42318] border border-[#B42318]/30">
+<span class="material-symbols-outlined text-[14px]">blur_on</span>
+<span>Unreadable</span>
+</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium bg-[#FBEAE8] text-[#B42318] border border-[#B42318]/20">
+<span class="material-symbols-outlined text-[15px]">cancel</span>
+<span>No authorization</span>
+</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium border border-[#B42318]/40 text-[#B42318]">
+<span>Did not enter</span>
+</span>
+</td>
+</tr>
+<!-- Row 3: Outage / Offline -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3 px-4 font-mono text-xs text-[#18181B] font-medium tabular-numbers">
+                08:25:00
+              </td>
+<td class="py-3 px-4 font-mono text-sm text-[#71717A]">
+                —
+              </td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium bg-[#FBF3DE] text-[#9A6700] border border-[#9A6700]/30">
+<span class="material-symbols-outlined text-[15px]">warning</span>
+<span>Outage: camera offline</span>
+</span>
+</td>
+<td class="py-3 px-4 font-mono text-sm text-[#71717A]">
+                —
+              </td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- SECTION 4: Interactive Empty State Preview Card & Filter Toggle -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-3">
+<span class="font-label text-xs uppercase tracking-wider text-[#71717A] font-semibold">Zero-State Simulation</span>
+<button class="text-xs text-[#1F6F5C] hover:underline font-medium flex items-center gap-1" id="toggle-empty-state-btn">
+<span class="material-symbols-outlined text-[15px]">tune</span>
+<span id="toggle-label">Preview zero-state condition</span>
+</button>
+</div>
+<!-- Empty state card -->
+<div class="bg-surface-container-lowest border border-dashed border-outline-variant rounded-lg p-10 flex flex-col items-center justify-center text-center transition-all" id="empty-state-card">
+<div class="w-12 h-12 rounded-full bg-surface-container-low border border-outline-variant flex items-center justify-center text-[#71717A] mb-3">
+<span class="material-symbols-outlined text-[24px]">filter_list_off</span>
+</div>
+<h3 class="font-headline font-semibold text-base text-[#18181B]">No events for the selected filters.</h3>
+<p class="text-xs text-[#71717A] max-w-sm mt-1 mb-4">
+          No records match the current criteria on 10 Jun 2025. Clear or adjust your event types and search terms.
+        </p>
+<button class="h-8 px-4 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-[#18181B] text-xs font-medium rounded flex items-center gap-1.5 transition-colors active:scale-[0.97]" id="reset-filters-btn">
+<span class="material-symbols-outlined text-[16px] text-[#1F6F5C]">restart_alt</span>
+<span>Reset filters</span>
+</button>
+</div>
+</section>
+<!-- Realistic Footer with System Telemetry -->
+<footer class="pt-6 border-t border-outline-variant/60 flex flex-col md:flex-row items-center justify-between text-xs text-[#71717A] gap-4">
+<div class="flex items-center gap-3">
+<span>© 2025 Folio3 Software. Internal system for authorised personnel only.</span>
+</div>
+<div class="flex items-center gap-4 font-mono text-[11px]">
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2F7D4A]"></span>
+<span>ANPR Gateway: Operational</span>
+</span>
+<span class="text-outline-variant">|</span>
+<span>DB Replication: synced (42ms)</span>
+<span class="text-outline-variant">|</span>
+<span>Log Audit ID: #AUD-2025-0610</span>
+</div>
+</footer>
+</main>
+<!-- Interactive Filter & Zero-State Script -->
+
+<script>(function(){var T=[{"id":"S-1","names":["folio3 parking system","sign in"],"words":["sign"]},{"id":"S-2","names":["we couldn t load your employee profile","access error"],"words":["access"]},{"id":"S-3","names":["register your vehicle to continue","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-4","names":["good morning bilal","dashboard"],"words":["dashboard"]},{"id":"S-5","names":["hello ayesha siddiqui","holder","dashboard holder"],"words":["dashboard","holder"]},{"id":"S-6","names":["schedule releases for space b1 03","releases successfully scheduled","schedule","releases schedule"],"words":["release","schedule"]},{"id":"S-7","names":["my profile vehicles","profile"],"words":["profile"]},{"id":"S-8","names":["critical hardware alert","verifications","guard verifications"],"words":["guard","verification"]},{"id":"S-9","names":["parking spaces","spaces","admin spaces"],"words":["space"]},{"id":"S-10","names":["employees","admin employees"],"words":["employee"]},{"id":"S-11","names":["employee parking vehicle maintenance","employees","admin employees"],"words":["employee"]},{"id":"S-12","names":["roles and access","roles","admin roles"],"words":["role"]},{"id":"S-13","names":["parking release settings","settings","admin settings"],"words":["setting"]},{"id":"S-14","names":["weekly report recipients","recipients","admin reports recipients"],"words":["report","recipient"]},{"id":"S-15","names":["weekly utilization report","reports","admin reports"],"words":["report"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"];
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
+var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

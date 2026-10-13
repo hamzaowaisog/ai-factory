@@ -1,0 +1,38 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261009-co-working-space-maintenance-0f9d",
+  "version": 1,
+  "designSha": "a8c32e2da1802f0a7a72e1c9d81fcca375c92365c3bdbb80807753afbccdaaaf",
+  "at": "2026-10-10T00:03:57.982Z",
+  "options": {
+    "formats": [
+      "pdf"
+    ]
+  },
+  "files": [
+    {
+      "format": "pdf",
+      "path": "design-book.pdf",
+      "sha256": "3d3b3d266d95f9c936be1dafd0f9692d4062a28e98f0f02386397a088ce0c80a",
+      "bytes": 9206188
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "pdf.screens",
+      "status": "PASS",
+      "detail": "every screen is in the book"
+    },
+    {
+      "check": "pdf.fonts",
+      "status": "PASS",
+      "detail": "every font is embedded"
+    },
+    {
+      "check": "pdf.pages",
+      "status": "PASS",
+      "detail": "design-book.pdf 25 page(s), 2 screen(s), 41 font(s)"
+    }
+  ]
+}

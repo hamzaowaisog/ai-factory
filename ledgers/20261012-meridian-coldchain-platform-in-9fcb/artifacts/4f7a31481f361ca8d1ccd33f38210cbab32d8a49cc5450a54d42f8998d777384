@@ -1,0 +1,93 @@
+diff --git a/components/screens/s-3/container.tsx b/components/screens/s-3/container.tsx
+index cc8e552..f27aaf1 100644
+--- a/components/screens/s-3/container.tsx
++++ b/components/screens/s-3/container.tsx
+@@ -1,13 +1,82 @@
+ "use client";
+ 
+-// S-3 Request password reset (/reset): the approved Stitch page, built by the coding task in this file.
+-// Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;
+-// match its layout, sections and words. Fixture mode (?fixture=S-3:<state>) must show the approved sample content in
+-// that state with no backend; the states the design drew: default, email sent, invalid email.
++import { useState, type FormEvent } from "react";
++import { requestPasswordReset } from "@/lib/api/client";
++import { Link } from "@/lib/nav";
++import { Button } from "@/components/ui/button";
++import { Card, CardContent, CardHeader } from "@/components/ui/card";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import { Notice, NoticeDescription, NoticeTitle } from "@/components/ui/notice";
++
++type Feedback = { state: string; tone: "bad" | "info" | "ok"; title: string; message: string };
++
++const fixtureFeedback: Record<string, Feedback> = {
++  "email-sent": { state: "email-sent", tone: "ok", title: "Email sent", message: "If an account exists for this email, a password reset link has been sent." },
++  "invalid-email": { state: "invalid-email", tone: "bad", title: "Invalid email", message: "Enter a valid email address." },
++};
++
+ export function RequestPasswordResetContainer({ fixture }: { fixture?: string }) {
++  const [email, setEmail] = useState("");
++  const [busy, setBusy] = useState(false);
++  const [result, setResult] = useState<Feedback | null>(null);
++  const feedback = fixture ? fixtureFeedback[fixture] ?? null : result;
++  const invalidEmail = feedback?.state === "invalid-email";
++
++  async function submit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (fixture || busy) return;
++    const address = email.trim();
++    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
++      setResult(fixtureFeedback["invalid-email"]);
++      return;
++    }
++    setBusy(true);
++    setResult({ state: "sending", tone: "info", title: "Sending reset request", message: "The request was recorded. Waiting for confirmation." });
++    try {
++      const response = await requestPasswordReset({ email: address });
++      if (response.status === 200) {
++        setResult({ state: "email-sent", tone: "ok", title: response.data.status, message: response.data.message });
++      } else {
++        setResult({ state: response.status === 400 ? "invalid-email" : "error", tone: "bad", title: "Reset request failed", message: response.data.message });
++      }
++    } catch {
++      setResult({ state: "error", tone: "bad", title: "Reset request failed", message: "Please try again in a moment." });
++    } finally {
++      setBusy(false);
++    }
++  }
++
+   return (
+-    <main data-screen="S-3" data-state={fixture ?? "default"}>
+-      <h1>Request password reset</h1>
++    <main data-screen="S-3" data-state={fixture ?? feedback?.state ?? "default"} className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
++      <header className="mb-6 font-heading text-xl font-semibold text-brand-text">Meridian</header>
++      <Card className="rounded-lg border-border bg-card shadow-card">
++        <CardHeader className="gap-2 pb-0">
++          <h1 className="font-heading text-3xl leading-tight">Request password reset</h1>
++          <p className="text-sm leading-relaxed text-text-secondary">Enter your account email to receive a password reset link.</p>
++        </CardHeader>
++        <CardContent className="grid gap-5 pt-6">
++          {feedback && (
++            <Notice tone={feedback.tone} className="grid-cols-1" aria-live="polite">
++              <NoticeTitle className="col-start-1">{feedback.title}</NoticeTitle>
++              <NoticeDescription className="col-start-1">{feedback.message}</NoticeDescription>
++            </Notice>
++          )}
++          <form onSubmit={submit} noValidate className="grid gap-4">
++            <div className="grid gap-2">
++              <Label htmlFor="reset-email">Email</Label>
++              <Input id="reset-email" type="email" autoComplete="email" required aria-invalid={invalidEmail} value={email} onChange={(event) => {
++                setEmail(event.target.value);
++                if (result?.state === "invalid-email") setResult(null);
++              }} className="h-11" />
++            </div>
++            <div className="grid gap-3">
++              <Button type="submit" disabled={busy} className="h-11 w-full">Send reset link</Button>
++              <Link to="/sign-in" className="text-center text-sm font-medium text-brand-text underline-offset-4 hover:underline">Back to sign in</Link>
++            </div>
++          </form>
++        </CardContent>
++      </Card>
+     </main>
+   );
+ }

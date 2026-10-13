@@ -1,0 +1,18 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "Requests",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "Request detail",
+        "req": "REQ-7"
+      }
+    ]
+  },
+  "images": []
+}

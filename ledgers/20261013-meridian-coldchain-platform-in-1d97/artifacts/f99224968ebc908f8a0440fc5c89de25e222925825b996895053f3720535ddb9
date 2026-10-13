@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  /",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 0,
+   "resultChars": 3055,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  /&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:9: /auth/staff/authorization-url:\ncontracts/openapi.yaml:20: /auth/customer/sign-in:\ncontracts/openapi.yaml:41: /auth/customer/code/verify:\ncontracts/openapi.yaml:62: /auth/customer/code/resend:\ncontracts/openapi.yaml:83: /auth/password-reset:\ncontracts/openapi.yaml:100: /auth/password-reset/{token}:\ncontracts/openapi.yaml:119: /auth/password-reset/{token}/complete:\ncontracts/openapi.yaml:144: /warehouse/receipts:\ncontracts/openapi.yaml:184: /warehouse/receipts/{receiptId}:\ncontracts/openapi.yaml:201: /warehouse/receipts/{receiptId}/logger:\ncontracts/openapi.yaml:226: /warehouse/receipts/{receiptId}/evidence:\ncontracts/openapi.yaml:251: /warehouse/stock:\ncontracts/openapi.yaml:268: /warehouse/stock/{unitId}:\ncontracts/openapi.yaml:285: /warehouse/stock/{unitId}/moves:\ncontracts/openapi.yaml:312: /warehouse/moves:\ncontracts/openapi.yaml:329: /warehouse/opening-stock:\ncontracts/openapi.yaml:352: /warehouse/boxes:\ncontracts/openapi.yaml:368: /warehouse/boxes/{boxId}/pack:\ncontracts/openapi.yaml:395: /warehouse/cold-rooms:\ncontracts/openapi.yaml:408: /warehouse/cold-rooms/{roomId}:\ncontracts/openapi.yaml:425: /temperature-history:\ncontracts/openapi.yaml:453: /dispatch/orders:\ncontracts/openapi.yaml:471: /dispatch/orders/{orderId}:\ncontracts/openapi.yaml:488: /dispatch/orders/{orderId}/allocation-override:\ncontracts/openapi.yaml:515: /dispatch/orders/{orderId}/cancel:\ncontracts/openapi.yaml:534: /dispatch/routes:\ncontracts/openapi.yaml:573: /dispatch/routes/{routeId}:\ncontracts/openapi.yaml:616: /dispatch/routes/{routeId}/confirm:\ncontracts/openapi.yaml:635: /driver/routes:\ncontracts/openapi.yaml:655: /driver/routes/{routeId}:\ncontracts/openapi.yaml:672: /driver/routes/{routeId}/scans:\ncontracts/openapi.yaml:699: /driver/routes/{routeId}/departure:\ncontracts/openapi.yaml:718: /driver/actions/sync:\ncontracts/openapi.yaml:741: /driver/handovers:\ncontracts/openapi.yaml:766: /dispatch/deliveries/{deliveryId}/evidence:\ncontracts/openapi.yaml:783: /quality/cases:\ncontracts/openapi.yaml:799: /quality/cases/{caseId}:\ncontracts/openapi.yaml:816: /quality/cases/{caseId}/dispositions:\ncontracts/openapi.yaml:843: /quality/decisions/{decisionId}/supersede:\ncontracts/openapi.yaml:870: /quality/decisions/waiting:\ncontracts/openapi.yaml:883: /quality/proposals/{proposalId}/decision:\ncontracts/openapi.yaml:910: /quality/stock/{unitId}/destruction:\ncontracts/openapi.yaml:937: /quality/recalls:\ncontracts/openapi.yaml:975: /quality/recalls/{recallId}:\ncontracts/openapi.yaml:992: /quality/recalls/{recallId}/trace:\ncontracts/openapi.yaml:1009: /quality/recalls/{recallId}/close:\ncontracts/openapi.yaml:1036: /quality/recalls/{recallId}/write-offs:\ncontracts/openapi.yaml:1063: /customer/orders:\ncontracts/openapi.yaml:1107: /customer/orders/{orderId}:\ncontracts/openapi.yaml:1150: /customer/orders/{orderId}/cancel:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,127 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Meridian Cold Chain API shall implement every operation, path, method, parameter, request schema, response schema, status code, and behavior defined in `contracts/openapi.yaml`, and persist contract-defined records in the PostgreSQL database configured by `ConnectionStrings:App` without adding uncontracted API behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The operation and response matrix from `contracts/openapi.yaml`, with an authorized caller where required",
+        "when": "HTTP requests exercise every declared operation with contract-valid requests and inputs for each declared error response",
+        "then": "each response status and response body field matches the status and schema declared for that operation",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A configured PostgreSQL database and a valid request to a contract operation that creates or changes a persistent record",
+        "when": "the API accepts the HTTP request and the test reads the record through the corresponding contract operation",
+        "then": "the response status is the declared success status, the database contains the persisted row, and the returned record reflects the submitted values",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The Meridian Cold Chain API shall seed at least two rows derived from contract examples in every database table when `SeedData.Run` executes, with references between related rows resolving to existing rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/SeedData.cs",
+        "lineStart": 5,
+        "lineEnd": 9,
+        "quote": "public static class SeedData\n{\n    public static void Run(AppDb db)\n    {\n    }"
+       }
+      ],
+      "sources": [
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "An empty database with its tables created",
+        "when": "the public `SeedData.Run` method is called with `AppDb`",
+        "then": "each table contains at least two rows based on contract examples and every reference between related rows resolves to an existing row",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When `Seed:Demo` is false, the Meridian Cold Chain API shall not insert demo rows and shall return an empty list for a list request whose filters match no database rows.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A fresh empty database, `Seed:Demo` set to false, and an authorized test caller",
+        "when": "the API starts and each contract list operation is called with filters matching no rows",
+        "then": "each response status is the contract-declared success status, each returned list count is 0, and the database contains no demo row",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The Meridian Cold Chain API shall use the existing staff identity provider configured with a deployment-provided authorization URL and token-validation settings, and reject startup with a clear configuration error if any required setting is missing or invalid.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "Valid deployment configuration for the existing staff identity provider, including its authorization URL and token-validation settings",
+        "when": "a caller sends `GET /api/auth/staff/authorization-url`",
+        "then": "the response status is 200 and the response field `message` contains the configured authorization URL",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "Deployment configuration with a required staff identity-provider setting missing or invalid",
+        "when": "the API process starts",
+        "then": "the process exits with an error that identifies the configuration problem",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.3",
+        "given": "Valid staff identity-provider configuration and a caller with permission to access a protected contract operation",
+        "when": "the caller sends one request with a valid provider token and one with an invalid provider token",
+        "then": "the valid-token response status is the contract-declared success status and the invalid-token response status is 401",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "Web application screens (I-5; Q-1).",
+     "Product-story behavior not defined by the locked OpenAPI contract (Q-1)."
+    ],
+    "assumptions": [],
+    "suggestions": []
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

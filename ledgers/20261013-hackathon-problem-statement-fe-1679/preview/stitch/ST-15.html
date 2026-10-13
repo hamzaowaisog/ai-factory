@@ -1,0 +1,634 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #F5F5F5;
+      color: #262626;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    
+    /* Typography */
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #262626;
+      font-weight: 650;
+    }
+    h1 {
+      font-size: 32px;
+      line-height: 40px;
+    }
+    h2 {
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 600;
+    }
+    h3 {
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 600;
+    }
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .quieter {
+      color: #626262;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes page-enter {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-enter {
+      animation: page-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .status-dot-breathing {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D8D8D8;
+      height: 56px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .header-left::-webkit-scrollbar {
+      display: none;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #262626;
+      font-weight: 650;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #262626;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Hanken Grotesk', sans-serif;
+      border-radius: 4px;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      white-space: nowrap;
+    }
+    nav a {
+      text-decoration: none;
+      color: #626262;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 18px 0;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+    nav a:hover {
+      color: #262626;
+    }
+    nav a.active {
+      color: #B3473D;
+      border-bottom-color: #B3473D;
+      font-weight: 600;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      aspect-ratio: 1 / 1;
+      border: 1px solid #D8D8D8;
+    }
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #262626;
+    }
+    .user-role {
+      font-size: 12px;
+      color: #626262;
+    }
+
+    /* Layout */
+    main {
+      max-width: 1392px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Panels & Rules */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      padding: 24px;
+    }
+    .group-divider {
+      border: none;
+      height: 2px;
+      background-color: #D8D8D8;
+      margin: 32px 0;
+    }
+
+    /* Headline Summary Panel */
+    .summary-panel {
+      margin-top: 24px;
+    }
+    .headline-val {
+      font-size: 32px;
+      line-height: 40px;
+      font-weight: 650;
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #262626;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .headline-val span {
+      font-size: 20px;
+      font-weight: 500;
+      color: #626262;
+      font-family: 'Source Sans 3', sans-serif;
+    }
+    .headline-meta {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #D8D8D8;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+    }
+
+    /* Filter Bar */
+    .filter-panel {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #626262;
+    }
+    select, input {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      height: 44px;
+      padding: 0 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      color: #262626;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    select:focus, input:focus {
+      border-color: #B3473D;
+      box-shadow: 0 0 0 2px #B3473D;
+    }
+
+    /* Table & Empty State */
+    .table-container {
+      margin-top: 24px;
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #626262;
+      border-bottom: 1px solid #D8D8D8;
+      background-color: #FFFFFF;
+      white-space: nowrap;
+    }
+    .empty-state-cell {
+      padding: 72px 24px;
+      text-align: center;
+    }
+    .empty-state-content {
+      max-width: 440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      color: #626262;
+    }
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #262626;
+    }
+    .empty-desc {
+      font-size: 15px;
+      line-height: 22px;
+      color: #626262;
+    }
+
+    /* Primary Action Button */
+    .btn-primary {
+      background-color: #B3473D;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      height: 44px;
+      padding: 0 20px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background-color 150ms ease, transform 100ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #9c3c33;
+    }
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+
+    /* Secondary Outlined Button */
+    .btn-secondary {
+      background-color: transparent;
+      color: #262626;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+      height: 44px;
+      padding: 0 16px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+    .btn-secondary:hover {
+      border-color: #262626;
+      background-color: #F5F5F5;
+    }
+
+    /* Status indicator tokens */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .status-good {
+      color: #286143;
+    }
+    .status-good .status-dot {
+      background-color: #286143;
+    }
+    .status-waiting {
+      color: #805600;
+    }
+    .status-waiting .status-dot {
+      background-color: #805600;
+    }
+    .status-failed {
+      color: #A13D36;
+    }
+    .status-failed .status-dot {
+      background-color: #A13D36;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 0 16px;
+      }
+      main {
+        padding: 20px 16px;
+      }
+      .panel {
+        padding: 16px;
+      }
+      .btn-primary, .btn-secondary, select, input {
+        height: 48px;
+      }
+      th {
+        height: 56px;
+      }
+      .headline-val {
+        font-size: 26px;
+        line-height: 34px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header: exact menu order, brand, Maya Chen profile -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand">
+        <span class="brand-mark">R</span>
+        <span>Range Ledger</span>
+      </a>
+      <nav>
+        <a href="#">Yard</a>
+        <a href="#">Imports</a>
+        <a href="#">Allocations</a>
+        <a href="#">Lots</a>
+        <a href="#" class="active">Inventory</a>
+        <a href="#">Feed outlook</a>
+        <a href="#">Rations</a>
+        <a href="#">Feed plans</a>
+        <a href="#">Feeding</a>
+        <a href="#">Reports</a>
+        <a href="#">Feed-to-gain</a>
+        <a href="#">Profitability</a>
+        <a href="#">Sample data</a>
+        <a href="#">Delivery brief</a>
+      </nav>
+    </div>
+    <div class="user-profile">
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="user-avatar">
+      <div class="user-meta">
+        <span class="user-name">Maya Chen</span>
+        <span class="user-role">Yard manager</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content: The page's one heading reads "Inventory" -->
+  <main class="animate-enter">
+    <h1>Inventory</h1>
+
+    <!-- Headline and Yard/Source Context Panel -->
+    <div class="panel summary-panel">
+      <div class="headline-val">
+        <span class="mono" style="font-size: 32px; font-weight: 650; color: #262626;">0 lb</span>
+        <span>on hand</span>
+      </div>
+      <div class="headline-meta">
+        <div>
+          <span class="quieter">Yard:</span> <strong>Red Mesa Yard</strong>
+        </div>
+        <div>
+          <span class="quieter">Timezone:</span> <span class="mono">America/Denver (Mountain Time)</span>
+        </div>
+        <div>
+          <span class="quieter">Configured wastage:</span> <span class="mono">2.8%</span>
+        </div>
+        <div>
+          <span class="quieter">30-day known actual wastage:</span> <span class="mono">0 lb</span>
+        </div>
+        <div style="margin-left: auto;">
+          <span class="status-indicator status-good">
+            <span class="status-dot"></span>
+            Operational normal
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar for Inventory Items -->
+    <div class="panel filter-panel">
+      <div class="form-group">
+        <label for="filter-category">Commodity type</label>
+        <select id="filter-category">
+          <option value="all">All commodities</option>
+          <option value="corn">Steam-flaked corn</option>
+          <option value="grains">Distillers grains</option>
+          <option value="hay">Alfalfa hay</option>
+          <option value="premix">Mineral premix</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="filter-status">Stock status</label>
+        <select id="filter-status">
+          <option value="all">All statuses</option>
+          <option value="available">Sufficient</option>
+          <option value="reorder">Reorder required</option>
+          <option value="depleted">Depleted</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="filter-movement">Movement type</label>
+        <select id="filter-movement">
+          <option value="all">All movement types</option>
+          <option value="receipt">Stock receipt</option>
+          <option value="consumption">Delivered-feed consumption</option>
+          <option value="wastage">Actual wastage</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="filter-records">Record filter</label>
+        <select id="filter-records">
+          <option value="operational">Operational records only</option>
+          <option value="all">Include sample records</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Inventory Worklist Table with Empty State -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Commodity item</th>
+            <th>On hand (lb)</th>
+            <th>Today's planned delivery</th>
+            <th>30-day known actual wastage</th>
+            <th>Last movement time (MT)</th>
+            <th>Recorded by</th>
+            <th>Stock status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="7" class="empty-state-cell">
+              <div class="empty-state-content">
+                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                  <path d="m3.3 7 8.7 5 8.7-5"></path>
+                  <path d="M12 22V12"></path>
+                </svg>
+                <div class="empty-title">No inventory recorded yet</div>
+                <p class="empty-desc">
+                  There are currently no recorded feed commodities or stock movements in Red Mesa Yard. Record your first receipt or movement to begin tracking balances.
+                </p>
+                <div>
+                  <button type="button" class="btn-primary">
+                    Record stock movement
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="group-divider">
+
+    <!-- Movement Worklist Section Header with Empty State -->
+    <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+      <h2>Stock Movements</h2>
+      <span class="quieter" style="font-size: 14px;">Showing <span class="mono">0</span> movements</span>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Movement time (MT)</th>
+            <th>Staff member</th>
+            <th>Commodity &amp; category</th>
+            <th>Movement type</th>
+            <th>Quantity change</th>
+            <th>Resulting on-hand balance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="7" class="empty-state-cell" style="padding: 48px 24px;">
+              <div class="empty-state-content">
+                <div class="empty-title">No stock movements recorded</div>
+                <p class="empty-desc">
+                  Dated intake receipts, delivered-feed consumption, and recorded wastage will appear here once submitted.
+                </p>
+                <div>
+                  <button type="button" class="btn-primary">
+                    Record stock movement
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-7";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

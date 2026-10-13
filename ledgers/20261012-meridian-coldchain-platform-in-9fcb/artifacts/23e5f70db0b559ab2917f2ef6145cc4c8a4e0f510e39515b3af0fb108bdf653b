@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stop detail — Error State</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design System strict font assignment */
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .dot-sync-breathe {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    /* Interactive control states */
+    .btn-secondary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      border-radius: 2px;
+      height: 48px;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+    .btn-secondary:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+    .btn-secondary:active {
+      transform: scale(0.98);
+      background-color: #ECECEC;
+    }
+
+    .btn-primary-disabled {
+      background-color: #ECECEC;
+      border: 1px solid #D5D5D5;
+      color: #626262;
+      border-radius: 2px;
+      height: 48px;
+      padding: 0 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .nav-link {
+      color: #626262;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 8px 0;
+      position: relative;
+      transition: color 150ms ease;
+    }
+    .nav-link:hover {
+      color: #202020;
+    }
+    .nav-link:focus {
+      outline: none;
+      box-shadow: 0 2px 0 0 #A94B1D;
+    }
+    .nav-link.active {
+      color: #202020;
+      font-weight: 600;
+    }
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D5D5D5] h-16">
+    <div class="max-w-[1200px] mx-auto h-full px-6 flex items-center justify-between">
+      
+      <!-- Brand & Navigation -->
+      <div class="flex items-center space-x-8">
+        <div class="flex items-center space-x-3">
+          <div class="w-7 h-7 bg-[#202020] flex items-center justify-center rounded-[2px]">
+            <span class="text-[#FFFFFF] text-[15px] font-bold font-mono-num leading-none">M</span>
+          </div>
+          <span class="heading-hanken font-bold text-[19px] tracking-tight text-[#202020]">Meridian</span>
+        </div>
+
+        <nav class="flex items-center space-x-6 h-16">
+          <a href="#" class="nav-link active">Today's routes</a>
+          <a href="#" class="nav-link">Pending work</a>
+        </nav>
+      </div>
+
+      <!-- User Profile & Locale -->
+      <div class="flex items-center space-x-5 text-[15px]">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-7 h-7 rounded-[2px] bg-[#ECECEC] border border-[#D5D5D5] flex items-center justify-center text-[12px] font-semibold text-[#202020]">
+            TM
+          </div>
+          <span class="text-[#202020] font-normal">Tariq Mansour · Driver</span>
+        </div>
+        <div class="h-4 w-[1px] bg-[#D5D5D5]"></div>
+        <div class="text-[#626262]">
+          <span>EN</span> / <span>العربية</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-[1200px] w-full mx-auto px-6 py-8 animate-entrance">
+
+    <!-- Top Heading & Navigation back action -->
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-[28px] font-[650] text-[#202020] tracking-tight leading-tight">Stop detail</h1>
+      <button class="btn-secondary" type="button">Route stops</button>
+    </div>
+
+    <!-- Inline Error Message Panel -->
+    <section class="bg-[#FFFFFF] border border-[#AE2C2C] rounded-[2px] p-4 mb-8 flex items-center justify-between">
+      <div class="flex items-start space-x-3">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#AE2C2C] mt-1.5 flex-shrink-0"></span>
+        <div>
+          <div class="font-[650] text-[16px] text-[#202020]">
+            Failed to load stop data and live telemetry
+          </div>
+          <p class="text-[14px] text-[#626262] mt-0.5 leading-normal">
+            Data failed to load. The dispatch synchronization service could not resolve current telemetry and stop status for Cedar Clinic.
+          </p>
+        </div>
+      </div>
+      <button class="btn-secondary ml-6 flex-shrink-0" type="button">Retry</button>
+    </section>
+
+    <!-- Stop Summary Card -->
+    <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-6 mb-8">
+      <div class="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-[#D5D5D5]">
+        <div>
+          <div class="flex items-center space-x-3">
+            <span class="heading-hanken text-[20px] font-[650] text-[#202020]">Cedar Clinic</span>
+            <span class="inline-flex items-center space-x-1.5 text-[14px] text-[#AE2C2C] font-medium">
+              <span class="w-2 h-2 rounded-full bg-[#AE2C2C]"></span>
+              <span>failed</span>
+            </span>
+          </div>
+          <div class="text-[14px] text-[#626262] mt-1">42 River Road, London</div>
+        </div>
+
+        <div class="flex items-center gap-8">
+          <div>
+            <div class="text-[14px] text-[#626262]">Planned arrival</div>
+            <div class="text-[18px] font-semibold text-[#202020] font-mono-num mt-0.5">15:00 BST</div>
+          </div>
+          <div>
+            <div class="text-[14px] text-[#626262]">Route assignment</div>
+            <div class="text-[16px] font-semibold text-[#202020] font-mono-num mt-0.5">R-204</div>
+          </div>
+          <div>
+            <div class="text-[14px] text-[#626262]">Vehicle</div>
+            <div class="text-[16px] font-semibold text-[#202020] font-mono-num mt-0.5">VAN-27 (plate MTR-482)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stop Metrics Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6">
+        <div>
+          <div class="text-[14px] text-[#626262]">Consignment order</div>
+          <div class="text-[16px] font-medium text-[#202020] mt-1">
+            <span class="font-mono-num font-semibold">Order O-299</span> · Insulin Glargine <span class="font-mono-num">100</span> units/mL
+          </div>
+        </div>
+        <div>
+          <div class="text-[14px] text-[#626262]">Total allocated packs</div>
+          <div class="text-[16px] font-medium text-[#202020] mt-1">
+            <span class="font-mono-num font-semibold">20</span> packs (<span class="font-mono-num">12</span> in B-701, <span class="font-mono-num">8</span> in B-702)
+          </div>
+        </div>
+        <div>
+          <div class="text-[14px] text-[#626262]">Outstanding quantity</div>
+          <div class="text-[16px] font-medium text-[#202020] mt-1">
+            <span class="font-mono-num font-semibold">0</span> packs outstanding
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ordered Shipper Boxes & Telemetry Section -->
+    <section class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] mb-8">
+      <div class="p-6 border-b border-[#D5D5D5] flex items-center justify-between">
+        <div>
+          <h2 class="heading-hanken text-[20px] font-[650] text-[#202020]">Shipper boxes & gateway telemetry</h2>
+          <p class="text-[14px] text-[#626262] mt-0.5">Assigned consignments for route delivery verification</p>
+        </div>
+        <div class="flex items-center space-x-2 text-[14px] text-[#805800]">
+          <span class="w-2 h-2 rounded-full bg-[#805800]"></span>
+          <span>Cached telemetry while disconnected</span>
+        </div>
+      </div>
+
+      <!-- Table of Consignment Boxes -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="h-12 border-b border-[#D5D5D5] text-[14px] text-[#626262] bg-[#F7F7F7]">
+              <th class="px-6 font-medium">Box identifier</th>
+              <th class="px-6 font-medium">Quantity</th>
+              <th class="px-6 font-medium">Datalogger gateway</th>
+              <th class="px-6 font-medium">Latest temperature</th>
+              <th class="px-6 font-medium">Reading time</th>
+              <th class="px-6 font-medium">Eligibility & status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D5D5D5] text-[15px]">
+            <!-- Box B-701 -->
+            <tr class="h-14">
+              <td class="px-6 font-semibold font-mono-num text-[#202020]">B-701</td>
+              <td class="px-6 font-mono-num text-[#202020]">12 packs</td>
+              <td class="px-6 font-mono-num text-[#626262]">LOG-9921 / GTW-VAN27</td>
+              <td class="px-6 font-mono-num text-[#202020]">
+                4.4°C <span class="text-[#AE2C2C] text-[13px] ml-1 font-normal font-sans">(stale)</span>
+              </td>
+              <td class="px-6 font-mono-num text-[#626262]">14:40 BST</td>
+              <td class="px-6">
+                <span class="inline-flex items-center space-x-1.5 text-[14px] text-[#AE2C2C] font-medium">
+                  <span class="w-2 h-2 rounded-full bg-[#AE2C2C]"></span>
+                  <span>failed</span>
+                </span>
+              </td>
+            </tr>
+
+            <!-- Box B-702 (Disconnected gateway makes temperature plainly stale) -->
+            <tr class="h-14">
+              <td class="px-6 font-semibold font-mono-num text-[#202020]">B-702</td>
+              <td class="px-6 font-mono-num text-[#202020]">8 packs</td>
+              <td class="px-6 font-mono-num text-[#626262]">LOG-8819 / GTW-VAN27</td>
+              <td class="px-6 font-mono-num text-[#202020]">
+                4.8°C <span class="text-[#AE2C2C] text-[13px] ml-1 font-normal font-sans">(stale · disconnected)</span>
+              </td>
+              <td class="px-6 font-mono-num text-[#626262]">11:45 BST</td>
+              <td class="px-6">
+                <span class="inline-flex items-center space-x-1.5 text-[14px] text-[#AE2C2C] font-medium">
+                  <span class="w-2 h-2 rounded-full bg-[#AE2C2C]"></span>
+                  <span>failed</span>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Explanatory note at footer of panel -->
+      <div class="p-6 bg-[#FFFFFF] border-t border-[#D5D5D5] text-[14px] text-[#626262]">
+        Notice: An API-returned hold or online recall on a scanned box replaces its eligibility with &ldquo;Do not deliver&rdquo; and hold reason when returned. Handover record is restricted until telemetry sync is restored.
+      </div>
+    </section>
+
+    <!-- Bottom Handover Action Section -->
+    <div class="flex items-center justify-between pt-2">
+      <div class="text-[14px] text-[#626262]">
+        Primary Record handover appears only for eligible whole boxes.
+      </div>
+      <button class="btn-primary-disabled" type="button" disabled title="Telemetry and stop validation failed">
+        Record handover
+      </button>
+    </div>
+
+  </main>
+
+</body>
+</html>

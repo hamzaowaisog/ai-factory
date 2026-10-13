@@ -1,0 +1,253 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Schedule parking releases",
+     "subtitle": "Choose one or more dates within the next 30 calendar days. Weekdays count as working days, including holidays.",
+     "blocks": [
+      {
+       "type": "calendar",
+       "month": "June 2026",
+       "startsOn": 0,
+       "days": 30,
+       "picked": 18,
+       "marks": [
+        {
+         "day": 18,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 22,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 25,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        }
+       ],
+       "off": []
+      },
+      {
+       "type": "detail",
+       "style": "card",
+       "title": "Release timing",
+       "rows": [
+        {
+         "label": "Default time",
+         "value": "8:00 AM"
+        },
+        {
+         "label": "Timezone",
+         "value": "Folio3 Islamabad office"
+        },
+        {
+         "label": "Scheduling window",
+         "value": "Through 16 July 2026"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Schedule selected dates",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel selected release",
+         "variant": "secondary",
+         "hint": "Cancellation is available only before the space is claimed."
+        }
+       ]
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel selected release",
+       "title": "Cancel this scheduled release?",
+       "text": "The space will return to Reserved. A release that has already been claimed cannot be cancelled.",
+       "actions": [
+        {
+         "label": "Cancel release",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep release",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Schedule selected dates",
+       "text": "Release dates saved and recorded in parking activity history.",
+       "tone": "ok"
+      },
+      {
+       "after": "Cancel release",
+       "text": "The scheduled release was cancelled.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No releases scheduled",
+      "emptyHint": "Choose dates within the next 30 days to release your dedicated space.",
+      "error": "Your saved releases could not be refreshed. The last loaded calendar is still shown.",
+      "success": "Release dates saved and recorded in parking activity history.",
+      "validation": "Select at least one eligible date within the next 30 days."
+     }
+    },
+    "mockFull": {
+     "title": "Schedule parking releases",
+     "subtitle": "Choose one or more dates within the next 30 calendar days. Weekdays count as working days, including holidays.",
+     "blocks": [
+      {
+       "type": "calendar",
+       "month": "June 2026",
+       "startsOn": 0,
+       "days": 30,
+       "picked": 18,
+       "marks": [
+        {
+         "day": 2,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 4,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 8,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 10,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 12,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 15,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 17,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 18,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 19,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 22,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 23,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 24,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 25,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 26,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        },
+        {
+         "day": 29,
+         "label": "Claimed",
+         "tone": "ok"
+        },
+        {
+         "day": 30,
+         "label": "Scheduled · B2-114",
+         "tone": "info"
+        }
+       ],
+       "off": []
+      },
+      {
+       "type": "detail",
+       "style": "card",
+       "title": "Release timing",
+       "rows": [
+        {
+         "label": "Default time",
+         "value": "8:00 AM"
+        },
+        {
+         "label": "Timezone",
+         "value": "Folio3 Islamabad office"
+        },
+        {
+         "label": "Scheduling window",
+         "value": "Through 16 July 2026"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Schedule selected dates",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel selected release",
+         "variant": "secondary",
+         "hint": "Cancellation is available only before the space is claimed."
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No releases scheduled",
+      "emptyHint": "Choose dates within the next 30 days to release your dedicated space.",
+      "error": "Your saved releases could not be refreshed. The last loaded calendar is still shown.",
+      "success": "Release dates saved and recorded in parking activity history.",
+      "validation": "Select at least one eligible date within the next 30 days."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

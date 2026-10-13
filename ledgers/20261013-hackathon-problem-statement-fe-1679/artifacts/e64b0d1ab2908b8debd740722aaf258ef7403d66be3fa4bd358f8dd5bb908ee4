@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetLotForecastResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 29,
+   "resultChars": 819,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetLotForecastResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:69: export const getGetLotForecastResponseMock = (): ForecastResponse => ({\"permissions\":[\"forecast.view\"],\"lotId\":2407,\"lotCode\":\"L-2407\",\"incomingHead\":48,\"incomingAverageWeight\":612,\"targetWeight\":1350\nlib/api/client.msw.ts:245: : getGetLotForecastResponseMock()),\ntests/acceptance.test.tsx:19: getGetLotForecastResponseMock,\ntests/acceptance.test.tsx:311: server.use((await import(\"@/lib/api/client.msw\")).getGetLotForecastMockHandler(getGetLotForecastResponseMock()));\ntests/acceptance.test.tsx:317: const response = getGetLotForecastResponseMock();\ntests/acceptance.test.tsx:345: const viewOnly = getGetLotForecastResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,344 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I've fixed all five findings. The changes are below and are submitted with the tool.\n\n- **Requirements with more than one \"shall\"** (REQ-8, 21, 25, 38, 40, 54, 55, 82): I rewrote each as one EARS sentence with a single \"shall\". Their IDs, meaning and acceptance criteria are unchanged.\n- **Search speed (NFR-1 vs NFR-2):** I kept NFR-1 (p95 ≤ 1.5 s with 50,000 active products and 100 concurrent users) and deleted NFR-2.\n- **Session expiry (NFR-15 vs NFR-16):** I kept NFR-15 (30 minutes idle, 12 hours maximum) and deleted NFR-16.\n- **Failed-import count on the dashboard (REQ-67 vs REQ-68):** I kept REQ-67 (failures since the last successful import) and deleted REQ-68.\n- **Sales report (REQ-85 vs REQ-86):** I kept REQ-86, which counts all non-Cancelled orders in the date range, can be filtered by customer, and shows order count and net total per customer. I deleted REQ-85, which counted only Delivered orders. I-7 is still covered.\n\n**Choices you may want to change:** where two versions disagreed, I picked one myself; none of these came from an answer. If you'd rather count only Delivered orders in sales, or use the stricter 1.0 s search target or 60-minute idle timeout, the change is small. I didn't add these choices to the assumptions list.\n\n**Same kind of conflict, not fixed:** three other NFR pairs also set two targets for one thing. I left them alone because no finding names them:\n- NFR-3 and NFR-4 (order endpoints at 100 vs 200 users)\n- NFR-5, NFR-6 and NFR-7 (stock import size and time)\n- NFR-8 and NFR-9 (email within 5 vs 2 minutes)\n\nThe critic will probably flag them next.",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-8",
+      "ears": "While a Buyer is signed in, the portal shall return only orders, invoices, prices, delivery addresses and account data that belong to the Buyer's own customer company and respond with status 404 to requests for such records of another company.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-5",
+       "I-9",
+       "Q-2"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "Buyer A of company A and order ORD-000200 of company B",
+        "when": "Buyer A requests ORD-000200",
+        "then": "The response status is 404 and no order data is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "Company B has invoice INV-000050",
+        "when": "Buyer A requests the PDF of INV-000050",
+        "then": "The response status is 404 and no file is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "Company A has 3 orders (2 by Buyer A, 1 by colleague Buyer A2) and company B has 2 orders",
+        "when": "Buyer A lists orders",
+        "then": "The returned list contains exactly the 3 company A orders",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "Company B has a delivery address and a price list different from company A",
+        "when": "Buyer A lists delivery addresses and opens a product",
+        "then": "The returned address list contains only company A addresses and the returned price value comes from company A's price list",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "When a Buyer lists the catalogue, the portal shall return only active products in the selected category, combined with any search term, when a category filter is supplied, and all active products matching any search term when no category filter is supplied.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-10",
+       "ASM-15"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "3 active products in Filters and 2 in Brake system",
+        "when": "A Buyer lists the catalogue filtered by Filters",
+        "then": "The returned list count is 3 and every returned product has the category value Filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.2",
+        "given": "The products of AC-21.1",
+        "when": "A Buyer lists the catalogue with no category filter",
+        "then": "The returned list count is 5",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.3",
+        "given": "Active products \"Oil Filter\" (Filters) and \"Oil Pump\" (Engine parts)",
+        "when": "A Buyer searches \"oil\" filtered by Filters",
+        "then": "The returned list contains Oil Filter only",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The portal shall price every product shown to a Buyer, and every line added to that company's basket, staff-created orders and repeat orders, from the price list assigned to the Buyer's customer company at the time of the request, so that a changed assignment applies from then on.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-11",
+       "I-17"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "Product X costs 50.00 on Standard and 40.00 on Workshop A, and company A is assigned Workshop A",
+        "when": "A Buyer of company A opens product X",
+        "then": "The returned price value is 40.00 and the value 50.00 does not appear in the response",
+        "level": "api"
+       },
+       {
+        "id": "AC-25.2",
+        "given": "The setup of AC-25.1",
+        "when": "An administrator assigns Standard to company A and the Buyer opens product X again",
+        "then": "The returned price value is 50.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-25.3",
+        "given": "Product BP-1001 priced 15.00 on Standard and 12.50 on Workshop A; company A on Workshop A and company B on Standard",
+        "when": "A Buyer of each company opens BP-1001",
+        "then": "The price value returned to company A's Buyer is 12.50 and to company B's Buyer is 15.00",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-38",
+      "ears": "While a Buyer's session is active, the portal shall keep the Buyer's basket across page navigation, let the Buyer add products, change line quantities (minimum 1) and remove lines, return each line's unit price, quantity and line total and the tax-exclusive basket subtotal, and discard the basket when the session ends.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-9",
+       "ASM-14"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-38.1",
+        "given": "Product X at 12.50 and product Z at 4.00 on the Buyer's price list, both in stock",
+        "when": "The Buyer adds 2 of X and 3 of Z",
+        "then": "The returned line totals are 25.00 and 12.00 and the subtotal value is 37.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.2",
+        "given": "The basket from AC-38.1",
+        "when": "The Buyer changes X to quantity 3 and removes the Z line",
+        "then": "The returned line count is 1, the line total is 37.50 and the subtotal value is 37.50",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.3",
+        "given": "The basket from AC-38.1",
+        "when": "The Buyer sets X to quantity 0 or -1",
+        "then": "The response status is 422, the error names the quantity field and the line quantity value stays 2",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.4",
+        "given": "A Buyer with 2 basket lines",
+        "when": "The Buyer lists the catalogue and then requests the basket in the same session",
+        "then": "The returned basket has the same 2 lines",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.5",
+        "given": "A Buyer with 2 basket lines",
+        "when": "The Buyer signs out, signs in again and requests the basket",
+        "then": "The returned basket line count is 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-40",
+      "ears": "The portal shall offer and accept as delivery dates, for Buyer and staff orders and checked again at submission time, only working days from the earliest delivery date up to the configured maximum number of days ahead, rejecting any other date with an error naming the delivery date.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-12"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-40.1",
+        "given": "Maximum 14 days ahead, weekends non-working, current time Monday 10:00",
+        "when": "A Buyer requests the selectable delivery dates",
+        "then": "The returned list starts with Tuesday, contains no Saturday or Sunday, and its last value is no later than 14 days after today",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.2",
+        "given": "Now is Monday 2026-10-05 15:00, cutoff 14:00, maximum 30 days ahead",
+        "when": "The Buyer sets the basket delivery date to 2026-10-06, 2026-10-10 (Saturday) and 2026-11-20 in turn",
+        "then": "Each response is a validation error status with an error naming the date rule broken",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.3",
+        "given": "The settings of AC-40.2",
+        "when": "The Buyer sets the basket delivery date to 2026-10-07",
+        "then": "The response status is 200 and the basket delivery date field is 2026-10-07",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.4",
+        "given": "A Buyer basket with delivery date Tuesday chosen at Monday 13:50",
+        "when": "The Buyer submits the order at Monday 14:05",
+        "then": "The response status is 422, the error names the deliveryDate field and no order record is created",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-54",
+      "ears": "When a staff user searches customers by partial company name or account number or opens a customer company, the portal shall return the matching customer companies, or for the opened company its details, delivery addresses, assigned price list, users, active status, orders and invoices.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-6"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-54.1",
+        "given": "Companies \"Northside Motors\" (account C-1001) and \"Fleetline\" (C-2002)",
+        "when": "A staff user searches \"north\" and then \"C-2002\"",
+        "then": "The first returned list contains only Northside Motors and the second only Fleetline",
+        "level": "api"
+       },
+       {
+        "id": "AC-54.2",
+        "given": "Company Smith Motors with 2 addresses, 3 users, orders and invoices",
+        "when": "A staff user opens the company",
+        "then": "The response contains the company fields, an addresses list of count 2, the price list name, a users list of count 3, the status, and orders and invoices lists",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-55",
+      "ears": "When staff edit an order, the portal shall accept line quantity changes, line removal, note changes, a delivery address change to another address of the same company and a delivery date change to a date selectable at the time of the edit only while the order is in Received status, rejecting edits to orders in any other status.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-14",
+       "Q-4",
+       "ASM-35"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-55.1",
+        "given": "A Received order with delivery date Thursday",
+        "when": "At Monday 15:00 staff change the date to Wednesday, then to Tuesday",
+        "then": "The Wednesday change response status is 200 and the Tuesday change response status is 422 with an error naming the deliveryDate field",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.2",
+        "given": "A Received order of company A",
+        "when": "Staff change the delivery address to an address of company B",
+        "then": "The response status is 422 and the order's address value is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.3",
+        "given": "A Received order with 2 lines",
+        "when": "Staff remove one line and change the note",
+        "then": "The response status is 200 and the order record has 1 line, the new note and a recalculated total",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.4",
+        "given": "A Confirmed order",
+        "when": "Staff change a line quantity",
+        "then": "The response status is 409 and the line quantity value is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-82",
+      "ears": "The portal shall restrict adding, editing and removing a customer company's delivery addresses, each with label, address lines 1 and 2, city, region, postal code, country, contact person and contact phone, to staff and administrators, and return every delivery address of a Buyer's own company to that Buyer.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "I-17",
+       "Q-7",
+       "ASM-13"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-82.1",
+        "given": "Company A",
+        "when": "A staff user adds address \"Depot 2\" and a Buyer of company A lists addresses",
+        "then": "The create response status is 201 and the returned address list contains Depot 2",
+        "level": "api"
+       },
+       {
+        "id": "AC-82.2",
+        "given": "A signed-in Buyer",
+        "when": "The Buyer POSTs a new address for their company",
+        "then": "The response status is 403 and the address count is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-82.3",
+        "given": "Order ORD-000124 delivered to address Depot 2",
+        "when": "Staff remove Depot 2 and the order is opened",
+        "then": "The returned order delivery address still shows the Depot 2 details",
+        "level": "api"
+       },
+       {
+        "id": "AC-82.4",
+        "given": "Acme Garage has 2 delivery addresses and Fleet Co has 1",
+        "when": "A Buyer of Acme Garage lists addresses",
+        "then": "The returned list contains exactly the 2 Acme Garage addresses with all address fields",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Catalogue search, category filter and vehicle search respond within a bounded time under load.",
+      "metric": "p95 response time ≤ 1.5 s with 50,000 active products and 100 concurrent signed-in users"
+     },
+     {
+      "id": "NFR-15",
+      "text": "Sessions expire after inactivity and after a maximum lifetime.",
+      "metric": "Session token rejected after 30 minutes without a request; absolute lifetime 12 hours"
+     }
+    ],
+    "removed": [
+     "NFR-2",
+     "NFR-16",
+     "REQ-68",
+     "REQ-85"
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

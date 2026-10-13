@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2148,
+    "end": 2190
+   },
+   "ms": 1,
+   "resultChars": 1813,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2148,&quot;end&quot;:2190}\">\ncontracts/openapi.yaml lines 2148-2190\n2148\t      bearerFormat: JWT\n2149\t  responses:\n2150\t    BadRequest:\n2151\t      description: \"The request could not be parsed.\"\n2152\t      content:\n2153\t        application/json:\n2154\t          schema:\n2155\t            $ref: '#/components/schemas/ApiError'\n2156\t          example:\n2157\t            code: \"BAD_REQUEST\"\n2158\t            message: \"The request is invalid.\"\n2159\t    Unauthorized:\n2160\t      description: \"Authentication is missing or expired.\"\n2161\t      content:\n2162\t        application/json:\n2163\t          schema:\n2164\t            $ref: '#/components/schemas/ApiError'\n2165\t          example:\n2166\t            code: \"UNAUTHENTICATED\"\n2167\t            message: \"Please sign in again.\"\n2168\t    Forbidden:\n2169\t      description: \"The user does not have permission for this action.\"\n2170\t      content:\n2171\t        application/json:\n2172\t          schema:\n2173\t            $ref: '#/components/schemas/ApiError'\n2174\t          example:\n2175\t            code: \"FORBIDDEN\"\n2176\t            message: \"You do not have permission to complete this action.\"\n2177\t    NotFound:\n2178\t      description: \"The requested record was not found.\"\n2179\t      content:\n2180\t        application/json:\n2181\t          schema:\n2182\t            $ref: '#/components/schemas/ApiError'\n2183\t          example:\n2184\t            code: \"NOT_FOUND\"\n2185\t            message: \"The requested record was not found.\"\n2186\t    Conflict:\n2187\t      description: \"The request conflicts with the current saved state.\"\n2188\t      content:\n2189\t        application/json:\n2190\t          schema:\n… (4376 lines total; ask for start=2191)\n</untrusted_document>"
+  }
+ ]
+}

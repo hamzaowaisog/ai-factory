@@ -1,0 +1,767 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261011-folio3-parking-app-introductio-c24e",
+  "version": 1,
+  "designSha": "eb69f957c48abecd39d1332eafccde7af2f66f8efb4aed1c0d598bc023f2f77c",
+  "at": "2026-10-11T22:40:44.025Z",
+  "options": {
+    "formats": [
+      "png",
+      "pdf",
+      "html",
+      "tokens",
+      "json",
+      "figma"
+    ]
+  },
+  "files": [
+    {
+      "format": "png",
+      "path": "png/S-1_default_phone.png",
+      "sha256": "fd179d29e452df732a148cde306938f34b8d4ac55a15597678f0f386ea4b5c62",
+      "bytes": 128267
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_loading_phone.png",
+      "sha256": "35a2c495c10b70fbcf46ff12804bbeab3530e0236596beb4685ff3c1a7b26176",
+      "bytes": 120031
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_error_phone.png",
+      "sha256": "3e440e4f46afd13e4ba8ebca9f3e176b364e19abf839df0d588b531b1f23ae07",
+      "bytes": 167292
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_phone.png",
+      "sha256": "bb5881dd67809e23f1feec89dc4b4401968c41b3fa39bc223235df28a80676de",
+      "bytes": 134098
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_loading_phone.png",
+      "sha256": "43a81c494f7d3d23f69a9b778d21ae20defe4ffcdc9fb2c33c51acc3249e0016",
+      "bytes": 120429
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_phone.png",
+      "sha256": "86abbcd991f8ea99a3b6f56d2f84ca3bc9ebd07a2bf9e6698bd49c388308fea6",
+      "bytes": 149971
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_validation_phone.png",
+      "sha256": "e7e0327f83383187cd470add00a57a141ad8840a922448e817f98aa6d629a21d",
+      "bytes": 124865
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_loading_phone.png",
+      "sha256": "d3ad2d194689119d1fea470f2849803c2245d62601d2f4ceae318eccd9f7776a",
+      "bytes": 124461
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_default_phone.png",
+      "sha256": "d1789fc5103fc6a03fccf6aa62c1419bc874205aab0c326dea0ad362ebed9622",
+      "bytes": 149385
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_success_phone.png",
+      "sha256": "1ef1bd4c687280e74dac2f384932bfdd45cef7d622d8705e5e1cc0bef2401996",
+      "bytes": 123580
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_loading_phone.png",
+      "sha256": "e24353af05c901356a7c82935c209a4668371bf7c50fcb2a3eb0cfb0100a3f4d",
+      "bytes": 123928
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_empty_phone.png",
+      "sha256": "4c8c281c07d3334232af17cf932993f2f79365138a9698b3d10cfea68cb6f7ee",
+      "bytes": 145736
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_error_phone.png",
+      "sha256": "72c6e6486073e75e1b0ab91edbe68c53a2f3493aca3a2216c055860d4f21f744",
+      "bytes": 148618
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_default_phone.png",
+      "sha256": "2b83aae5470bff6e111627569c4d5807a0581e160afd29ddd7c47251e93a389e",
+      "bytes": 163783
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_success_phone.png",
+      "sha256": "d041b6e2d21dbe2c73d3dce327667207966fc0d70219978e686d558d3f9f8445",
+      "bytes": 124068
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_loading_phone.png",
+      "sha256": "cc65be928d2af2fcd8c0c5b71f794ac6dd14209c8cd7e896917dae093f7645d2",
+      "bytes": 124420
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_error_phone.png",
+      "sha256": "fb2ead17d0f726cf13de87e43c53372a54126a3b6b438a3cfdb3dd2757a55261",
+      "bytes": 159392
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_default_phone.png",
+      "sha256": "9cfac9b3f93e320bafba7cba71d96d4cef068330ae4db696d113f927609e5bd3",
+      "bytes": 152617
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_success_phone.png",
+      "sha256": "d458076ed559e6629ca01d4ad42bcdf00b5beb936a24d73ad945d240581a5601",
+      "bytes": 123385
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_validation_phone.png",
+      "sha256": "e91b37d0b86afee450277ade8bf14d28ce3ad9e0083aa110742df522c4e9a0e5",
+      "bytes": 124289
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_loading_phone.png",
+      "sha256": "6ac119988fd9befe122c5e8187a6f9f1eb406edc59c88fba5dcda92f0ff1fbe6",
+      "bytes": 124038
+    },
+    {
+      "format": "png",
+      "path": "png/S-7_default_phone.png",
+      "sha256": "83b914a874ccfa4691985f448184c6ddf94d5ed830223d6f6290cd5f62862e66",
+      "bytes": 157766
+    },
+    {
+      "format": "png",
+      "path": "png/S-7_validation_phone.png",
+      "sha256": "bf8d641e3cb4c2d35597332981e4d622abd3a9d0acb05cec29b9226e4ad5288d",
+      "bytes": 120469
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_default_phone.png",
+      "sha256": "84cc912e787013e3b08af9c3c911009103113842752bc9c8b7e84472fba4fe02",
+      "bytes": 147833
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_empty_phone.png",
+      "sha256": "3df0ddae74f8bc441e0f6cc2bc1c7ca1d2e3759dfcb43cb4441b3598a0c03a72",
+      "bytes": 153583
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_error_phone.png",
+      "sha256": "f7f991753edf34a8cfaf8564bec3de95d4f86ef47c233ace9c2007248898e155",
+      "bytes": 146686
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_default_phone.png",
+      "sha256": "4894deda3f397499d48461cc7e991969b1c2641ee62f584adebcfe474c41324a",
+      "bytes": 142780
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_validation_phone.png",
+      "sha256": "c8069cd48d1fdf144eb632efd4f2eeaa2050b805dfcccee8adf02aaf8850fe13",
+      "bytes": 122773
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_empty_phone.png",
+      "sha256": "7f5ad6af301be9ddab5dd33801cd320b381d6c76a4d011955876fc078aa90f52",
+      "bytes": 151692
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_default_phone.png",
+      "sha256": "95845220623f26d3381e1034750d42e373a6dd7101bf1916e61872d078826788",
+      "bytes": 138344
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_empty_phone.png",
+      "sha256": "ee2f09efd2a22122ee4b4415403861a80429a38353113a65da857a72f68d111b",
+      "bytes": 144076
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_default_phone.png",
+      "sha256": "1dfe8f4b4cb53153b34a98e01be856cd74944f9a6758e0c46565eff2476b1076",
+      "bytes": 161300
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_success_phone.png",
+      "sha256": "ba2283249011f4aad8ff15b4fc530b8ae358c596ed70b087bb3e80b3d7c3c854",
+      "bytes": 124117
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_validation_phone.png",
+      "sha256": "3c89594e8dc4255d74d8d2da1a74364a7cbd68bebfdfa69e66b92652ca0119a7",
+      "bytes": 124752
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_default_phone.png",
+      "sha256": "e54d82bfe4c69248ec8dda21982c32c8a49b29b49fd51e0e1d154dda7a225aa6",
+      "bytes": 155545
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_success_phone.png",
+      "sha256": "0b2ede3831393d2dfeaeb757ef51e88169a9cc4640542efe2f8ca9790bc84618",
+      "bytes": 121566
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_validation_phone.png",
+      "sha256": "59c041c7327711644cf27e4b79359c05efa25fc197caa32c17c7079b572aa460",
+      "bytes": 122204
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_default_phone.png",
+      "sha256": "5a2388dd35eb47409bd99b80c6b10fb0c5a97f0ce70da802ae0e472a0763a2e8",
+      "bytes": 148792
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_success_phone.png",
+      "sha256": "af829e0654f673532c2458239d7b9d7d9329848ca881876db43fdd466a95fb6a",
+      "bytes": 121703
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_validation_phone.png",
+      "sha256": "bda06b60a949585902f7f38228ebdacccdeafd95953e1f98c1c39edc4fc4fa37",
+      "bytes": 122344
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_default_phone.png",
+      "sha256": "ded96e5d907101fc3bcf9f316758186a0159351ca1b1fcc371ddfc26ae340c7d",
+      "bytes": 152639
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_success_phone.png",
+      "sha256": "82092cc0327e9849e0fe167276c3228c3cbe2bc3be72936dd5f5b622d25d42a8",
+      "bytes": 124176
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_validation_phone.png",
+      "sha256": "fc9b424b1e275c25f062bae45d65f9b321ed0dbc45128df4838e1106c1d4f504",
+      "bytes": 124972
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_empty_phone.png",
+      "sha256": "8753783b291cda51f5afd1a4ddf1cf1c12e37820d381f176b9e58bc48486aa2b",
+      "bytes": 148103
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_default_phone.png",
+      "sha256": "d29bd267e166ff600fc92844ac1db54f3bc9f924084fb3722778d5396ac03d5b",
+      "bytes": 155899
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_empty_phone.png",
+      "sha256": "d956527d7859179a7107fa115e9e661e317873074c98b74517c5426693aa68e2",
+      "bytes": 148397
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_default_phone.png",
+      "sha256": "9254856c0d9b42adb1f78651c74f14ae4ca840e4135c014222dcd799de114363",
+      "bytes": 145071
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_empty_phone.png",
+      "sha256": "c0eef2c162e9dc4df753012921b160dfc761c87d00ac1cc0840ba718402f0b55",
+      "bytes": 148421
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_default_desktop.png",
+      "sha256": "06f6bb28f4e4f21572d56832cf8c8893976aca2b1af262d828be7594289d617d",
+      "bytes": 191029
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_loading_desktop.png",
+      "sha256": "aeca6a1f5aaed04cc7fbf7dd72df7919a5bd4afbfd1b63e711ae161e2928908e",
+      "bytes": 146299
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_error_desktop.png",
+      "sha256": "d71ef059c6357aa74634cc294502fb3005d1b8ceb9184d501b19807f5af3b0fb",
+      "bytes": 358560
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_desktop.png",
+      "sha256": "c8cfda082d4876200f192aad78387fecfafa130a0b726d624d5d3e4c1363bc94",
+      "bytes": 212417
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_loading_desktop.png",
+      "sha256": "1d763cf29a86d1f8af5a8c845372a0224bbfd1070d17c2c94a35368e73826493",
+      "bytes": 147577
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_desktop.png",
+      "sha256": "4df051cf15de1cc7028f379a5df60b92ee53a21af36fbafdcebd3d231d114b98",
+      "bytes": 263494
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_validation_desktop.png",
+      "sha256": "a5b88784c65f9e2d6b35bc957a70a5cc0937e56a232a7e3af146ccb4f9cc2e41",
+      "bytes": 153698
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_loading_desktop.png",
+      "sha256": "c7aa7f7a85c3c77d3a8fb6fc8feef81eab7d2a472e448941c21b9e7d67f3f978",
+      "bytes": 153387
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_default_desktop.png",
+      "sha256": "00d179990a683d288df0651c8cf9b52e46abdc9940ce3e1c4f0415502f6d3fdf",
+      "bytes": 266918
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_success_desktop.png",
+      "sha256": "23ffb58839dfb756422ec96e64ef19b4cca40c154c78bfecded22bbc7a3689e9",
+      "bytes": 151107
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_loading_desktop.png",
+      "sha256": "2e678f42d6a1fa3c4995f13c6b3912a2d31122dfdeedbdb4d111808d54ca836c",
+      "bytes": 151320
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_empty_desktop.png",
+      "sha256": "acb84766abb3298225dcfeaa3c53f56984518657cd2714d77b6ab3a4665bb464",
+      "bytes": 248290
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_error_desktop.png",
+      "sha256": "ed86dd5ad1a544b8a2bad19ad49e5120e8c73c9101d859700241dfe7cecc52c5",
+      "bytes": 264102
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_default_desktop.png",
+      "sha256": "ca489607845c67d43e4640b111fdb1a6bbfe714ec998edcfc96b82c5414f0fbe",
+      "bytes": 321925
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_success_desktop.png",
+      "sha256": "84eb4e6d2eccac56c9df0080c978f15bcf85913fd97a577d7aeb8afcbc6722a4",
+      "bytes": 152518
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_loading_desktop.png",
+      "sha256": "b4e1de8709e9c375a6cbe10c9600bed8f9eef31146e663e116ea5ea01f8c6e68",
+      "bytes": 152747
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_error_desktop.png",
+      "sha256": "f5dbc94720e59857be23b5ff6b452c0f201955faa4b984b23193e21f8fabbcdf",
+      "bytes": 307663
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_default_desktop.png",
+      "sha256": "2561942d0f9b731c96022f95fceb9a8bade66c7dc1b0a4fc64d52d17f6a89015",
+      "bytes": 276002
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_success_desktop.png",
+      "sha256": "c49f35b08fa4b2b32efdd2c6182ec13b7f413ccc80081d26ac0c2b2b20456e2b",
+      "bytes": 151736
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_validation_desktop.png",
+      "sha256": "50c22477d6ed7ee586f5a5d6777fb9e82b4b4b1bbbd2ab6dbcbe518875e784b3",
+      "bytes": 152461
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_loading_desktop.png",
+      "sha256": "7d1bd2d0e8d33f1cf6b26abe5a2696dcf97c6eab55c129ec5d06baa283f2478c",
+      "bytes": 152235
+    },
+    {
+      "format": "png",
+      "path": "png/S-7_default_desktop.png",
+      "sha256": "4f78be7d9063575923d36983859c8570eaddb5b310b6b69bf4f11ab2ae0c61dd",
+      "bytes": 311431
+    },
+    {
+      "format": "png",
+      "path": "png/S-7_validation_desktop.png",
+      "sha256": "8f1aa7de032d45efa347ef0ffb8d6a6a5d97fa4af33d511fe24aaa47c0b92171",
+      "bytes": 147457
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_default_desktop.png",
+      "sha256": "f21168b577f51d4a9fec73b19bfdc31041ea0dbe8005beda414cc9e5b63de7f5",
+      "bytes": 255814
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_empty_desktop.png",
+      "sha256": "789e0b1e29c747579febd8b65c1b6b60c2cbd149078f8819af4a93e8f9d84559",
+      "bytes": 283197
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_error_desktop.png",
+      "sha256": "a23e5aaccb82b1303d56c12dfb3f1dfa1567c0ffbbace191eb62d8f1209142d5",
+      "bytes": 249276
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_default_desktop.png",
+      "sha256": "efd2966228b670d6bec4d4c66dcee61a41d90b0e136adf4c9933f77fa1a8c4cf",
+      "bytes": 238061
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_validation_desktop.png",
+      "sha256": "c1562470654ffbfba81fc5b682b71f3a593ab852cfa16d92ffdfe12ad2406534",
+      "bytes": 149814
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_empty_desktop.png",
+      "sha256": "db8ab628e3bb7b6636168e3d2b30d0977b632b6d1d9056b902b005846a95c470",
+      "bytes": 277216
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_default_desktop.png",
+      "sha256": "287e2ecfbca9c9109af7d5a17ecb46451c5ba4cbe9a078b07a48da8f9649c9df",
+      "bytes": 225075
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_empty_desktop.png",
+      "sha256": "53711050ae854f89a6de3bd4b019bbe8243d686c8da15d81b2c93c4a7a2a92ca",
+      "bytes": 249731
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_default_desktop.png",
+      "sha256": "a3a459c82beeeb30877cb337d6ddc3f1943b746a91bf8cd90f8745bf240376a2",
+      "bytes": 312785
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_success_desktop.png",
+      "sha256": "50929d099d7c74a902c441429112d3a2bd71b845692f39b707f9a575c4be1406",
+      "bytes": 151857
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_validation_desktop.png",
+      "sha256": "9aa8118b34898be93caac0d24190458af1d4f09d122f23336db79c56c7289f0d",
+      "bytes": 152468
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_default_desktop.png",
+      "sha256": "7e743105a07d9d2e6c94e5d1b3f26523eaf2437e3ded4bc841ae7ef8ed68b2d5",
+      "bytes": 293019
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_success_desktop.png",
+      "sha256": "e519456da8743f48c60b1356996aba140dc1b58f916fd0b72a59f9d74390fb7c",
+      "bytes": 148453
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_validation_desktop.png",
+      "sha256": "5de77fdf469b39afdf6214fd79dd10cccd3fdda1eaa8f7a09e72196e3424a791",
+      "bytes": 149061
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_default_desktop.png",
+      "sha256": "2d782da99a9b46e93a905bc1fd4eb6b7079ba106620f0e50c103a944b3bca157",
+      "bytes": 277595
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_success_desktop.png",
+      "sha256": "49c8c9746ca72c53d920d75bda0b06e517c85ea02ee94f0cc3a396e14c81e9e8",
+      "bytes": 149996
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_validation_desktop.png",
+      "sha256": "b8fc030ba500fc15faed2e8524acb70610dd491af967778103fde9b6e137b0c0",
+      "bytes": 150611
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_default_desktop.png",
+      "sha256": "ee76b162a42396b938903981f6b2ff967c709193d65beaf456e84da7c6d6a633",
+      "bytes": 279641
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_success_desktop.png",
+      "sha256": "f6e07b42576d466af5724b84cc2a36b5ec5efae90522cadeadf3d8c01933bbd0",
+      "bytes": 152743
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_validation_desktop.png",
+      "sha256": "e9e2d55ddd6b600ecb0b418243b623c6a54afcde7514032d2a44b16716110070",
+      "bytes": 153457
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_empty_desktop.png",
+      "sha256": "5dc0bd20ba6342e3844fa815c692888350709f041ab461966fbed900a53c1179",
+      "bytes": 260719
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_default_desktop.png",
+      "sha256": "6d8aac49d428d483f54f4df137ab20cd0535ba1d565b5053ff2aa949218685d4",
+      "bytes": 296748
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_empty_desktop.png",
+      "sha256": "52a81c95dc67929a016e48a1a807cb702af43140c0400aac704a69ea3b138bcf",
+      "bytes": 266336
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_default_desktop.png",
+      "sha256": "8c6a23a08d6dd8a53ba45b278b72e75dd48553a8e086b58fef9be57d7fe5d612",
+      "bytes": 257192
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_empty_desktop.png",
+      "sha256": "fd574995e1eec7fda34a2edc2cb12decb3cd3e2f934cdbe35f2c602ca5cc8e57",
+      "bytes": 272789
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_default_tablet.png",
+      "sha256": "6ee505d5755cd20a04155dce35f227c73dee6e2bd75457b4955a4d2c3ab6d7a8",
+      "bytes": 162073
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_tablet.png",
+      "sha256": "69ff0ebe4e5d2a0715549694bbb2ba695ed10cb28eee46ac4112135ec9cddf62",
+      "bytes": 171854
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_tablet.png",
+      "sha256": "73517bee50ddaff7ed0dfb7582da17e7ebc686aa3e5016c107af686a02be5f55",
+      "bytes": 189493
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_default_tablet.png",
+      "sha256": "534662a4f5c371528a0a354332462e385c1ad27f98d6352a124b09056876b918",
+      "bytes": 193581
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_default_tablet.png",
+      "sha256": "30e875bd09bc0e4895f8c8057c83640f5ee7577518f46bb0ccddb01bd0a2ba36",
+      "bytes": 215480
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_default_tablet.png",
+      "sha256": "faf9a7cf4efb304b842f5a8abdc667e69e495e48a369118338d7538cf4ad17ba",
+      "bytes": 200366
+    },
+    {
+      "format": "png",
+      "path": "png/S-7_default_tablet.png",
+      "sha256": "3b5a10dfd85b3ec051fc76a67a6a45a5525a9afd768b81fb0cfd1adb093452c0",
+      "bytes": 208493
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_default_tablet.png",
+      "sha256": "36201f9a5ce5c54c440c12c4fafd1170b32e34f6af81a37f5b7d3f0664a1a656",
+      "bytes": 192105
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_default_tablet.png",
+      "sha256": "c5a3e12399c966274c1fb13764727e3da87d465f6b58b1e7c94cac24abbaf5b9",
+      "bytes": 182528
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_default_tablet.png",
+      "sha256": "a9d4e59e271965495be3e1bed78465f43719889b37b49383a35cad0110a94836",
+      "bytes": 178354
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_default_tablet.png",
+      "sha256": "5e9ef536a246c02180094587c3cdff240d06848656fb66cdc9b8e3e6a8cf9548",
+      "bytes": 212998
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_default_tablet.png",
+      "sha256": "b89a4382e8c932755865d723aa45472f3abf81de5759b818febf2bb22f3619ac",
+      "bytes": 203283
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_default_tablet.png",
+      "sha256": "9ce2166f0ac82ba6f2e95ad36c14fb433490f5ee24c20db078045db27c7aa103",
+      "bytes": 195994
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_default_tablet.png",
+      "sha256": "d34eb14ba02100fc2ee3321002b13c4ecbffc977a3420c0ec603ec9010e4dfd5",
+      "bytes": 199622
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_default_tablet.png",
+      "sha256": "cfe812d1e55fc33985413abb4f84f7675f5d638d2920b464d798ed693da71269",
+      "bytes": 204355
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_default_tablet.png",
+      "sha256": "91c9dd2bd106c1f7e8542bad846c250f55db1338347b51a7fc1cf12d5be2d070",
+      "bytes": 187520
+    },
+    {
+      "format": "pdf",
+      "path": "design-book.pdf",
+      "sha256": "5c3e59157e64f77fd83b3c8b4c9ce80849c503baef8966e41bc64ace6044468e",
+      "bytes": 18353495
+    },
+    {
+      "format": "html",
+      "path": "demo.zip",
+      "sha256": "d6c06e6b4ee74a6573d9da51bae70b474dc72e8eb67d0573fb460e3c682148fd",
+      "bytes": 7751518
+    },
+    {
+      "format": "tokens",
+      "path": "tokens/tokens.json",
+      "sha256": "56db87a7fb4521b7f3541404a3ed524ab7e211e1700d087a27078e4d73a744c2",
+      "bytes": 9277
+    },
+    {
+      "format": "tokens",
+      "path": "tokens/tokens.css",
+      "sha256": "728c3ac949f7d7adf45db78378072d8342cfc354f89c4dff398073a7f684c804",
+      "bytes": 1252
+    },
+    {
+      "format": "tokens",
+      "path": "tokens/tailwind.css",
+      "sha256": "7bf5d031df44ecfd900b7c954f6ceb54a1c3aa9be67e32104efdefb3f0c5edba",
+      "bytes": 1351
+    },
+    {
+      "format": "json",
+      "path": "json/design.json",
+      "sha256": "6fc8ae6d1435582925643fcef0f417e236ed533b8b3e0f919029d7370b83b60d",
+      "bytes": 41740
+    },
+    {
+      "format": "json",
+      "path": "json/manifest.json",
+      "sha256": "d75a5ca1764e1babb8aa42eceaefcdb4adc795102f8f00844cc13e9d0eb67e7c",
+      "bytes": 46871
+    },
+    {
+      "format": "figma",
+      "path": "figma.json",
+      "sha256": "37afdb677e73a8615f0f1ec699b2f84630d70570baf5e4ef4d638c6f3e28f4bc",
+      "bytes": 13672350
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "pdf.screens",
+      "status": "PASS",
+      "detail": "every screen is in the book"
+    },
+    {
+      "check": "pdf.fonts",
+      "status": "PASS",
+      "detail": "every font is embedded"
+    },
+    {
+      "check": "pdf.pages",
+      "status": "PASS",
+      "detail": "design-book.pdf 66 page(s), 16 screen(s), 37 font(s)"
+    },
+    {
+      "check": "png.count",
+      "status": "PASS",
+      "detail": "112 PNG(s) cover all 48 screen states (screens × states)"
+    },
+    {
+      "check": "figma.frames",
+      "status": "PASS",
+      "detail": "112 frame(s) with 266 layer(s) cover all 48 screen states"
+    }
+  ]
+}

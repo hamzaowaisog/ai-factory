@@ -1,0 +1,206 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Office parking settings",
+     "subtitle": "Set the release cutoff and weekly report delivery using Islamabad office time.",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Office timezone",
+         "kind": "select",
+         "value": "Asia/Karachi · Islamabad office",
+         "options": [
+          "Asia/Karachi · Islamabad office",
+          "Asia/Dubai",
+          "UTC"
+         ],
+         "required": true
+        },
+        {
+         "label": "Daily release time",
+         "kind": "time",
+         "value": "08:00",
+         "required": true,
+         "help": "Default is 8:00 AM. Scheduled releases and daily cutoffs use the selected office timezone."
+        },
+        {
+         "label": "Scheduling window",
+         "kind": "text",
+         "value": "Today through 30 days ahead · office-local",
+         "readOnly": true,
+         "help": "Eligible dates and release cutoffs are evaluated in the selected timezone."
+        },
+        {
+         "label": "Weekly report recipients",
+         "kind": "multiselect",
+         "value": "parking-ops@folio3.com, facilities@folio3.com",
+         "options": [
+          "parking-ops@folio3.com",
+          "facilities@folio3.com",
+          "people-team@folio3.com"
+         ],
+         "required": true,
+         "help": "Only authenticated parking administrators can update this list."
+        }
+       ],
+       "submit": "Save office settings"
+      },
+      {
+       "type": "detail",
+       "title": "Weekly utilization report",
+       "rows": [
+        {
+         "label": "Next delivery",
+         "value": "Monday, 12 May · 8:15 AM PKT"
+        },
+        {
+         "label": "Schedule",
+         "value": "Every Monday · office-local time"
+        },
+        {
+         "label": "Timezone",
+         "value": "Asia/Karachi · Islamabad office"
+        },
+        {
+         "label": "Delivery",
+         "value": "Email to the saved stakeholder list"
+        },
+        {
+         "label": "Recipients",
+         "value": "parking-ops@folio3.com · facilities@folio3.com"
+        },
+        {
+         "label": "Access",
+         "value": "Authenticated parking administrators"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "Office settings could not be saved. Your current settings are still in place.",
+      "success": "Office parking settings saved. Release cutoffs and report timing now use Islamabad office time.",
+      "validation": "Choose an office timezone, set a daily release time, and add at least one report recipient."
+     },
+     "toasts": [
+      {
+       "after": "Save office settings",
+       "text": "Office parking settings saved.",
+       "tone": "ok"
+      }
+     ]
+    },
+    "mockFull": {
+     "title": "Office parking settings",
+     "subtitle": "Set the release cutoff and weekly report delivery using Islamabad office time.",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Office timezone",
+         "kind": "select",
+         "value": "Asia/Karachi · Islamabad office",
+         "options": [
+          "Asia/Karachi · Islamabad office",
+          "Asia/Dubai",
+          "UTC"
+         ],
+         "required": true
+        },
+        {
+         "label": "Daily release time",
+         "kind": "time",
+         "value": "08:00",
+         "required": true,
+         "help": "Default is 8:00 AM. Scheduled releases and daily cutoffs use the selected office timezone."
+        },
+        {
+         "label": "Scheduling window",
+         "kind": "text",
+         "value": "Today through 30 days ahead · office-local",
+         "readOnly": true,
+         "help": "Eligible dates and release cutoffs are evaluated in the selected timezone."
+        },
+        {
+         "label": "Weekly report recipients",
+         "kind": "multiselect",
+         "value": "parking-ops@folio3.com, facilities@folio3.com, people-team@folio3.com",
+         "options": [
+          "parking-ops@folio3.com",
+          "facilities@folio3.com",
+          "people-team@folio3.com"
+         ],
+         "required": true,
+         "help": "Only authenticated parking administrators can update this list."
+        }
+       ],
+       "submit": "Save office settings"
+      },
+      {
+       "type": "detail",
+       "title": "Weekly utilization report",
+       "rows": [
+        {
+         "label": "Next delivery",
+         "value": "Monday, 12 May · 8:15 AM PKT"
+        },
+        {
+         "label": "Schedule",
+         "value": "Every Monday · office-local time"
+        },
+        {
+         "label": "Timezone",
+         "value": "Asia/Karachi · Islamabad office"
+        },
+        {
+         "label": "Delivery",
+         "value": "Email to the saved stakeholder list"
+        },
+        {
+         "label": "Recipients",
+         "value": "parking-ops@folio3.com · facilities@folio3.com · people-team@folio3.com"
+        },
+        {
+         "label": "Last sent",
+         "value": "Monday, 5 May · 8:15 AM PKT"
+        },
+        {
+         "label": "Report period",
+         "value": "28 Apr–4 May · Islamabad office time"
+        },
+        {
+         "label": "Access",
+         "value": "Authenticated parking administrators"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "Office settings could not be saved. Your current settings are still in place.",
+      "success": "Office parking settings saved. Release cutoffs and report timing now use Islamabad office time.",
+      "validation": "Choose an office timezone, set a daily release time, and add at least one report recipient."
+     },
+     "toasts": [
+      {
+       "after": "Save office settings",
+       "text": "Office parking settings saved.",
+       "tone": "ok"
+      }
+     ]
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

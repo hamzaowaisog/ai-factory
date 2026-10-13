@@ -1,0 +1,70 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement the Feedlot API exactly as declared in the OpenAPI contract: all documented operations, schemas, status codes, and security rules; no undocumented operations or product-screen routes."
+     },
+     {
+      "n": 2,
+      "text": "Return contract-defined sign-in, session, dashboard, and filtered lot-list responses, without applying an extra authorized-yard restriction to lot-list results."
+     },
+     {
+      "n": 3,
+      "text": "Implement procurement imports and allocations with the contract-defined matching, PO-line-to-lot and lot-to-pen traceability, saved quantities, capacity information, and conflict results."
+     },
+     {
+      "n": 4,
+      "text": "Implement lot forecasts, forecast settings, metrics, insights, planner actions, and weight-history operations with contract-defined calculations, suggestions, validation, and persisted updates."
+     },
+     {
+      "n": 5,
+      "text": "Implement inventory reads, item writes, movements, projections, and CSV exports with contract-defined stock values and persist inventory changes in PostgreSQL."
+     },
+     {
+      "n": 6,
+      "text": "Implement ration reads, creation, revision, optimization, and approval with contract-defined calculations and persisted changes."
+     },
+     {
+      "n": 7,
+      "text": "Implement feed-plan reads, creation, review, and status changes with contract-defined plan calculations, audit fields, and persisted updates."
+     },
+     {
+      "n": 8,
+      "text": "Implement feeding-event reads, creation, correction, and voiding with contract-defined variance, cost, energy, inventory movements, and lot-feed totals; reconcile stock without counting replaced or voided movements."
+     },
+     {
+      "n": 9,
+      "text": "Implement operational, feed-to-gain, and profitability reports and exports with contract-defined filters, calculations, authorization, and export artifacts."
+     },
+     {
+      "n": 10,
+      "text": "Implement sample-data status, load, reset, and replacement operations; avoid duplicate loading and require explicit confirmation for reset or replacement."
+     },
+     {
+      "n": 11,
+      "text": "Store contract domain data in the configured App PostgreSQL database, preserve successful writes across restarts, and upgrade the schema without changing existing data."
+     },
+     {
+      "n": 12,
+      "text": "When Seed:Demo is true, seed each empty application table at startup with 3 to 5 believable, contract-example-derived rows, leave nonempty tables unchanged, and fail startup while surfacing seed-write errors."
+     },
+     {
+      "n": 13,
+      "text": "When Seed:Demo is false, serve collection operations from persisted records, including empty lists when no records exist."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

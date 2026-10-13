@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FOLIO3 // PARKING PORTAL - Vehicle Registration</title>
+<!-- Typography: IBM Plex Sans & IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<!-- Tailwind Configuration matching Design System -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#c8c5ca",
+          "background": "#141313",
+          "surface": "#141313",
+          "surface-container": "#201f20",
+          "surface-container-high": "#2b2a2a",
+          "surface-container-low": "#1c1b1c",
+          "surface-container-lowest": "#0e0e0e",
+          "outline": "#919095",
+          "outline-variant": "#47464b",
+          "on-surface": "#e5e2e1",
+          "on-surface-variant": "#c8c5cb",
+        },
+        fontFamily: {
+          headline: ["IBM Plex Sans", "sans-serif"],
+          display: ["IBM Plex Sans", "sans-serif"],
+          body: ["IBM Plex Sans", "sans-serif"],
+          mono: ["IBM Plex Mono", "monospace"],
+          label: ["Public Sans", "sans-serif"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --canvas: #18181B;
+    --panel: #1F1F23;
+    --raised: #27272C;
+    --ink: #F4F4F5;
+    --ink-2: #A1A1AA;
+    --ink-3: #71717A;
+    --rule: rgba(244,244,245,0.08);
+    --rule-strong: rgba(244,244,245,0.16);
+    --accent: #E6C34A;
+    --accent-press: #CFAE3E;
+    --accent-tint: rgba(230,195,74,0.08);
+    --clear: #45C07F;
+    --stop: #E5534B;
+    --stop-tint: rgba(229,83,75,0.12);
+    --dur-instant: 90ms;
+    --dur-quick: 160ms;
+    --dur-base: 260ms;
+    --dur-slow: 420ms;
+    --dur-scene: 720ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    --travel: 8px;
+  }
+
+  /* Tabular figures for data readouts */
+  .tabular-mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+
+  /* Motion System Keyframes & Tokens */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(var(--travel));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes breathe {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+    50% {
+      transform: scale(1.75);
+      opacity: 0.15;
+    }
+  }
+
+  /* Entrance sequence (CSS-only) */
+  .enter-seq > * {
+    animation: rise var(--dur-base) var(--ease-out) both;
+  }
+  .enter-seq > *:nth-child(1) { animation-delay: 50ms; }
+  .enter-seq > *:nth-child(2) { animation-delay: 100ms; }
+  .enter-seq > *:nth-child(3) { animation-delay: 150ms; }
+  .enter-seq > *:nth-child(4) { animation-delay: 200ms; }
+  .enter-seq > *:nth-child(5) { animation-delay: 250ms; }
+
+  /* Interactive press, hover and focus transitions */
+  .press-action {
+    transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out);
+  }
+  .press-action:hover {
+    background-color: var(--accent-press);
+  }
+  .press-action:active {
+    transform: scale(0.97);
+  }
+
+  /* Inputs interactive styling */
+  .field-input {
+    transition: border-color var(--dur-quick) var(--ease-out), background-color var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
+  }
+  .field-input:hover {
+    border-color: rgba(244,244,245,0.28);
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .field-input:active {
+    transform: scale(0.995);
+  }
+
+  /* Focus Visible accessibility */
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Signature Bay Carry View Transition */
+  .bay-carry-element {
+    view-transition-name: bay-code;
+  }
+  ::view-transition-group(bay-code) {
+    animation-duration: var(--dur-slow);
+    animation-timing-function: var(--ease-inout);
+  }
+
+  /* Ambient Live Link breathing ring on console status indicator */
+  .live-ring {
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    animation: breathe 6s var(--ease-inout) infinite;
+    transform-origin: center center;
+  }
+  .live-ring[data-state="down"] {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  /* Yellow accent marker */
+  .bay-rule {
+    position: relative;
+  }
+  .bay-rule::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -1px;
+    width: 24px;
+    height: 2px;
+    background-color: var(--accent);
+  }
+
+  /* Reduced Motion Compliance */
+  @media (prefers-reduced-motion: reduce) {
+    .enter-seq > *,
+    .press-action,
+    .field-input,
+    .live-ring,
+    .bay-carry-element {
+      animation: none !important;
+      transition: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+    }
+    ::view-transition-group(*) {
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body class="bg-[#18181B] text-[#F4F4F5] font-body selection:bg-[#E6C34A] selection:text-[#18181B] min-h-screen flex flex-col justify-start antialiased">
+
+  <!-- Header Console Bar without any links or menu items -->
+  <header class="w-full bg-[#18181B] border-b border-[rgba(244,244,245,0.08)] select-none">
+    <div class="flex justify-between items-center w-full px-4 sm:px-6 max-w-2xl mx-auto h-12">
+      <!-- Brand Plate -->
+      <div class="font-headline text-xs sm:text-sm font-semibold tracking-wider text-[#F4F4F5] flex items-center gap-2">
+        <span class="w-2 h-4 bg-[#E6C34A] inline-block rounded-[1px]"></span>
+        <span class="bay-carry-element">FOLIO3 // PARKING PORTAL</span>
+      </div>
+      <!-- Ambient Entrance Console Live-Link Indicator -->
+      <div class="flex items-center gap-2 px-2.5 py-1 bg-[#1F1F23] border border-[rgba(244,244,245,0.12)] rounded-[2px] text-xs tabular-mono">
+        <div class="relative flex items-center justify-center w-2.5 h-2.5 text-[#45C07F]">
+          <div class="live-ring absolute inset-[-3px] w-4 h-4 text-[#45C07F]" data-state="live"></div>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#45C07F]"></span>
+        </div>
+        <span class="text-[10px] sm:text-[11px] font-mono tracking-wider uppercase text-[#A1A1AA]">GATE CAM · ONLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Mobile-First Single-Column Content -->
+  <main class="w-full max-w-2xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-16 flex-1 flex flex-col justify-start enter-seq">
+    
+    <!-- Step label at the top -->
+    <div class="mb-4">
+      <span class="inline-block font-mono text-[11px] uppercase tracking-widest text-[#E6C34A] font-medium bg-[#1F1F23] px-2 py-0.5 border border-[rgba(230,195,74,0.2)] rounded-[2px]">
+        Step 1 of 1 · Your vehicle
+      </span>
+    </div>
+
+    <!-- Primary Heading: Large, high visual priority -->
+    <h1 class="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold text-[#F4F4F5] tracking-tight leading-tight mb-2">
+      Add the car you'll park with
+    </h1>
+
+    <!-- Personalized Instruction Subtext -->
+    <p class="text-sm sm:text-base text-[#A1A1AA] leading-relaxed mb-8 max-w-xl font-normal">
+      Hi Bilal Siddiqui (F3-2087). The entrance camera only lets in plates registered to you and authorized for the day.
+    </p>
+
+    <!-- Registration Form -->
+    <form class="space-y-6 w-full" onsubmit="event.preventDefault();">
+      
+      <!-- License Plate Field (Required, Large Monospace) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label for="license-plate" class="block font-mono text-[11px] font-semibold uppercase tracking-wider text-[#F4F4F5]">
+            License plate <span class="text-[#E6C34A]">*</span>
+          </label>
+          <span class="font-mono text-[10px] uppercase text-[#71717A] tracking-wider">Required</span>
+        </div>
+        
+        <div class="relative">
+          <input 
+            type="text" 
+            id="license-plate" 
+            name="license_plate" 
+            required 
+            placeholder="BKR-482" 
+            class="field-input w-full h-14 px-4 bg-[#1F1F23] border border-[rgba(244,244,245,0.16)] rounded-[2px] font-mono text-xl sm:text-2xl tracking-widest uppercase text-[#F4F4F5] placeholder-[#71717A] tabular-mono"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <!-- Helper line -->
+        <p class="text-xs text-[#A1A1AA] font-mono flex items-center gap-1.5 pt-0.5">
+          <span class="w-1 h-1 rounded-full bg-[#E6C34A] inline-block"></span>
+          <span>Plates are matched ignoring letter case and spacing.</span>
+        </p>
+      </div>
+
+      <!-- Make, Model and Color Fields (Optional, side by side on wide screens) -->
+      <div class="pt-2">
+        <div class="flex items-center justify-between mb-2">
+          <span class="block font-mono text-[11px] font-medium uppercase tracking-wider text-[#A1A1AA]">
+            Vehicle details
+          </span>
+          <span class="font-mono text-[10px] uppercase text-[#71717A] tracking-wider">Optional</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Make -->
+          <div class="space-y-1.5">
+            <label for="vehicle-make" class="block font-mono text-[11px] text-[#A1A1AA] uppercase tracking-wider">
+              Make
+            </label>
+            <input 
+              type="text" 
+              id="vehicle-make" 
+              name="make" 
+              placeholder="Toyota" 
+              class="field-input w-full h-11 px-3 bg-[#1F1F23] border border-[rgba(244,244,245,0.16)] rounded-[2px] text-sm text-[#F4F4F5] placeholder-[#71717A] font-body"
+            />
+          </div>
+
+          <!-- Model -->
+          <div class="space-y-1.5">
+            <label for="vehicle-model" class="block font-mono text-[11px] text-[#A1A1AA] uppercase tracking-wider">
+              Model
+            </label>
+            <input 
+              type="text" 
+              id="vehicle-model" 
+              name="model" 
+              placeholder="Corolla" 
+              class="field-input w-full h-11 px-3 bg-[#1F1F23] border border-[rgba(244,244,245,0.16)] rounded-[2px] text-sm text-[#F4F4F5] placeholder-[#71717A] font-body"
+            />
+          </div>
+
+          <!-- Color -->
+          <div class="space-y-1.5">
+            <label for="vehicle-color" class="block font-mono text-[11px] text-[#A1A1AA] uppercase tracking-wider">
+              Color
+            </label>
+            <input 
+              type="text" 
+              id="vehicle-color" 
+              name="color" 
+              placeholder="White" 
+              class="field-input w-full h-11 px-3 bg-[#1F1F23] border border-[rgba(244,244,245,0.16)] rounded-[2px] text-sm text-[#F4F4F5] placeholder-[#71717A] font-body"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Single Primary Action Button: "Save and continue" -->
+      <div class="pt-4">
+        <button 
+          type="submit" 
+          class="press-action w-full h-12 bg-[#E6C34A] text-[#18181B] font-headline font-semibold text-sm rounded-[2px] flex items-center justify-center tracking-wide select-none cursor-pointer shadow-none"
+        >
+          Save and continue
+        </button>
+      </div>
+
+    </form>
+
+    <!-- Lower half intentionally left empty per specification -->
+    <div class="flex-1 min-h-[35vh]"></div>
+
+  </main>
+
+</body>
+</html>

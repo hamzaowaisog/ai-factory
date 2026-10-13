@@ -1,0 +1,163 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Request detail",
+     "subtitle": "HW-2408 · Repair meeting room projector",
+     "badge": "In progress",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Repair meeting room projector",
+       "lead": {
+        "label": "Request ID",
+        "value": "HW-2408"
+       },
+       "rows": [
+        {
+         "label": "Area",
+         "value": "North Wing · Room 3B"
+        },
+        {
+         "label": "Priority",
+         "value": "High · P1",
+         "badge": true
+        },
+        {
+         "label": "Status",
+         "value": "In progress",
+         "badge": true
+        },
+        {
+         "label": "Created (UTC)",
+         "value": "2026-03-05"
+        },
+        {
+         "label": "Description",
+         "value": "The projector powers on, but the image cuts out after a few minutes. Please inspect the HDMI connection and ceiling mount."
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Mark done",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Back to Requests",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to Requests",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Mark done",
+       "text": "Could not update the request.",
+       "tone": "bad"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "Request not found.",
+      "emptyHint": "Return to Requests and choose another request.",
+      "error": "We couldn't load this request. Retry, or return to Requests.",
+      "success": "Request marked done.",
+      "validation": "Could not update the request."
+     }
+    },
+    "mockFull": {
+     "title": "Request detail",
+     "subtitle": "HW-2408 · Repair meeting room projector",
+     "badge": "In progress",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Repair meeting room projector",
+       "lead": {
+        "label": "Request ID",
+        "value": "HW-2408"
+       },
+       "rows": [
+        {
+         "label": "Area",
+         "value": "North Wing · Room 3B"
+        },
+        {
+         "label": "Priority",
+         "value": "High · P1",
+         "badge": true
+        },
+        {
+         "label": "Status",
+         "value": "In progress",
+         "badge": true
+        },
+        {
+         "label": "Created (UTC)",
+         "value": "2026-03-05"
+        },
+        {
+         "label": "Description",
+         "value": "The projector powers on, but the image cuts out after a few minutes. Please inspect the HDMI connection and ceiling mount."
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Mark done",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Back to Requests",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to Requests",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Mark done",
+       "text": "Could not update the request.",
+       "tone": "bad"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "Request not found.",
+      "emptyHint": "Return to Requests and choose another request.",
+      "error": "We couldn't load this request. Retry, or return to Requests.",
+      "success": "Request marked done.",
+      "validation": "Could not update the request."
+     }
+    }
+   },
+   "ms": 5,
+   "resultChars": 233,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.0.rows.4.value: Too big: expected string to have <=60 characters; mockFull.blocks.0.rows.4.value: Too big: expected string to have <=60 characters. Fix it and call submit_result again."
+  }
+ ]
+}

@@ -1,0 +1,399 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Ledger — Sign in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-quiet: #626262;
+      --border-color: #D8D8D8;
+      --primary: #B3473D;
+      --status-failed: #A13D36;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes liveBreathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .entrance-sequence {
+      animation: entranceFadeUp 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Outer Wrapper */
+    .signin-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 24px;
+    }
+
+    /* Brand Header: Mark & Words above panel */
+    .brand-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 650;
+      line-height: 28px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    /* Centred Panel */
+    .panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 24px;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .panel {
+        padding: 16px;
+      }
+    }
+
+    .panel-heading {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+      color: var(--text-main);
+    }
+
+    .panel-subtitle {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      color: var(--text-quiet);
+      margin-top: -12px;
+    }
+
+    /* Status Banner / Error State */
+    .status-banner {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: #FFFFFF;
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--status-failed);
+    }
+
+    .status-indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-failed);
+      flex-shrink: 0;
+      animation: liveBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    .status-text-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-body {
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-main);
+    }
+
+    .status-retry-action {
+      align-self: flex-start;
+      margin-top: 4px;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      text-decoration: underline;
+      cursor: pointer;
+      line-height: 20px;
+      transition: color 150ms ease;
+    }
+
+    .status-retry-action:hover {
+      color: var(--primary);
+    }
+
+    .status-retry-action:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Form & Fields */
+    .signin-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 20px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .field-input {
+      width: 100%;
+      height: 44px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 0 12px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      color: var(--text-main);
+      transition: border-color 150ms ease;
+    }
+
+    @media (max-width: 480px) {
+      .field-input {
+        height: 48px;
+      }
+    }
+
+    .field-input.has-error {
+      border-color: var(--status-failed);
+    }
+
+    .field-input:hover {
+      border-color: var(--text-quiet);
+    }
+
+    .field-input:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 0;
+      border-color: var(--primary);
+    }
+
+    .field-message {
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--status-failed);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Primary Button */
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+      transition: opacity 150ms ease, background-color 150ms ease;
+    }
+
+    @media (max-width: 480px) {
+      .btn-primary {
+        height: 48px;
+      }
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      opacity: 0.84;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      .entrance-sequence {
+        animation: none;
+      }
+      .status-indicator-dot {
+        animation: none;
+      }
+      .btn-primary, .field-input, .status-retry-action {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="signin-container entrance-sequence">
+    <!-- Brand mark and words above panel -->
+    <div class="brand-header">
+      <div class="brand-mark" aria-hidden="true">
+        <!-- SVG Brand Mark in pure neutral geometry adhering to tokens -->
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="4" fill="#FFFFFF" stroke="#D8D8D8" stroke-width="1"></rect>
+          <!-- Stepped Ledger / Pen grid icon mark -->
+          <path d="M10 13H30M10 20H30M10 27H22" stroke="#262626" stroke-width="2" stroke-linecap="round"></path>
+          <path d="M26 24V28M30 24V28" stroke="#262626" stroke-width="2" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <h1 class="brand-title">Range Ledger</h1>
+    </div>
+
+    <!-- Centred Panel (Max width 440px) -->
+    <div class="panel">
+      <h2 class="panel-heading">Sign in</h2>
+      <p class="panel-subtitle">Use your work account to open your yard.</p>
+
+      <!-- Inline Service Authentication Error State Banner -->
+      <div class="status-banner" role="alert" aria-live="assertive">
+        <div class="status-header">
+          <span class="status-indicator-dot" aria-hidden="true"></span>
+          <span class="status-text-row">Failed — Authentication error</span>
+        </div>
+        <p class="status-body">The sign-in service could not authenticate these credentials. Please check your password or retry.</p>
+        <button type="button" class="status-retry-action">Retry sign-in</button>
+      </div>
+
+      <!-- Form: Retaining Maya Chen's work email without losing it -->
+      <form class="signin-form">
+        <div class="field-group">
+          <label class="field-label" for="email">Email</label>
+          <div class="input-wrapper">
+            <input type="email" id="email" name="email" class="field-input" value="maya.chen@rangeledger.com" autocomplete="username" required="">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="password">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="password" name="password" class="field-input has-error" autocomplete="current-password" aria-invalid="true" aria-describedby="password-error" required="">
+          </div>
+          <div class="field-message" id="password-error">
+            <span>Invalid password entered</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-1";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

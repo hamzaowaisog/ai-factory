@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 12,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getLoadSampleDataResponseMock =|getGetSampleDataResponseMock =",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 1,
+   "resultChars": 667,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getLoadSampleDataResponseMock =|getGetSampleDataResponseMock =&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:135: export const getGetSampleDataResponseMock = (): SampleDataResponse => ({\"permissions\":[\"sample-data.view\",\"sample-data.manage\"],\"loaded\":true,\"recordCount\":12,\"records\":[{\"id\":9901,\"entity\":\"Lot\",\"rec\nlib/api/client.msw.ts:137: export const getLoadSampleDataResponseMock = (): SampleOperationResponse => ({\"permissions\":[\"sample-data.manage\"],\"status\":\"already_loaded\",\"message\":\"Sample data was already loaded.\",\"recordCount\":1\n</untrusted_document>"
+  }
+ ]
+}

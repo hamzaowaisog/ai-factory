@@ -1,0 +1,13 @@
+executor started (pid 14094)
+▶ approve-estimate (attempt 2)
+gate estimate.e7-approval passed
+✓ approve-estimate ($0.00, total $0.39)
+▶ export (attempt 1)
+estimate workbooks written:
+  team   /Users/mhamza/.factory/ledger/20261005-parts-quick-order-requirements-4974/export/20261005-parts-quick-order-requirements-4974-team.xlsx
+  client /Users/mhamza/.factory/ledger/20261005-parts-quick-order-requirements-4974/export/20261005-parts-quick-order-requirements-4974-client.xlsx
+  design /Users/mhamza/.factory/ledger/20261005-parts-quick-order-requirements-4974/export/20261005-parts-quick-order-requirements-4974-design-v2.pdf
+✓ export ($0.00, total $0.39)
+executor stopped
+
+running: All steps done.

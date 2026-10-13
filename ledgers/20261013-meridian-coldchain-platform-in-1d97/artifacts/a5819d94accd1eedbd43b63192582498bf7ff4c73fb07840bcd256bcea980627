@@ -1,0 +1,174 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-5",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "REQ-5 and the spec's first assumption check staff identities against a 'Meridian Microsoft identity provider' and limit ASM-1 to customers, but accepted ASM-1 was the answer to the staff authorization-URL question and says email/password with no social or single sign-on."
+     },
+     {
+      "reqId": "REQ-5",
+      "rubric": 8,
+      "severity": "low",
+      "finding": "The EARS text and AC-5.6 name the vendor ('Microsoft') of the staff identity provider, even though the contract only describes a 'configured staff identity-provider' and the provider should be configuration."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "The spec assumes cut-off, safety-margin, calendar and time-zone values come only from deployment configuration with 'no configuration API or screen', but accepted ASM-6 says administrators maintain them on admin-only screens in the same app."
+     },
+     {
+      "reqId": "REQ-1",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-1.3 says any path absent from the contract returns 404/405, but REQ-2/AC-2.1 require the uncontracted `/`, `/openapi/v1.json` and `/swagger` to return 200."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-17.2 requires a write attempt on an audit event to return 403, but no contracted audit write operation is cited, so under AC-1.3 such a request would return 404/405."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 1,
+      "severity": "low",
+      "finding": "AC-8.1 describes an allocated handling unit that is 'Quarantined', but REQ-10 allows only Released stock to be allocated, so this precondition cannot happen."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 5,
+      "severity": "medium",
+      "finding": "REQ-7, REQ-8 and REQ-13 are marked op MODIFIED, but their only anchors are the empty AppDb context or a contract excerpt, so no existing behaviour is actually being modified (C-3 confirms nothing is implemented)."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 5,
+      "severity": "low",
+      "finding": "AC-18.2 expects a contract-defined `server_error` code, but no anchor in contracts/openapi.yaml shows the ServerError schema or that code value."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "AC-12.8 only covers a gateway batch sent with valid configured credentials for known devices; there is no AC for invalid or missing gateway credentials, unknown devices, or malformed batches."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-9.1 covers replaying the same idempotency key with the same payload, but not the same key with a different payload or a missing key."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-4.3 only covers password reset for an existing account; no AC covers a reset request for an unknown email (enumeration) or an expired reset token."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-11.4 only covers a driver reading their own route; no AC requires 403/not-found when a driver requests, scans, departs or syncs another driver's route, or when a non-dispatcher creates or confirms routes."
+     },
+     {
+      "reqId": "REQ-16",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-16, REQ-6 and REQ-14 have no ACs for non-System-Administrator callers using administration or product operations, or for non-Quality-Manager callers starting or closing recalls."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-9.4's outcome, 'reflect the applicable lifecycle rule', names no expected status code or order status for change or cancel before versus after Packed, so it cannot be checked."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-4.2's outcome, 'reflects the contract-defined outcome', gives no concrete status for an invalid code, a reused code or a resend."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-8.1–8.3 and AC-12.4/12.5 check internal 'dispatcher alert row' and 'email call recorded' artifacts rather than anything observable at a contracted API surface or in delivered email."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-11.7 can be satisfied by 'an email call or driver-change event', and neither is defined at a public surface."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-3.3 asks to prove that legacy data 'existing outside' the database was not imported, which is vacuous and cannot be meaningfully tested."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-10.5 is triggered by 'the allocation service updates affected orders', which is an internal event rather than a contracted operation, and it largely duplicates AC-10.6."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-17.2's 'Time passes' gives no duration, so there is no testable check of retention without expiry."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The schema is created with EF Core `EnsureCreated` (C-5), which never changes an existing database, yet the spec (risk tag 'migration') sets no schema-migration strategy for adding the many new tables to deployed databases."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The expiry transition does not cover handling units that are already packed, sealed in a box, or loaded on a confirmed route when they expire, so their state after expiry is undefined."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "Changing an allocated or back-ordered order before packing does not say what happens to its existing allocations (release, re-allocate, or keep), only what happens on cancellation."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 7,
+      "severity": "low",
+      "finding": "AC-3.4/3.5 replace in-code `SeedData.Run` with 'deployment-supplied' demo rows and add a separate startup bootstrap of the admin, warehouses and organisations, which changes how the existing seeding works without being asked."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 8,
+      "severity": "low",
+      "finding": "Rule thresholds are written into ACs as literals rather than configuration: 30-day expiry window (AC-7.3), 25% allowance (AC-12.4), 15-minute silence (AC-12.5), and three consecutive in-band readings (AC-12.2)."
+     },
+     {
+      "reqId": "REQ-5",
+      "rubric": 4,
+      "severity": "low",
+      "finding": "AC-5.5 gives Quality Managers and Auditors read access across warehouses, but Q-2's answer only covers warehouse assignments and Auditor read-only access, so this exception has no source."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

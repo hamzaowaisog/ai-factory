@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Record handover</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+    /* Design System exact tokens & motion rules */
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-muted: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+
+      /* Motion tokens */
+      --motion-duration-instant: 100ms;
+      --motion-duration-fast: 150ms;
+      --motion-duration-normal: 200ms;
+      --motion-duration-slow: 300ms;
+      --motion-ease-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
+      --motion-ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1.0);
+      --motion-ease-accelerate: cubic-bezier(0.3, 0.0, 1.0, 1.0);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.02);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    /* Entrance stagger sequence */
+    .stagger-1 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) forwards;
+      animation-delay: 0ms;
+    }
+
+    .stagger-2 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) both;
+      animation-delay: 60ms;
+    }
+
+    .stagger-3 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) both;
+      animation-delay: 120ms;
+    }
+
+    .stagger-4 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) both;
+      animation-delay: 180ms;
+    }
+
+    .stagger-5 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) both;
+      animation-delay: 240ms;
+    }
+
+    .stagger-6 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) both;
+      animation-delay: 300ms;
+    }
+
+    .stagger-7 {
+      animation: entranceFadeIn var(--motion-duration-slow) var(--motion-ease-decelerate) both;
+      animation-delay: 360ms;
+    }
+
+    .saved-handoff-motion {
+      animation: savedHandoff var(--motion-duration-slow) var(--motion-ease-standard) forwards;
+    }
+
+    .waiting-indicator {
+      animation: waitingBreathe 3s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+        animation-delay: 0ms !important;
+      }
+    }
+
+    /* Interactive state styles on all controls */
+    a, button, input, select, textarea, label {
+      transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  border-color var(--motion-duration-fast) var(--motion-ease-standard),
+                  transform var(--motion-duration-instant) var(--motion-ease-standard),
+                  box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                  outline-color var(--motion-duration-instant) var(--motion-ease-standard);
+    }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      height: 48px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      border: 1px solid var(--primary);
+      border-radius: 2px;
+      padding: 0 24px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-primary:hover {
+      background-color: #933F17;
+      border-color: #933F17;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      background-color: #823612;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      background-color: var(--surface);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 20px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F0F0F0;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+      background-color: #E5E5E5;
+    }
+
+    /* Inputs */
+    .field-input {
+      height: 48px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      width: 100%;
+    }
+
+    .field-input:hover:not(:disabled) {
+      border-color: #B5B5B5;
+    }
+
+    .field-input:focus:not(:disabled) {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    /* Interactive Checkboxes & Radios */
+    input[type="checkbox"], input[type="radio"] {
+      cursor: pointer;
+    }
+
+    input[type="checkbox"]:hover, input[type="radio"]:hover {
+      filter: brightness(0.92);
+    }
+
+    input[type="checkbox"]:active, input[type="radio"]:active {
+      transform: scale(0.92);
+    }
+
+    /* Links hover/active */
+    nav a {
+      transition: color var(--motion-duration-fast) var(--motion-ease-standard),
+                  border-color var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    nav a:active {
+      transform: scale(0.98);
+    }
+
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+<!-- Global Header (Exact specification) -->
+<header style="background-color: var(--surface); border-bottom: 1px solid var(--border); height: 56px;">
+<div style="max-width: 1160px; margin: 0 auto; height: 100%; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
+<!-- Left: Logo + Navigation -->
+<div style="display: flex; align-items: center; gap: 32px;">
+<div style="display: flex; align-items: center; gap: 8px;">
+<div style="width: 24px; height: 24px; background-color: var(--text); border-radius: 2px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 14px; font-family: 'Hanken Grotesk', sans-serif;">
+            M
+          </div>
+<span style="font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; color: var(--text);">Meridian</span>
+</div>
+<nav style="display: flex; align-items: center; gap: 24px; height: 56px;">
+<a href="#" style="font-family: 'Public Sans', sans-serif; font-size: 16px; font-weight: 500; color: var(--primary); text-decoration: none; height: 100%; display: flex; align-items: center; border-bottom: 2px solid var(--primary);">Today's routes</a>
+<a href="#" style="font-family: 'Public Sans', sans-serif; font-size: 16px; font-weight: 500; color: var(--text-muted); text-decoration: none; height: 100%; display: flex; align-items: center;">Pending work</a>
+</nav>
+</div>
+<!-- Right: User + Language switch -->
+<div style="display: flex; align-items: center; gap: 20px;">
+<div style="display: flex; align-items: center; gap: 8px;">
+<div style="width: 32px; height: 32px; background-color: #EAEAEA; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text);">
+            TM
+          </div>
+<span style="font-size: 15px; color: var(--text); font-weight: 500;">Tariq Mansour · Driver</span>
+</div>
+<span style="color: var(--border); font-size: 14px;">|</span>
+<div style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
+<span style="color: var(--text); font-weight: 600;">EN</span> / العربية
+        </div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main style="max-width: 1160px; margin: 0 auto; padding: 32px 24px 64px;">
+<!-- Title and Top Navigation Button -->
+<div class="stagger-1" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px;">
+<div>
+<h1 style="font-size: 28px; font-weight: 650; letter-spacing: -0.02em; color: var(--text); line-height: 1.2;">Record handover</h1>
+<p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+          Order <span class="font-mono">0-299</span> · Route <span class="font-mono">R-204</span> · Stop 1 of 1
+        </p>
+</div>
+<div>
+<a class="btn-secondary" href="#">Stop detail</a>
+</div>
+</div>
+<!-- Stop Summary Panel -->
+<section class="panel stagger-2" style="padding: 16px; margin-bottom: 32px;">
+<div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 24px;">
+<div>
+<div style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">Destination stop</div>
+<div style="font-size: 18px; font-weight: 650; font-family: 'Hanken Grotesk', sans-serif;">Cedar Clinic</div>
+<div style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">42 River Road, London</div>
+<div style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">Consignee: Cedar Health (Hana Youssef)</div>
+</div>
+<div>
+<div style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">Assignment &amp; schedule</div>
+<div style="font-size: 15px; font-weight: 500;">VAN-27 (plate <span class="font-mono">MTR-482</span>)</div>
+<div style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">Driver: Tariq Mansour</div>
+<div style="font-size: 14px; margin-top: 2px;">Planned arrival: <span class="font-mono">14 May 2026 15:00 BST</span></div>
+</div>
+<div>
+<div style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">Consigned cargo &amp; condition</div>
+<div style="font-size: 15px; font-weight: 500;">Insulin Glargine 100 units/mL (<span class="font-mono">20</span> packs)</div>
+<div style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">Lot <span class="font-mono">IG-2511</span> · Profile v3 (<span class="font-mono">2.0°C–8.0°C</span>)</div>
+<div style="margin-top: 4px; display: inline-flex; align-items: center; gap: 6px;">
+<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; font-weight: 600; color: var(--status-good);">good</span>
+<span style="font-size: 14px; color: var(--text-muted);">(both boxes eligible)</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Whole-Box Consignment Disposition Table -->
+<section class="panel stagger-3" style="margin-bottom: 32px; overflow: hidden;">
+<div style="padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+<div>
+<h2 style="font-size: 20px; font-weight: 650; color: var(--text);">Whole-box consignment handover</h2>
+<p style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">
+            Boxes are accepted or refused as unbroken units. Pack-level refusal is not permitted.
+          </p>
+</div>
+<div style="font-size: 14px; color: var(--text-muted);">
+          Total allocated: <span class="font-mono" style="font-weight: 600; color: var(--text);">20</span> packs across <span class="font-mono" style="font-weight: 600; color: var(--text);">2</span> boxes
+        </div>
+</div>
+<!-- Table -->
+<table style="width: 100%; border-collapse: collapse; text-align: left;">
+<thead>
+<tr style="height: 48px; background-color: #FAFAFA; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-muted);">
+<th style="padding: 0 16px; font-weight: 500; width: 110px;">Box identifier</th>
+<th style="padding: 0 16px; font-weight: 500; width: 110px;">Quantity</th>
+<th style="padding: 0 16px; font-weight: 500;">Consigned cargo &amp; lot</th>
+<th style="padding: 0 16px; font-weight: 500; width: 170px;">Telemetry &amp; gateway</th>
+<th style="padding: 0 16px; font-weight: 500; width: 230px;">Action</th>
+<th style="padding: 0 16px; font-weight: 500;">Reason if refused</th>
+</tr>
+</thead>
+<tbody>
+<!-- Box B-701 Row -->
+<tr style="height: 64px; border-bottom: 1px solid var(--border);">
+<td class="font-mono" style="padding: 12px 16px; font-weight: 600;">B-701</td>
+<td class="font-mono" style="padding: 12px 16px;">12 packs</td>
+<td style="padding: 12px 16px;">
+<div style="font-weight: 500;">Insulin Glargine 100 units/mL</div>
+<div style="font-size: 14px; color: var(--text-muted);">Lot <span class="font-mono">IG-2511</span> · Exp. <span class="font-mono">31 Mar 2027</span></div>
+</td>
+<td style="padding: 12px 16px;">
+<div style="display: flex; align-items: center; gap: 6px;">
+<span class="font-mono" style="font-weight: 600;">4.4°C</span>
+<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 500;">good</span>
+</div>
+<div style="font-size: 14px; color: var(--text-muted);"><span class="font-mono">LOG-9921</span> (<span class="font-mono">14:40 BST</span>)</div>
+</td>
+<td style="padding: 12px 16px;">
+<div style="display: flex; gap: 16px; align-items: center;">
+<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 15px;">
+<input checked="" name="disposition_b701" style="accent-color: var(--primary); width: 18px; height: 18px;" type="radio" value="handover"/>
+<span>Handed over</span>
+</label>
+<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 15px;">
+<input name="disposition_b701" style="accent-color: var(--status-refused); width: 18px; height: 18px;" type="radio" value="refused"/>
+<span>Refused</span>
+</label>
+</div>
+</td>
+<td style="padding: 12px 16px;">
+<input class="field-input" disabled="" id="reason_b701" placeholder="Required only if refused as whole" style="background-color: #F7F7F7; height: 40px; font-size: 14px;" type="text"/>
+</td>
+</tr>
+<!-- Box B-702 Row -->
+<tr style="height: 64px; border-bottom: 1px solid var(--border);">
+<td class="font-mono" style="padding: 12px 16px; font-weight: 600;">B-702</td>
+<td class="font-mono" style="padding: 12px 16px;">8 packs</td>
+<td style="padding: 12px 16px;">
+<div style="font-weight: 500;">Insulin Glargine 100 units/mL</div>
+<div style="font-size: 14px; color: var(--text-muted);">Lot <span class="font-mono">IG-2511</span> · Exp. <span class="font-mono">31 Mar 2027</span></div>
+</td>
+<td style="padding: 12px 16px;">
+<div style="display: flex; align-items: center; gap: 6px;">
+<span class="font-mono" style="font-weight: 600;">4.8°C</span>
+<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 500;">good</span>
+</div>
+<div style="font-size: 14px; color: var(--text-muted);"><span class="font-mono">LOG-8819</span> (cached <span class="font-mono">11:45 BST</span>)</div>
+</td>
+<td style="padding: 12px 16px;">
+<div style="display: flex; gap: 16px; align-items: center;">
+<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 15px;">
+<input checked="" name="disposition_b702" style="accent-color: var(--primary); width: 18px; height: 18px;" type="radio" value="handover"/>
+<span>Handed over</span>
+</label>
+<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 15px;">
+<input name="disposition_b702" style="accent-color: var(--status-refused); width: 18px; height: 18px;" type="radio" value="refused"/>
+<span>Refused</span>
+</label>
+</div>
+</td>
+<td style="padding: 12px 16px;">
+<input class="field-input" disabled="" id="reason_b702" placeholder="Required only if refused as whole" style="background-color: #F7F7F7; height: 40px; font-size: 14px;" type="text"/>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Whole-Box Policy Footer Note -->
+<div style="padding: 12px 16px; background-color: #FAFAFA; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+<span>Preserve whole shipper seals: each container is received intact or refused entirely.</span>
+<span>Current selection: <strong style="color: var(--text);">20 of 20 packs</strong> marked for handover</span>
+</div>
+</section>
+<!-- Receiver Identification, Time, Location & Electronic Acknowledgment -->
+<section class="panel stagger-4" style="padding: 16px; margin-bottom: 32px;">
+<h2 style="font-size: 20px; font-weight: 650; margin-bottom: 16px; color: var(--text);">Receiver identity &amp; occurrence records</h2>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+<!-- Receiver Name Field -->
+<div>
+<label for="receiver_name" style="display: block; font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 8px;">
+            Receiver full name (clinic staff)
+          </label>
+<input class="field-input" id="receiver_name" type="text" value="Rania Karim"/>
+</div>
+<!-- Occurrence Time Field -->
+<div>
+<label style="display: block; font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 8px;">
+            Recorded occurrence time (Europe/London BST)
+          </label>
+<div class="field-input font-mono" style="display: flex; align-items: center; background-color: #FAFAFA; color: var(--text);">
+            14 May 2026 15:04:12 BST
+          </div>
+<p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Original occurrence timestamp persists through offline retries.</p>
+</div>
+</div>
+<!-- Browser Location & Acknowledgment -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+<!-- Geolocation Record -->
+<div>
+<label style="display: block; font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 8px;">
+            Browser delivery location
+          </label>
+<div class="field-input" style="display: flex; align-items: center; justify-content: space-between; background-color: #FAFAFA;">
+<div style="display: flex; align-items: center; gap: 8px;">
+<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 15px; font-weight: 500;">51.5033° N, 0.0028° E</span>
+<span style="font-size: 14px; color: var(--text-muted);">(Cedar Clinic, 42 River Road)</span>
+</div>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 600;">good</span>
+</div>
+<p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">If permission is unavailable, displays 'Location unavailable' without blocking handover.</p>
+</div>
+<!-- Explicit Electronic Acknowledgment Checkbox -->
+<div>
+<label style="display: block; font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 8px;">
+            Consignee legal acknowledgment
+          </label>
+<div style="min-height: 48px; border: 1px solid var(--border); border-radius: 2px; padding: 12px; background-color: var(--surface); display: flex; align-items: flex-start; gap: 10px;">
+<input checked="" id="acknowledgment" style="accent-color: var(--primary); width: 18px; height: 18px; margin-top: 2px; cursor: pointer;" type="checkbox"/>
+<label for="acknowledgment" style="font-size: 14px; color: var(--text); line-height: 1.4; cursor: pointer;">
+              I, <strong>Rania Karim</strong> on behalf of Cedar Clinic, acknowledge physical handover of the consigned shipper boxes in intact condition with verified datalogger seals.
+            </label>
+</div>
+</div>
+</div>
+</section>
+<!-- Physical Evidence: Captured Handover Photo & Biometric Signature -->
+<div class="stagger-5" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+<!-- Real Delivery Photo -->
+<section class="panel" style="padding: 16px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<h2 style="font-size: 20px; font-weight: 650; color: var(--text);">Handover photograph</h2>
+<span style="display: inline-flex; align-items: center; gap: 6px;">
+<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 600;">good</span>
+</span>
+</div>
+<div style="width: 100%; aspect-ratio: 4/3; overflow: hidden; border: 1px solid var(--border); border-radius: 2px; background-color: #EFEFEF;">
+<img alt="Real delivery photograph captured at Cedar Clinic reception desk" src="https://lh3.googleusercontent.com/aida/AEtjO1W5rIdUIJt2Tz-vzPX8X4pgqYHJfBhJO8xuiqMo59oysJ6ei-o7DWvb0yRQMzJNFioq5k2YfqgtVVt2zZIllaqbQ9cbMC7RC3Pa7uY8lZawU5XuJD4ZkSw_ROcdfpQDSHBILKacW6c5FyyohcMFdLGGm9hA75kiMXbyM09Suged-YZqllmQryWCQibw96i8meQ24PUp-3eEKS64I3FWx55FrJPl5smuImg1GB3qLl8eGO6L46BAisqiJmQ" style="width: 100%; height: 100%; object-fit: cover; display: block;"/>
+</div>
+<p style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">
+          Photographic proof captured at Cedar Clinic reception desk: courier Tariq Mansour presenting insulated medical shipper consignment to receiver Rania Karim.
+        </p>
+</section>
+<!-- Receiver Actual Signature -->
+<section class="panel" style="padding: 16px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<h2 style="font-size: 20px; font-weight: 650; color: var(--text);">Actual receiver signature</h2>
+<span style="display: inline-flex; align-items: center; gap: 6px;">
+<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 600;">good</span>
+</span>
+</div>
+<div style="width: 100%; aspect-ratio: 4/3; overflow: hidden; border: 1px solid var(--border); border-radius: 2px; background-color: #FFFFFF; display: flex; flex-direction: column; justify-content: space-between; padding: 16px;">
+<div style="font-size: 14px; color: var(--text-muted);">
+            Drawn on handheld touchscreen by: <strong style="color: var(--text);">Rania Karim</strong>
+</div>
+<div style="display: flex; align-items: center; justify-content: center; flex: 1;">
+<img alt="Captured ink signature of receiver Rania Karim" src="https://lh3.googleusercontent.com/aida/AEtjO1XiQLF9k7--ur6fSrB4z8X35Xb_0CF91XnAx78dvWbIWxfGuWWv_C5b7kSAqb9AOaOad6ECNuELUlXi-TRCpqYEpKz9h6xL6lB1odvG1QDdVhbERGDyqdQR-U-TeXucGiUxtESx4T_fzuuwfR2X6dtBjt1fxug1xivZWM8GyzvJFjb_biMdo9dHJiJQ5Ck9alqBebc37DzWxu-ocF9cdvw6vo7xnv6ZHHT7OHJN1kqO0XXQBfms6H8CemY" style="max-width: 90%; max-height: 140px; object-fit: contain;"/>
+</div>
+<div style="border-top: 1px solid var(--border); padding-top: 8px; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between;">
+<span>Biometric signature trace</span>
+<span class="font-mono">14 May 2026 15:04 BST</span>
+</div>
+</div>
+<p style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">
+          Actual legal signature drawn by receiver on delivery terminal during handover verification.
+        </p>
+</section>
+</div>
+<!-- Storage Assurance & Post-Sync Returned Reconciliation State -->
+<section class="panel stagger-6" style="padding: 16px; margin-bottom: 32px;">
+<h2 style="font-size: 20px; font-weight: 650; margin-bottom: 16px; color: var(--text);">Handover storage &amp; post-sync returned reconciliation</h2>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Durable Local Storage Proof -->
+<div style="border: 1px solid var(--border); border-radius: 2px; padding: 16px; background-color: #FAFAFA;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+<span style="font-size: 15px; font-weight: 600;">Local durable storage payload</span>
+<span style="display: inline-flex; align-items: center; gap: 6px;">
+<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 600;">good</span>
+</span>
+</div>
+<p style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">
+            Handover payload stored completely in durable local database. Complete payload preserved without showing queued if write fails.
+          </p>
+<div style="font-size: 14px; font-family: 'IBM Plex Mono', monospace; color: var(--text);">
+            Payload ID: <span style="font-weight: 600;">HND-20260514-0299-1</span><br/>
+            Payload integrity: 2 whole boxes, GPS, photo, signature
+          </div>
+</div>
+<!-- Post-Sync Returned Reconciliation Result -->
+<div style="border: 1px solid var(--border); border-radius: 2px; padding: 16px; background-color: #FFFFFF;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+<span style="font-size: 15px; font-weight: 600;">Returned service reconciliation</span>
+<span class="saved-handoff-motion" style="display: inline-flex; align-items: center; gap: 6px;">
+<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--status-good);"></span>
+<span style="font-size: 14px; color: var(--status-good); font-weight: 600;">good</span>
+</span>
+</div>
+<div style="font-size: 14px; color: var(--text); line-height: 1.5;">
+<div>Outstanding quantity: <span class="font-mono" style="font-weight: 600;">0 packs outstanding</span> (order fulfilled in full)</div>
+<div style="margin-top: 4px;">Restrictions: <span style="font-weight: 500; color: var(--status-good);">None</span> (permitted release)</div>
+<div style="margin-top: 4px;">Flagged quality case: <span style="font-weight: 500; color: var(--text-muted);">None (No excursion on B-701 or B-702)</span></div>
+</div>
+<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-muted);">
+            Related active context: Recall <span class="font-mono">RC-12</span> isolates Lot <span class="font-mono">IG-2509</span>; lot <span class="font-mono">IG-2511</span> remains clean.
+          </div>
+</div>
+</div>
+</section>
+<!-- Form Action Bar -->
+<div class="stagger-7" style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border);">
+<div style="font-size: 14px; color: var(--text-muted);">
+        Confirming will seal electronic custody record for route <span class="font-mono">R-204</span> stop at Cedar Clinic.
+      </div>
+<div style="display: flex; gap: 16px;">
+<a class="btn-secondary" href="#">Stop detail</a>
+<button class="btn-primary" type="button">Save handover</button>
+</div>
+</div>
+</main>
+</body></html>

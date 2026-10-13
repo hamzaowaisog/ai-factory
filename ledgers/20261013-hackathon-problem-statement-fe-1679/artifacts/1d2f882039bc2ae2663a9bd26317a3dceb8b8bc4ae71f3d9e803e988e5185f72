@@ -1,0 +1,96 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-17",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-REQ-17.1 assumes the service sends unauthorized-yard records and restricted profitability fields to the browser, contradicting the spec's API-authoritative filtering and exposing data before the web app hides it."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 3,
+      "severity": "high",
+      "finding": "AC-REQ-13.4 calls a public lot-metrics calculation method even though the web requirement only displays API-returned metrics and assigns authoritative calculations to the API, so the criterion is not testable on the web app's public surface."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-REQ-13.4 derives 100 pounds of total lot gain, FCR 12, and $24 per pound of gain from a 100-pound change in average animal weight without specifying head count, which gives incorrect lot-level results for a multi-animal lot."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-REQ-11.3 requires the web app to calculate feeding variance, while REQ-11.2 displays a returned variance and the spec assigns authoritative calculations to the API."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "REQ-9 allows one pen plan to cover multiple lots, but AC-REQ-11.1 records one lot and one delivered quantity per feeding event without a per-lot allocation path, leaving mixed-pen consumption and cost liable to misattribution."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "A repeated import may update source head counts, but REQ-4 only displays matched records and provides no visible conflict or review path when existing PO-to-lot or lot-to-pen allocations no longer match those counts."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "REQ-3 covers saved mapping quantities but specifies no visible refusal or correction path when an edited allocation conflicts with a PO line's head count or a pen's displayed capacity."
+     },
+     {
+      "reqId": "REQ-14",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "AC-REQ-14.3 lets an unspecified user submit a suggestion-driven change without a read-only or permission-denied path, even though REQ-9 and REQ-10 reserve feed-plan changes for authorized planners."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-REQ-10.4 tests status updates for assigned-pen operators but never specifies whether the status action is hidden or refused for an operator viewing an unassigned pen, despite the pen-specific permission in Q-7."
+     },
+     {
+      "reqId": "REQ-20",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "REQ-20 limits sample-data loading to authorized users but provides no unauthorized-user control state or refusal feedback for loading, resetting, or replacing sample records."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-REQ-18.1 requires ADG, FCR, and cost-of-gain values for a selected range without an unavailable state when that range has too few usable weights or zero gain to calculate those metrics."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-8 requires ration approval, but its positive acceptance paths cover entry, optimization, and saving without specifying an approval action or its displayed outcome."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "REQ-8 describes the lowest-cost qualifying ration candidate but gives no empty or refusal state when none of the selected candidate mixes meets the nutritional requirements."
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

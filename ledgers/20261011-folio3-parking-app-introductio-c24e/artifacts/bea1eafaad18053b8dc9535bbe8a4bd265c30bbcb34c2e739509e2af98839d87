@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Folio3 Parking — Dedicated Space Dashboard</title>
+<!-- Typography: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#d8dbd8",
+            "primary-container": "#1f6f5c",
+            "primary-fixed": "#a5f2d9",
+            "on-tertiary-fixed": "#3a0a05",
+            "secondary-container": "#c8e6db",
+            "surface-tint": "#186a57",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-primary": "#ffffff",
+            "tertiary-fixed": "#ffdad4",
+            "surface-container-low": "#f1f4f1",
+            "on-error": "#ffffff",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "surface-container-highest": "#e0e3e0",
+            "primary-fixed-dim": "#8ad5be",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary-container": "#ffd7d0",
+            "on-secondary": "#ffffff",
+            "on-secondary-container": "#4d685f",
+            "surface": "#f7faf7",
+            "secondary": "#49645b",
+            "on-secondary-fixed": "#042019",
+            "error": "#ba1a1a",
+            "on-background": "#181c1b",
+            "tertiary": "#77392e",
+            "on-error-container": "#93000a",
+            "on-primary-fixed-variant": "#005141",
+            "primary": "#1f6f5c",
+            "outline-variant": "#e4e4e7",
+            "on-tertiary-fixed-variant": "#72352a",
+            "inverse-surface": "#2d312f",
+            "on-primary-container": "#a3efd7",
+            "secondary-fixed": "#cbe9dd",
+            "surface-container-high": "#e6e9e6",
+            "surface-container": "#ecefeb",
+            "error-container": "#fbeae8",
+            "surface-variant": "#e0e3e0",
+            "on-surface": "#18181b",
+            "on-secondary-fixed-variant": "#314c44",
+            "background": "#f7faf7",
+            "inverse-primary": "#8ad5be",
+            "tertiary-container": "#945044",
+            "outline": "#71717a",
+            "on-primary-fixed": "#002019",
+            "inverse-on-surface": "#eef1ee",
+            "surface-bright": "#f7faf7",
+            "on-tertiary": "#ffffff",
+            "on-surface-variant": "#3f4945",
+            // Folio3 Brand & Semantic extensions
+            "bay-green": "#1F6F5C",
+            "bay-green-hover": "#195C4C",
+            "bay-green-wash": "#E6F0ED",
+            "charcoal": "#18181B",
+            "graphite": "#3F3F46",
+            "muted-steel": "#71717A",
+            "hairline": "#E4E4E7",
+            "stop-red": "#B42318",
+            "stop-wash": "#FBEAE8",
+            "caution-ochre": "#9A6700",
+            "caution-wash": "#FBF3DE",
+            "verified-green": "#2F7D4A"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16,1,0.3,1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+    body {
+      color: #18181B;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+    }
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: #FFFFFF;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #FFFFFF;
+      border: 1.5px solid #1F6F5C;
+      color: #1F6F5C;
+      border-radius: 4px;
+      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .live-dot {
+      animation: live-breathe 6s ease-in-out infinite;
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .btn-brand:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-background font-body text-on-surface antialiased flex flex-col selection:bg-secondary-container selection:text-bay-green">
+<!-- TOP NAV BAR (Shared Components JSON Anchor Execution) -->
+<header class="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-4 sm:px-8">
+<div class="flex items-center gap-6">
+<!-- Corporate Emblem & Brand Title -->
+<div class="flex items-center gap-3">
+<div class="flex h-9 w-9 items-center justify-center rounded bg-primary-container text-on-primary">
+<span class="material-symbols-outlined text-xl" data-icon="local_parking">local_parking</span>
+</div>
+<div>
+<span class="font-headline text-base font-bold tracking-tight text-on-surface block leading-none">Folio3 Parking</span>
+<span class="font-label text-[10px] uppercase tracking-wider text-outline block mt-1">Bay Management</span>
+</div>
+</div>
+<!-- Navigation links (Semantic active: Claim & Release) -->
+<nav class="hidden md:flex items-center space-x-1 pl-6">
+<a class="flex items-center gap-2 px-3 py-1.5 font-headline text-sm font-semibold text-primary border-b-2 border-primary" href="#claim-release">
+<span class="material-symbols-outlined text-[17px]" data-icon="local_parking">local_parking</span>
+<span>Claim &amp; Release</span>
+</a>
+<a class="flex items-center gap-2 px-3 py-1.5 font-headline text-sm font-medium text-graphite hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#daily-allocations">
+<span class="material-symbols-outlined text-[17px]" data-icon="calendar_today">calendar_today</span>
+<span>Daily Allocations</span>
+</a>
+<a class="flex items-center gap-2 px-3 py-1.5 font-headline text-sm font-medium text-graphite hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#vehicle-roster">
+<span class="material-symbols-outlined text-[17px]" data-icon="directions_car">directions_car</span>
+<span>Vehicle Roster</span>
+</a>
+</nav>
+</div>
+<!-- Actions & Employee Profile -->
+<div class="flex items-center gap-3">
+<button class="hidden sm:inline-flex items-center gap-2 rounded bg-surface-container-low border border-outline-variant px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.97]" id="quickReleaseNavBtn" onclick="simulateState('releasing')">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="output">output</span>
+<span>Release today</span>
+</button>
+<div class="h-5 w-px bg-outline-variant hidden sm:block"></div>
+<button class="relative p-2 text-graphite hover:text-on-surface hover:bg-surface-container-low rounded transition-colors duration-160" title="Notifications">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-surface-container-lowest"></span>
+</button>
+<!-- Profile image alt: Employee avatar initials in circular badge -->
+<div class="flex items-center gap-2.5 pl-1" title="Employee profile">
+<div aria-label="Employee avatar initials in circular badge" class="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-high border border-outline-variant text-sm font-headline font-semibold text-graphite tracking-tight">
+          AS
+        </div>
+<div class="hidden lg:block text-left">
+<div class="text-xs font-semibold leading-tight text-on-surface">Ayesha Siddiqui</div>
+<div class="text-[11px] text-muted-steel font-mono">EMP-4482</div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CANVAS -->
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-6">
+<!-- GLOBAL TOAST / BANNER CONTAINER (Interactive Target) -->
+<div class="hidden transition-all duration-260" id="statusToastBanner">
+<!-- Injected dynamically via JS simulator -->
+</div>
+<!-- 1) HEADER SECTION -->
+<section class="border-b border-outline-variant pb-6">
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+<div>
+<!-- Breadcrumb/context tag -->
+<div class="flex items-center gap-2 text-xs text-muted-steel font-medium mb-1.5">
+<span>Folio3 Bay Management</span>
+<span>/</span>
+<span class="text-graphite font-semibold">Dedicated Bay</span>
+<span class="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-bay-green-wash text-[11px] font-mono text-primary font-medium">
+<span class="h-1.5 w-1.5 rounded-full bg-primary live-dot"></span>
+              Live Sync
+            </span>
+</div>
+<!-- Greeting -->
+<h1 class="font-headline text-2xl sm:text-[28px] font-bold tracking-tight text-on-surface leading-tight">
+            Hello, Ayesha Siddiqui
+          </h1>
+<!-- Dedicated space subheader / badge -->
+<div class="mt-2 flex flex-wrap items-center gap-3">
+<span class="font-body text-sm text-graphite flex items-center gap-2">
+<span>Your space:</span>
+<span class="space-chip">B1-03</span>
+<span class="text-muted-steel">·</span>
+<span class="font-medium text-charcoal">Floor B1</span>
+</span>
+<span class="text-hairline hidden sm:inline">|</span>
+<span class="inline-flex items-center gap-1.5 text-xs text-muted-steel font-body">
+<span class="material-symbols-outlined text-[15px] text-primary" data-icon="verified">verified</span>
+              Permanent Bay Allocation
+            </span>
+</div>
+</div>
+<!-- Timestamp / location pill -->
+<div class="self-start sm:self-auto inline-flex items-center gap-2 bg-surface-container-lowest border border-outline-variant rounded px-3.5 py-2 text-xs text-graphite shadow-none font-body">
+<span class="material-symbols-outlined text-base text-muted-steel" data-icon="schedule">schedule</span>
+<span class="font-mono text-charcoal font-medium">Tuesday, 10 June 2025</span>
+<span class="text-outline-variant">·</span>
+<span class="text-muted-steel font-medium">HQ West Wing B1</span>
+</div>
+</div>
+</section>
+<!-- 12-COLUMN MAIN CONTENT GRID (Columns 1-8 Main, Columns 9-12 Rail) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- COLUMNS 1–8: PRIMARY DECISION CANVAS -->
+<div class="lg:col-span-8 space-y-6">
+<!-- 2) TODAY'S SPACE CARD ('Tuesday, 10 June 2025') -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5 sm:p-6 transition-all duration-260" id="todayCard">
+<div class="flex items-start justify-between border-b border-outline-variant pb-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label text-xs uppercase tracking-wider text-muted-steel">Today's Allocation</span>
+<span class="text-muted-steel text-xs">·</span>
+<span class="font-mono text-xs font-semibold text-charcoal">Tue, 10 Jun 2025</span>
+</div>
+<h2 class="font-headline text-lg sm:text-xl font-bold text-on-surface mt-1 flex items-center gap-2.5">
+<span>Assigned Space</span>
+<span class="space-chip text-base">B1-03</span>
+</h2>
+</div>
+<!-- Dynamic Status Badge Indicator -->
+<div class="text-right" id="todayBadgeContainer">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-low" id="todayBadge">
+<span class="h-1.5 w-1.5 rounded-full bg-muted-steel"></span>
+<span>Not released</span>
+</span>
+<div class="text-[11px] text-muted-steel mt-1 font-mono hidden" id="todayBadgeSubtext">
+                Claimable at 08:00 PKT
+              </div>
+</div>
+</div>
+<!-- Secondary details row: vehicle linked & bay features -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-b border-outline-variant">
+<div class="flex items-start gap-3">
+<div class="mt-0.5 p-1.5 rounded bg-surface-container-low border border-outline-variant text-graphite">
+<span class="material-symbols-outlined text-[18px]" data-icon="directions_car">directions_car</span>
+</div>
+<div>
+<span class="font-label text-[11px] uppercase tracking-wider text-muted-steel block">Vehicle linked</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="plate-chip text-xs">LEA-24-918</span>
+<span class="text-xs text-graphite font-medium">Honda Civic · Grey</span>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="mt-0.5 p-1.5 rounded bg-surface-container-low border border-outline-variant text-bay-green">
+<span class="material-symbols-outlined text-[18px]" data-icon="ev_station">ev_station</span>
+</div>
+<div>
+<span class="font-label text-[11px] uppercase tracking-wider text-muted-steel block">Bay features</span>
+<div class="text-xs text-graphite mt-1 flex flex-wrap gap-x-2 gap-y-1 font-body">
+<span class="font-medium text-charcoal flex items-center gap-1">
+<span class="h-1.5 w-1.5 rounded-full bg-bay-green"></span>
+                    EV charging available (7.4 kW)
+                  </span>
+<span class="text-muted-steel">·</span>
+<span>Standard 2.6m width</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Policy note verbatim -->
+<div class="mt-4 bg-surface-container-low border-l-2 border-primary p-3.5 rounded-r text-xs text-graphite leading-relaxed">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[17px] text-primary shrink-0 mt-0.5" data-icon="info">info</span>
+<div>
+<strong class="font-medium text-charcoal block mb-0.5 font-headline">Release Window Policy:</strong>
+<p class="font-body text-graphite">
+                  Releases made before 08:00 PKT become claimable at 08:00. Releases at or after 08:00 are claimable immediately.
+                </p>
+</div>
+</div>
+</div>
+<!-- Primary Action Area -->
+<div class="mt-5 flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+<div class="text-xs text-muted-steel font-body flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-muted-steel" data-icon="lock_clock">lock_clock</span>
+<span>Daily cut-off: 08:00 PKT daily pool batch release</span>
+</div>
+<!-- Action Button container -->
+<div class="w-full sm:w-auto" id="todayActionContainer">
+<button class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded bg-bay-green hover:bg-bay-green-hover text-on-primary px-5 py-2.5 text-sm font-medium tracking-tight transition-colors duration-160 btn-brand shadow-none" id="primaryReleaseBtn" onclick="simulateState('releasing')">
+<span class="material-symbols-outlined text-[18px]" data-icon="output">output</span>
+<span>Release today's space</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 3) UPCOMING RELEASES LIST -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5 sm:p-6">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant">
+<div>
+<h3 class="font-headline text-base font-bold text-on-surface">Upcoming Releases</h3>
+<p class="text-xs text-muted-steel mt-0.5">Automated release queue and advance space commitments</p>
+</div>
+<!-- Action link: 'Schedule releases' with calendar icon -->
+<button class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-bay-green-hover transition-colors duration-160" onclick="simulateState('scheduleAlert')">
+<span class="material-symbols-outlined text-[17px]" data-icon="calendar_today">calendar_today</span>
+<span>Schedule releases</span>
+</button>
+</div>
+<!-- Schedule list containing Thu 12 Jun & Mon 16 Jun verbatim -->
+<div class="divide-y divide-outline-variant">
+<!-- Item 1: Thu 12 Jun 2025 -->
+<div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-surface-container-low px-2 rounded -mx-2 transition-colors duration-160">
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded bg-surface-container-low border border-outline-variant flex items-center justify-center text-graphite shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="event">event</span>
+</div>
+<div>
+<div class="font-mono text-sm font-semibold text-charcoal">Thu 12 Jun 2025</div>
+<div class="text-[11px] text-muted-steel font-body">Whole day · Bay B1-03</div>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end sm:self-auto">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-lowest">
+<span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+<span>Reserved</span>
+</span>
+<button class="text-muted-steel hover:text-stop-red text-xs px-2 py-1 rounded hover:bg-surface-container-high transition-colors" title="Cancel scheduled release">
+                  Cancel
+                </button>
+</div>
+</div>
+<!-- Item 2: Mon 16 Jun 2025 -->
+<div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-surface-container-low px-2 rounded -mx-2 transition-colors duration-160">
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded bg-surface-container-low border border-outline-variant flex items-center justify-center text-graphite shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="event">event</span>
+</div>
+<div>
+<div class="font-mono text-sm font-semibold text-charcoal">Mon 16 Jun 2025</div>
+<div class="text-[11px] text-muted-steel font-body">Whole day · Bay B1-03</div>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end sm:self-auto">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-lowest">
+<span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+<span>Reserved</span>
+</span>
+<button class="text-muted-steel hover:text-stop-red text-xs px-2 py-1 rounded hover:bg-surface-container-high transition-colors" title="Cancel scheduled release">
+                  Cancel
+                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- 4) INTERACTIVE STATE PREVIEW SWITCHER / SIMULATOR -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5 sm:p-6">
+<div class="border-b border-outline-variant pb-3 mb-4 flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="tune">tune</span>
+<h3 class="font-headline text-base font-bold text-on-surface">Interactive State Preview Switcher / Simulator</h3>
+</div>
+<p class="text-xs text-muted-steel mt-0.5">Direct state simulator testing all requested conditions in real-time</p>
+</div>
+<span class="text-[11px] font-mono bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-graphite">Dev Inspector</span>
+</div>
+<!-- Buttons array to simulate each state -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+<button class="state-btn text-left px-3 py-2 rounded border border-outline-variant hover:border-bay-green bg-surface-container-low text-xs font-medium text-graphite hover:text-charcoal transition-all" onclick="simulateState('default')">
+<span class="block font-semibold text-charcoal">Default</span>
+<span class="text-[10px] text-muted-steel">Not released</span>
+</button>
+<button class="state-btn text-left px-3 py-2 rounded border border-outline-variant hover:border-bay-green bg-surface-container-low text-xs font-medium text-graphite hover:text-charcoal transition-all" onclick="simulateState('releasing')">
+<span class="block font-semibold text-charcoal">Loading</span>
+<span class="text-[10px] text-muted-steel">Releasing…</span>
+</button>
+<button class="state-btn text-left px-3 py-2 rounded border border-outline-variant hover:border-bay-green bg-surface-container-low text-xs font-medium text-graphite hover:text-charcoal transition-all" onclick="simulateState('success')">
+<span class="block font-semibold text-charcoal">Success</span>
+<span class="text-[10px] text-bay-green">Toast &amp; Released</span>
+</button>
+<button class="state-btn text-left px-3 py-2 rounded border border-outline-variant hover:border-stop-red bg-surface-container-low text-xs font-medium text-graphite hover:text-stop-red transition-all" onclick="simulateState('error')">
+<span class="block font-semibold text-stop-red">Error state</span>
+<span class="text-[10px] text-muted-steel">Conflict banner</span>
+</button>
+</div>
+<!-- Status Badge Variants Preview Section -->
+<div class="bg-surface-container-low rounded-lg p-4 border border-outline-variant">
+<div class="font-label text-xs uppercase tracking-wider text-muted-steel mb-3 font-semibold">
+              Status Badge Variants Preview
+            </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<!-- Variant 1: Reserved -->
+<div class="bg-surface-container-lowest border border-outline-variant p-3 rounded flex flex-col justify-between">
+<div>
+<span class="font-label text-[10px] uppercase text-muted-steel block mb-1.5">State: Reserved</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-low">
+<span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+<span>Reserved</span>
+</span>
+</div>
+<p class="text-[11px] text-muted-steel mt-2 font-body">Scheduled for release or assigned to employee</p>
+</div>
+<!-- Variant 2: Claimable -->
+<div class="bg-surface-container-lowest border border-outline-variant p-3 rounded flex flex-col justify-between">
+<div>
+<span class="font-label text-[10px] uppercase text-muted-steel block mb-1.5">State: Claimable</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-primary text-xs font-mono font-medium text-bay-green bg-bay-green-wash">
+<span class="h-1.5 w-1.5 rounded-full bg-bay-green"></span>
+<span>Claimable</span>
+</span>
+</div>
+<p class="text-[11px] text-muted-steel mt-2 font-body">Available in office pool for open claiming</p>
+</div>
+<!-- Variant 3: Claimed — by an employee at 08:03 PKT -->
+<div class="bg-surface-container-lowest border border-outline-variant p-3 rounded flex flex-col justify-between">
+<div>
+<span class="font-label text-[10px] uppercase text-muted-steel block mb-1.5">State: Claimed</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-secondary text-xs font-mono font-medium text-on-surface bg-secondary-container">
+<span class="h-1.5 w-1.5 rounded-full bg-secondary"></span>
+<span>Claimed — by an employee at 08:03 PKT</span>
+</span>
+</div>
+<p class="text-[11px] text-muted-steel mt-2 font-body">Transferred to peer colleague for 10 Jun</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- COLUMNS 9–12: CONTEXT RAIL & SUPPORTING PANELS -->
+<div class="lg:col-span-4 space-y-6">
+<!-- SIDE CARD 1: Registered Vehicle (Primary Permit) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant">
+<h3 class="font-headline text-sm font-bold text-on-surface">Registered Vehicle</h3>
+<span class="font-label text-[10px] uppercase tracking-wider text-bay-green bg-bay-green-wash px-2 py-0.5 rounded font-semibold">Primary Permit</span>
+</div>
+<div class="mt-4 space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-xs text-muted-steel">Licence Plate</span>
+<span class="plate-chip text-xs">LEA-24-918</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-xs text-muted-steel">Model &amp; Make</span>
+<span class="text-xs font-medium text-charcoal">Honda Civic (2024)</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-xs text-muted-steel">Color</span>
+<span class="text-xs font-medium text-charcoal">Meteoroid Grey Metallic</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-xs text-muted-steel">RFID Transponder</span>
+<span class="font-mono text-xs text-graphite">TAG-9921-OK</span>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-outline-variant flex items-center justify-between">
+<span class="text-[11px] text-muted-steel">Need to switch vehicles?</span>
+<button class="text-xs font-medium text-primary hover:underline">Update permit</button>
+</div>
+</div>
+<!-- SIDE CARD 2: Release Rules & Release Window -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5">
+<div class="flex items-center gap-2 pb-3 border-b border-outline-variant">
+<span class="material-symbols-outlined text-[17px] text-primary" data-icon="policy">policy</span>
+<h3 class="font-headline text-sm font-bold text-on-surface">Release Rules &amp; Window</h3>
+</div>
+<div class="mt-4 space-y-3 text-xs">
+<div class="flex gap-2.5">
+<span class="font-mono text-xs font-bold text-primary shrink-0">01</span>
+<div>
+<strong class="font-medium text-charcoal">Early Release (Before 08:00 PKT)</strong>
+<p class="text-graphite text-[11px] mt-0.5 leading-relaxed">Pooled spaces open to waitlisted peers precisely at 08:00 PKT batch run.</p>
+</div>
+</div>
+<div class="flex gap-2.5">
+<span class="font-mono text-xs font-bold text-primary shrink-0">02</span>
+<div>
+<strong class="font-medium text-charcoal">Immediate Release (08:00+ PKT)</strong>
+<p class="text-graphite text-[11px] mt-0.5 leading-relaxed">Released bays immediately become claimable on first-come basis.</p>
+</div>
+</div>
+<div class="flex gap-2.5">
+<span class="font-mono text-xs font-bold text-primary shrink-0">03</span>
+<div>
+<strong class="font-medium text-charcoal">Credit Allocation</strong>
+<p class="text-graphite text-[11px] mt-0.5 leading-relaxed">+1 Flexible allocation credit awarded upon verified peer claim.</p>
+</div>
+</div>
+</div>
+<div class="mt-4 p-2.5 bg-surface-container-low rounded border border-outline-variant text-[11px] text-muted-steel flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-graphite" data-icon="verified_user">verified_user</span>
+<span>Policy governed by HR &amp; Facilities B1 Ops</span>
+</div>
+</div>
+<!-- SIDE CARD 3: Security Gate Intercom -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[17px] text-graphite" data-icon="shield">shield</span>
+<h3 class="font-headline text-sm font-bold text-on-surface">Security Gate Intercom</h3>
+</div>
+<span class="inline-flex items-center gap-1 text-[10px] font-mono text-bay-green bg-bay-green-wash px-2 py-0.5 rounded">
+<span class="h-1.5 w-1.5 rounded-full bg-bay-green live-dot"></span>
+              Gate 01 Active
+            </span>
+</div>
+<div class="mt-3.5 space-y-2 text-xs text-graphite">
+<div class="flex justify-between items-center py-1">
+<span class="text-muted-steel">Booth Guard</span>
+<span class="font-medium text-charcoal">Tariq Mehmood (Shift A)</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-muted-steel">ANPR Camera</span>
+<span class="font-mono text-bay-green">Connected · 99.8% match</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-muted-steel">Barrier Ext.</span>
+<span class="font-mono text-charcoal">Ext. 204</span>
+</div>
+</div>
+<button class="w-full mt-4 inline-flex items-center justify-center gap-2 rounded bg-surface-container-low border border-outline-variant hover:bg-surface-container-high px-3 py-2 text-xs font-semibold text-charcoal transition-all" onclick="triggerCallGuard()">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="call">call</span>
+<span>Buzz Security Gate Console</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- JAVASCRIPT STATE SIMULATOR IMPLEMENTATION -->
+<script>
+    function simulateState(state) {
+      const banner = document.getElementById('statusToastBanner');
+      const badge = document.getElementById('todayBadge');
+      const subtext = document.getElementById('todayBadgeSubtext');
+      const actionContainer = document.getElementById('todayActionContainer');
+      const todayCard = document.getElementById('todayCard');
+
+      // Reset common classes
+      banner.className = 'hidden transition-all duration-260';
+      todayCard.classList.remove('border-primary', 'border-stop-red', 'bg-bay-green-wash');
+
+      if (state === 'default') {
+        // 1) Default (Not released)
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-low';
+        badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-muted-steel"></span><span>Not released</span>';
+        subtext.classList.add('hidden');
+        
+        actionContainer.innerHTML = `
+          <button id="primaryReleaseBtn" onclick="simulateState('releasing')" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded bg-bay-green hover:bg-bay-green-hover text-on-primary px-5 py-2.5 text-sm font-medium tracking-tight transition-colors duration-160 btn-brand shadow-none">
+            <span class="material-symbols-outlined text-[18px]" data-icon="output">output</span>
+            <span>Release today's space</span>
+          </button>
+        `;
+      } 
+      else if (state === 'releasing') {
+        // 2) Loading state (Releasing…)
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-low animate-pulse';
+        badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-caution-ochre"></span><span>Releasing…</span>';
+        
+        actionContainer.innerHTML = `
+          <button disabled class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded bg-surface-container-high text-muted-steel border border-outline-variant px-5 py-2.5 text-sm font-medium cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px] animate-spin" data-icon="sync">sync</span>
+            <span>Releasing…</span>
+          </button>
+        `;
+
+        // Auto advance to success after 900ms simulation
+        setTimeout(() => {
+          simulateState('success');
+        }, 900);
+      } 
+      else if (state === 'success') {
+        // 3) Success state (Released)
+        // Toast banner 'Released' appears
+        banner.className = 'block bg-bay-green-wash border-l-4 border-primary p-4 rounded text-xs text-graphite flex items-center justify-between mb-4';
+        banner.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-xl" data-icon="check_circle">check_circle</span>
+            <div>
+              <strong class="font-headline font-bold text-charcoal text-sm block">Released</strong>
+              <span>Space B1-03 successfully released for Tuesday, 10 June 2025 at 07:15 PKT.</span>
+            </div>
+          </div>
+          <button onclick="document.getElementById('statusToastBanner').classList.add('hidden')" class="text-graphite hover:text-charcoal p-1">
+            <span class="material-symbols-outlined text-base" data-icon="close">close</span>
+          </button>
+        `;
+
+        // Today's badge updates to 'Reserved' with subtext 'Claimable at 08:00 PKT' (released at 07:15 PKT)
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-outline-variant text-xs font-mono font-medium text-graphite bg-surface-container-low';
+        badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-primary"></span><span>Reserved</span>';
+        subtext.classList.remove('hidden');
+        subtext.innerText = 'Claimable at 08:00 PKT (released at 07:15 PKT)';
+
+        // Button replaced with disabled/confirmed state 'Released for today'
+        actionContainer.innerHTML = `
+          <button disabled class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded bg-surface-container-high border border-outline-variant text-muted-steel px-5 py-2.5 text-sm font-medium cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px] text-bay-green" data-icon="task_alt">task_alt</span>
+            <span>Released for today</span>
+          </button>
+        `;
+      } 
+      else if (state === 'error') {
+        // 4) Error state (Conflict)
+        // Inline error banner: 'You've already released 10 Jun 2025.'
+        banner.className = 'block bg-stop-wash border-l-4 border-stop-red p-4 rounded text-xs text-graphite flex items-center justify-between mb-4';
+        banner.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-stop-red text-xl" data-icon="error">error</span>
+            <div>
+              <strong class="font-headline font-bold text-stop-red text-sm block">Conflict detected</strong>
+              <span>You've already released 10 Jun 2025. Action cannot be repeated.</span>
+            </div>
+          </div>
+          <button onclick="document.getElementById('statusToastBanner').classList.add('hidden')" class="text-graphite hover:text-stop-red p-1">
+            <span class="material-symbols-outlined text-base" data-icon="close">close</span>
+          </button>
+        `;
+      }
+      else if (state === 'scheduleAlert') {
+        banner.className = 'block bg-surface-container-lowest border border-outline-variant p-4 rounded text-xs text-graphite flex items-center justify-between mb-4';
+        banner.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-xl" data-icon="calendar_month">calendar_month</span>
+            <div>
+              <strong class="font-headline font-bold text-charcoal text-sm block">Schedule releases window open</strong>
+              <span>You may advance-release bays up to 14 days ahead. Next calendar window: 11 Jun – 24 Jun 2025.</span>
+            </div>
+          </div>
+          <button onclick="document.getElementById('statusToastBanner').classList.add('hidden')" class="text-graphite hover:text-charcoal p-1">
+            <span class="material-symbols-outlined text-base" data-icon="close">close</span>
+          </button>
+        `;
+      }
+    }
+
+    function triggerCallGuard() {
+      const banner = document.getElementById('statusToastBanner');
+      banner.className = 'block bg-surface-container-lowest border-l-4 border-primary p-4 rounded text-xs text-graphite flex items-center justify-between mb-4';
+      banner.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary text-xl" data-icon="ring_volume">ring_volume</span>
+          <div>
+            <strong class="font-headline font-bold text-charcoal text-sm block">Connecting to West Gate Booth…</strong>
+            <span>Tariq Mehmood notified on Guard Console for Bay B1-03 intercom call.</span>
+          </div>
+        </div>
+        <button onclick="document.getElementById('statusToastBanner').classList.add('hidden')" class="text-graphite hover:text-charcoal p-1">
+          <span class="material-symbols-outlined text-base" data-icon="close">close</span>
+        </button>
+      `;
+    }
+  </script>
+</body></html>

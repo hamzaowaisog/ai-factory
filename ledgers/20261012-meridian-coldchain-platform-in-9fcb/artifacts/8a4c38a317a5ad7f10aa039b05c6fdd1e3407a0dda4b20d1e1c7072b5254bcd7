@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Receipts - Meridian</title>
+<!-- Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-tertiary-fixed": "#001e2d",
+            "on-surface-variant": "#626262",
+            "error": "#AE2C2C",
+            "on-secondary-fixed-variant": "#683b27",
+            "on-error": "#ffffff",
+            "on-primary-fixed": "#360f00",
+            "on-background": "#202020",
+            "tertiary-container": "#006e99",
+            "background": "#F7F7F7",
+            "tertiary-fixed-dim": "#82cfff",
+            "on-primary-container": "#ffe0d4",
+            "secondary-fixed": "#ffdbcd",
+            "on-secondary": "#ffffff",
+            "surface-container-low": "#F7F7F7",
+            "outline": "#D5D5D5",
+            "surface": "#FFFFFF",
+            "surface-container": "#F7F7F7",
+            "inverse-primary": "#ffb597",
+            "on-primary-fixed-variant": "#7d2d00",
+            "outline-variant": "#D5D5D5",
+            "on-tertiary-fixed-variant": "#004c6b",
+            "primary": "#A94B1D",
+            "primary-container": "#A94B1D",
+            "inverse-surface": "#202020",
+            "primary-fixed-dim": "#ffb597",
+            "surface-container-lowest": "#FFFFFF",
+            "secondary": "#202020",
+            "on-error-container": "#93000a",
+            "inverse-on-surface": "#f1f1f1",
+            "secondary-fixed-dim": "#f9b89d",
+            "on-secondary-fixed": "#331103",
+            "tertiary": "#005577",
+            "primary-fixed": "#ffdbcd",
+            "on-surface": "#202020",
+            "tertiary-fixed": "#c6e7ff",
+            "surface-tint": "#A94B1D",
+            "surface-dim": "#dadada",
+            "surface-bright": "#f9f9f9",
+            "on-secondary-container": "#7a4a35",
+            "surface-container-highest": "#e2e2e2",
+            "on-tertiary-container": "#cdeaff",
+            "surface-variant": "#FFFFFF",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-container-high": "#e8e8e8",
+            "secondary-container": "#ffbda2",
+            "on-primary": "#FFFFFF"
+          },
+          borderRadius: {
+            DEFAULT: "2px",
+            sm: "2px",
+            md: "2px",
+            lg: "2px",
+            xl: "2px",
+            full: "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion & Entrance Tokens */
+    @keyframes settle {
+      from { opacity: 0.6; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes page-enter {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-enter-header {
+      animation: page-enter var(--dur-base) var(--ease-out) both;
+    }
+
+    .anim-enter-content {
+      animation: page-enter var(--dur-base) var(--ease-out) 60ms both;
+    }
+
+    .anim-enter-cards {
+      animation: page-enter var(--dur-base) var(--ease-out) 120ms both;
+    }
+
+    .save-status.is-confirmed {
+      animation: settle var(--dur-base) var(--ease-out) both;
+    }
+
+    .sync-dot.is-syncing {
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    /* Custom Form & Control Focus */
+    input:focus, select:focus {
+      outline: 2px solid #A94B1D !important;
+      outline-offset: 2px !important;
+      border-color: #A94B1D !important;
+    }
+
+    /* Pure CSS Drawer reveal toggle using hidden checkbox */
+    #drawer-toggle:checked ~ #drawer-backdrop {
+      display: block;
+      opacity: 0.4;
+    }
+    #drawer-toggle:checked ~ #drawer-panel {
+      transform: translateX(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-property: opacity !important;
+        transition-duration: 120ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-[100dvh] flex justify-center selection:bg-primary-container selection:text-on-primary">
+<!-- Mobile phone frame wrapper (constrained to 390px viewport, single column) -->
+<div class="w-full max-w-[390px] min-h-[100dvh] bg-background flex flex-col relative border-x border-outline/30">
+<!-- CSS-only drawer toggle checkbox -->
+<input aria-hidden="true" class="sr-only peer" id="drawer-toggle" type="checkbox"/>
+<!-- BACKDROP for Drawer -->
+<label class="fixed inset-0 bg-[#202020] opacity-0 pointer-events-none transition-opacity duration-300 z-40 hidden peer-checked:block peer-checked:pointer-events-auto" for="drawer-toggle" id="drawer-backdrop"></label>
+<!-- NAVIGATION DRAWER (Shared Components Architecture: w-[280px], flat, ruled, strict items) -->
+<aside class="fixed inset-y-0 left-0 w-[280px] bg-surface-container-lowest border-r border-outline z-50 transform -translate-x-full transition-transform duration-[260ms] ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col justify-between py-4" id="drawer-panel">
+<div class="flex flex-col">
+<!-- Close & Brand anchor inside drawer -->
+<div class="flex items-center justify-between px-4 pb-4 border-b border-outline mb-2">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 bg-[#202020] flex items-center justify-center rounded-[2px]">
+<span class="text-white text-xs font-bold leading-none font-headline">M</span>
+</div>
+<span class="font-headline font-bold text-base text-on-surface tracking-wider uppercase">Meridian</span>
+</div>
+<label aria-label="Close menu" class="p-1 cursor-pointer text-on-surface hover:bg-surface-container active:scale-[0.97] rounded-[2px]" for="drawer-toggle">
+<span class="material-symbols-outlined block text-[20px]">close</span>
+</label>
+</div>
+<!-- Strict Menu List: Receipts (active), Stock, Moves, Boxes, Cold rooms -->
+<nav class="flex flex-col space-y-1">
+<!-- Receipts (Active) -->
+<a class="flex items-center gap-3 px-4 py-3 bg-surface-container text-primary font-medium border-l-2 border-primary active:scale-[0.97] transition-transform duration-[90ms]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="inventory_2">inventory_2</span>
+<span class="font-body text-sm">Receipts</span>
+</a>
+<!-- Stock -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-normal hover:bg-surface-container-low active:scale-[0.97] transition-transform duration-[90ms]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="warehouse">warehouse</span>
+<span class="font-body text-sm">Stock</span>
+</a>
+<!-- Moves -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-normal hover:bg-surface-container-low active:scale-[0.97] transition-transform duration-[90ms]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="sync_alt">sync_alt</span>
+<span class="font-body text-sm">Moves</span>
+</a>
+<!-- Boxes -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-normal hover:bg-surface-container-low active:scale-[0.97] transition-transform duration-[90ms]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="archive">archive</span>
+<span class="font-body text-sm">Boxes</span>
+</a>
+<!-- Cold rooms -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-normal hover:bg-surface-container-low active:scale-[0.97] transition-transform duration-[90ms]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="ac_unit">ac_unit</span>
+<span class="font-body text-sm">Cold rooms</span>
+</a>
+</nav>
+</div>
+<!-- Operator Indicator / Profile Header in Drawer -->
+<div class="px-4 pt-4 border-t border-outline flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-[2px] bg-[#202020] text-white flex items-center justify-center font-num text-xs font-semibold shrink-0">
+            LH
+          </div>
+<div class="flex flex-col min-w-0">
+<span class="font-body text-sm font-semibold text-on-surface truncate">Leila Haddad</span>
+<span class="font-body text-xs text-on-surface-variant truncate">Warehouse Operator</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-num text-xs text-on-surface-variant">North Quay Facility</span>
+<span class="font-body text-xs text-on-surface-variant font-medium">EN / العربية</span>
+</div>
+</div>
+</aside>
+<!-- 4. HEADER: Single line phone header, 48px height, brand + hamburger menu ONLY -->
+<header class="w-full h-12 bg-surface-container-lowest border-b border-outline px-4 flex items-center justify-between sticky top-0 z-30 anim-enter-header">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 bg-[#202020] flex items-center justify-center rounded-[2px]">
+<span class="text-white text-[11px] font-bold leading-none font-headline">M</span>
+</div>
+<span class="font-headline font-bold text-base text-on-surface tracking-wider uppercase">Meridian</span>
+</div>
+<!-- Menu Button triggering the CSS drawer -->
+<label aria-label="Open menu" class="w-10 h-10 flex items-center justify-center cursor-pointer text-on-surface hover:bg-surface-container active:scale-[0.97] transition-transform duration-[90ms] rounded-[2px]" for="drawer-toggle">
+<span class="material-symbols-outlined text-[24px]" data-icon="menu">menu</span>
+</label>
+</header>
+<!-- OPERATOR SUB-BAR: Subtle context bar right below header as requested -->
+<div class="w-full bg-surface-container-lowest border-b border-outline px-4 py-2 flex items-center justify-between text-xs text-on-surface-variant">
+<div class="flex items-center gap-1.5 truncate">
+<span class="w-4 h-4 rounded-[2px] bg-[#202020] text-white flex items-center justify-center font-num text-[9px] font-semibold shrink-0">LH</span>
+<span class="truncate">Leila Haddad · Warehouse Operator</span>
+</div>
+<span class="shrink-0 font-medium ml-2">EN / العربية</span>
+</div>
+<!-- MAIN CONTENT CANVAS -->
+<main class="flex-1 px-4 pt-6 pb-12 flex flex-col gap-6">
+<!-- Section Title & Primary Action -->
+<section class="flex flex-col gap-4 anim-enter-content">
+<h1 class="font-headline font-[650] text-[28px] leading-[1.2] tracking-[-0.025em] text-[#202020]">
+          Receipts
+        </h1>
+<!-- Primary Button: "Record receipt" within thumb reach (48px tall, #A94B1D bg, 2px radius) -->
+<button class="w-full h-12 bg-[#A94B1D] text-white font-body text-base font-medium rounded-[2px] flex items-center justify-center shadow-none active:scale-[0.97] transition-transform duration-[90ms] hover:opacity-95 cursor-pointer" type="button">
+          Record receipt
+        </button>
+</section>
+<!-- Instant Filters (Stacked vertically for phone) -->
+<section class="flex flex-col gap-3 anim-enter-content">
+<!-- Search field -->
+<div class="flex flex-col gap-1">
+<label class="font-body text-sm font-medium text-[#202020]" for="search-input">
+            Search
+          </label>
+<input class="w-full h-12 px-3 bg-white border border-[#D5D5D5] rounded-[2px] font-body text-base text-[#202020] focus:ring-0 focus:outline-none" id="search-input" type="text" value="North Quay"/>
+</div>
+<!-- Status filter select -->
+<div class="flex flex-col gap-1">
+<label class="font-body text-sm font-medium text-[#202020]" for="status-filter">
+            Status
+          </label>
+<div class="relative">
+<select class="w-full h-12 px-3 pr-9 bg-white border border-[#D5D5D5] rounded-[2px] font-body text-base text-[#202020] appearance-none focus:ring-0 focus:outline-none cursor-pointer" id="status-filter">
+<option selected="">All statuses</option>
+<option>Quarantine</option>
+<option>Confirmed</option>
+<option>Refused</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Date filter select -->
+<div class="flex flex-col gap-1">
+<label class="font-body text-sm font-medium text-[#202020]" for="date-filter">
+            Date
+          </label>
+<div class="relative">
+<select class="w-full h-12 px-3 pr-9 bg-white border border-[#D5D5D5] rounded-[2px] font-body text-base text-[#202020] appearance-none focus:ring-0 focus:outline-none cursor-pointer" id="date-filter">
+<option selected="">14 May 2026 (Today)</option>
+<option>13 May 2026</option>
+<option>12 May 2026</option>
+<option>All recorded dates</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Secondary action: CSV export -->
+<button class="w-full h-12 mt-1 bg-white border border-[#D5D5D5] text-[#202020] font-body text-base font-medium rounded-[2px] flex items-center justify-center active:scale-[0.97] transition-transform duration-[90ms] hover:bg-surface-container cursor-pointer" type="button">
+          CSV export
+        </button>
+</section>
+<!-- Stacked Touch-Sized Records (Mobile format for North Quay only) -->
+<section class="flex flex-col gap-4 mt-2 anim-enter-cards">
+<!-- RECORD 1 -->
+<article class="bg-white border border-[#D5D5D5] rounded-[2px] p-4 flex flex-col gap-4">
+<!-- 4:3 Photographic proof -->
+<div class="w-full aspect-[4/3] bg-surface-container rounded-[2px] overflow-hidden border border-[#D5D5D5]/60 relative">
+<img alt="Medical insulin glargine carton boxes packaging with pen injectors" class="w-full h-full object-cover rounded-[2px]" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+</div>
+<!-- Structured metadata fields -->
+<div class="flex flex-col divide-y divide-[#D5D5D5]">
+<!-- Lot row -->
+<div class="flex items-baseline justify-between py-2 first:pt-0">
+<span class="font-body text-sm text-[#626262]">Lot</span>
+<span class="font-num text-sm font-semibold text-[#202020]">IG-2511</span>
+</div>
+<!-- Product row -->
+<div class="flex flex-col py-2 gap-0.5">
+<span class="font-body text-sm text-[#626262]">Product</span>
+<span class="font-body text-sm text-[#202020] font-medium leading-snug">Insulin Glargine 100 units/mL, pack of 10 pens</span>
+</div>
+<!-- Quantity row -->
+<div class="flex items-baseline justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Quantity</span>
+<span class="font-body text-sm text-[#202020]"><span class="font-num font-semibold">120</span> packs</span>
+</div>
+<!-- Received timestamp row -->
+<div class="flex items-baseline justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Received</span>
+<span class="font-num text-sm text-[#202020]">14 May 08:00</span>
+</div>
+<!-- Warehouse location row -->
+<div class="flex items-baseline justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Warehouse</span>
+<span class="font-body text-sm text-[#202020]">North Quay</span>
+</div>
+<!-- Status indicator with breathing dot and verified semantic color -->
+<div class="flex items-center justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Status</span>
+<div class="flex items-center gap-1.5 text-[#805800] text-sm font-medium">
+<span class="w-2 h-2 rounded-full bg-[#805800] inline-block sync-dot is-syncing"></span>
+<span class="save-status">quarantine before release</span>
+</div>
+</div>
+</div>
+<!-- Action: Full-width secondary button "Receipt detail" -->
+<button class="w-full h-12 bg-white border border-[#D5D5D5] text-[#202020] font-body text-base font-medium rounded-[2px] flex items-center justify-center active:scale-[0.97] transition-transform duration-[90ms] hover:bg-surface-container cursor-pointer" type="button">
+            Receipt detail
+          </button>
+</article>
+<!-- RECORD 2 -->
+<article class="bg-white border border-[#D5D5D5] rounded-[2px] p-4 flex flex-col gap-4">
+<!-- 4:3 Photographic proof -->
+<div class="w-full aspect-[4/3] bg-surface-container rounded-[2px] overflow-hidden border border-[#D5D5D5]/60 relative">
+<img alt="Medical insulin glargine carton boxes packaging with pen injectors" class="w-full h-full object-cover rounded-[2px]" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+</div>
+<!-- Structured metadata fields -->
+<div class="flex flex-col divide-y divide-[#D5D5D5]">
+<!-- Lot row -->
+<div class="flex items-baseline justify-between py-2 first:pt-0">
+<span class="font-body text-sm text-[#626262]">Lot</span>
+<span class="font-num text-sm font-semibold text-[#202020]">IG-2509</span>
+</div>
+<!-- Product row -->
+<div class="flex flex-col py-2 gap-0.5">
+<span class="font-body text-sm text-[#626262]">Product</span>
+<span class="font-body text-sm text-[#202020] font-medium leading-snug">Insulin Glargine 100 units/mL, pack of 10 pens</span>
+</div>
+<!-- Quantity row -->
+<div class="flex items-baseline justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Quantity</span>
+<span class="font-body text-sm text-[#202020]"><span class="font-num font-semibold">24</span> packs</span>
+</div>
+<!-- Received timestamp row -->
+<div class="flex items-baseline justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Received</span>
+<span class="font-num text-sm text-[#202020]">12 May 09:10</span>
+</div>
+<!-- Warehouse location row -->
+<div class="flex items-baseline justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Warehouse</span>
+<span class="font-body text-sm text-[#202020]">North Quay</span>
+</div>
+<!-- Status indicator with breathing dot -->
+<div class="flex items-center justify-between py-2">
+<span class="font-body text-sm text-[#626262]">Status</span>
+<div class="flex items-center gap-1.5 text-[#805800] text-sm font-medium">
+<span class="w-2 h-2 rounded-full bg-[#805800] inline-block sync-dot is-syncing"></span>
+<span class="save-status">quarantine</span>
+</div>
+</div>
+</div>
+<!-- Action: Full-width secondary button "Receipt detail" -->
+<button class="w-full h-12 bg-white border border-[#D5D5D5] text-[#202020] font-body text-base font-medium rounded-[2px] flex items-center justify-center active:scale-[0.97] transition-transform duration-[90ms] hover:bg-surface-container cursor-pointer" type="button">
+            Receipt detail
+          </button>
+</article>
+</section>
+</main>
+</div>
+</body></html>

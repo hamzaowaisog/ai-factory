@@ -1,0 +1,240 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-5",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "REQ-5 requires staff sign-in through a 'Meridian Microsoft identity provider', but accepted ASM-1 says email and password with 'no social or single sign-on', and the spec never resolves the conflict."
+     },
+     {
+      "reqId": "REQ-5",
+      "rubric": 5,
+      "severity": "medium",
+      "finding": "The contract only describes a 'configured staff identity-provider', and no current-behaviour claim, answer or assumption anchors the claim that the provider is Microsoft or tied to Meridian."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-7.6 has a single Quality Officer's decision set stock to Released, while REQ-13/AC-13.1 says a proposing officer cannot approve and a different Quality Manager must approve, so release both does and does not need two people."
+     },
+     {
+      "reqId": "REQ-1",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-1.3 says any path and method missing from the contract returns 404/405, but REQ-2/AC-2.1 requires `/`, `/openapi/v1.json` and `/swagger`, none of them in the contract, to return 200."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "AC-17.2 expects 403 for a write against an audit event, but no contracted audit-write operation is cited, so under AC-1.3 the same request must return 404/405."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-6.4 expects 409 when someone tries to alter an earlier profile version, but no contracted operation for altering a version is named, so nothing at the public surface can trigger it."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 1,
+      "severity": "low",
+      "finding": "The spec says warehouse cut-off, calendar and safety-margin values are deployment-managed with 'no configuration API or screen', but accepted ASM-6 says administrators maintain them on admin-only screens in the same app."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 7,
+      "severity": "medium",
+      "finding": "AC-3.4 inserts bootstrap administrator, warehouse and organisation rows on every empty-database startup regardless of Seed:Demo, which breaks the existing guarantee (Program.cs/SeedData.cs comments) that tests and the factory's checks start on an empty database."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 7,
+      "severity": "low",
+      "finding": "AC-3.5 changes demo seeding from the code-defined SeedData.Run to 'deployment-supplied demo seed records', changing the existing seeding mechanism without a request to do so."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "Startup currently uses EnsureCreated, which never changes the schema of an existing database, yet the spec adds many tables and requires data to survive restarts without saying how schema changes reach a deployed database (the intent is tagged 'migration')."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-3.1, AC-3.3 and AC-3.4 are verified against 'the persisted row' and 'database contains rows', and AC-3.3 asks to prove that no legacy data was imported, none of which is observable through a contracted operation."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-8.1, 8.2 and 8.3 repeat one scenario and check internal 'database row', 'allocation row' and 'alert row' state, and AC-8.1 checks an 'alert email call' while AC-8.2 checks an 'alert row', so the observable result is inconsistent."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "After expiry removes an allocation, the spec does not say what happens to the affected order (back-order, re-allocation, status change), which time zone defines 'end of expiry date', or how Expired relates to Quarantined or On Hold stock."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 4,
+      "severity": "low",
+      "finding": "REQ-8 calls the expiry job 'the contracted scheduled check', but the scheduled check comes from ASM-5 and is not a contract operation."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-9.1 covers only a resubmission with the same idempotency key and payload, and never defines the response for the same key with a different payload or how long keys are kept."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-9.4 says the status 'reflect[s] the applicable lifecycle rule' without naming the expected status codes or order states for changes or cancellations before and after Packed, so it cannot be tested."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The spec does not say whether a customer change before packing to an order that already has allocations releases and re-allocates stock or keeps the existing allocations."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "AC-10.5/10.6 rely on 'the allocation service' running without saying which events trigger back-order filling (release, cancellation, expiry removal, recall closure), or whether an older complete-only order that cannot be filled blocks younger back orders."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-7.5 covers only valid moves and gives no error for moving more than the available quantity or moving Quarantined, On Hold or Expired stock, and the split into a new handling unit (ASM-4) is not tested."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "Opening-stock records are allowed without a starting status (Quarantined or Released), and without saying how this fits the no-import, start-empty decision in Q-7/ASM-2."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "AC-12.4 puts affected stock On Hold, but the spec never defines precedence between On Hold, Quarantined, Released, Expired and recall-blocked, or what happens to allocations and packed boxes already on a route when a hold is applied."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-12.8 covers only valid gateway batches and leaves undefined the response to invalid gateway credentials, readings from unknown devices, and malformed readings."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 8,
+      "severity": "low",
+      "finding": "AC-12.5 fixes the silent-device threshold at 15 minutes, although the spec treats similar operating thresholds (safety margins, attempt limits) as deployment configuration."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-12.4, AC-12.5 and AC-11.7 check that 'an email call is recorded', an internal side effect, and AC-11.7 accepts 'email call or driver-change event', so the check passes on either one."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "AC-13.2 adds superseding decisions but does not say how stock status changes when a decision is superseded, for example a rejection reversed after destruction or a release reversed after allocation."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "'Signed' proposals, decisions, recalls and write-offs rely on 'identity confirmation', but the spec never says how a signature is verified or what a failed confirmation returns."
+     },
+     {
+      "reqId": "REQ-13",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-13.3 gives no error for a destruction quantity larger than the remaining rejected quantity, or for destroying stock that has not been rejected."
+     },
+     {
+      "reqId": "REQ-14",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-14.2 does not reject customer recall responses whose on-hand, used and destroyed totals exceed the delivered quantity, or responses that arrive after the recall is closed."
+     },
+     {
+      "reqId": "REQ-14",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "AC-14.1 makes recalled held stock unavailable for future allocation but does not say what happens to existing allocations, packed boxes or routes already carrying recalled lots."
+     },
+     {
+      "reqId": "REQ-15",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-15.2 and AC-15.3 test only other-organisation access and never cover a non-administrator customer calling administration operations, or an administrator removing themselves or the organisation's last administrator."
+     },
+     {
+      "reqId": "REQ-16",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "AC-16.2 lets an administrator change an organisation's minimum remaining shelf life without saying whether existing allocations or back orders that no longer meet the new value are re-checked."
+     },
+     {
+      "reqId": "REQ-16",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "REQ-16 does not cover a non-administrator calling administration operations, or the last System Administrator deactivating themselves."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "The password-reset flow does not say what a reset request for an unknown email returns (an account-enumeration risk), when reset tokens and one-time codes expire, or whether existing sessions end after a reset."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "New temperature-profile versions with an effective date do not say which version applies to budgets already accrued by existing handling units, and deactivating a product does not say what happens to its open orders and allocations."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-17.2's 'Time passes and the event is queried again' gives no duration or check, so 'retained without automatic expiry' cannot be verified."
+     },
+     {
+      "reqId": "NFR-2",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "NFR-2's '5,000 devices reporting at once' gives no reporting rate, latency or error-rate target, so nothing can pass or fail it."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "AC-18.1 does not define 'invalid' database configuration, for example whether a reachable-but-wrong or unreachable database at startup counts, given that EnsureCreated already throws in those cases."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

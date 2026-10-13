@@ -1,0 +1,63 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "Sign in to Folio3 Parking",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "Your parking today",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "Registered vehicles",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "Schedule parking releases",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "Claim a temporary space",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "Temporary parking pass",
+        "req": "REQ-12"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "Employee parking roster",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "Entrance verification activity",
+        "req": "REQ-15"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "Weekly utilization report",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "Office parking settings",
+        "req": "REQ-8"
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "Parking activity history",
+        "req": "REQ-5"
+      }
+    ]
+  },
+  "images": []
+}

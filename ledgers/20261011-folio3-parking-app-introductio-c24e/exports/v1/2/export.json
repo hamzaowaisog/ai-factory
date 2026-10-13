@@ -1,0 +1,38 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261011-folio3-parking-app-introductio-c24e",
+  "version": 1,
+  "designSha": "eb69f957c48abecd39d1332eafccde7af2f66f8efb4aed1c0d598bc023f2f77c",
+  "at": "2026-10-11T22:41:53.022Z",
+  "options": {
+    "formats": [
+      "pdf"
+    ]
+  },
+  "files": [
+    {
+      "format": "pdf",
+      "path": "design-book.pdf",
+      "sha256": "4398cc0dee2b0a8fc291201521dfa7dd9e8ae50aa9d770ff1c7fb95690fcf3b1",
+      "bytes": 18353495
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "pdf.screens",
+      "status": "PASS",
+      "detail": "every screen is in the book"
+    },
+    {
+      "check": "pdf.fonts",
+      "status": "PASS",
+      "detail": "every font is embedded"
+    },
+    {
+      "check": "pdf.pages",
+      "status": "PASS",
+      "detail": "design-book.pdf 66 page(s), 16 screen(s), 37 font(s)"
+    }
+  ]
+}

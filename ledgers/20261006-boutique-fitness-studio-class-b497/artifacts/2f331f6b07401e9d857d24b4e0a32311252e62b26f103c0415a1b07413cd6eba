@@ -1,0 +1,408 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Schedule",
+     "subtitle": "Today, Wed 14 Oct · Book up to 7 days ahead, until 15 min before class",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 12",
+          "Tue 13",
+          "Wed 14",
+          "Thu 15",
+          "Fri 16",
+          "Sat 17",
+          "Sun 18"
+         ],
+         "value": "Wed 14"
+        },
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You can view this week and next"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true,
+         "hint": "Mon 19 – Sun 25 Oct"
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Sunrise Vinyasa",
+         "meta": "07:00 · 60 min · Yoga · Low · Studio A · Started",
+         "badge": "6 spots left",
+         "people": [
+          "Maya Okafor"
+         ]
+        },
+        {
+         "title": "Core Pilates",
+         "meta": "13:00 · 45 min · Pilates · Medium · Studio B · Book",
+         "badge": "Only 2 left",
+         "people": [
+          "Priya Shah"
+         ]
+        },
+        {
+         "title": "HIIT Burn",
+         "meta": "17:30 · 45 min · HIIT · High · Studio A · Join waitlist (#6)",
+         "badge": "Full · 5 on waitlist",
+         "people": [
+          "Jordan Ellis"
+         ]
+        },
+        {
+         "title": "Power Spin",
+         "meta": "18:00 · 45 min · Spin · High · Spin Room · Booked ✓",
+         "badge": "Full · 2 on waitlist",
+         "people": [
+          "Leo Martins"
+         ]
+        },
+        {
+         "title": "Boxing Fundamentals",
+         "meta": "19:00 · 60 min · Boxing · Medium · Studio C · Cancelled by studio",
+         "badge": "Cancelled",
+         "people": [
+          "Sam Reyes"
+         ]
+        },
+        {
+         "title": "Yin & Restore",
+         "meta": "20:00 · 75 min · Yoga · Low · Studio A · Waitlisted #3",
+         "badge": "Full · 4 on waitlist",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Join waitlist",
+         "variant": "secondary",
+         "icon": "clock"
+        },
+        {
+         "label": "Booked ✓",
+         "variant": "ghost",
+         "state": "disabled",
+         "hint": "Manage this booking from My bookings"
+        },
+        {
+         "label": "Waitlisted #3",
+         "variant": "secondary",
+         "menu": [
+          "Leave waitlist"
+         ]
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Sunrise Vinyasa",
+       "to": "S-2"
+      },
+      {
+       "from": "Core Pilates",
+       "to": "S-2"
+      },
+      {
+       "from": "HIIT Burn",
+       "to": "S-2"
+      },
+      {
+       "from": "Power Spin",
+       "to": "S-2"
+      },
+      {
+       "from": "Boxing Fundamentals",
+       "to": "S-2"
+      },
+      {
+       "from": "Yin & Restore",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Book",
+       "text": "You're booked for Core Pilates · Wed 13:00",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Join waitlist",
+       "text": "You're #6 on the waitlist for HIIT Burn · Wed 17:30",
+       "tone": "info"
+      },
+      {
+       "after": "Waitlisted #3",
+       "text": "Off the waitlist! You're booked for Power Spin · Wed 18:00",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day from the strip. No classes match your filters? Tap Clear filters.",
+      "error": "We couldn't load the schedule. Check your connection and tap Retry.",
+      "success": "You're booked for Core Pilates · Wed 13:00. See you on the mat!",
+      "validation": "That didn't go through: you're already booked for Power Spin at 18:00–18:45."
+     }
+    },
+    "mockFull": {
+     "title": "Schedule",
+     "subtitle": "Today, Wed 14 Oct · Book up to 7 days ahead, until 15 min before class",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 12",
+          "Tue 13",
+          "Wed 14",
+          "Thu 15",
+          "Fri 16",
+          "Sat 17",
+          "Sun 18"
+         ],
+         "value": "Wed 14"
+        },
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You can view this week and next"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true,
+         "hint": "Mon 19 – Sun 25 Oct"
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Early Ride",
+         "meta": "06:15 · 45 min · Spin · High · Spin Room · Started",
+         "badge": "4 spots left",
+         "people": [
+          "Leo Martins"
+         ]
+        },
+        {
+         "title": "Sunrise Vinyasa",
+         "meta": "07:00 · 60 min · Yoga · Low · Studio A · Started",
+         "badge": "6 spots left",
+         "people": [
+          "Maya Okafor"
+         ]
+        },
+        {
+         "title": "Reformer Flow",
+         "meta": "09:30 · 50 min · Pilates · Low · Studio B · Started",
+         "badge": "1 spot left",
+         "people": [
+          "Priya Shah"
+         ]
+        },
+        {
+         "title": "Lunch Express HIIT",
+         "meta": "12:15 · 30 min · HIIT · High · Studio A · Started",
+         "badge": "Only 3 left",
+         "people": [
+          "Jordan Ellis"
+         ]
+        },
+        {
+         "title": "Core Pilates",
+         "meta": "13:00 · 45 min · Pilates · Medium · Studio B · Book",
+         "badge": "Only 2 left",
+         "people": [
+          "Priya Shah"
+         ]
+        },
+        {
+         "title": "HIIT Burn",
+         "meta": "17:30 · 45 min · HIIT · High · Studio A · Join waitlist (#6)",
+         "badge": "Full · 5 on waitlist",
+         "people": [
+          "Jordan Ellis"
+         ]
+        },
+        {
+         "title": "Power Spin",
+         "meta": "18:00 · 45 min · Spin · High · Spin Room · Booked ✓",
+         "badge": "Full · 2 on waitlist",
+         "people": [
+          "Leo Martins"
+         ]
+        },
+        {
+         "title": "Boxing Fundamentals",
+         "meta": "19:00 · 60 min · Boxing · Medium · Studio C · Cancelled by studio",
+         "badge": "Cancelled",
+         "people": [
+          "Sam Reyes"
+         ]
+        },
+        {
+         "title": "Yin & Restore",
+         "meta": "20:00 · 75 min · Yoga · Low · Studio A · Waitlisted #3",
+         "badge": "Full · 4 on waitlist",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Join waitlist",
+         "variant": "secondary",
+         "icon": "clock"
+        },
+        {
+         "label": "Booked ✓",
+         "variant": "ghost",
+         "state": "disabled",
+         "hint": "Manage this booking from My bookings"
+        },
+        {
+         "label": "Waitlisted #3",
+         "variant": "secondary",
+         "menu": [
+          "Leave waitlist"
+         ]
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day from the strip. No classes match your filters? Tap Clear filters.",
+      "error": "We couldn't load the schedule. Check your connection and tap Retry.",
+      "success": "You're booked for Core Pilates · Wed 13:00. See you on the mat!",
+      "validation": "That didn't go through: you're already booked for Power Spin at 18:00–18:45."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

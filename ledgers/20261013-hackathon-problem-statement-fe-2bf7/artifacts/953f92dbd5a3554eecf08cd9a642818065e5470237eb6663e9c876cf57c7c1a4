@@ -1,0 +1,171 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The API shall implement every path, HTTP method, parameter, request schema, response schema, status code, and security rule defined in contracts/openapi.yaml, and shall expose no undocumented API operations.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "Valid requests and the authentication context required by the contract are available for signIn, getSession, getDashboard, previewSourceRecords, importSelectedRecords, getAllocations, saveAllocations, getLots, getLotForecast, updateYardForecastSettings, updateLotForecastSettings, getLotMetrics, getLotInsights, and actOnLotInsight.",
+        "when": "A client calls each listed operation using its contract-defined method, path, parameters, and request body.",
+        "then": "Each response status and response body fields match that operation's declared contract, including its success or error response.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "Valid requests and the authentication context required by the contract are available for getWeightHistory, addWeightMeasurement, getInventory, createInventoryItem, updateInventoryItem, recordInventoryMovement, getInventoryProjections, exportInventory, getRations, createRation, updateRation, optimizeRation, and approveRation.",
+        "when": "A client calls each listed operation using its contract-defined method, path, parameters, and request body.",
+        "then": "Each response status and response body fields match that operation's declared contract, including returned records, calculations, and export values where specified.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "Valid requests and the authentication context required by the contract are available for getFeedPlans, createFeedPlan, reviewFeedPlan, updateFeedPlanStatus, getFeedingEvents, createFeedingEvent, correctFeedingEvent, and voidFeedingEvent.",
+        "when": "A client calls each listed operation using its contract-defined method, path, parameters, and request body.",
+        "then": "Each response status and response body fields match that operation's declared contract, including returned plan or event values and inventory movements where specified.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.4",
+        "given": "Valid requests and the authentication context required by the contract are available for getOperationalReport, exportOperationalReport, getFeedToGainReport, exportFeedToGainReport, getProfitability, exportProfitability, getSampleData, loadSampleData, resetSampleData, and replaceSampleData.",
+        "when": "A client calls each listed operation using its contract-defined method, path, parameters, and request body.",
+        "then": "Each response status and response body fields match that operation's declared contract, including filters, report rows, export values, and sample-data operation results where specified.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.5",
+        "given": "A client can call the API with and without a bearer token and with tokens that do not satisfy a contract-declared authorization requirement.",
+        "when": "The client calls protected operations without valid authentication, calls operations without required authorization, or calls an undefined path or unsupported method.",
+        "then": "The response status is the contract-declared 401 or 403 when applicable, 404 for an undefined path, and 405 for an unsupported method; no additional role rule denies an otherwise authorized request.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The API shall store contract application data in PostgreSQL using the configured connection string named App and preserve successful writes across API process restarts.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "The API is configured with a PostgreSQL connection string named App and a valid request that creates or updates a contract record.",
+        "when": "The request succeeds, the API process restarts, and a client retrieves that resource through its contract-defined read operation.",
+        "then": "The response status is the contract-defined success status and the returned record contains the successfully written values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "The API is configured with a PostgreSQL connection string named App and a successful contract write has completed.",
+        "when": "A test queries the configured PostgreSQL database for the affected entity.",
+        "then": "A row with the values written by the request is present in the App database.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When Seed:Demo is true, the API shall use App.Api/SeedData.cs at startup to insert 2 to 5 believable sample rows per application table from the contract's examples, and fail startup with the seed-write error if a seed write fails.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-3",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A fresh App PostgreSQL database is configured and Seed:Demo is true.",
+        "when": "The API starts successfully.",
+        "then": "A database query reads 2 to 5 sample rows from every application table and each row's sample values match the corresponding contract examples.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "Seed:Demo is true and PostgreSQL rejects a seed write during startup.",
+        "when": "The API starts.",
+        "then": "Startup exposes an error containing the seed-write error and does not report successful readiness.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The API test suite shall not rely on rows inserted by SeedData to pass its tests.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "Seed:Demo is false and the App database contains no application records.",
+        "when": "The API tests call contract collection operations, including the lot, inventory, ration, feed-plan, feeding-event, and sample-data reads.",
+        "then": "Each response status and list field match the contract-defined empty-data behavior, and the tests pass without relying on demo rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "Seed:Demo is false and the App database contains no application records.",
+        "when": "A test needs non-empty data to exercise a contract operation.",
+        "then": "The response status and returned records are based on data created by that test, not on seeded rows.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-5",
+      "ears": "The API host shall not include feedlot product-screen routes or rendered feedlot product screens.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "The API host is running.",
+        "when": "A client requests the product-page path /yard.",
+        "then": "The response status is 404 and no feedlot product screen is displayed.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.9
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "Undocumented API paths and methods (Q-2).",
+     "Additional authentication or role rules not explicitly declared by contracts/openapi.yaml (Q-1)."
+    ],
+    "assumptions": [
+     "ASM-1: Interpret “a few” seed rows as 2 to 5 rows per application table; each row is based on an example for the corresponding entity in contracts/openapi.yaml."
+    ],
+    "suggestions": []
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

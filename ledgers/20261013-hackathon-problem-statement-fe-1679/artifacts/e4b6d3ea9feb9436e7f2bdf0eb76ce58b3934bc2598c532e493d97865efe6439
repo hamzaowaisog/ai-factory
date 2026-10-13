@@ -1,0 +1,1 @@
+[{"check":"plan-coverage","frames":[],"message":"REQ-21 isn't covered by any task"},{"check":"plan-scaffold","frames":[],"message":"Screen S-2 (/yard): no task has its container components/screens/s-2/container.tsx in scope"}]

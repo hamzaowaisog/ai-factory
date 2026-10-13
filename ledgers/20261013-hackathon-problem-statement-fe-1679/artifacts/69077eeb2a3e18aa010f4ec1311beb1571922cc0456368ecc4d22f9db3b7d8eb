@@ -1,0 +1,1 @@
+{"commit":"8e56444af18b397b809f3bdc3000603709f224f3","hits":[{"file":"components/screens/s-1/container.tsx","line":41,"rule":"password-assignment"},{"file":"components/screens/s-1/container.tsx","line":43,"rule":"password-assignment"},{"file":"lib/auth/session.ts","line":1,"rule":"password-assignment"}],"kind":"secrets"}

@@ -1,0 +1,1 @@
+{"characterisation":[],"lock":[],"rules":{"productionExceptionOk":true},"tests":[{"acId":"AC-2.2","failsOnBase":true,"file":"tests/acceptance.test.tsx","name":"AC_2_2_SubmitsSelectedSourceRecordsAndShowsImportResult","screen":"S-3","testId":"tests/acceptance.test.tsx::approved web acceptance criteria > AC_2_2_SubmitsSelectedSourceRecordsAndShowsImportResult"}]}

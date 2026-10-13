@@ -1,0 +1,209 @@
+diff --git a/components/screens/s-1/container.tsx b/components/screens/s-1/container.tsx
+index 48c7f06..ad51e46 100644
+--- a/components/screens/s-1/container.tsx
++++ b/components/screens/s-1/container.tsx
+@@ -4,10 +4,127 @@
+ // Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;
+ // match its layout, sections and words. Fixture mode (?fixture=S-1:<state>) must show the approved sample content in
+ // that state with no backend; the states the design drew: Submitting credentials, Successful sign-in routes to the returned landing page, Authentication error returned by the sign-in service.
++import { useId, useState, type FormEvent } from "react";
++import { Button } from "@/components/ui/button";
++import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import { Notice, NoticeDescription } from "@/components/ui/notice";
++import { signIn } from "@/lib/api/client";
++import { writeSession } from "@/lib/auth/session";
++import { useNav } from "@/lib/nav";
++
++const fixtureMessage = "The email address or password you entered is incorrect.";
++
+ export function SignInContainer({ fixture }: { fixture?: string }) {
++  const { go } = useNav();
++  const emailId = useId();
++  const passwordId = useId();
++  const fixtureKey = fixture?.toLowerCase() ?? "";
++  const fixtureSubmitting = /submitting|loading/.test(fixtureKey);
++  const fixtureError = /authentication|error|refused|failure/.test(fixtureKey);
++  const fixtureSuccess = /successful|success|landing|returned-landing/.test(fixtureKey);
++  const [email, setEmail] = useState("");
++  const [passphrase, setPassphrase] = useState("");
++  const [submitting, setSubmitting] = useState(fixtureSubmitting);
++  const [serviceError, setServiceError] = useState(fixtureError ? fixtureMessage : "");
++  const [emailError, setEmailError] = useState("");
++  const [passphraseError, setPassphraseError] = useState("");
++
++  async function submit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (fixture !== undefined) return;
++
++    const normalizedEmail = email.trim();
++    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
++    const missingPassphrase = passphrase.length === 0;
++    setEmailError(!normalizedEmail ? "Enter your email address." : !emailIsValid ? "Enter a valid email address." : "");
++    setPassphraseError(missingPassphrase ? "Enter your password." : "");
++    setServiceError("");
++    if (!emailIsValid || missingPassphrase) return;
++
++    setSubmitting(true);
++    try {
++      const response = await signIn({ email: normalizedEmail, password: passphrase });
++      if (response.status === 200) {
++        writeSession({ accessToken: response.data.accessToken, ...response.data.user });
++        go(response.data.user.landingPage);
++        return;
++      }
++
++      const fieldErrors = response.data.fieldErrors;
++      setEmailError(fieldErrors?.email ?? "");
++      setPassphraseError(fieldErrors?.password ?? "");
++      setServiceError(response.data.message);
++    } catch {
++      setServiceError("Unable to sign in right now. Please try again.");
++    } finally {
++      setSubmitting(false);
++    }
++  }
++
+   return (
+-    <main data-screen="S-1" data-state={fixture ?? "default"}>
+-      <h1>Sign in</h1>
+-    </main>
++    <div data-screen="S-1" data-state={fixture ?? "default"} className="grid min-h-[calc(100dvh-3.5rem)] place-items-center bg-background px-4 py-10">
++      <div className="w-full max-w-sm">
++        <header className="mb-6 text-center">
++          <h2 className="font-heading text-2xl font-semibold">Range Ledger</h2>
++        </header>
++        <main aria-labelledby={`${emailId}-heading`}>
++          <Card className="rounded-lg border-border bg-card shadow-none">
++            <CardHeader className="gap-2 px-6 pt-6">
++              <CardTitle id={`${emailId}-heading`} className="text-2xl">Sign in</CardTitle>
++              <p className="text-sm text-muted-foreground">Use your work account to open your yard.</p>
++            </CardHeader>
++            <CardContent className="px-6 pb-6 pt-5">
++              <form onSubmit={submit} noValidate={fixture !== undefined} className="grid gap-5">
++                {fixtureSuccess && (
++                  <Notice tone="ok">
++                    <NoticeDescription>Signed in successfully. Your landing page is <a className="font-medium underline" href="/yard">Yard</a>.</NoticeDescription>
++                  </Notice>
++                )}
++                {serviceError && (
++                  <Notice tone="bad">
++                    <NoticeDescription>{serviceError}</NoticeDescription>
++                  </Notice>
++                )}
++                <div className="grid gap-2">
++                  <Label htmlFor={emailId}>Email</Label>
++                  <Input
++                    id={emailId}
++                    name="email"
++                    type="email"
++                    autoComplete="username"
++                    value={email}
++                    onChange={(event) => setEmail(event.target.value)}
++                    aria-invalid={Boolean(emailError)}
++                    aria-describedby={emailError ? `${emailId}-error` : undefined}
++                    required
++                  />
++                  {emailError && <p id={`${emailId}-error`} className="text-sm text-destructive">{emailError}</p>}
++                </div>
++                <div className="grid gap-2">
++                  <Label htmlFor={passwordId}>Password</Label>
++                  <Input
++                    id={passwordId}
++                    name="password"
++                    type="password"
++                    autoComplete="current-password"
++                    value={passphrase}
++                    onChange={(event) => setPassphrase(event.target.value)}
++                    aria-invalid={Boolean(passphraseError)}
++                    aria-describedby={passphraseError ? `${passwordId}-error` : undefined}
++                    required
++                  />
++                  {passphraseError && <p id={`${passwordId}-error`} className="text-sm text-destructive">{passphraseError}</p>}
++                </div>
++                <Button type="submit" disabled={submitting || fixtureSuccess} className="h-10 w-full">
++                  {submitting ? "Signing in…" : "Sign in"}
++                </Button>
++              </form>
++            </CardContent>
++          </Card>
++        </main>
++      </div>
++    </div>
+   );
+ }
+diff --git a/lib/auth/session.ts b/lib/auth/session.ts
+index 3fed714..86688bd 100644
+--- a/lib/auth/session.ts
++++ b/lib/auth/session.ts
+@@ -1,4 +1,5 @@
+ export type SessionState = {
++  accessToken: string;
+   id: number;
+   name: string;
+   email: string;
+@@ -7,22 +8,58 @@ export type SessionState = {
+   authorizedYards: Array<{ id: number; name: string }>;
+ };
+ 
++const SESSION_KEY = "range-ledger.session";
++
++function isSessionState(value: unknown): value is SessionState {
++  if (typeof value !== "object" || value === null) return false;
++  const session = value as Partial<SessionState>;
++  return typeof session.accessToken === "string"
++    && typeof session.id === "number"
++    && typeof session.name === "string"
++    && typeof session.email === "string"
++    && typeof session.landingPage === "string"
++    && Array.isArray(session.permissions)
++    && Array.isArray(session.authorizedYards);
++}
++
+ export function readSession(): SessionState | null {
+-  throw new Error("not implemented");
++  if (typeof window === "undefined") return null;
++  try {
++    const serialized = window.localStorage.getItem(SESSION_KEY);
++    if (!serialized) return null;
++    const session: unknown = JSON.parse(serialized);
++    return isSessionState(session) ? session : null;
++  } catch {
++    return null;
++  }
+ }
+ 
+ export function writeSession(session: SessionState): void {
+-  throw new Error("not implemented");
++  if (typeof window === "undefined") return;
++  try {
++    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
++  } catch {
++    // Storage may be unavailable in restricted browser contexts.
++  }
+ }
+ 
+ export function clearSession(): void {
+-  throw new Error("not implemented");
++  if (typeof window === "undefined") return;
++  try {
++    window.localStorage.removeItem(SESSION_KEY);
++  } catch {
++    // Storage may be unavailable in restricted browser contexts.
++  }
+ }
+ 
+ export function hasPermission(session: SessionState | null, permission: string): boolean {
+-  throw new Error("not implemented");
++  return session?.permissions.includes(permission) ?? false;
+ }
+ 
+ export function updatePermissions(permissions: string[]): SessionState | null {
+-  throw new Error("not implemented");
++  const session = readSession();
++  if (!session) return null;
++  const updated = { ...session, permissions };
++  writeSession(updated);
++  return updated;
+ }

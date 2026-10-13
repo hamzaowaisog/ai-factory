@@ -1,0 +1,1683 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Design system foundation",
+      "reqs": [],
+      "fileScope": [
+       "app/layout.tsx",
+       "package.json",
+       "app/globals.css"
+      ],
+      "exemplars": [
+       "components/ui/button.tsx",
+       "components/ui/card.tsx"
+      ],
+      "conventions": [
+       "Use the factory-generated next-shadcn kit, theme, frame and navigation; do not replace generated pages or components."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 25,
+      "complexity": "standard",
+      "approach": "Do the designSystemTask todo list exactly: install the packages and build the app once so the scaffold compiles as written. Add the approved design tokens as CSS variables in app/globals.css and configure the existing generated layout to use the theme; do not add screens or routes."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Sign-in slice (S-1)",
+      "reqs": [
+       "REQ-2: staff configured-provider sign-in and customer email/password entry; display returned errors and account-disabled refusal.",
+       "REQ-29: sign-in and reset navigation entry point."
+      ],
+      "fileScope": [
+       "components/screens/s-1/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-2/container.tsx",
+       "components/screens/s-3/container.tsx"
+      ],
+      "conventions": [
+       "Implement only this generated container; keep the generated page, frame and copy intact.",
+       "Call only operations in the generated lib/api client; rely on the existing Next file-based route."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "First working screen slice: wire the generated container for /sign-in to the generated API client, submit customer credentials or initiate the configured staff-provider flow, and render loading, field validation, API result and access-refused states. Do not change the generated page, layout or navigation."
+     },
+     {
+      "id": "TASK-3",
+      "title": "One-time-code slice (S-2)",
+      "reqs": [
+       "REQ-2: submit and resend the customer challenge code; show wrong, expired and resent outcomes without exposing protected content before verification."
+      ],
+      "fileScope": [
+       "components/screens/s-2/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-1/container.tsx",
+       "components/screens/s-3/container.tsx"
+      ],
+      "conventions": [
+       "Keep logic in the generated container and use the generated lib/api client only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 40,
+      "complexity": "standard",
+      "approach": "Connect code verification and resend actions to the challenge endpoints. Retain the challenge context, validate the six code fields, and show returned wrong/expired/resend states."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Password-reset request slice (S-3)",
+      "reqs": [
+       "REQ-2: request reset by customer email and display the returned confirmation or error.",
+       "REQ-29: offer self-service reset email request."
+      ],
+      "fileScope": [
+       "components/screens/s-3/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-1/container.tsx",
+       "components/screens/s-4/container.tsx"
+      ],
+      "conventions": [
+       "Preserve generated UI; all network calls go through lib/api."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 35,
+      "complexity": "standard",
+      "approach": "Validate the email locally, send the reset request through the generated client, and render the API confirmation or error."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Set-password slice (S-4)",
+      "reqs": [
+       "REQ-29: validate reset token and matching password fields, submit the new password, and offer a fresh reset request for an invalid or expired link."
+      ],
+      "fileScope": [
+       "components/screens/s-4/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-3/container.tsx",
+       "components/screens/s-1/container.tsx"
+      ],
+      "conventions": [
+       "Use generated route parameters and lib/api; do not alter app/reset/[token]/page.tsx."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 40,
+      "complexity": "standard",
+      "approach": "Read the token from the generated route props, check token validity with the API, validate password and confirmation, then submit and show returned success/error or invalid-link recovery."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Access-refused slice (S-5)",
+      "reqs": [
+       "REQ-3: show access denial and no protected record data after a refused or inaccessible request.",
+       "REQ-24 and REQ-40: route users to a data-free access-refused screen when account access is refused."
+      ],
+      "fileScope": [
+       "components/screens/s-5/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-1/container.tsx",
+       "components/screens/s-25/container.tsx"
+      ],
+      "conventions": [
+       "The generated frame owns presentation; clear protected screen state before rendering this container."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 25,
+      "complexity": "standard",
+      "approach": "Render the generated access-refused state and a sign-in return link. Ensure no route, recipient, or protected record values are passed into or retained by this screen."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Receipts list slice (S-6)",
+      "reqs": [
+       "REQ-1: provide an authorized warehouse portal destination.",
+       "REQ-3: render only API-returned scoped rows and clear data on access refusal.",
+       "REQ-7: show receipt rows, filters and receipt entry point.",
+       "REQ-27: filter records and export the filtered list as CSV.",
+       "REQ-28: honor the selected interface language and direction."
+      ],
+      "fileScope": [
+       "components/screens/s-6/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-9/container.tsx",
+       "components/screens/s-18/container.tsx"
+      ],
+      "conventions": [
+       "Keep filters, empty/loading/access-refused states and CSV behavior inside the container; use generated API methods."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load scoped receipts through lib/api, implement search/status/date filtering, empty/error states, and export the full filtered result set as CSV. Preserve generated table and route links."
+     },
+     {
+      "id": "TASK-8",
+      "title": "Record receipt slice (S-7)",
+      "reqs": [
+       "REQ-7: submit product, lot, expiry, quantity, supplier and storage location; show API quarantine result and field-specific errors."
+      ],
+      "fileScope": [
+       "components/screens/s-7/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-15/container.tsx"
+      ],
+      "conventions": [
+       "Use generated client and generated form controls; never display a receipt as saved after refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Populate selectors from API data, validate required values, submit the receipt and render the returned receipt, quarantine status and any field-level API errors."
+     },
+     {
+      "id": "TASK-9",
+      "title": "Receipt detail and inbound evidence slice (S-8)",
+      "reqs": [
+       "REQ-7 and REQ-8: show returned inbound readings/budget and upload the supplier-format logger file and separate receipt evidence with type/size validation.",
+       "REQ-11: show returned handling-unit reading data where provided.",
+       "REQ-27: show returned record metadata."
+      ],
+      "fileScope": [
+       "components/screens/s-8/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-7/container.tsx"
+      ],
+      "conventions": [
+       "Uploads must use generated API operations; perform no invented client validation of the undocumented logger format."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Load receipt detail; submit logger and evidence uploads via generated endpoints; validate evidence as image/PDF up to 10 MB; show upload progress, API file errors, returned readings, budget and quarantine/release updates."
+     },
+     {
+      "id": "TASK-10",
+      "title": "Stock list slice (S-9)",
+      "reqs": [
+       "REQ-1: provide stock navigation for permitted roles.",
+       "REQ-3: display only scoped API records and clear protected values after refusal.",
+       "REQ-10: display on-hand totals and mutually exclusive returned status quantities with lot/location filters.",
+       "REQ-27: export the filtered list to CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-9/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "conventions": [
+       "Keep status quantities as API-returned values; do not infer status from gaps or calculate a replacement status."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load scoped stock rows, implement search/status/handling-unit filters, empty and refused states, and CSV export. Display any non-reconciling returned quantities with a visible data-integrity warning rather than silently changing figures."
+     },
+     {
+      "id": "TASK-11",
+      "title": "Handling-unit history slice (S-10)",
+      "reqs": [
+       "REQ-10 and REQ-11: show returned unit quantity, history, tier budget and status detail.",
+       "REQ-19 and REQ-20: chart/table history, excursions, budgets and alerts, including empty history/alerts.",
+       "REQ-21 and REQ-22: show unresolved gaps and API stock status without estimated tier charge or inferred On Hold state.",
+       "REQ-59: show returned lot events chronologically."
+      ],
+      "fileScope": [
+       "components/screens/s-10/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-8/container.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "conventions": [
+       "Use API-returned time ordering/flags and explicit empty states; do not treat excluded readings as calculation inputs."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load unit, temperature history, alert, excursion and lot-history data through lib/api. Wire chart/table switching and render gaps, flags, budgets, returned status and empty states without estimating unobserved tiers."
+     },
+     {
+      "id": "TASK-12",
+      "title": "Stock movement slice (S-11)",
+      "reqs": [
+       "REQ-12: validate and submit source, destination and quantity, then show returned movement actor/time/quantity or API/network refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-11/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-7/container.tsx",
+       "components/screens/s-12/container.tsx"
+      ],
+      "conventions": [
+       "Do not show an unsuccessful movement as saved."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Validate positive quantity and distinct locations, submit the move with the generated client, and show either the returned movement record or a recoverable error."
+     },
+     {
+      "id": "TASK-13",
+      "title": "Movement history slice (S-12)",
+      "reqs": [
+       "REQ-12: list returned movement records.",
+       "REQ-27: filter movement rows and export the filtered CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-12/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-11/container.tsx"
+      ],
+      "conventions": [
+       "Use API-returned actor and timestamps as read-only fields."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load movements, apply date/unit/location filters, provide an explicit no-results state, and export the filtered records as CSV."
+     },
+     {
+      "id": "TASK-14",
+      "title": "Boxes list slice (S-13)",
+      "reqs": [
+       "REQ-17: list boxes with returned logger, compatibility and sealing state and link to packing.",
+       "REQ-27: export filtered boxes as CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-13/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-14/container.tsx"
+      ],
+      "conventions": [
+       "Keep read-only returned compatibility and sealing values distinct from user actions."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load and filter scoped boxes through lib/api, show empty state and returned compatibility/seal fields, and export filtered rows."
+     },
+     {
+      "id": "TASK-15",
+      "title": "Pack and seal box slice (S-14)",
+      "reqs": [
+       "REQ-16: show allocation/lot/expiry and returned blocked-stock order/route effects.",
+       "REQ-17: submit box type, stock, quantities and exactly one logger; show compatibility, refusal, logger collision and returned seal details."
+      ],
+      "fileScope": [
+       "components/screens/s-14/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-13/container.tsx",
+       "components/screens/s-10/container.tsx"
+      ],
+      "conventions": [
+       "Only show a successful seal after the API confirms it; use the generated client."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load candidate stock and allocation context, enforce one logger and valid quantities in the form, submit packing/sealing, and show returned compatibility, blocked-stock, refusal or sealed-result details."
+     },
+     {
+      "id": "TASK-16",
+      "title": "Opening stock slice (S-15)",
+      "reqs": [
+       "REQ-61: submit opening product, lot, expiry, location and quantity and show API result/refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-15/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-7/container.tsx",
+       "components/screens/s-11/container.tsx"
+      ],
+      "conventions": [
+       "Service determines whether opening entry is authorized; do not fabricate saved stock."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load required selectors, validate entered fields, submit through generated API and render the returned result or refusal."
+     },
+     {
+      "id": "TASK-17",
+      "title": "Cold rooms list slice (S-16)",
+      "reqs": [
+       "REQ-19: list cold rooms and returned latest-reading/silence state, including no-reading empty state.",
+       "REQ-20: show returned alerts and alert categories."
+      ],
+      "fileScope": [
+       "components/screens/s-16/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-17/container.tsx"
+      ],
+      "conventions": [
+       "Gateway readings and alerts come from the existing API/feed through lib/api only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load cold-room status and alerts from the contract, show last reading, silence/alert status and a clear no-data state, and link to detail."
+     },
+     {
+      "id": "TASK-18",
+      "title": "Cold-room detail slice (S-17)",
+      "reqs": [
+       "REQ-19: show chart/table readings, band, gaps, silence and flags with an empty state.",
+       "REQ-20: show returned alerts and assurance status.",
+       "REQ-21: show gaps/review and returned stock status without inferring On Hold."
+      ],
+      "fileScope": [
+       "components/screens/s-17/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "conventions": [
+       "Display gateway source values and their returned timestamps; do not infer quality status."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load cold-room readings and alert history through the generated client, wire chart/table views, and render gaps, silence, flags and no-data state as returned."
+     },
+     {
+      "id": "TASK-19",
+      "title": "Dispatcher orders list slice (S-18)",
+      "reqs": [
+       "REQ-1 and REQ-3: role-scoped dispatch list and access-refused state.",
+       "REQ-15: show current order/status and link to details.",
+       "REQ-27: filter and export returned rows as CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-18/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-41/container.tsx"
+      ],
+      "conventions": [
+       "Respect API-returned warehouse scope and remove protected rows on access refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load orders, implement search/date/status filters, empty and access-refused states, and filtered CSV export; preserve generated navigation to order detail."
+     },
+     {
+      "id": "TASK-20",
+      "title": "Dispatcher order detail slice (S-19)",
+      "reqs": [
+       "REQ-6: show profile recalculation budgets, decision values and returned box/route restrictions without mutating earlier signed decisions.",
+       "REQ-13: show organization shelf-life value read-only.",
+       "REQ-15: show quantities/status and expose dispatcher cancellation only when returned available; render cancellation/refusal and packed-box/route effects.",
+       "REQ-16: show lot allocation and override form with required reason and returned result."
+      ],
+      "fileScope": [
+       "components/screens/s-19/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-18/container.tsx",
+       "components/screens/s-43/container.tsx"
+      ],
+      "conventions": [
+       "Use server-returned permissions, quantities and status; do not imply a packed box was removed unless returned."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 80,
+      "complexity": "standard",
+      "approach": "Load order and allocation details, implement reason-required lot override and available dispatcher cancellation, refresh after mutations, and render returned refusal, status, box/logger/route effects and audit metadata."
+     },
+     {
+      "id": "TASK-21",
+      "title": "Routes list slice (S-20)",
+      "reqs": [
+       "REQ-1: provide dispatcher route navigation.",
+       "REQ-18 and REQ-33: list returned route/date/driver/vehicle/stops/status/update time.",
+       "REQ-27: filter and export route rows."
+      ],
+      "fileScope": [
+       "components/screens/s-20/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-18/container.tsx",
+       "components/screens/s-22/container.tsx"
+      ],
+      "conventions": [
+       "Keep route order and update time as returned; use CSV for the filtered result set."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load scoped routes, filter by date and driver/vehicle, render ordered stop summaries and last-updated values, and provide CSV export and route-plan navigation."
+     },
+     {
+      "id": "TASK-22",
+      "title": "Route planning slice (S-21)",
+      "reqs": [
+       "REQ-18: create/confirm routes with vehicle, driver, date, ordered stops and planned arrivals; show configured margin/overage refusal and API/network errors; show changed-route schedule and notification result."
+      ],
+      "fileScope": [
+       "components/screens/s-21/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-20/container.tsx",
+       "components/screens/s-19/container.tsx"
+      ],
+      "conventions": [
+       "The API is authoritative for route confirmation and configured safety margin."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "standard",
+      "approach": "Load planning options, validate required route fields and ordered stops, submit/confirm through lib/api, and render confirmation refusal, overage details or returned confirmed-route changes."
+     },
+     {
+      "id": "TASK-23",
+      "title": "Route detail slice (S-22)",
+      "reqs": [
+       "REQ-6 and REQ-16: show API-returned stock, allocation, box and route effects/restrictions.",
+       "REQ-18 and REQ-33: render ordered stops, schedule, status and update time.",
+       "REQ-34: show supplied gateway temperature/status/alerts."
+      ],
+      "fileScope": [
+       "components/screens/s-22/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-20/container.tsx",
+       "components/screens/s-23/container.tsx"
+      ],
+      "conventions": [
+       "Use gateway readings through generated client operations and visibly distinguish stale/cached data."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load the route and live gateway data, render ordered stop and box rows with returned route/stock effects, temperatures, alerts and reading times."
+     },
+     {
+      "id": "TASK-24",
+      "title": "Box temperature slice (S-23)",
+      "reqs": [
+       "REQ-19: chart/table history with band, excursions, gaps, reading flags and empty state.",
+       "REQ-20: returned alert and budget categories.",
+       "REQ-34: current gateway readings and cached-stale indication when disconnected."
+      ],
+      "fileScope": [
+       "components/screens/s-23/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-17/container.tsx"
+      ],
+      "conventions": [
+       "Never call a gateway system directly; use generated API client operations."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Fetch temperature history and gateway state through lib/api, implement chart/table switching and display returned gaps, excursions, flags, alerts and stale cache state."
+     },
+     {
+      "id": "TASK-25",
+      "title": "Delivery evidence slice (S-24)",
+      "reqs": [
+       "REQ-25 and REQ-37: display returned handover/evidence fields.",
+       "REQ-62: show retained signature/photo or file links only when authorized and within the evidence retention period."
+      ],
+      "fileScope": [
+       "components/screens/s-24/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-22/container.tsx",
+       "components/screens/s-46/container.tsx"
+      ],
+      "conventions": [
+       "Do not expose evidence after API refusal or when the API reports it unavailable/outside retention."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load delivery evidence with the generated client and render returned handover, signature and photo links; handle unauthorized, not-yet-delivered and expired-evidence states without leaked values."
+     },
+     {
+      "id": "TASK-26",
+      "title": "Driver today, installability and offline foundation (S-25)",
+      "reqs": [
+       "REQ-1 and REQ-3: role-scoped driver entry and access-refused clearing.",
+       "REQ-24: cache current workday routes locally, isolate queue to originating driver, clear sensitive route cache on sign-out/access refusal, and support the web install experience.",
+       "REQ-31: show only today's assigned routes and a no-routes state.",
+       "REQ-40: retain full offline action payloads, require same-driver reauthentication before sync, and preserve retry identifiers/time."
+      ],
+      "fileScope": [
+       "components/screens/s-25/container.tsx",
+       "app/manifest.ts",
+       "public/sw.js",
+       "lib/driver/offline-store.ts"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "conventions": [
+       "Use browser IndexedDB/Web APIs and generated API client; native app, app store and push are not part of this web slice.",
+       "Keep offline route/action data in the new first-use store; later driver slices depend on this store rather than duplicating it."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 180,
+      "complexity": "rules-or-algorithm",
+      "approach": "Wire today's route API and empty/offline/access states; implement installable web manifest and service-worker shell caching; implement the first-use IndexedDB queue/cache module, keyed to the originating driver and serving workday, with quota failure handling and same-driver sync gating. Clear protected route data on sign-out/refusal while preserving queued work until accepted or refused. The workday boundary uses the serving warehouse's returned time zone and cutoff. No new configuration settings or external provider are introduced."
+     },
+     {
+      "id": "TASK-27",
+      "title": "Driver route stops slice (S-26)",
+      "reqs": [
+       "REQ-24 and REQ-31: render the driver's ordered cached route/stops offline and returned current route online.",
+       "REQ-34: display cached temperature as stale while disconnected.",
+       "REQ-41: show route differences and block continuation while affected unsent work remains unresolved."
+      ],
+      "fileScope": [
+       "components/screens/s-26/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-25/container.tsx",
+       "components/screens/s-22/container.tsx"
+      ],
+      "conventions": [
+       "Use the TASK-26 offline-store API; preserve completed handovers and never turn stale route work into a completed delivery."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 70,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load online data or the driver's cached route, show ordered stops and stale gateway readings, reconcile changed route data, list affected unsent work and prevent continuing until it is resolved."
+     },
+     {
+      "id": "TASK-28",
+      "title": "Driver load and departure slice (S-27)",
+      "reqs": [
+       "REQ-24 and REQ-40: queue loading/departure work offline and sync only after same-driver reauthentication.",
+       "REQ-32: scan expected boxes, report missing/wrong-route boxes, allow removal/correction and block departure until clear.",
+       "REQ-35 and REQ-36: prevent handover eligibility for returned On Hold or online Recalled stock."
+      ],
+      "fileScope": [
+       "components/screens/s-27/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-14/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 offline-store and generated client; API-returned status is authoritative, and offline cached recall is not an added block."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 80,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement scan/unscan/correct loading state against expected boxes, show missing/wrong-route reasons, persist offline actions with quota errors, and enable departure only when every expected box is scanned and wrong-route boxes are cleared."
+     },
+     {
+      "id": "TASK-29",
+      "title": "Driver stop detail slice (S-28)",
+      "reqs": [
+       "REQ-25 and REQ-31: show stop boxes, quantity and ordered route context.",
+       "REQ-34: show temperature and status with offline stale label.",
+       "REQ-35 and REQ-36: show Do not deliver for returned On Hold/online Recalled boxes and no enabled handover for them.",
+       "REQ-39: whole-box refusal choices and per-box reasons."
+      ],
+      "fileScope": [
+       "components/screens/s-28/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-29/container.tsx"
+      ],
+      "conventions": [
+       "Use server-returned delivery eligibility and TASK-26 cache for offline route values."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load stop detail or cached route data, show each box's eligibility, latest/stale gateway data and quantities, and link only deliverable boxes to handover; provide whole-box refusal selection with required reasons."
+     },
+     {
+      "id": "TASK-30",
+      "title": "Driver handover slice (S-29)",
+      "reqs": [
+       "REQ-24, REQ-25: record receiver, explicit acknowledgment and delivered/undelivered quantities and returned outstanding amount.",
+       "REQ-35 and REQ-36: block ineligible On Hold/online Recalled handovers.",
+       "REQ-37 and REQ-38: require receiver, signature and photo; capture actual time and available browser location, but allow location unavailable.",
+       "REQ-39: whole-box refusal and a reason for every refused box.",
+       "REQ-40 and REQ-42: persist/retry offline payload with stable identifier/time, retain it until acknowledgment, and show synchronized hold conflict and returned quality case."
+      ],
+      "fileScope": [
+       "components/screens/s-29/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-28/container.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 offline-store and generated API only; never mark a restricted queued handover completed.",
+       "Browser location uses the browser permission prompt; no background location or native capture requirement."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 95,
+      "complexity": "rules-or-algorithm",
+      "approach": "Validate receiver, signature/photo capture, acknowledgment, box-level quantities and per-refusal reasons before submission. Acquire optional browser location; record unavailable if denied. Queue the complete payload with stable handover ID and occurrence time offline, then render returned sync/restriction/quality-case status."
+     },
+     {
+      "id": "TASK-31",
+      "title": "Driver pending work slice (S-30)",
+      "reqs": [
+       "REQ-24 and REQ-40: list persisted actions, sync automatically after same-driver reauthentication, retain values on session expiry, clear payload only after acknowledgment, and stop retrying refused actions.",
+       "REQ-41 and REQ-42: display route-change conflicts and returned handover/quality-case outcomes."
+      ],
+      "fileScope": [
+       "components/screens/s-30/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-29/container.tsx",
+       "components/screens/s-26/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 offline-store; a different user's session must never send another driver's queued work."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 70,
+      "complexity": "rules-or-algorithm",
+      "approach": "Read pending queue state, synchronize only under the originating driver's authenticated identity, render each result, keep payload after transient errors, and mark rejected/refused work as no longer eligible for another send."
+     },
+     {
+      "id": "TASK-32",
+      "title": "Driver route changes slice (S-31)",
+      "reqs": [
+       "REQ-24 and REQ-41: always show returned route differences, identify affected unsent actions, block continuation pending explicit resolution, and preserve completed offline handovers."
+      ],
+      "fileScope": [
+       "components/screens/s-31/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-26/container.tsx",
+       "components/screens/s-30/container.tsx"
+      ],
+      "conventions": [
+       "Use TASK-26 offline-store; only returned route results can establish a route change."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-26"
+      ],
+      "plannedLoc": 65,
+      "complexity": "rules-or-algorithm",
+      "approach": "Compare cached and returned route versions, show changed stops/boxes even without queued work, present resolution choices for affected unsent actions, and keep completed handover records intact."
+     },
+     {
+      "id": "TASK-33",
+      "title": "Quality cases list slice (S-32)",
+      "reqs": [
+       "REQ-1 and REQ-3: role-scoped quality list and access refusal.",
+       "REQ-9, REQ-20 and REQ-23: show returned review cases, alerts and delivered-order quality cases.",
+       "REQ-27: filter and export matching case rows."
+      ],
+      "fileScope": [
+       "components/screens/s-32/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-36/container.tsx"
+      ],
+      "conventions": [
+       "Clear case data after access refusal and keep auditor views read-only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load cases and returned alert metadata, implement search/classification/status filters, empty/refused states, CSV export, and links to the generated review route."
+     },
+     {
+      "id": "TASK-34",
+      "title": "Quality review slice (S-33)",
+      "reqs": [
+       "REQ-6 and REQ-9: render receipt release or proposal/approval outcomes and returned recalculations.",
+       "REQ-19-23: show full history, budgets, alerts, gaps without inferred hold/tier, and delivered quality cases.",
+       "REQ-43: show tier allowance configuration/recommendation.",
+       "REQ-44-46: choose single-person vs two-person flow based on proposed decision/rules, require opposing justification, display signed/superseding effects."
+      ],
+      "fileScope": [
+       "components/screens/s-33/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "conventions": [
+       "Keep the API authoritative for permissions, recommendation and returned stock state; never edit a signed decision."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 100,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load case, history, budgets and recommendation; calculate the required decision workflow from the chosen disposition, excursion tier and allowance; require justification when opposing recommendation; submit proposal/release and render returned approvals, restrictions and status history."
+     },
+     {
+      "id": "TASK-35",
+      "title": "Signed decision and superseding slice (S-34)",
+      "reqs": [
+       "REQ-45: require account-method identity confirmation and reason; display signed records read-only and allow only separate superseding action.",
+       "REQ-46: display earlier/current dispositions and API-returned stock/order/route impact or unchanged state after refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-34/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-33/container.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "conventions": [
+       "Identity confirmation is submitted to the API; do not display a failed confirmation as signed."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load immutable decision history, validate reason and confirmation fields, submit a superseding decision through lib/api, and show returned result/error without editing earlier records."
+     },
+     {
+      "id": "TASK-36",
+      "title": "Destruction record slice (S-35)",
+      "reqs": [
+       "REQ-47: submit destruction date, quantity and witness; prevent invalid quantity locally and display the API outcome."
+      ],
+      "fileScope": [
+       "components/screens/s-35/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-11/container.tsx",
+       "components/screens/s-34/container.tsx"
+      ],
+      "conventions": [
+       "Compare requested quantity with currently displayed undestroyed rejected quantity and retain service authorization as authoritative."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load rejected and already-destroyed quantities, calculate the remaining displayed quantity, validate before request, and show returned destruction record or refusal."
+     },
+     {
+      "id": "TASK-37",
+      "title": "Waiting decisions slice (S-36)",
+      "reqs": [
+       "REQ-1 and REQ-3: Quality Manager scoped view and access-denied behavior.",
+       "REQ-9, REQ-44 and REQ-48: list proposal state, elapsed time, author/assignee and escalation returned by service."
+      ],
+      "fileScope": [
+       "components/screens/s-36/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-32/container.tsx",
+       "components/screens/s-37/container.tsx"
+      ],
+      "conventions": [
+       "Render returned escalation status; do not implement outbound email scheduling in the client."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load waiting decisions, render returned escalation and proposal metadata, show empty/refused states and link to the approval screen."
+     },
+     {
+      "id": "TASK-38",
+      "title": "Decision approval slice (S-37)",
+      "reqs": [
+       "REQ-9: allow a different eligible Quality Manager to approve/reject and show returned decision-maker/status.",
+       "REQ-43-46: display budgets, history, distinct approver controls, opposing justification and returned signed/disposition effects."
+      ],
+      "fileScope": [
+       "components/screens/s-37/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-36/container.tsx",
+       "components/screens/s-33/container.tsx"
+      ],
+      "conventions": [
+       "Do not offer self-approval; do not present an API-refused approval as signed."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 85,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load proposal and signer identity; suppress approval for the proposer, validate justification and confirmation, submit approve/reject action, and show returned final status or refusal."
+     },
+     {
+      "id": "TASK-39",
+      "title": "Recall list and progress slice (S-38)",
+      "reqs": [
+       "REQ-26 and REQ-49: list returned recall records and start entry point.",
+       "REQ-53: show returned accounted percentage, outstanding customers and reminder status.",
+       "REQ-27: export filtered recall rows."
+      ],
+      "fileScope": [
+       "components/screens/s-38/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-32/container.tsx",
+       "components/screens/s-40/container.tsx"
+      ],
+      "conventions": [
+       "Use service-returned recall progress; do not implement scheduled notices/reminders."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load recalls and progress, filter/search, render empty state and returned reminder/customer values, export filtered rows and link to start/detail."
+     },
+     {
+      "id": "TASK-40",
+      "title": "Start recall slice (S-39)",
+      "reqs": [
+       "REQ-26 and REQ-49: choose product/lots, severity and reason, confirm identity/signature, submit, and render returned recall or refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-39/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-38/container.tsx",
+       "components/screens/s-34/container.tsx"
+      ],
+      "conventions": [
+       "Use API access eligibility and generated client; do not show a recall started after refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load eligible products/lots, validate selection and reason, collect account-method identity confirmation, submit the recall and render returned status/error."
+     },
+     {
+      "id": "TASK-41",
+      "title": "Recall detail, trace and write-off slice (S-40)",
+      "reqs": [
+       "REQ-26 and REQ-49: show blocked stock/trace, submit close action with signature and render API result/refusal.",
+       "REQ-50: display every returned warehouse, box, route and delivery trace row and trace total beside received quantity.",
+       "REQ-53: show outstanding responses/reminders, permit signed Quality Manager write-off, and block close while unaccounted quantity lacks write-off."
+      ],
+      "fileScope": [
+       "components/screens/s-40/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-38/container.tsx",
+       "components/screens/s-49/container.tsx"
+      ],
+      "conventions": [
+       "Only expose write-off/close controls for returned eligible Quality Managers; use returned trace and reconciliation values."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 95,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load recall detail, trace and progress; submit write-off with quantity/category/justification/identity confirmation and close with confirmation; locally block close when the displayed unreconciled remainder lacks a signed write-off and display API refusals."
+     },
+     {
+      "id": "TASK-42",
+      "title": "Customer orders list slice (S-41)",
+      "reqs": [
+       "REQ-1 and REQ-3: customer portal list of only API-returned organization-scoped rows.",
+       "REQ-14 and REQ-15: show order states and order/create links.",
+       "REQ-54: show current/past orders, lots and expiry values with an empty state and no caller-supplied organization ID."
+      ],
+      "fileScope": [
+       "components/screens/s-41/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-18/container.tsx",
+       "components/screens/s-45/container.tsx"
+      ],
+      "conventions": [
+       "Never send a caller-selected organization identifier; rely on authenticated API scope."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load organization-scoped orders without an organization query parameter, implement list filters and empty/refused states, and display returned status, lots and expiry dates."
+     },
+     {
+      "id": "TASK-43",
+      "title": "Place order slice (S-42)",
+      "reqs": [
+       "REQ-13: show organization shelf-life requirement read-only.",
+       "REQ-14: build one-or-more product lines, positive pack quantities, saved address, API-eligible dates/time zone and fulfillment preference; block deactivated items and show summary."
+      ],
+      "fileScope": [
+       "components/screens/s-42/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-44/container.tsx"
+      ],
+      "conventions": [
+       "The API returns eligible dates; the browser only displays them and the warehouse time zone."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 80,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load products, addresses, shelf-life rule and eligible delivery dates; validate at least one line and quantities, prevent deactivated item ordering, show review summary and submit once with stable retry key."
+     },
+     {
+      "id": "TASK-44",
+      "title": "Customer order detail slice (S-43)",
+      "reqs": [
+       "REQ-6, REQ-15 and REQ-16: show returned recalculation, lot allocations/status, order quantities and API outcomes; restrict customer change/cancel controls before Packed.",
+       "REQ-54: show organization-scoped order and transit information."
+      ],
+      "fileScope": [
+       "components/screens/s-43/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-19/container.tsx"
+      ],
+      "conventions": [
+       "Use API-returned states; do not infer cancellation effects on packed box/logger/route."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load order and allocation details, expose change/cancel only before Packed, submit using the API and render returned state, quantity, availability and route effects."
+     },
+     {
+      "id": "TASK-45",
+      "title": "Change order slice (S-44)",
+      "reqs": [
+       "REQ-14 and REQ-15: validate changed order lines, saved address, eligible date and fulfillment preference; display API success/refusal including became-Packed state."
+      ],
+      "fileScope": [
+       "components/screens/s-44/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-42/container.tsx",
+       "components/screens/s-43/container.tsx"
+      ],
+      "conventions": [
+       "Use only returned eligible dates and do not send invalid quantity forms."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load current order and eligible options, validate quantities and required values, submit change through lib/api and show returned allocation/status or refusal."
+     },
+     {
+      "id": "TASK-46",
+      "title": "Customer deliveries list slice (S-45)",
+      "reqs": [
+       "REQ-27: filter deliveries and export filtered results.",
+       "REQ-54 and REQ-55: show customer-scoped delivery, planned arrival, in-range status and certificate entry point."
+      ],
+      "fileScope": [
+       "components/screens/s-45/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-46/container.tsx"
+      ],
+      "conventions": [
+       "Never include another route customer or delivery identity in the rendered list."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load organization-scoped deliveries, filter by date/status, render transit state/arrival/temperature, empty state and CSV; link to detail and available certificate."
+     },
+     {
+      "id": "TASK-47",
+      "title": "Customer delivery detail slice (S-46)",
+      "reqs": [
+       "REQ-23: show returned quality case linked to delivered order.",
+       "REQ-54 and REQ-55: show organization-scoped delivery/lot/transit and certificate entry.",
+       "REQ-62: show evidence only when authorized and returned."
+      ],
+      "fileScope": [
+       "components/screens/s-46/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-45/container.tsx",
+       "components/screens/s-24/container.tsx"
+      ],
+      "conventions": [
+       "Handle 403/404 by clearing all delivery and evidence data."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load customer delivery details, quality-case state and evidence/certificate availability through lib/api; render in-transit, unavailable and access-refused states."
+     },
+     {
+      "id": "TASK-48",
+      "title": "Delivery certificates slice (S-47)",
+      "reqs": [
+       "REQ-55: download a delivery certificate PDF with the returned delivery/handover/thermal/decision content.",
+       "REQ-56: list and download retained certificate versions.",
+       "REQ-57: use selected language, RTL Arabic and account time zone."
+      ],
+      "fileScope": [
+       "components/screens/s-47/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-46/container.tsx",
+       "components/screens/s-24/container.tsx"
+      ],
+      "conventions": [
+       "Download only API-authorized PDF links; do not create or modify certificates in the browser."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load certificate versions and returned localized certificate metadata, render version links, download the authorized PDF through generated API operations, and handle unavailable or denied responses."
+     },
+     {
+      "id": "TASK-49",
+      "title": "Customer recall notices slice (S-48)",
+      "reqs": [
+       "REQ-26, REQ-51 and REQ-54: show organization-scoped active/history notices, status, affected delivery and response entry point, with no-notice state."
+      ],
+      "fileScope": [
+       "components/screens/s-48/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-41/container.tsx",
+       "components/screens/s-49/container.tsx"
+      ],
+      "conventions": [
+       "Email notices are API-side; this slice renders returned portal notice data only."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load customer recall notices and affected deliveries through the API, render notice history and empty state, and link to response."
+     },
+     {
+      "id": "TASK-50",
+      "title": "Customer recall response slice (S-49)",
+      "reqs": [
+       "REQ-26, REQ-51 and REQ-52: submit/update delivery response categories and stated disposition, accept a remainder, reject totals above delivered, and show returned accounted status."
+      ],
+      "fileScope": [
+       "components/screens/s-49/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-48/container.tsx",
+       "components/screens/s-40/container.tsx"
+      ],
+      "conventions": [
+       "Validate totals before sending; all customer records remain authenticated and organization-scoped."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load delivered quantity and prior response, validate nonnegative quantities and total not exceeding delivered, calculate only the displayed unaccounted remainder, submit update and render returned status."
+     },
+     {
+      "id": "TASK-51",
+      "title": "Customer account, language and time-zone slice (S-50)",
+      "reqs": [
+       "REQ-13: display organization shelf-life rule and address/account data.",
+       "REQ-28 and REQ-57: save English/Arabic selection, render RTL direction for Arabic, and display dates in account time zone."
+      ],
+      "fileScope": [
+       "components/screens/s-50/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-51/container.tsx",
+       "components/screens/s-47/container.tsx"
+      ],
+      "conventions": [
+       "Use account/API language preference; render identifiers and numeric codes with left-to-right isolation in RTL content."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load and save account locale and time zone preference through generated API, persist the returned preference for later sessions, and display organization shelf-life/address values."
+     },
+     {
+      "id": "TASK-52",
+      "title": "Customer address management slice (S-51)",
+      "reqs": [
+       "REQ-1 and REQ-3: role-scoped address view and access handling.",
+       "REQ-13: add/edit/remove saved organization delivery addresses and display returned success/refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-51/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-52/container.tsx",
+       "components/screens/s-50/container.tsx"
+      ],
+      "conventions": [
+       "Do not show another organization's address as changed after an API refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load addresses, validate fields, implement add/edit/remove API actions and confirmation, and show returned statuses/errors."
+     },
+     {
+      "id": "TASK-53",
+      "title": "Customer team management slice (S-52)",
+      "reqs": [
+       "REQ-3 and REQ-4: organization-scoped invite/remove actions, returned invitation/removal state and refusal handling."
+      ],
+      "fileScope": [
+       "components/screens/s-52/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-51/container.tsx",
+       "components/screens/s-59/container.tsx"
+      ],
+      "conventions": [
+       "Keep customer administrator operations scoped by authenticated organization; API enforces authorization."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load team members, validate invite email/role, submit invite or confirmed removal through lib/api, and render returned status or error."
+     },
+     {
+      "id": "TASK-54",
+      "title": "Product catalog slice (S-53)",
+      "reqs": [
+       "REQ-1 and REQ-3: administrator catalog access and returned scope.",
+       "REQ-5: search/list active and deactivated products, identify ordering unavailability and route to detail/profile.",
+       "REQ-27: filtered CSV export."
+      ],
+      "fileScope": [
+       "components/screens/s-53/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-6/container.tsx",
+       "components/screens/s-54/container.tsx"
+      ],
+      "conventions": [
+       "Do not mutate earlier profile versions from the catalog screen."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load products, implement search/status filtering and empty/refused states, mark deactivated items unavailable for ordering, and export filtered data."
+     },
+     {
+      "id": "TASK-55",
+      "title": "Product detail and deactivation slice (S-54)",
+      "reqs": [
+       "REQ-5: show/update current product details, deactivate product, preserve version history and render API refusal/state.",
+       "REQ-27: display returned actor/time metadata read-only."
+      ],
+      "fileScope": [
+       "components/screens/s-54/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-53/container.tsx",
+       "components/screens/s-55/container.tsx"
+      ],
+      "conventions": [
+       "Keep earlier profile versions read-only and use returned product status."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load product and open-reference status, submit allowed product changes or deactivation, and show returned effect on orders/allocations/profile history without inventing state."
+     },
+     {
+      "id": "TASK-56",
+      "title": "Temperature profile history slice (S-55)",
+      "reqs": [
+       "REQ-5 and REQ-6: list immutable profile versions and show returned recalculation, effective-date, budget and current affected-stock values."
+      ],
+      "fileScope": [
+       "components/screens/s-55/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-56/container.tsx",
+       "components/screens/s-19/container.tsx"
+      ],
+      "conventions": [
+       "Show earlier signed quality decisions unchanged; profile update never edits a signed decision."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load chronological profile versions and returned recalculation effects, show reasons/effective dates/read-only history, and link to create a new version."
+     },
+     {
+      "id": "TASK-57",
+      "title": "New temperature profile slice (S-56)",
+      "reqs": [
+       "REQ-5: validate complete tiers, contiguous/nonoverlapping ranges, allowances/not-permitted designation, reason and effective date today or later; submit and show returned version/error."
+      ],
+      "fileScope": [
+       "components/screens/s-56/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-55/container.tsx",
+       "components/screens/s-7/container.tsx"
+      ],
+      "conventions": [
+       "Use deterministic local tier validation and display API recalculation results without re-signing a prior decision."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 75,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement ordered tier range validation, reject gaps/overlaps and past effective dates before request, submit new profile, and render returned version and recalculation values."
+     },
+     {
+      "id": "TASK-58",
+      "title": "Organisation list slice (S-57)",
+      "reqs": [
+       "REQ-13: list organizations and their shelf-life/address values.",
+       "REQ-27: search/filter and export returned rows."
+      ],
+      "fileScope": [
+       "components/screens/s-57/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-53/container.tsx",
+       "components/screens/s-58/container.tsx"
+      ],
+      "conventions": [
+       "Display only service-returned organizational values."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 50,
+      "complexity": "standard",
+      "approach": "Load organizations, implement search/status filters and empty state, show returned shelf-life/address data and export filtered results."
+     },
+     {
+      "id": "TASK-59",
+      "title": "Organisation detail and shelf-life slice (S-58)",
+      "reqs": [
+       "REQ-13: set minimum remaining shelf life and show returned saved value/refusal.",
+       "REQ-30: display organization-scoped account/access records."
+      ],
+      "fileScope": [
+       "components/screens/s-58/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-57/container.tsx",
+       "components/screens/s-60/container.tsx"
+      ],
+      "conventions": [
+       "Use generated API authorization; do not expose records outside the returned organization scope."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load organization detail, accounts and addresses, validate nonnegative shelf-life rule, save it through lib/api and render returned status."
+     },
+     {
+      "id": "TASK-60",
+      "title": "Account list slice (S-59)",
+      "reqs": [
+       "REQ-27 and REQ-30: search/filter accounts by role/status, show assigned role/scope and export filtered rows."
+      ],
+      "fileScope": [
+       "components/screens/s-59/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-53/container.tsx",
+       "components/screens/s-60/container.tsx"
+      ],
+      "conventions": [
+       "Account/warehouse authorization remains API-enforced; clear rows after access refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 55,
+      "complexity": "standard",
+      "approach": "Load accounts, implement search/role/status filtering, empty state, CSV export and account-detail navigation."
+     },
+     {
+      "id": "TASK-61",
+      "title": "Account create and manage slice (S-60)",
+      "reqs": [
+       "REQ-29: support returned reset/password account action state as applicable.",
+       "REQ-30: create/deactivate accounts and assign roles, staff warehouses and customer organizations; display returned status and refusal.",
+       "REQ-27: show returned governance/audit metadata read-only."
+      ],
+      "fileScope": [
+       "components/screens/s-60/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-59/container.tsx",
+       "components/screens/s-52/container.tsx"
+      ],
+      "conventions": [
+       "API controls account state and access; use the returned response and do not assume new credentials."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load or create account details, validate required fields, role and scope selections, submit save/deactivation, and show returned invitation/account status or service refusal."
+     },
+     {
+      "id": "TASK-62",
+      "title": "Administrator audit trail slice (S-61)",
+      "reqs": [
+       "REQ-27 and REQ-58: render audit actor/time/changed fields/old-new values/reason, filter by record/user/date/action, and export the full filtered set; clear data on access refusal."
+      ],
+      "fileScope": [
+       "components/screens/s-61/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-64/container.tsx",
+       "components/screens/s-63/container.tsx"
+      ],
+      "conventions": [
+       "Audit data is read-only and authorization is taken from the service response."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "complexity": "standard",
+      "approach": "Load audit events and filters through generated API, render expandable details, empty/refused states and filtered CSV."
+     },
+     {
+      "id": "TASK-63",
+      "title": "Reports slice (S-62)",
+      "reqs": [
+       "REQ-27 and REQ-60: show date-range/warehouse reports for all listed metrics, restrict warehouse choices to returned scope and export displayed filtered figures as CSV."
+      ],
+      "fileScope": [
+       "components/screens/s-62/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-66/container.tsx",
+       "components/screens/s-61/container.tsx"
+      ],
+      "conventions": [
+       "Metrics and configuration thresholds come from the API; show a no-data state and no export after access refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 85,
+      "complexity": "standard",
+      "approach": "Load reports by date range and authorized warehouse, render each returned metric table, loading/no-data/refused states, and CSV containing exactly the displayed filtered figures."
+     },
+     {
+      "id": "TASK-64",
+      "title": "Administrator lot history slice (S-63)",
+      "reqs": [
+       "REQ-27 and REQ-59: display returned lot events chronologically and metadata as read-only, including no-later-events state."
+      ],
+      "fileScope": [
+       "components/screens/s-63/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-10/container.tsx",
+       "components/screens/s-65/container.tsx"
+      ],
+      "conventions": [
+       "Use returned event time ordering and clear data when the API refuses access."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load lot history and render receipt/movement/delivery/destruction events in chronological order with an explicit no-events state."
+     },
+     {
+      "id": "TASK-65",
+      "title": "Auditor audit trail slice (S-64)",
+      "reqs": [
+       "REQ-1 and REQ-3: show role-scoped read-only Auditor navigation and records; no write controls.",
+       "REQ-27 and REQ-58: filter, display audit details and export filtered view; show access denial without entries/filters/export."
+      ],
+      "fileScope": [
+       "components/screens/s-64/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-61/container.tsx",
+       "components/screens/s-65/container.tsx"
+      ],
+      "conventions": [
+       "Auditor pages remain read-only and clear protected data on refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 60,
+      "complexity": "standard",
+      "approach": "Load returned audit data and filters, present read-only details and filtered CSV, and ensure denied responses remove rows and export controls."
+     },
+     {
+      "id": "TASK-66",
+      "title": "Auditor lot history slice (S-65)",
+      "reqs": [
+       "REQ-3 and REQ-59: show read-only chronological lot events or an access-denied screen with no event data."
+      ],
+      "fileScope": [
+       "components/screens/s-65/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-63/container.tsx",
+       "components/screens/s-64/container.tsx"
+      ],
+      "conventions": [
+       "No write controls; use returned event order and clear protected values on refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 45,
+      "complexity": "standard",
+      "approach": "Load lot history through generated client and render chronological events, no-events state or access-denied state."
+     },
+     {
+      "id": "TASK-67",
+      "title": "Auditor reports slice (S-66)",
+      "reqs": [
+       "REQ-3, REQ-27 and REQ-60: show read-only reports for authorized scope, filter/export displayed figures and show denied/no-data states."
+      ],
+      "fileScope": [
+       "components/screens/s-66/container.tsx"
+      ],
+      "exemplars": [
+       "components/screens/s-62/container.tsx",
+       "components/screens/s-64/container.tsx"
+      ],
+      "conventions": [
+       "Do not show figures or export controls after access refusal."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "complexity": "standard",
+      "approach": "Load reports using authorized date and warehouse filters, render the required figures and no-data/refused state, and export only displayed filtered records."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Generated App Router screen-by-screen slices: the contract drives the generated API client, and each scaffold container owns its screen behavior; the first driver slice owns the shared offline store.",
+      "simplest": true,
+      "tradeoffs": "Smallest integration surface and each criterion becomes testable as soon as its screen slice lands. Requires discipline to keep screen behavior in containers and API types contract-driven."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Build a central domain/service layer and then connect screens to it in a later wiring pass.",
+      "simplest": false,
+      "tradeoffs": "Could centralize repeated behavior, but creates cross-task overlap, pushes screen criteria to the wiring pass, and violates the scaffold's no-overlap/working-slice constraint."
+     },
+     {
+      "id": "OPTION-3",
+      "summary": "Build one portal area at a time with area-wide shared modules and route wiring per area.",
+      "simplest": false,
+      "tradeoffs": "Keeps area cohesion but makes early criteria depend on later wiring and duplicates shared auth, locale and offline integration across areas."
+     }
+    ],
+    "chosen": "OPTION-1",
+    "adr": "Decision: use generated App Router file-based routes and implement each approved screen in its existing generated container as a working slice. The first driver slice owns the reusable IndexedDB offline store; later driver screens depend on it. All web/API calls use the generated lib/api client from contracts/openapi.yaml; no hand-written client or new external provider seam is added. API-side rules, persistence, email and authorization remain API-side; native apps, stores and push are not built.",
+    "protectedPathsDeclared": [
+     "package.json"
+    ],
+    "newDependencies": [],
+    "stubs": [
+     {
+      "path": "lib/driver/offline-store.ts",
+      "content": "export type DriverActionKind = \"loading\" | \"handover\" | \"refusal\";\nexport type DriverActionStatus = \"queued\" | \"syncing\" | \"accepted\" | \"rejected\";\nexport interface DriverRouteCache {\n  driverId: number;\n  workday: string;\n  timeZone: string;\n  route: unknown;\n  savedAt: string;\n}\nexport interface QueuedDriverAction {\n  actionId: string;\n  driverId: number;\n  kind: DriverActionKind;\n  occurredAt: string;\n  payload: unknown;\n  status: DriverActionStatus;\n  result?: unknown;\n}\nexport async function saveRouteCache(cache: DriverRouteCache): Promise<void> {\n  throw new Error(\"not implemented\");\n}\nexport async function loadRouteCache(driverId: number, workday: string): Promise<DriverRouteCache | undefined> {\n  throw new Error(\"not implemented\");\n}\nexport async function enqueueAction(action: QueuedDriverAction): Promise<void> {\n  throw new Error(\"not implemented\");\n}\nexport async function listQueuedActions(driverId: number): Promise<QueuedDriverAction[]> {\n  throw new Error(\"not implemented\");\n}\nexport async function applyActionResult(driverId: number, actionId: string, accepted: boolean, result: unknown): Promise<void> {\n  throw new Error(\"not implemented\");\n}\nexport async function clearRouteCache(driverId: number): Promise<void> {\n  throw new Error(\"not implemented\");\n}\n"
+     },
+     "reason:"
+    ],
+    "reason": "First-use offline storage is a public seam shared by the driver screen slices and is inside TASK-26's scope. The API client is generated from the separate contract stub; scaffold container exports and generated components already exist, so no additional public-type stubs are needed."
+   },
+   "ms": 2,
+   "resultChars": 199,
+   "isError": true,
+   "result": "The result doesn't match the schema: stubs.0.reason: Invalid input: expected string, received undefined; stubs.1: Invalid input: expected object, received string. Fix it and call submit_result again."
+  }
+ ]
+}

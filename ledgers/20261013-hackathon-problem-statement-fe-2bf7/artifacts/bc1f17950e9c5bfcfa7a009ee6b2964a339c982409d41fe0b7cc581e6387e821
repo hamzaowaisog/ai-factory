@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 347,
+    "end": 430
+   },
+   "ms": 1,
+   "resultChars": 3078,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:347,&quot;end&quot;:430}\">\ncontracts/openapi.yaml lines 347-430\n347\t  /lots:\n348\t    get:\n349\t      operationId: getLots\n350\t      summary: \"Return filterable lot rows with forecast and performance values.\"\n351\t      parameters:\n352\t        - name: penId\n353\t          in: query\n354\t          required: false\n355\t          schema:\n356\t            type: integer\n357\t        - name: breed\n358\t          in: query\n359\t          required: false\n360\t          schema:\n361\t            type: string\n362\t        - name: sex\n363\t          in: query\n364\t          required: false\n365\t          schema:\n366\t            type: string\n367\t        - name: status\n368\t          in: query\n369\t          required: false\n370\t          schema:\n371\t            type: string\n372\t      responses:\n373\t        '200':\n374\t          description: \"Lot list and permissions.\"\n375\t          content:\n376\t            application/json:\n377\t              schema:\n378\t                $ref: '#/components/schemas/LotsResponse'\n379\t              example:\n380\t                permissions:\n381\t                  - \"lots.view\"\n382\t                  - \"forecast.manage\"\n383\t                lots:\n384\t                  - id: 2407\n385\t                    lotCode: \"L-2407\"\n386\t                    breed: \"Angus cross\"\n387\t                    class: \"Steer\"\n388\t                    sex: \"Steer\"\n389\t                    pen: \"P-12\"\n390\t                    head: 140\n391\t                    daysOnFeed: 92\n392\t                    currentWeight: 711.0\n393\t                    adg: 3.4\n394\t                    fcr: 7.1\n395\t                    costOfGain: 1.38\n396\t                    projectedShipDate: \"2026-09-18\"\n397\t                    status: \"Active\"\n398\t        '401':\n399\t          $ref: '#/components/responses/Unauthorized'\n400\t        '403':\n401\t          $ref: '#/components/responses/Forbidden'\n402\t        '500':\n403\t          $ref: '#/components/responses/ServerError'\n404\t  /lots/{lotId}/forecast:\n405\t    get:\n406\t      operationId: getLotForecast\n407\t      summary: \"Return lot forecast, basis, and effective assumptions.\"\n408\t      parameters:\n409\t        - name: lotId\n410\t          in: path\n411\t          required: true\n412\t          schema:\n413\t            type: integer\n414\t      responses:\n415\t        '200':\n416\t          description: \"Forecast values; projected date may be null.\"\n417\t          content:\n418\t            application/json:\n419\t              schema:\n420\t                $ref: '#/components/schemas/ForecastResponse'\n421\t              example:\n422\t                permissions:\n423\t                  - \"forecast.view\"\n424\t                lotId: 2407\n425\t                lotCode: \"L-2407\"\n426\t                incomingHead: 48\n427\t                incomingAverageWeight: 612.0\n428\t                targetWeight: 1350.0\n429\t                expectedGainRate: 3.2\n430\t                projectedMarketDate: \"2026-09-18\"\n… (4376 lines total; ask for start=431)\n</untrusted_document>"
+  }
+ ]
+}

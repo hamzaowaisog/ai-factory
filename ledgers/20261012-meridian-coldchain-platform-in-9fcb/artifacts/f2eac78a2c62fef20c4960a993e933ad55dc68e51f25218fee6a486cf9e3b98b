@@ -1,0 +1,244 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q1",
+      "category": "roles",
+      "text": "How should users authenticate to the driver, staff, and customer areas?",
+      "options": [
+       "Use individual email-and-password accounts with self-service password reset.",
+       "Use Meridian’s existing single sign-on for staff and a separate email-and-password login for customer users.",
+       "Use Meridian’s existing single sign-on for all users, including customer users."
+      ],
+      "recommended": "Use individual email-and-password accounts with self-service password reset.",
+      "reason": "This provides the requested sign-in with the fewest external dependencies; signing decisions can still require identity confirmation at signing.",
+      "spans": [
+       "driver-route-loading-handover",
+       "US-010: Decide What Happens to Affected Stock",
+       "US-012: Follow Orders in the Customer Portal"
+      ],
+      "impact": 3,
+      "impactReason": "Authentication determines who can access routes, regulated decisions, and organization-scoped customer records.",
+      "topic": "sign-in"
+     },
+     {
+      "id": "Q2",
+      "category": "roles",
+      "text": "Who can create, deactivate, and assign roles and access scopes to users, including a staff member’s warehouses and a customer user’s organisation?",
+      "options": [
+       "A System Administrator manages accounts, roles, warehouse access, and customer-organisation access.",
+       "Each organisation manages its own users, while a System Administrator manages staff accounts and roles.",
+       "Users and access scopes are provisioned by an external identity system; the app only consumes them."
+      ],
+      "recommended": "A System Administrator manages accounts, roles, warehouse access, and customer-organisation access.",
+      "reason": "This uses the named administrator role and makes the stated data-access boundaries manageable without adding another administration model.",
+      "spans": [
+       "US-013: Audit Trail",
+       "US-012: Follow Orders in the Customer Portal",
+       "US-014: Reports and Scheduled Summaries"
+      ],
+      "impact": 3,
+      "impactReason": "User and scope assignment directly determines who can see customer, warehouse, and regulated records.",
+      "topic": "admin"
+     },
+     {
+      "id": "Q3",
+      "category": "existing-data",
+      "text": "What existing records, if any, must be brought into the new system at launch so lot tracing and recall quantities work from the start?",
+      "options": [
+       "Start with no imported records; enter opening lots and stock in the new app.",
+       "Import opening lots, received quantities, current stock and customer records needed for traceability; leave other history out.",
+       "Import full historical inventory, order, delivery, and temperature records."
+      ],
+      "recommended": "Start with no imported records; enter opening lots and stock in the new app.",
+      "reason": "The request does not require historical migration, so entering the opening records avoids expanding the build while still enabling traceability from launch.",
+      "spans": [
+       "US-011: Recall a Lot",
+       "US-013: Audit Trail"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines what lot, receipt, and customer data exists for recall tracing and quantity reconciliation.",
+      "topic": "data-migration"
+     },
+     {
+      "id": "Q4",
+      "category": "data-model",
+      "text": "For a customer’s recall response, may reported on-hand, used/dispensed, and destroyed quantities total less than the quantity delivered, leaving a remainder unaccounted?",
+      "options": [
+       "Allow a smaller total; track the remainder as unaccounted until it is later accounted for or written off with a signed justification.",
+       "Require the customer’s categories to total exactly the quantity delivered before accepting the response.",
+       "Allow a smaller total, but require the customer to explain the remainder in the response."
+      ],
+      "recommended": "Allow a smaller total; track the remainder as unaccounted until it is later accounted for or written off with a signed justification.",
+      "reason": "This preserves the request’s unaccounted-pack and signed-write-off path without blocking a customer from reporting what they currently know.",
+      "spans": [
+       "US-011: Recall a Lot"
+      ],
+      "impact": 3,
+      "impactReason": "This determines how pack quantities are recorded and whether a recall can be considered fully accounted for."
+     },
+     {
+      "id": "Q5",
+      "category": "existing-data",
+      "text": "When a new signed decision supersedes an earlier decision, should the new disposition automatically update the stock and its order/route state, including if it reverses the earlier disposition?",
+      "options": [
+       "Apply the superseding decision to the stock and its order/route state, retaining the earlier decision and recording the resulting changes.",
+       "Keep the stock state unchanged; a user must separately make any required stock correction.",
+       "Allow supersession only when it does not reverse the earlier stock disposition; handle reversals as a separate correction process."
+      ],
+      "recommended": "Apply the superseding decision to the stock and its order/route state, retaining the earlier decision and recording the resulting changes.",
+      "reason": "This keeps the current stock disposition aligned with the currently effective signed decision while preserving the required decision history.",
+      "spans": [
+       "US-010: Decide What Happens to Affected Stock",
+       "US-013: Audit Trail"
+      ],
+      "impact": 3,
+      "impactReason": "A reversal can change whether stock is available, rejected, or assigned to an order or route."
+     },
+     {
+      "id": "Q6",
+      "category": "data-model",
+      "text": "Which period should the monthly report generated on the first day cover?",
+      "options": [
+       "The previous complete calendar month.",
+       "The current month to date, including activity on the first day so far.",
+       "A configurable reporting period selected by the stakeholder."
+      ],
+      "recommended": "The previous complete calendar month.",
+      "reason": "A completed prior month gives the first-day report a consistent period without adding report-period configuration.",
+      "spans": [
+       "US-014: Reports and Scheduled Summaries"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes which records and totals appear in the monthly report.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q7",
+      "category": "scope",
+      "text": "How should the more-than-four-hour decision escalation reach the Quality Manager?",
+      "options": [
+       "Show an in-app notice to the Quality Manager.",
+       "Send an email to the Quality Manager.",
+       "Show an in-app notice and send an email."
+      ],
+      "recommended": "Show an in-app notice to the Quality Manager.",
+      "reason": "An in-app notice is the smallest web-based escalation channel and does not depend on a separate notification channel.",
+      "spans": [
+       "US-010: Decide What Happens to Affected Stock"
+      ],
+      "impact": 2,
+      "impactReason": "The channel determines how the visible escalation reaches the responsible person.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q8",
+      "category": "external",
+      "text": "Which email service should deliver recall notices, 24-hour reminders, daily summaries, and monthly reports?",
+      "options": [
+       "Connect to Meridian’s existing email service.",
+       "Use a new transactional email service selected for this product.",
+       "Do not integrate an email service in phase 1; show these messages only in the app."
+      ],
+      "recommended": "Connect to Meridian’s existing email service.",
+      "reason": "Reusing an existing service is the smallest way to deliver the email notifications explicitly required by the request.",
+      "spans": [
+       "US-011: Recall a Lot",
+       "US-014: Reports and Scheduled Summaries"
+      ],
+      "impact": 2,
+      "impactReason": "The choice determines whether required external email notifications can be delivered and through which system.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q9",
+      "category": "data-model",
+      "text": "How long must the handover signature and delivery photo remain available?",
+      "options": [
+       "Retain them for seven years, matching the audit-record retention period.",
+       "Retain them for the same period as the associated handover record, with that period to be set separately.",
+       "Delete them after a shorter, specified period while retaining the handover details."
+      ],
+      "recommended": "Retain them for seven years, matching the audit-record retention period.",
+      "reason": "This gives the captured delivery evidence a clear retention period consistent with the stated regulated-record retention.",
+      "spans": [
+       "driver-route-loading-handover",
+       "US-013: Audit Trail"
+      ],
+      "impact": 3,
+      "impactReason": "Retention determines how long delivery evidence remains available for disputes and compliance review.",
+      "topic": "file-uploads"
+     },
+     {
+      "id": "Q10",
+      "category": "scope",
+      "text": "Which browsers and browser versions must support the responsive web app, including offline driver work and photo/signature capture?",
+      "options": [
+       "Current stable Chrome, Edge, Firefox, and Safari versions.",
+       "Current stable Chrome and Safari versions only.",
+       "A specified browser and version list supplied by Meridian."
+      ],
+      "recommended": "Current stable Chrome, Edge, Firefox, and Safari versions.",
+      "reason": "This covers the major desktop and phone browsers while keeping the support target bounded to current stable releases.",
+      "spans": [
+       "driver-route-loading-handover",
+       "US-012: Follow Orders in the Customer Portal"
+      ],
+      "impact": 2,
+      "impactReason": "Browser support affects whether users can complete responsive, offline, and evidence-capture flows.",
+      "topic": "browsers"
+     },
+     {
+      "id": "Q11",
+      "category": "scope",
+      "text": "What accessibility conformance level is required for the web app and generated customer certificates?",
+      "options": [
+       "WCAG 2.2 AA.",
+       "WCAG 2.1 AA.",
+       "No formal conformance target; use accessible design practices."
+      ],
+      "recommended": "WCAG 2.2 AA.",
+      "reason": "A clear, current conformance target makes the accessibility requirement testable across the portal and operational flows.",
+      "spans": [
+       "driver-route-loading-handover",
+       "US-012: Follow Orders in the Customer Portal"
+      ],
+      "impact": 2,
+      "impactReason": "The target changes interaction, visual, and document requirements across user-facing flows.",
+      "topic": "accessibility"
+     },
+     {
+      "id": "Q12",
+      "category": "scope",
+      "text": "What launch scale should the app support, particularly for the recall trace that must be available within one minute?",
+      "options": [
+       "Provide expected counts for warehouses, users, lots, boxes, and deliveries at launch and over the next year.",
+       "Support one warehouse and a small pilot user group initially; revisit scale before wider rollout.",
+       "Support all planned Meridian warehouses and expected operating volumes from launch."
+      ],
+      "recommended": "Provide expected counts for warehouses, users, lots, boxes, and deliveries at launch and over the next year.",
+      "reason": "The one-minute trace target cannot be assessed against an unknown data volume, so expected scale is needed to define the acceptance target.",
+      "spans": [
+       "US-011: Recall a Lot",
+       "US-014: Reports and Scheduled Summaries"
+      ],
+      "impact": 2,
+      "impactReason": "Expected record and user volume affects the feasibility and verification of the stated trace and reporting response times.",
+      "topic": "volumes"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,90 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-1",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "REQ-1 covers accepted and refused credentials but specifies no reauthentication or screen-clearing path when an authenticated session expires or a later request returns 401."
+     },
+     {
+      "reqId": "REQ-4",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "A repeat import can update an existing PO line's head count below quantities already mapped to lots, but REQ-4 only displays matched import results and provides no state for reviewing the now-conflicting existing allocations."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-8.3 assumes a candidate mix meets the selected nutritional requirements, with no result or save-control behavior when optimization finds no qualifying mix."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The acceptance criteria check ration form fields, optimization results, and hidden unauthorized actions but never check a successful create, revision, optimized-candidate save, or approval status transition."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 2,
+      "severity": "high",
+      "finding": "AC-10.4 covers an operator assigned to the pen but defines no disabled-control or refusal path for a non-assigned operator, despite Q-7 restricting execution-status updates to assigned pens."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-10.5 requires actual bunk intake and its variance, but REQ-11 records delivered feed rather than measured intake and no requirement defines another source or entry path for intake."
+     },
+     {
+      "reqId": "REQ-11",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-11.3 directs the web app to calculate feed variance while calling the result a returned value, conflicting with AC-11.2 and the API-side allocation of authoritative feeding calculations."
+     },
+     {
+      "reqId": "REQ-14",
+      "rubric": 3,
+      "severity": "medium",
+      "finding": "AC-14.2 asserts that viewing a suggestion does not change the sale date, but no sale-date display or before-and-after check is specified on the web surface to observe that assertion."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "REQ-17 restricts newly returned report and dashboard data but does not require previously displayed rows or export data to be cleared after a user, yard, or profitability permission changes."
+     },
+     {
+      "reqId": "REQ-17",
+      "rubric": 4,
+      "severity": "low",
+      "finding": "AC-17.2 adds export of a filtered dashboard view even though REQ-15 defines neither dashboard filters nor dashboard export and the specified export features concern reports."
+     },
+     {
+      "reqId": "REQ-18",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-18.1 expects ADG, FCR, and cost-of-gain values for a selected date range without defining their displayed unavailable state when that range has fewer than two usable weights or zero gain."
+     },
+     {
+      "reqId": "REQ-22",
+      "rubric": 4,
+      "severity": "low",
+      "finding": "REQ-22 adds a requirement to publish the prompts used, which is absent from I-12's requested delivery materials and the accepted assumptions."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

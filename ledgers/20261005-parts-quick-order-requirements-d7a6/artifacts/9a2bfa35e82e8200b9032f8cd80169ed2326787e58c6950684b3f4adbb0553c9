@@ -1,0 +1,465 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first · open an order to see its lines, delivery and progress",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24117",
+         "14 May 2026",
+         "9",
+         "£453.30",
+         "Placed"
+        ],
+        [
+         "ORD-24089",
+         "11 May 2026",
+         "3",
+         "£86.40",
+         "Packed"
+        ],
+        [
+         "ORD-24052",
+         "6 May 2026",
+         "24",
+         "£1,138.00",
+         "Dispatched"
+        ],
+        [
+         "ORD-23998",
+         "29 Apr 2026",
+         "2",
+         "£57.90",
+         "Delivered"
+        ],
+        [
+         "ORD-23941",
+         "22 Apr 2026",
+         "12",
+         "£264.75",
+         "Cancelled"
+        ],
+        [
+         "ORD-23870",
+         "15 Apr 2026",
+         "6",
+         "£198.30",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24117",
+       "status": "Placed",
+       "from": "Ridgeway Industrial Supplies",
+       "to": "Hollins Packaging Ltd, Unit 4 Canal Way, Leeds LS11 5QR",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "14 May 2026, 09:42"
+        },
+        {
+         "label": "Delivery",
+         "value": "Standard · 3–5 working days"
+        },
+        {
+         "label": "Items",
+         "value": "9"
+        }
+       ],
+       "lines": [
+        {
+         "item": "BRG-6204-2RS · Deep groove ball bearing",
+         "qty": "4×£6.80",
+         "amount": "£27.20"
+        },
+        {
+         "item": "VB-SPA-1250 · V-belt SPA 1250 mm",
+         "qty": "2×£14.95",
+         "amount": "£29.90"
+        },
+        {
+         "item": "CNT-LC1D18 · Contactor 18 A, 24 V DC coil",
+         "qty": "1×£68.50",
+         "amount": "£68.50"
+        },
+        {
+         "item": "MTR-075-4P · Motor 0.75 kW 4-pole IE3",
+         "qty": "1×£231.00",
+         "amount": "£231.00"
+        },
+        {
+         "item": "FLT-HYD-10 · Hydraulic return filter 10 µm",
+         "qty": "1×£21.15",
+         "amount": "£21.15"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£377.75"
+        },
+        {
+         "label": "Delivery",
+         "value": "£0.00"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£75.55"
+        },
+        {
+         "label": "Total",
+         "value": "£453.30"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 May, 09:42",
+         "title": "Placed — current status",
+         "meta": "Order received, waiting to be packed",
+         "status": "now"
+        },
+        {
+         "time": "Next",
+         "title": "Packed",
+         "meta": "Picked and boxed at the depot",
+         "status": "next"
+        },
+        {
+         "time": "Next",
+         "title": "Dispatched",
+         "meta": "Handed to carrier with tracking",
+         "status": "next"
+        },
+        {
+         "time": "Est. 19–21 May",
+         "title": "Delivered",
+         "meta": "Signed for at Unit 4 Canal Way",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "hint": "Only possible while the order is Placed"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-24117?",
+       "text": "The order will be set to Cancelled and won't be packed or charged. This can't be undone.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-24117 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Go to Find parts to look up a part number and order it.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24117 has been cancelled.",
+      "validation": "This order has already been packed, so it can no longer be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first · open an order to see its lines, delivery and progress",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24117",
+         "14 May 2026",
+         "9",
+         "£453.30",
+         "Placed"
+        ],
+        [
+         "ORD-24109",
+         "13 May 2026",
+         "1",
+         "£24.60",
+         "Placed"
+        ],
+        [
+         "ORD-24089",
+         "11 May 2026",
+         "3",
+         "£86.40",
+         "Packed"
+        ],
+        [
+         "ORD-24071",
+         "8 May 2026",
+         "15",
+         "£322.14",
+         "Packed"
+        ],
+        [
+         "ORD-24052",
+         "6 May 2026",
+         "24",
+         "£1,138.00",
+         "Dispatched"
+        ],
+        [
+         "ORD-24030",
+         "2 May 2026",
+         "4",
+         "£149.88",
+         "Dispatched"
+        ],
+        [
+         "ORD-23998",
+         "29 Apr 2026",
+         "2",
+         "£57.90",
+         "Delivered"
+        ],
+        [
+         "ORD-23941",
+         "22 Apr 2026",
+         "12",
+         "£264.75",
+         "Cancelled"
+        ],
+        [
+         "ORD-23870",
+         "15 Apr 2026",
+         "6",
+         "£198.30",
+         "Delivered"
+        ],
+        [
+         "ORD-23812",
+         "8 Apr 2026",
+         "40",
+         "£2,486.40",
+         "Delivered"
+        ],
+        [
+         "ORD-23766",
+         "1 Apr 2026",
+         "5",
+         "£73.20",
+         "Cancelled"
+        ],
+        [
+         "ORD-23704",
+         "24 Mar 2026",
+         "8",
+         "£611.52",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 4,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24117",
+       "status": "Placed",
+       "from": "Ridgeway Industrial Supplies",
+       "to": "Hollins Packaging Ltd, Unit 4 Canal Way, Leeds LS11 5QR",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "14 May 2026, 09:42"
+        },
+        {
+         "label": "Delivery",
+         "value": "Standard · 3–5 working days"
+        },
+        {
+         "label": "Items",
+         "value": "9"
+        }
+       ],
+       "lines": [
+        {
+         "item": "BRG-6204-2RS · Deep groove ball bearing",
+         "qty": "4×£6.80",
+         "amount": "£27.20"
+        },
+        {
+         "item": "VB-SPA-1250 · V-belt SPA 1250 mm",
+         "qty": "2×£14.95",
+         "amount": "£29.90"
+        },
+        {
+         "item": "CNT-LC1D18 · Contactor 18 A, 24 V DC coil",
+         "qty": "1×£68.50",
+         "amount": "£68.50"
+        },
+        {
+         "item": "MTR-075-4P · Motor 0.75 kW 4-pole IE3",
+         "qty": "1×£231.00",
+         "amount": "£231.00"
+        },
+        {
+         "item": "FLT-HYD-10 · Hydraulic return filter 10 µm",
+         "qty": "1×£21.15",
+         "amount": "£21.15"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£377.75"
+        },
+        {
+         "label": "Delivery",
+         "value": "£0.00"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£75.55"
+        },
+        {
+         "label": "Total",
+         "value": "£453.30"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 May, 09:42",
+         "title": "Placed — current status",
+         "meta": "Order received, waiting to be packed",
+         "status": "now"
+        },
+        {
+         "time": "Next",
+         "title": "Packed",
+         "meta": "Picked and boxed at the depot",
+         "status": "next"
+        },
+        {
+         "time": "Next",
+         "title": "Dispatched",
+         "meta": "Handed to carrier with tracking",
+         "status": "next"
+        },
+        {
+         "time": "Est. 19–21 May",
+         "title": "Delivered",
+         "meta": "Signed for at Unit 4 Canal Way",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "hint": "Only possible while the order is Placed"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Go to Find parts to look up a part number and order it.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24117 has been cancelled.",
+      "validation": "This order has already been packed, so it can no longer be cancelled."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

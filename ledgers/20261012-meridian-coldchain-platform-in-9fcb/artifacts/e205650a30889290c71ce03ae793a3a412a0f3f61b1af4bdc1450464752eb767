@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography rules */
+    h1, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreath {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-breathing {
+      animation: ambientBreath 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      color: #202020;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 48px;
+      padding: 0 16px;
+      color: #202020;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 2px;
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .nav-item:hover {
+      background-color: #F7F7F7;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      font-weight: 600;
+      border-bottom: 2px solid #A94B1D;
+      border-radius: 2px 2px 0 0;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .initials-avatar {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .user-details {
+      font-size: 14px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lang-switcher a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 150ms ease;
+    }
+
+    .lang-switcher a:hover {
+      color: #202020;
+    }
+
+    .lang-switcher a:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Main Container */
+    .main-layout {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* Page Header */
+    .heading-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 24px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: opacity 150ms ease, transform 100ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      color: #202020;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.99);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Link styled as row action */
+    .link-action {
+      display: inline-flex;
+      align-items: center;
+      color: #202020;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background-color: #FFFFFF;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .link-action:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+
+    .link-action:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr auto;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+    }
+
+    .text-input, .select-input {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 14px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: #202020;
+      outline: none;
+      transition: border-color 150ms ease;
+      width: 100%;
+    }
+
+    .text-input:focus, .select-input:focus {
+      border-color: #A94B1D;
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .select-input {
+      cursor: pointer;
+    }
+
+    /* Table Panel */
+    .table-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow-x: auto;
+    }
+
+    .receipts-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .receipts-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      white-space: nowrap;
+    }
+
+    .receipts-table td {
+      height: 64px;
+      padding: 8px 16px;
+      font-size: 16px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .receipts-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .receipts-table tr:hover td {
+      background-color: #FCFCFC;
+    }
+
+    /* Product carton thumbnail */
+    .carton-photo {
+      width: 52px;
+      height: 39px; /* 4:3 ratio */
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Status badge style with semantic colors */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Semantic status colors */
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 900px) {
+      .app-header {
+        height: auto;
+        padding: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .header-left {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .nav-menu {
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .main-layout {
+        padding: 16px;
+      }
+      .heading-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .filter-panel {
+        grid-template-columns: 1fr;
+      }
+      .receipts-table td {
+        height: auto;
+        padding: 14px 12px;
+      }
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-mark">
+        <div class="brand-icon">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active">Receipts</a>
+        <a href="#" class="nav-item">Stock</a>
+        <a href="#" class="nav-item">Moves</a>
+        <a href="#" class="nav-item">Boxes</a>
+        <a href="#" class="nav-item">Cold rooms</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="initials-avatar">LH</div>
+        <span class="user-details">Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div class="lang-switcher">
+        <a href="#" style="font-weight: 600; color: #202020;">EN</a>
+        <span>/</span>
+        <a href="#">العربية</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-layout">
+    <!-- Heading with breathing room on wide screens -->
+    <div class="heading-bar">
+      <h1 class="page-title">Receipts</h1>
+      <button type="button" class="btn-primary">Record receipt</button>
+    </div>
+
+    <!-- Filters Panel: instant status/date filters, search, CSV export -->
+    <section class="filter-panel">
+      <div class="field-group">
+        <label for="search-input" class="field-label">Search</label>
+        <input type="text" id="search-input" class="text-input" placeholder="Search by lot number, product, or location..." value="North Quay">
+      </div>
+
+      <div class="field-group">
+        <label for="status-filter" class="field-label">Status</label>
+        <select id="status-filter" class="select-input">
+          <option value="all">All statuses</option>
+          <option value="quarantine">quarantine before release</option>
+          <option value="available">available</option>
+          <option value="recalled">recalled</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="date-filter" class="field-label">Date</label>
+        <select id="date-filter" class="select-input">
+          <option value="all">All dates</option>
+          <option value="today" selected>14 May 2026 (Today)</option>
+          <option value="yesterday">13 May 2026</option>
+          <option value="prev">12 May 2026</option>
+        </select>
+      </div>
+
+      <div class="field-group" style="justify-content: flex-end;">
+        <button type="button" class="btn-secondary">CSV export</button>
+      </div>
+    </section>
+
+    <!-- Compact Receipt Table for assigned North Quay only -->
+    <div class="table-panel">
+      <table class="receipts-table">
+        <thead>
+          <tr>
+            <th style="width: 72px;">Photo</th>
+            <th>Lot</th>
+            <th>Product</th>
+            <th style="text-align: right;">Quantity</th>
+            <th>Received</th>
+            <th>Warehouse</th>
+            <th>Status</th>
+            <th style="text-align: right; width: 130px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Row 1: IG-2511 -->
+          <tr>
+            <td>
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAa9N3cOROTS1D94ggF4ejQ5vmHHEWkfiP-G0zT6njgZAXFfXal96S4h_J5KqF_Mw99EehXVUNJtxXpCF3okIZIE5G2h4vjivL8W-ocz1xGkHje0Aoev2GJVPbsK9JgOd2grzqVJuTgRfkBQSZryoNQ0eivnn9pdO_uEhOMUqOnlPpHFXbh6F_Rs5uF8TTZ4tXSKgtJxzR_3OiexXO1HK2GtJhCbv1KdeTlQZ8wwxHdk9MbuJG-XHJa-lp_3nkA_AGq5BlosC3M1QU" alt="Insulin Glargine 100 units/mL carton box" class="carton-photo">
+            </td>
+            <td>
+              <span class="font-mono" style="font-weight: 600; font-size: 15px;">IG-2511</span>
+            </td>
+            <td>
+              <div style="font-weight: 500;">Insulin Glargine 100 units/mL</div>
+              <div style="font-size: 14px; color: #626262;">pack of 10 pens</div>
+            </td>
+            <td style="text-align: right;">
+              <span class="font-mono" style="font-weight: 600;">120</span> <span style="font-size: 14px; color: #626262;">packs</span>
+            </td>
+            <td>
+              <span class="font-mono">14 May 08:00</span>
+            </td>
+            <td>
+              <span>North Quay</span>
+            </td>
+            <td>
+              <span class="status-badge status-waiting animate-saved-handoff">
+                <span class="status-dot status-dot-breathing"></span>
+                <span>quarantine before release</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="#" class="link-action">Receipt detail</a>
+            </td>
+          </tr>
+
+          <!-- Row 2: IG-2509 -->
+          <tr>
+            <td>
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAa9N3cOROTS1D94ggF4ejQ5vmHHEWkfiP-G0zT6njgZAXFfXal96S4h_J5KqF_Mw99EehXVUNJtxXpCF3okIZIE5G2h4vjivL8W-ocz1xGkHje0Aoev2GJVPbsK9JgOd2grzqVJuTgRfkBQSZryoNQ0eivnn9pdO_uEhOMUqOnlPpHFXbh6F_Rs5uF8TTZ4tXSKgtJxzR_3OiexXO1HK2GtJhCbv1KdeTlQZ8wwxHdk9MbuJG-XHJa-lp_3nkA_AGq5BlosC3M1QU" alt="Insulin Glargine 100 units/mL carton box" class="carton-photo">
+            </td>
+            <td>
+              <span class="font-mono" style="font-weight: 600; font-size: 15px;">IG-2509</span>
+            </td>
+            <td>
+              <div style="font-weight: 500;">Insulin Glargine 100 units/mL</div>
+              <div style="font-size: 14px; color: #626262;">pack of 10 pens</div>
+            </td>
+            <td style="text-align: right;">
+              <span class="font-mono" style="font-weight: 600;">24</span> <span style="font-size: 14px; color: #626262;">packs</span>
+            </td>
+            <td>
+              <span class="font-mono">12 May 09:10</span>
+            </td>
+            <td>
+              <span>North Quay</span>
+            </td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>quarantine</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="#" class="link-action">Receipt detail</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+</body>
+</html>

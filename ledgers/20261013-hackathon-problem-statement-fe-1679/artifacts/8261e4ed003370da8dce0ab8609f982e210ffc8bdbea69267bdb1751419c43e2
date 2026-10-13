@@ -1,0 +1,1 @@
+{"commit":"f0b918b4a529dccfd0a9564f686b5f949526f541","design":{"designSha":"65a355a7ccc684bd97e7987c70c423c1d66859e13ec3f85425149ac8ec42e247","line":"20261013-hackathon-problem-statement-fe-1679","version":1},"files":["lib/auth/session.ts","contracts/openapi.yaml"]}

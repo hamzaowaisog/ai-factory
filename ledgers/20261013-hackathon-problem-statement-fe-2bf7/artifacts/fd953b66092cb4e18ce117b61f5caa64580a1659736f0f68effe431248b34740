@@ -1,0 +1,1 @@
+{"details":"C-I3: quote not found at contracts/openapi.yaml:29-40","failures":[{"check":"anchor","frames":[],"message":"C-I3: quote not found at contracts/openapi.yaml:29-40"}],"gateId":"ground.anchors-resolve","inputsHash":"5b24cab27c9974df8e1cc040242161395fbcf75e36c7829cd42284d3341b2a54","passed":false,"safety":false}

@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recall detail</title>
+  <!-- Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Design System Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    /* Motion Tokens */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-waiting {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #805800;
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .status-dot-good {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #24704B;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .status-dot-refused {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* Semantic Status Text */
+    .status-good {
+      color: #24704B;
+      font-weight: 500;
+    }
+    .status-waiting {
+      color: #805800;
+      font-weight: 500;
+    }
+    .status-refused {
+      color: #AE2C2C;
+      font-weight: 500;
+    }
+
+    /* Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 56px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .m-square {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+
+    nav.header-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 56px;
+    }
+
+    nav.header-nav a {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    nav.header-nav a:hover {
+      color: #202020;
+    }
+
+    nav.header-nav a.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    nav.header-nav a.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar-initials {
+      width: 28px;
+      height: 28px;
+      background-color: #F0F0F0;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .user-text {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    .user-text span {
+      color: #626262;
+    }
+
+    .lang-divider {
+      color: #D5D5D5;
+    }
+
+    .lang-switch {
+      color: #626262;
+      font-size: 13px;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Page Heading Area */
+    .page-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    h1.page-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+      letter-spacing: -0.01em;
+    }
+
+    .meta-lead {
+      color: #626262;
+      font-size: 14px;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    h2.section-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    h3.sub-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    /* Primary Metric Hero Card */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      divide-x: 1px solid #D5D5D5;
+    }
+
+    .metric-col {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-right: 1px solid #D5D5D5;
+    }
+
+    .metric-col:last-child {
+      border-right: none;
+    }
+
+    .metric-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .metric-value-huge {
+      font-size: 28px;
+      font-weight: 600;
+      color: #202020;
+      line-height: 1.1;
+    }
+
+    .metric-hint {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 2px;
+    }
+
+    /* Warning Callout Box */
+    .governance-note {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-left: 3px solid #805800;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: #202020;
+      line-height: 1.45;
+    }
+
+    /* Data Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    table.data-table th {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #626262;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FAFAFA;
+      white-space: nowrap;
+    }
+
+    table.data-table td {
+      padding: 12px 16px;
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 15px;
+      color: #202020;
+      vertical-align: middle;
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Forms & Fields */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    label .req {
+      color: #AE2C2C;
+    }
+
+    .field-hint {
+      font-size: 13px;
+      color: #626262;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background-color: #FFFFFF;
+      color: #202020;
+      font-family: inherit;
+      font-size: 15px;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    textarea {
+      height: 96px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    /* Buttons */
+    .button-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, transform 90ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      border: 1px solid #A94B1D;
+      color: #FFFFFF;
+    }
+
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-warning-action {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+    }
+
+    .btn-warning-action:hover {
+      background-color: #FFF9F7;
+      border-color: #A94B1D;
+      color: #A94B1D;
+    }
+
+    .warning-text {
+      font-size: 13px;
+      color: #626262;
+      line-height: 1.4;
+    }
+
+    .action-panel-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* Returned Outcomes Section */
+    .result-ledger {
+      background-color: #FAFAFA;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px 20px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #E5E5E5;
+      font-size: 14px;
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      color: #626262;
+    }
+
+    .result-value {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Accessibility reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance {
+        animation: none;
+      }
+      .status-dot-waiting {
+        animation: none;
+      }
+      .btn {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Application Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="m-square">M</div>
+        <span class="brand-title">Meridian</span>
+      </a>
+      <nav class="header-nav">
+        <a href="#">Waiting decisions</a>
+        <a href="#" class="active">Recalls</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials">NF</div>
+        <div class="user-text">Nadia Farouk <span>· Quality Manager</span></div>
+      </div>
+      <span class="lang-divider">|</span>
+      <span class="lang-switch">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="animate-entrance">
+
+    <!-- Page Title Row -->
+    <div class="page-title-row">
+      <h1 class="page-title">Recall detail</h1>
+      <div class="meta-lead">
+        Prototype date: <span class="font-mono">14 May 2026</span> · Europe/London (BST)
+      </div>
+    </div>
+
+    <!-- Active Recall Scope & Accountability Lead -->
+    <section class="panel">
+      <div class="panel-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h2 class="section-title">Recall RC-12</h2>
+          <span class="status-refused"><span class="status-dot-refused"></span>refused</span>
+          <span style="font-size: 14px; color: #626262;">Active manufacturer recall</span>
+        </div>
+        <div style="font-size: 14px; color: #626262;">
+          Initiated: <span class="font-mono">14 May 2026 10:00 BST</span> by Nadia Farouk
+        </div>
+      </div>
+
+      <div class="overview-grid">
+        <!-- Lead 1: Lot & Product -->
+        <div class="metric-col">
+          <span class="metric-label">Affected Lot & Product</span>
+          <div class="metric-value-huge font-mono" style="font-size: 22px;">IG-2509</div>
+          <div style="font-size: 14px; color: #202020; font-weight: 500;">Insulin Glargine 100 units/mL</div>
+          <span class="metric-hint">Expiry: <span class="font-mono">30 Nov 2026</span> · Profile v3 (2–8°C)</span>
+        </div>
+
+        <!-- Lead 2: Accounted Percentage -->
+        <div class="metric-col">
+          <span class="metric-label">Returned Accounted</span>
+          <div class="metric-value-huge font-mono">16.7%</div>
+          <span style="font-size: 14px; color: #202020;">
+            <strong class="font-mono">4</strong> of <strong class="font-mono">24</strong> packs isolated
+          </span>
+          <span class="metric-hint">In North Quay quarantine</span>
+        </div>
+
+        <!-- Lead 3: Traced vs Received -->
+        <div class="metric-col">
+          <span class="metric-label">Traced vs Received (Exact Match)</span>
+          <div class="metric-value-huge font-mono">
+            24 <span style="font-size: 18px; color: #626262; font-weight: 400;">/</span> 24
+          </div>
+          <span class="status-good"><span class="status-dot-good"></span>good traced</span>
+          <span class="metric-hint">Received 24 packs · 100% physically traced</span>
+        </div>
+
+        <!-- Lead 4: Customer Reconciliation Separation -->
+        <div class="metric-col">
+          <span class="metric-label">Customer Reconciliation</span>
+          <div class="metric-value-huge font-mono status-waiting">
+            20 <span style="font-size: 16px; font-weight: 500;">pending</span>
+          </div>
+          <span class="status-waiting"><span class="status-dot-waiting"></span>waiting response</span>
+          <span class="metric-hint">Cedar Health response & physical return</span>
+        </div>
+      </div>
+
+      <!-- Governance note clarifying tracing vs reconciliation -->
+      <div style="padding: 16px 20px; border-top: 1px solid #D5D5D5;">
+        <div class="governance-note">
+          <strong>Cold Chain Assurance Notice:</strong> Traced quantity (<span class="font-mono">24/24 packs</span>) verifies complete chain-of-custody across North Quay Warehouse and carrier transit. Customer reconciliation (<span class="font-mono">20 packs</span> delivered to Cedar Clinic) represents unreturned consigned stock currently in off-site clinical custody. Tracing verification must never be confused with customer physical reconciliation.
+        </div>
+      </div>
+    </section>
+
+    <!-- Chronological Trace Table -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="section-title">Chronological lot trace & custody ledger</h2>
+          <div style="font-size: 14px; color: #626262; margin-top: 2px;">
+            Full physical custody ledger for Lot IG-2509 across warehouse storage, transit boxes, and consignee delivery
+          </div>
+        </div>
+        <div style="font-size: 14px; color: #626262;">
+          Total lot intake: <span class="font-mono" style="font-weight: 600; color: #202020;">24 packs</span>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Timestamp (BST)</th>
+              <th>Location & Unit</th>
+              <th>Shipper Boxes</th>
+              <th>Route & Transit</th>
+              <th>Custodian / Actor</th>
+              <th>Movement Scope</th>
+              <th>Customer & Reminder Status</th>
+              <th>Assurance Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-mono">12 May 2026 09:10</td>
+              <td>North Quay Warehouse</td>
+              <td class="font-mono">Intake pallet</td>
+              <td>Inbound dock intake</td>
+              <td>Leila Haddad · Operator</td>
+              <td>Received <span class="font-mono">24 packs</span> IG-2509</td>
+              <td>Inbound shipment dock</td>
+              <td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting</span> (quarantined)</td>
+            </tr>
+            <tr>
+              <td class="font-mono">12 May 2026 10:05</td>
+              <td>North Quay Cold Room C2, Rack 4</td>
+              <td class="font-mono">Storage rack</td>
+              <td>Internal staging</td>
+              <td>Omar Saleh · Officer</td>
+              <td>Released <span class="font-mono">24 packs</span> to available</td>
+              <td>Ready for customer allocation</td>
+              <td><span class="status-good"><span class="status-dot-good"></span>good</span> (released)</td>
+            </tr>
+            <tr>
+              <td class="font-mono">13 May 2026 09:30</td>
+              <td>North Quay Loading Bay 12</td>
+              <td class="font-mono">B-691 (10), B-692 (10)</td>
+              <td>Order O-290 allocation</td>
+              <td>Priya Nair · Dispatcher</td>
+              <td>Packed <span class="font-mono">20 packs</span> for Cedar Clinic</td>
+              <td>Consignment pre-advice sent</td>
+              <td><span class="status-good"><span class="status-dot-good"></span>good</span> (consigned)</td>
+            </tr>
+            <tr>
+              <td class="font-mono">13 May 2026 10:14</td>
+              <td>Cedar Clinic, 42 River Road</td>
+              <td class="font-mono">B-691, B-692 delivered</td>
+              <td>Route R-201 · VAN-27</td>
+              <td>Tariq Mansour to Rania Karim</td>
+              <td>Handed <span class="font-mono">20 packs</span> to Cedar Clinic</td>
+              <td>Delivery signed by Rania Karim</td>
+              <td><span class="status-good"><span class="status-dot-good"></span>good</span> (delivered)</td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 10:00</td>
+              <td>North Quay Cold Room C2, Rack 4</td>
+              <td class="font-mono">Isolated rack tray</td>
+              <td>Warehouse quarantine</td>
+              <td>Nadia Farouk · Manager</td>
+              <td><span class="font-mono">4 packs</span> isolated on hand</td>
+              <td>Internal inventory locked</td>
+              <td><span class="status-refused"><span class="status-dot-refused"></span>refused</span> (recalled on hand)</td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 10:05</td>
+              <td>Cedar Clinic (Consignee)</td>
+              <td class="font-mono">20 packs in clinic</td>
+              <td>Recall notice transmitted</td>
+              <td>Nadia Farouk to Hana Youssef</td>
+              <td>Recall notice issued (<span class="font-mono">20 packs</span>)</td>
+              <td>
+                <span class="status-waiting"><span class="status-dot-waiting"></span>waiting response</span><br>
+                <span style="font-size: 13px; color: #626262;">Initial notice sent 10:05 BST</span>
+              </td>
+              <td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting</span> (response pending)</td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 14:00</td>
+              <td>Cedar Clinic (Consignee)</td>
+              <td class="font-mono">20 packs in clinic</td>
+              <td>Automated recall alert</td>
+              <td>System reminder service</td>
+              <td>First follow-up reminder</td>
+              <td>
+                <span class="status-waiting"><span class="status-dot-waiting"></span>reminder scheduled</span><br>
+                <span style="font-size: 13px; color: #626262;">Next at 14:00 BST (Hana Youssef)</span>
+              </td>
+              <td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting</span> (scheduled)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Custody & Outstanding Customer Status Detail -->
+    <div class="action-panel-split">
+      <section class="panel">
+        <div class="panel-header">
+          <h3 class="sub-title">Outstanding customer & consignee status</h3>
+          <span class="status-waiting"><span class="status-dot-waiting"></span>waiting reconciliation</span>
+        </div>
+        <div class="panel-body" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="result-row">
+            <span class="result-label">Consignee Customer</span>
+            <span class="result-value">Cedar Health · Cedar Clinic</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Delivery Address</span>
+            <span class="result-value">42 River Road, London</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Consignment Reference</span>
+            <span class="result-value font-mono">Order O-290 (Route R-201)</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Delivered Quantity</span>
+            <span class="result-value font-mono">20 packs Insulin Glargine</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Delivered Recipient</span>
+            <span class="result-value">Rania Karim (13 May 2026 10:14 BST)</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Designated Buyer Contact</span>
+            <span class="result-value">Hana Youssef · Cedar Health Buyer</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Customer Administrator</span>
+            <span class="result-value">Salma Idris · Cedar Health Administrator</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Escalated Reminder Status</span>
+            <span class="result-value font-mono">Reminder scheduled 14:00 BST</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h3 class="sub-title">Warehouse physical inventory status</h3>
+          <span class="status-good"><span class="status-dot-good"></span>good locked</span>
+        </div>
+        <div class="panel-body" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="result-row">
+            <span class="result-label">Storage Location</span>
+            <span class="result-value">North Quay Warehouse Cold Room C2, Rack 4</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">On-Hand Recalled Packs</span>
+            <span class="result-value font-mono" style="font-weight: 600;">4 packs IG-2509</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Current Quarantine State</span>
+            <span class="status-refused"><span class="status-dot-refused"></span>refused (RC-12 locked)</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Handling Unit Linkage</span>
+            <span class="result-value font-mono">Physical tray segregated from HU-82</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Warehouse Operator</span>
+            <span class="result-value">Leila Haddad · Operator North Quay</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Warehouse Overall Balance</span>
+            <span class="result-value font-mono">124 packs total across 2 active lots</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Linked Quality Case</span>
+            <span class="result-value font-mono">Case Q-90 (escalated 4h 19m)</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Assurance Auditor</span>
+            <span class="result-value">Esha Raman · Lead Auditor</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Governance Actions: Two Separate Signed Actions -->
+    <div class="action-panel-split">
+
+      <!-- Action 1: Write off unaccounted quantity with justification -->
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="sub-title">Write off unaccounted quantity</h3>
+            <span style="font-size: 13px; color: #626262;">Secondary disposal ruling for unreturned customer packs</span>
+          </div>
+          <span class="status-waiting"><span class="status-dot-waiting"></span>signed write-off</span>
+        </div>
+        <div class="panel-body">
+          <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label for="writeoff-qty">Quantity to write off (packs) <span class="req">*</span></label>
+              <input type="text" id="writeoff-qty" class="font-mono" value="20" placeholder="Enter quantity">
+              <span class="field-hint">Maximum allowable: 20 unreturned packs delivered to Cedar Clinic</span>
+            </div>
+
+            <div class="form-group">
+              <label for="writeoff-category">Disposal & write-off category <span class="req">*</span></label>
+              <select id="writeoff-category">
+                <option value="consignee_loss" selected>Consignee confirmed clinical destruction / unrecoverable</option>
+                <option value="in_transit_loss">Transit disposal certificate received</option>
+                <option value="regulatory_exemption">Regulatory cold chain waiver protocol D-12</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="writeoff-justification">Written technical justification <span class="req">*</span></label>
+              <textarea id="writeoff-justification" placeholder="Enter clinical, regulatory, or consignment write-off rationale...">Customer Cedar Health reported stock quarantined at clinical pharmacy site. Physical collection waived pending local certified incineration confirmation under SOP-CC-204 §6.2.</textarea>
+              <span class="field-hint">Mandatory justification permanently recorded in cold chain compliance log</span>
+            </div>
+
+            <div class="form-group">
+              <label for="writeoff-signer">Sign-in identity confirmation <span class="req">*</span></label>
+              <select id="writeoff-signer">
+                <option value="nadia" selected>Nadia Farouk · Quality Manager (Meridian Microsoft account)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="writeoff-auth">Account passcode or security token <span class="req">*</span></label>
+              <input type="password" id="writeoff-auth" class="font-mono" value="••••••••••••••••" placeholder="Enter password or token">
+            </div>
+
+            <div style="margin-top: 8px;">
+              <button type="button" class="btn btn-warning-action" style="width: 100%;">
+                Write off unaccounted quantity
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Action 2: Sign and close recall -->
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="sub-title">Sign and close recall RC-12</h3>
+            <span style="font-size: 13px; color: #626262;">Final quality assurance disposition closure</span>
+          </div>
+          <span class="status-refused"><span class="status-dot-refused"></span>irreversible</span>
+        </div>
+        <div class="panel-body">
+          <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label for="closure-ruling">Final recall closure ruling <span class="req">*</span></label>
+              <select id="closure-ruling">
+                <option value="close_quarantine_reconciled" selected>Reconcile on-hand 4 packs to destruction, seal case</option>
+                <option value="close_complete">Complete recall closure with written off consignment</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="destruction-reference">North Quay destruction certificate reference <span class="req">*</span></label>
+              <input type="text" id="destruction-reference" class="font-mono" value="DST-2026-IG2509-001" placeholder="Destruction docket ref">
+              <span class="field-hint">Physical destruction of 4 on-hand packs witnessed by Leila Haddad & Nadia Farouk</span>
+            </div>
+
+            <div class="form-group">
+              <label for="closure-signer">Sign-in identity confirmation <span class="req">*</span></label>
+              <select id="closure-signer">
+                <option value="nadia" selected>Nadia Farouk · Quality Manager (Meridian Microsoft account)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="closure-auth">Account passcode or security token <span class="req">*</span></label>
+              <input type="password" id="closure-auth" class="font-mono" value="••••••••••••••••" placeholder="Enter password or token">
+              <span class="field-hint">Authenticates Nadia Farouk credentials prior to immutable record seal</span>
+            </div>
+
+            <div class="button-group" style="align-items: center; margin-top: 8px;">
+              <button type="button" class="btn btn-primary">
+                Sign and close recall
+              </button>
+              <div class="warning-text">
+                <span class="status-refused"><span class="status-dot-refused"></span>Irreversible warning:</span> Primary recall closure permanently seals electronic custody records and locks Lot IG-2509 disposition.
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Returned Results & Reconciliation Ledger -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="section-title">Returned results & reconciliation summary</h2>
+          <div style="font-size: 14px; color: #626262; margin-top: 2px;">
+            Cryptographic ledger state reflecting current trace balances, customer confirmations, and pending disposition
+          </div>
+        </div>
+        <span class="status-good"><span class="status-dot-good"></span>good evaluated</span>
+      </div>
+
+      <div class="panel-body">
+        <div class="overview-grid" style="border: 1px solid #D5D5D5; border-radius: 2px; margin-bottom: 20px;">
+          <div class="metric-col">
+            <span class="metric-label">Lot Received Scope</span>
+            <div class="metric-value-huge font-mono">24 packs</div>
+            <span class="metric-hint">Received 12 May 09:10 BST</span>
+          </div>
+          <div class="metric-col">
+            <span class="metric-label">Physically Traced</span>
+            <div class="metric-value-huge font-mono">24 packs</div>
+            <span class="status-good"><span class="status-dot-good"></span>100% traced</span>
+          </div>
+          <div class="metric-col">
+            <span class="metric-label">Cedar Clinic Customer</span>
+            <div class="metric-value-huge font-mono status-waiting">20 packs</div>
+            <span class="status-waiting"><span class="status-dot-waiting"></span>reconciliation pending</span>
+          </div>
+          <div class="metric-col">
+            <span class="metric-label">North Quay Quarantined</span>
+            <div class="metric-value-huge font-mono status-refused">4 packs</div>
+            <span class="status-refused"><span class="status-dot-refused"></span>awaiting destruction</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Audit Parameter</th>
+                <th>Returned Record Value</th>
+                <th>Custody Effect & Ledger Impact</th>
+                <th>Assurance Verification</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 500;">Chain-of-custody verification</td>
+                <td class="font-mono">24 traced of 24 received</td>
+                <td>Zero untraced packages; warehouse dock and carrier van R-201 accounted</td>
+                <td><span class="status-good"><span class="status-dot-good"></span>good</span> (complete)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 500;">Consignee delivery record</td>
+                <td class="font-mono">Order O-290 (20 packs)</td>
+                <td>Delivered 13 May 10:14 BST to Rania Karim; Certificate v1 & v2 appended</td>
+                <td><span class="status-good"><span class="status-dot-good"></span>good</span> (confirmed)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 500;">Customer return physical reconciliation</td>
+                <td class="font-mono">0 of 20 returned (16.7% overall accounted)</td>
+                <td>Cedar Health response pending; automated reminder scheduled for 14:00 BST</td>
+                <td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting</span> (response pending)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 500;">On-hand physical quarantine</td>
+                <td class="font-mono">4 packs in Cold Room C2, Rack 4</td>
+                <td>Strict physical segregation; unhindered by case Q-88 or order O-299</td>
+                <td><span class="status-good"><span class="status-dot-good"></span>good</span> (segregated)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 500;">Destruction ledger readiness</td>
+                <td class="font-mono">Docket DST-2026-IG2509-001</td>
+                <td>Witness protocol prepared for Leila Haddad and Nadia Farouk upon closure</td>
+                <td><span class="status-waiting"><span class="status-dot-waiting"></span>waiting</span> (ready for sign-off)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

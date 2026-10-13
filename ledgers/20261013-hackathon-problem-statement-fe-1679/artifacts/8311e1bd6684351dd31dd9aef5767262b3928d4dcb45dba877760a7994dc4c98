@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "tests/support/setup.ts"
+   },
+   "ms": 0,
+   "resultChars": 2191,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;tests/support/setup.ts&quot;}\">\ntests/support/setup.ts lines 1-36\n1\t// Written by ai-factory from ai-factory design 20261013-hackathon-problem-statement-fe-1679 v1 (65a355a7ccc6), approved by Hamza (via web) on 2026-10-13.\n2\t// Runs before every test file. A screen test (a *.test.tsx file whose first line is \"// @vitest-environment jsdom\") renders\n3\t// a page with no router and no browser: navigation is recorded in ./screen, and the few browser parts jsdom lacks are\n4\t// filled in. A plain *.test.ts file is not affected.\n5\timport { afterEach, vi } from \"vitest\";\n6\timport { resetNav } from \"./screen\";\n7\t\n8\tvi.mock(\"@/lib/nav\", async () => {\n9\t  const { createElement } = await import(\"react\");\n10\t  const { nav } = await import(\"./screen\");\n11\t  return {\n12\t    useNav: () => ({ path: nav.path, go: (to: string) => { nav.went.push(to); }, param: (name: string) => nav.params[name] ?? null }),\n13\t    Link: ({ to, onClick, ...props }: { to: string; onClick?: (e: unknown) => void } & Record<string, unknown>) =>\n14\t      createElement(\"a\", { ...props, href: to, onClick: (e: { preventDefault(): void }) => { onClick?.(e); e.preventDefault(); nav.went.push(to); } }),\n15\t  };\n16\t});\n17\t\n18\tif (typeof window !== \"undefined\") {\n19\t  const noop = () => undefined;\n20\t  class Observer { observe = noop; unobserve = noop; disconnect = noop; takeRecords = () => []; }\n21\t  const w = window as unknown as Record<string, unknown>;\n22\t  w.ResizeObserver ??= Observer;\n23\t  w.IntersectionObserver ??= Observer;\n24\t  w.matchMedia ??= (query: string) => ({ matches: false, media: query, onchange: null, addEventListener: noop, removeEventListener: noop, addListener: noop, removeListener: noop, dispatchEvent: () => false });\n25\t  const el = Element.prototype as unknown as Record<string, unknown>;\n26\t  el.scrollIntoView ??= noop;\n27\t  el.hasPointerCapture ??= () => false;\n28\t  el.setPointerCapture ??= noop;\n29\t  el.releasePointerCapture ??= noop;\n30\t}\n31\t\n32\tafterEach(async () => {\n33\t  resetNav();\n34\t  if (typeof document !== \"undefined\") (await import(\"@testing-library/react\")).cleanup();\n35\t});\n36\t\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,832 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load boxes — Error State</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    }
+
+    .main-heading {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    .section-heading {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .sub-heading {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quiet-text {
+      color: #626262;
+    }
+
+    .supporting-text {
+      font-size: 14px;
+      line-height: 1.4;
+      color: #626262;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-failed {
+      color: #AE2C2C;
+    }
+    .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-breathe {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header Component */
+    .site-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-logo-box {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 650;
+      color: #202020;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 64px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 16px;
+      color: #626262;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #202020;
+      font-weight: 600;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .initials-avatar {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switch {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lang-switch span.active-lang {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Layout Containers */
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    /* Panels */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .panel-body {
+      padding: 24px;
+    }
+
+    /* Error Banner Panel */
+    .error-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #AE2C2C;
+      border-radius: 2px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .error-content-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .error-bullet {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    .error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+      margin-bottom: 4px;
+    }
+
+    .error-desc {
+      font-size: 14px;
+      color: #626262;
+      line-height: 1.4;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 24px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #923f17;
+      border-color: #923f17;
+    }
+
+    .btn-primary:active:not(:disabled) {
+      background-color: #7b3412;
+      border-color: #7b3412;
+    }
+
+    .btn-primary:disabled {
+      background-color: #D5D5D5;
+      border-color: #D5D5D5;
+      color: #626262;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:active:not(:disabled) {
+      background-color: #ECECEC;
+    }
+
+    .btn-retry {
+      height: 40px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    .btn-retry:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-retry:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Route Summary Card */
+    .route-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      border-bottom: 1px solid #D5D5D5;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-val {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    /* Scan Input Section */
+    .scan-input-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .scan-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .scan-form-row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .scan-input {
+      flex: 1;
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 16px;
+      color: #202020;
+      transition: border-color 140ms ease;
+    }
+
+    .scan-input:focus {
+      outline: none;
+      border-color: #A94B1D;
+    }
+
+    .scan-input::placeholder {
+      color: #626262;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+    }
+
+    /* Box List Table */
+    .table-container {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      background-color: #FFFFFF;
+      color: #626262;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+    }
+
+    .data-table td {
+      padding: 14px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 15px;
+      color: #202020;
+      height: 48px;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Warning / Block Row inside table */
+    .row-blocked {
+      background-color: #FFFDFD;
+    }
+
+    .block-flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #AE2C2C;
+    }
+
+    .block-reason {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 4px;
+    }
+
+    /* Bottom Actions / Footer row */
+    .actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+    }
+
+    .offline-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .offline-bullet {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #626262;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="header-left">
+      <a href="#" class="brand-mark" aria-label="Meridian Home">
+        <div class="brand-logo-box">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="nav-menu" aria-label="Main Navigation">
+        <a href="#" class="nav-item">Today's routes</a>
+        <a href="#" class="nav-item">Pending work</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="initials-avatar">TM</div>
+        <span>Tariq Mansour · Driver</span>
+      </div>
+      <div class="lang-switch">
+        <span class="active-lang">EN</span>
+        <span>/</span>
+        <span>العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Main Content -->
+  <main class="page-container animate-entrance">
+
+    <!-- Page Title & Navigation Link -->
+    <div class="page-header-row">
+      <h1 class="main-heading">Load boxes</h1>
+      <div>
+        <a href="#" class="btn btn-secondary">Route stops</a>
+      </div>
+    </div>
+
+    <!-- Inline Error State Banner -->
+    <div class="error-panel" role="alert">
+      <div class="error-content-left">
+        <div class="error-bullet"></div>
+        <div>
+          <div class="error-title">Failed to load box dispatch telemetry and verification records</div>
+          <div class="error-desc">The data failed to load. The verification service could not establish secure telemetry synchronization for route R-204 consignment boxes. Durable local storage is unconfirmed, preventing offline loading queue.</div>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn-retry">Retry</button>
+      </div>
+    </div>
+
+    <!-- Consignment & Lead Information Card -->
+    <div class="panel">
+      <div class="panel-body">
+        <div class="route-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Route reference</span>
+            <span class="meta-val mono">R-204</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned vehicle</span>
+            <span class="meta-val">VAN-27 <span class="mono quiet-text font-normal">(MTR-482)</span></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Destination stop</span>
+            <span class="meta-val">Cedar Clinic, 42 River Road</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Consignment order</span>
+            <span class="meta-val mono">Order O-299</span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+          <div>
+            <div class="section-heading" style="margin-bottom: 4px;">0 of 2 expected boxes scanned for R-204</div>
+            <div class="supporting-text">All expected shipper boxes must be physically scanned and verified before vehicle loading authorization.</div>
+          </div>
+          <div class="status-badge status-failed">
+            <span class="status-dot"></span>
+            <span>failed (unverified)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Touch-sized Scan Input Section -->
+    <div class="scan-input-card">
+      <label for="box-barcode-input" class="scan-label">Scan box</label>
+      <div class="scan-form-row">
+        <input type="text" id="box-barcode-input" class="scan-input" placeholder="Scan or enter box barcode (e.g. B-701, B-702)" autocomplete="off" autofocus="">
+        <button type="button" class="btn btn-secondary">Scan box</button>
+      </div>
+      <div class="supporting-text" style="margin-top: 8px;">
+        Use handheld barcode scanner or manual identifier entry. Confirm departure is locked until all expected boxes are scanned.
+      </div>
+    </div>
+
+    <!-- Expected / Scanned Box Verification Table -->
+    <div class="table-container">
+      <div class="table-header">
+        <h2 class="section-heading" style="font-size: 18px;">Expected consignment boxes</h2>
+        <span class="status-badge status-waiting">
+          <span class="status-dot animate-breathe"></span>
+          <span>waiting scan</span>
+        </span>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Box identifier</th>
+            <th>Consigned cargo</th>
+            <th>Returned temperature</th>
+            <th>Gateway age</th>
+            <th>Verification status</th>
+            <th style="text-align: right;">Action / Instruction</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Box B-701 -->
+          <tr>
+            <td>
+              <span class="mono" style="font-weight: 600;">B-701</span>
+            </td>
+            <td>
+              <div>12 packs · Insulin Glargine</div>
+              <div class="supporting-text mono">Lot IG-2511</div>
+            </td>
+            <td>
+              <span class="mono">4.4°C</span>
+              <span class="supporting-text" style="margin-left: 4px;">(2–8°C band)</span>
+            </td>
+            <td>
+              <span class="mono">14:40 BST</span>
+              <span class="supporting-text" style="margin-left: 4px;">(20m ago)</span>
+            </td>
+            <td>
+              <div class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>waiting</span>
+              </div>
+              <div class="supporting-text">Unscanned</div>
+            </td>
+            <td style="text-align: right;">
+              <span class="quiet-text" style="font-size: 14px;">Awaiting scan</span>
+            </td>
+          </tr>
+
+          <!-- Box B-702: Returned On Hold / Recalled state with "Do not deliver" -->
+          <tr class="row-blocked">
+            <td>
+              <span class="mono" style="font-weight: 600;">B-702</span>
+            </td>
+            <td>
+              <div>8 packs · Insulin Glargine</div>
+              <div class="supporting-text mono">Lot IG-2511</div>
+            </td>
+            <td>
+              <span class="mono">4.8°C</span>
+              <span class="supporting-text" style="margin-left: 4px;">(cached stale)</span>
+            </td>
+            <td>
+              <span class="mono">11:45 BST</span>
+              <span class="supporting-text" style="margin-left: 4px;">(3h 15m ago)</span>
+            </td>
+            <td>
+              <div class="status-badge status-refused status-failed">
+                <span class="status-dot"></span>
+                <span>refused</span>
+              </div>
+              <div class="block-flag" style="margin-top: 4px;">
+                Do not deliver
+              </div>
+              <div class="block-reason">
+                Returned On Hold: Hub logger gateway disconnected &gt;3h, unverified dock excursion.
+              </div>
+            </td>
+            <td style="text-align: right;">
+              <span class="status-badge status-failed" style="font-size: 13px;">
+                Blocked from loading
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Actions & Departure Lock Section -->
+    <div class="actions-bar">
+      <div class="offline-notice">
+        <span class="offline-bullet"></span>
+        <span>Offline loading queue disabled: Complete durable local storage could not be confirmed.</span>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <a href="#" class="btn btn-secondary">Route stops</a>
+        <!-- Primary Confirm departure button is disabled until both expected boxes scanned and wrong-route removed -->
+        <button type="button" class="btn btn-primary" disabled="" title="Confirm departure is disabled until both expected boxes are scanned and all wrong-route boxes removed">
+          Confirm departure
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"today s routes":"S-25","pending work":"S-30","route stops":"S-26"},A={"request password reset":"S-3","back to sign in":"S-1","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","record receipt":"S-7","receipt detail":"S-8","receipts":"S-6","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-27";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

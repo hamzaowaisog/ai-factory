@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Folio3 Parking - Guard Console</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Design System Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim as instructed -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-container": "#c8e6db",
+            "on-tertiary-fixed": "#3a0a05",
+            "surface-container-highest": "#e0e3e0",
+            "on-surface": "#181c1b",
+            "surface-dim": "#d8dbd8",
+            "on-surface-variant": "#3f4945",
+            "surface-bright": "#f7faf7",
+            "primary-fixed-dim": "#8ad5be",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#042019",
+            "tertiary": "#77392e",
+            "surface": "#f7faf7",
+            "outline-variant": "#bec9c4",
+            "on-primary-container": "#a3efd7",
+            "inverse-on-surface": "#eef1ee",
+            "inverse-primary": "#8ad5be",
+            "tertiary-fixed": "#ffdad4",
+            "surface-container-lowest": "#ffffff",
+            "on-error": "#ffffff",
+            "background": "#f7faf7",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-tertiary-container": "#ffd7d0",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "tertiary-container": "#945044",
+            "secondary": "#49645b",
+            "primary": "#005645",
+            "on-secondary-container": "#4d685f",
+            "on-primary-fixed-variant": "#005141",
+            "secondary-fixed": "#cbe9dd",
+            "inverse-surface": "#2d312f",
+            "error": "#ba1a1a",
+            "on-primary-fixed": "#002019",
+            "on-primary": "#ffffff",
+            "surface-container-low": "#f1f4f1",
+            "outline": "#6f7975",
+            "on-secondary": "#ffffff",
+            "surface-container": "#ecefeb",
+            "on-background": "#181c1b",
+            "surface-tint": "#186a57",
+            "primary-fixed": "#a5f2d9",
+            "on-secondary-fixed-variant": "#314c44",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface-variant": "#e0e3e0",
+            "surface-container-high": "#e6e9e6",
+            "primary-container": "#1f6f5c"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    /* Design System Motion & Rules */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 700ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+    body {
+      color: #18181B; /* Off-black Charcoal Ink */
+      font-family: 'Public Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .live-dot {
+      animation: live-breathe 4s ease-in-out infinite;
+    }
+    .plate-chip-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+    }
+    @keyframes chip-unmask {
+      from { clip-path: inset(0 0 100% 0); transform: translateY(4px); }
+      to { clip-path: inset(0); transform: translateY(0); }
+    }
+    .chip-swap {
+      animation: chip-unmask var(--dur-base) var(--ease-spring) both;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface h-full flex flex-col antialiased select-none">
+<!-- Interactive Simulation Bar (Dev / Testing State Switcher) -->
+<aside aria-label="Console Operational Mode Switcher" class="w-full bg-surface-container-highest border-b border-outline-variant px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs z-50">
+<div class="flex items-center gap-2 text-on-surface-variant font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="tune">tune</span>
+<span class="font-headline font-semibold text-on-surface">Gate Simulation Control:</span>
+<span class="hidden sm:inline text-outline">Select scenario state to evaluate booth response</span>
+</div>
+<div class="flex items-center gap-1.5 overflow-x-auto" id="state-toggle-group">
+<button class="px-2.5 py-1 rounded bg-primary-container text-on-tertiary font-medium transition-colors" id="btn-state-normal" onclick="setScenario('normal')">
+        Normal Operation
+      </button>
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-dim text-on-surface transition-colors" id="btn-state-camera" onclick="setScenario('camera-outage')">
+        Camera Outage Error Banner
+      </button>
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-dim text-on-surface transition-colors" id="btn-state-fail" onclick="setScenario('load-fail')">
+        Data Load Failure (Inline Error + Retry)
+      </button>
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-dim text-on-surface transition-colors" id="btn-state-empty" onclick="setScenario('empty')">
+        Empty State (No Detections)
+      </button>
+</div>
+</aside>
+<!-- Global Shell: SideNavBar & Main Content -->
+<div class="flex flex-1 w-full overflow-hidden">
+<!-- SideNavBar (Shared Component JSON execution) -->
+<nav aria-label="Main Navigation" class="fixed left-0 top-0 h-full w-58 flex flex-col justify-between py-6 px-3 z-40 bg-surface-container-lowest border-r border-outline-variant">
+<div class="space-y-6">
+<!-- Brand Header Anchor -->
+<div class="px-3 flex items-center gap-3">
+<div aria-label="Folio3 Corporate Emblem" class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-tertiary font-bold text-sm">
+            F3
+          </div>
+<div>
+<div class="font-headline text-base font-bold text-on-surface tracking-tight leading-none">Folio3 Parking</div>
+<div class="font-label text-xs uppercase tracking-wider text-outline mt-1">Bay Management</div>
+</div>
+</div>
+<!-- Claim Action CTA button from JSON -->
+<div class="px-1">
+<button class="w-full h-10 px-3 bg-surface-container border border-outline-variant hover:bg-surface-container-low text-on-surface font-medium text-xs rounded flex items-center justify-center gap-2 transition-transform active:scale-[0.97]">
+<span class="material-symbols-outlined text-base" data-icon="add_circle">add_circle</span>
+            Claim space
+          </button>
+</div>
+<!-- Nav tabs with exact labels & icons from JSON; Guard Console is ACTIVE tab -->
+<div class="space-y-1">
+<!-- Claim & Release -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="local_parking">local_parking</span>
+<span class="text-sm">Claim &amp; Release</span>
+</a>
+<!-- Daily Allocations -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="calendar_today">calendar_today</span>
+<span class="text-sm">Daily Allocations</span>
+</a>
+<!-- Guard Console (Active Mapping) -->
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-surface font-medium border-l-2 border-primary rounded-r" href="#">
+<span class="material-symbols-outlined text-lg text-primary" data-icon="security">security</span>
+<span class="text-sm">Guard Console</span>
+</a>
+<!-- Vehicle Roster -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="directions_car">directions_car</span>
+<span class="text-sm">Vehicle Roster</span>
+</a>
+<!-- Audit Log -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="receipt_long">receipt_long</span>
+<span class="text-sm">Audit Log</span>
+</a>
+</div>
+</div>
+<!-- Footer Tabs from JSON -->
+<div class="pt-4 border-t border-outline-variant space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:bg-surface-container-low transition-colors rounded" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="help_outline">help_outline</span>
+<span class="text-sm">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:bg-surface-container-low transition-colors rounded" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span class="text-sm">Sign out</span>
+</a>
+</div>
+</nav>
+<!-- Main Operational Workspace Canvas -->
+<div class="flex-1 flex flex-col ml-58 overflow-y-auto min-h-screen">
+<!-- TopNavBar from JSON -->
+<header class="flex justify-between items-center w-full h-16 px-8 border-b border-outline-variant bg-surface-container-lowest sticky top-0 z-30">
+<div class="flex items-center gap-4">
+<!-- Gate & Terminal Title -->
+<div class="flex items-center gap-3">
+<div class="w-2.5 h-2.5 rounded-full bg-emerald-600 live-dot" title="Live barrier link verified"></div>
+<h1 class="font-headline text-lg font-bold text-on-surface tracking-tight">Guard Console</h1>
+<span class="text-outline-variant">/</span>
+<span class="font-body text-sm font-semibold text-primary-container bg-secondary-container px-2.5 py-0.5 rounded">Gate 1 - North Barrier</span>
+</div>
+<!-- Live time display -->
+<div class="hidden lg:flex items-center gap-2 text-xs font-mono text-on-surface-variant border-l border-outline-variant pl-4">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span id="live-clock">Tue 10 Jun 2025, office time 08:21 PKT</span>
+</div>
+</div>
+<!-- Trailing guard details and controls -->
+<div class="flex items-center gap-4">
+<!-- Guard on-duty info -->
+<div class="text-right hidden md:block">
+<div class="text-xs font-semibold text-on-surface leading-tight">Zubair Khan (Officer #418)</div>
+<div class="text-[11px] text-outline font-body leading-tight">North Booth Duty · Shift A</div>
+</div>
+<div aria-label="Employee avatar initials in circular badge" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-semibold text-xs text-on-surface-variant">
+            ZK
+          </div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- Trailing actions from JSON -->
+<div class="flex items-center gap-1">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-lg" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded transition-colors" title="Help">
+<span class="material-symbols-outlined text-lg" data-icon="help">help</span>
+</button>
+</div>
+<button class="h-9 px-3 bg-surface-container-lowest border border-outline hover:bg-surface-container-low text-on-surface text-xs font-medium rounded transition-transform active:scale-[0.97]">
+            Release today
+          </button>
+</div>
+</header>
+<!-- CONTENT CANVAS (Strict Layout Order) -->
+<main class="p-6 md:p-8 max-w-[1440px] w-full mx-auto space-y-6 flex-1">
+<!-- SIMULATED ERROR STATE: Red Outage Banner (Toggled via Switcher) -->
+<div class="hidden bg-[#FBEAE8] border-l-4 border-error p-4 rounded-r text-[#18181B] text-sm" id="sim-camera-outage">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-error mt-0.5" data-icon="videocam_off">videocam_off</span>
+<div class="flex-1">
+<div class="font-headline font-bold text-error text-base leading-snug">Camera Offline Alert</div>
+<p class="mt-0.5 text-on-surface font-body">Camera offline since 08:25 — no automated authorization, green indicator disabled. Outage event recorded.</p>
+<div class="mt-3 flex items-center gap-3">
+<button class="px-3 py-1.5 bg-error text-on-error font-medium rounded text-xs hover:bg-[#93000a] transition-colors" onclick="alert('Manual plate logging enabled for North Booth')">
+                  Switch to Manual Plate Input
+                </button>
+<button class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant font-medium text-xs hover:bg-surface-container transition-colors" onclick="setScenario('normal')">
+                  Dismiss Alert
+                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- SIMULATED ERROR STATE: Data Load Failure Inline Banner (Toggled via Switcher) -->
+<div class="hidden bg-[#FBEAE8] border-l-4 border-error p-4 rounded-r text-[#18181B] text-sm" id="sim-data-load-failure">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-error mt-0.5" data-icon="sync_problem">sync_problem</span>
+<div class="flex-1">
+<div class="font-headline font-bold text-error text-base">Service Connectivity Interrupted</div>
+<p class="mt-0.5 text-on-surface font-body">Unable to connect to Gate Authorization Service. The detection queue failed to load.</p>
+<div class="mt-3 flex items-center gap-3">
+<button class="px-3 py-1.5 bg-primary-container text-on-tertiary font-medium rounded text-xs hover:bg-primary transition-colors flex items-center gap-1.5" onclick="setScenario('normal')">
+<span class="material-symbols-outlined text-sm" data-icon="refresh">refresh</span>
+                  Retry connection
+                </button>
+<a class="text-xs text-primary-container font-semibold underline underline-offset-2" href="#offline-logbook" onclick="alert('Local backup log active.')">
+                  Open local offline logbook
+                </a>
+</div>
+</div>
+</div>
+</div>
+<!-- 1) SYSTEM HEALTH BAR -->
+<section aria-label="System Health Bar" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-y-2 gap-x-5 text-sm">
+<div class="flex items-center gap-2">
+<span class="text-xs uppercase font-label tracking-wider text-outline font-semibold">Subsystems:</span>
+</div>
+<!-- Camera Status -->
+<div class="flex items-center gap-2 font-medium" id="health-camera">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600 live-dot"></span>
+<span class="text-on-surface">Camera: <strong class="font-semibold text-emerald-800">Online</strong></span>
+</div>
+<span class="text-outline-variant select-none hidden sm:inline">·</span>
+<!-- Auth Service -->
+<div class="flex items-center gap-2 font-medium" id="health-auth">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600 live-dot"></span>
+<span class="text-on-surface">Authorization service: <strong class="font-semibold text-emerald-800">Online</strong></span>
+</div>
+<span class="text-outline-variant select-none hidden sm:inline">·</span>
+<!-- Gate Indicator -->
+<div class="flex items-center gap-2 font-medium" id="health-gate">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600 live-dot"></span>
+<span class="text-on-surface">Gate indicator: <strong class="font-semibold text-emerald-800">Online</strong></span>
+</div>
+</div>
+<!-- Manual Barrier Controls and Intercom Dial -->
+<div class="flex items-center gap-2.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-outline-variant">
+<button class="px-3 py-1.5 bg-surface-container hover:bg-surface-dim border border-outline-variant rounded text-xs font-medium text-on-surface flex items-center gap-1.5 transition-colors active:scale-[0.97]" onclick="triggerManualBarrier('OPEN')">
+<span class="material-symbols-outlined text-sm" data-icon="pan_tool">pan_tool</span>
+              Manual Barrier Open
+            </button>
+<button class="px-3 py-1.5 bg-surface-container hover:bg-surface-dim border border-outline-variant rounded text-xs font-medium text-on-surface flex items-center gap-1.5 transition-colors active:scale-[0.97]" onclick="triggerManualBarrier('CLOSE')">
+<span class="material-symbols-outlined text-sm" data-icon="close">close</span>
+              Hold Closed
+            </button>
+<button class="px-3 py-1.5 bg-secondary-container hover:bg-[#b8dcd0] border border-outline-variant rounded text-xs font-medium text-on-secondary-container flex items-center gap-1.5 transition-colors active:scale-[0.97]" onclick="alert('Calling North Gate Security Dispatch')">
+<span class="material-symbols-outlined text-sm" data-icon="phone_in_talk">phone_in_talk</span>
+              Intercom Dial
+            </button>
+</div>
+</section>
+<!-- CONTAINER FOR DETECTION CARD (Normal vs Empty state) -->
+<div id="detection-zone">
+<!-- 2) LATEST DETECTION CARD -->
+<section aria-label="Latest Vehicle Detection Card" class="bg-surface-container-lowest border-2 border-primary-container rounded-lg p-6 lg:p-8 space-y-6" id="card-latest-detection">
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-outline-variant pb-6">
+<!-- Large License Plate optical display & Verification Result -->
+<div class="space-y-3">
+<div class="flex items-center gap-3">
+<span class="text-xs uppercase font-label tracking-wider text-outline font-semibold">Latest Automatic Detection</span>
+<span class="text-xs font-mono text-outline">Detected at 08:21:05 PKT</span>
+</div>
+<!-- SIGNATURE PLATE CHIP -->
+<div class="flex flex-wrap items-center gap-4">
+<div class="inline-flex items-center px-4 py-2 bg-surface-container-lowest border-2 border-[#18181B] rounded text-3xl md:text-4xl font-bold plate-chip-mono tracking-wider shadow-sm chip-swap text-[#18181B]">
+                    BKX-482
+                  </div>
+<!-- Verified / Activated Badge -->
+<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-600/30 text-emerald-800 rounded font-semibold text-sm">
+<span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+<span>Activated — Barrier Open</span>
+</div>
+</div>
+<!-- Headline Verification Result -->
+<div class="text-xl md:text-2xl font-headline font-semibold text-[#18181B] flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-700 text-2xl" data-icon="check_circle" data-weight="fill">check_circle</span>
+<span>Authorized — temporary claim for 10 Jun 2025</span>
+</div>
+</div>
+<!-- Bay Code Chip High Contrast Anchor -->
+<div class="text-left md:text-right bg-surface-container-low md:bg-transparent p-3 md:p-0 rounded border md:border-0 border-outline-variant">
+<div class="text-xs font-label uppercase tracking-wider text-outline font-semibold mb-1">Allocated Bay</div>
+<div class="inline-block px-3 py-1.5 bg-surface-container-lowest border-2 border-primary-container rounded text-xl font-mono font-bold text-primary-container">
+                  B2-14
+                </div>
+</div>
+</div>
+<!-- Driver & Context details snippet -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant text-sm">
+<div>
+<span class="text-xs font-label uppercase tracking-wider text-outline block">Driver / Employee</span>
+<span class="font-semibold text-[#18181B] mt-0.5 block">Bilal Ahmed</span>
+<span class="text-xs text-on-surface-variant font-mono">ID: EMP-0941 · Engineering</span>
+</div>
+<div>
+<span class="text-xs font-label uppercase tracking-wider text-outline block">Registered Vehicle</span>
+<span class="font-semibold text-[#18181B] mt-0.5 block">Toyota Corolla (White)</span>
+<span class="text-xs text-on-surface-variant">Model Year: 2022</span>
+</div>
+<div>
+<span class="text-xs font-label uppercase tracking-wider text-outline block">Booking Validity</span>
+<span class="font-semibold text-emerald-800 mt-0.5 block">08:00 – 18:30 Today</span>
+<span class="text-xs text-on-surface-variant font-mono">Token: CLM-8491-0610</span>
+</div>
+</div>
+<!-- Operator Gate Actions -->
+<div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+<div class="flex items-center gap-3">
+<!-- Action 1: Vehicle entered -->
+<button class="h-11 px-6 bg-primary-container hover:bg-primary text-on-tertiary font-headline font-semibold text-sm rounded shadow-sm flex items-center gap-2 transition-transform active:scale-[0.97]" id="btn-vehicle-entered" onclick="confirmEntry('BKX-482', true)">
+<span class="material-symbols-outlined text-lg" data-icon="done_all">done_all</span>
+                  Vehicle entered
+                </button>
+<!-- Action 2: Did not enter -->
+<button class="h-11 px-5 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant text-on-surface font-headline font-medium text-sm rounded flex items-center gap-2 transition-transform active:scale-[0.97]" id="btn-vehicle-declined" onclick="confirmEntry('BKX-482', false)">
+<span class="material-symbols-outlined text-lg" data-icon="block">block</span>
+                  Did not enter
+                </button>
+</div>
+<!-- Guard operator guidance prompt -->
+<div class="text-xs text-outline font-body">
+                Pressing <kbd class="px-1.5 py-0.5 bg-surface-container border border-outline-variant rounded font-mono text-[11px] text-on-surface">Enter</kbd> records entrance and closes barrier.
+              </div>
+</div>
+</section>
+<!-- SIMULATED EMPTY STATE (Hidden by default) -->
+<section class="hidden bg-surface-container-lowest border border-outline-variant rounded-lg p-12 text-center space-y-4" id="card-empty-state">
+<div class="w-12 h-12 rounded-full bg-surface-container-low flex items-center justify-center mx-auto text-outline">
+<span class="material-symbols-outlined text-2xl" data-icon="directions_car">directions_car</span>
+</div>
+<div class="space-y-1">
+<h3 class="font-headline font-semibold text-lg text-[#18181B]">No car detections yet today.</h3>
+<p class="text-sm text-outline max-w-md mx-auto">
+                Vehicles approaching Gate 1 will automatically be captured by the North Barrier OCR scanner and verified against daily allocations.
+              </p>
+</div>
+<button class="h-9 px-4 bg-surface-container-lowest border border-outline hover:bg-surface-container-low text-xs font-medium rounded transition-transform active:scale-[0.97]" onclick="setScenario('normal')">
+              Refresh scanner queue
+            </button>
+</section>
+</div>
+<!-- 3) ATTEMPT LOG TABLE -->
+<section aria-label="Detection Attempt Log" class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-3">
+<h2 class="font-headline font-bold text-base text-[#18181B]">Recent Attempt Log</h2>
+<span class="text-xs font-mono bg-surface-container px-2 py-0.5 rounded text-outline">4 Events Recorded</span>
+</div>
+<div class="text-xs text-outline font-mono">Real-time sync: Active</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-sm">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant text-[12px] font-label font-semibold text-outline uppercase tracking-wider">
+<th class="py-3 px-6" scope="col">Time</th>
+<th class="py-3 px-6" scope="col">Detected Plate</th>
+<th class="py-3 px-6" scope="col">Type</th>
+<th class="py-3 px-6" scope="col">Result</th>
+<th class="py-3 px-6 text-right" scope="col">Actual Entry</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant" id="attempt-table-body">
+<!-- Row 1: 08:21:05 · BKX-482 · Temporary · Authorized · Entered (badge: Success) -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3.5 px-6 font-mono text-xs text-[#18181B]">08:21:05</td>
+<td class="py-3.5 px-6">
+<span class="inline-block px-2.5 py-1 bg-surface-container-lowest border border-[#18181B] rounded text-xs font-bold plate-chip-mono text-[#18181B]">
+                      BKX-482
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-on-surface-variant font-medium">Temporary</td>
+<td class="py-3.5 px-6">
+<span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                      Authorized
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-right">
+<span class="inline-block px-2.5 py-0.5 bg-emerald-50 border border-emerald-600/30 text-emerald-800 rounded text-xs font-medium">
+                      Entered
+                    </span>
+</td>
+</tr>
+<!-- Row 2: 08:18:40 · LEB-22-1904 · Permanent sticker · Bypassed — recorded as utilized · — (badge: Neutral/Bypassed) -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3.5 px-6 font-mono text-xs text-[#18181B]">08:18:40</td>
+<td class="py-3.5 px-6">
+<span class="inline-block px-2.5 py-1 bg-surface-container-lowest border border-[#18181B] rounded text-xs font-bold plate-chip-mono text-[#18181B]">
+                      LEB-22-1904
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-on-surface-variant font-medium">Permanent sticker</td>
+<td class="py-3.5 px-6 text-on-surface-variant text-xs">
+                    Bypassed — recorded as utilized
+                  </td>
+<td class="py-3.5 px-6 text-right">
+<span class="inline-block px-2.5 py-0.5 bg-surface-container border border-outline-variant text-on-surface-variant rounded text-xs font-mono font-medium">
+                      —
+                    </span>
+</td>
+</tr>
+<!-- Row 3: 08:15:12 · Unreadable · Temporary · No automated authorization · Did not enter (badge: Rejected/Denied) -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160 bg-red-50/20">
+<td class="py-3.5 px-6 font-mono text-xs text-[#18181B]">08:15:12</td>
+<td class="py-3.5 px-6">
+<span class="inline-block px-2 py-0.5 bg-surface-container border border-error text-error rounded text-xs font-mono font-semibold">
+                      Unreadable
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-on-surface-variant font-medium">Temporary</td>
+<td class="py-3.5 px-6">
+<span class="inline-flex items-center gap-1.5 text-xs font-semibold text-error">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                      No automated authorization
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-right">
+<span class="inline-block px-2.5 py-0.5 bg-[#FBEAE8] border border-error/30 text-error rounded text-xs font-medium">
+                      Did not enter
+                    </span>
+</td>
+</tr>
+<!-- Row 4: 08:12:30 · KHI-5531 · Temporary · Not verified — no claim today · Pending (badge: Warning) -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160">
+<td class="py-3.5 px-6 font-mono text-xs text-[#18181B]">08:12:30</td>
+<td class="py-3.5 px-6">
+<span class="inline-block px-2.5 py-1 bg-surface-container-lowest border border-[#18181B] rounded text-xs font-bold plate-chip-mono text-[#18181B]">
+                      KHI-5531
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-on-surface-variant font-medium">Temporary</td>
+<td class="py-3.5 px-6">
+<span class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9A6700]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#9A6700]"></span>
+                      Not verified — no claim today
+                    </span>
+</td>
+<td class="py-3.5 px-6 text-right">
+<span class="inline-block px-2.5 py-0.5 bg-[#FBF3DE] border border-[#9A6700]/30 text-[#9A6700] rounded text-xs font-medium">
+                      Pending
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- 4) OPERATOR NOTE -->
+<section aria-label="Operator Operational Notes">
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-outline" data-icon="info">info</span>
+<div class="text-xs text-on-surface-variant">
+<strong class="font-semibold text-on-surface">Operator Notice:</strong> Motorcycles and pedestrians are ignored. North pedestrian gate operates on separate proximity turnstiles.
+            </div>
+</div>
+</section>
+</main>
+</div>
+</div>
+<!-- Operational Interaction Logic -->
+<script>
+    // State Switcher for Guard Testing & Edge Case Demonstration
+    function setScenario(scenarioKey) {
+      const outageBanner = document.getElementById('sim-camera-outage');
+      const failBanner = document.getElementById('sim-data-load-failure');
+      const detectionCard = document.getElementById('card-latest-detection');
+      const emptyStateCard = document.getElementById('card-empty-state');
+
+      const btnNormal = document.getElementById('btn-state-normal');
+      const btnCamera = document.getElementById('btn-state-camera');
+      const btnFail = document.getElementById('btn-state-fail');
+      const btnEmpty = document.getElementById('btn-state-empty');
+
+      // Reset tabs styling
+      [btnNormal, btnCamera, btnFail, btnEmpty].forEach(btn => {
+        btn.className = "px-2.5 py-1 rounded bg-surface-container hover:bg-surface-dim text-on-surface transition-colors";
+      });
+
+      // Hide all dynamic banners
+      outageBanner.classList.add('hidden');
+      failBanner.classList.add('hidden');
+      detectionCard.classList.remove('hidden');
+      emptyStateCard.classList.add('hidden');
+
+      // Subsystem health indicators
+      const camHealth = document.getElementById('health-camera');
+      const authHealth = document.getElementById('health-auth');
+      const gateHealth = document.getElementById('health-gate');
+
+      camHealth.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-600 live-dot"></span><span class="text-on-surface">Camera: <strong class="font-semibold text-emerald-800">Online</strong></span>`;
+      authHealth.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-600 live-dot"></span><span class="text-on-surface">Authorization service: <strong class="font-semibold text-emerald-800">Online</strong></span>`;
+
+      if (scenarioKey === 'normal') {
+        btnNormal.className = "px-2.5 py-1 rounded bg-primary-container text-on-tertiary font-medium transition-colors";
+      } else if (scenarioKey === 'camera-outage') {
+        btnCamera.className = "px-2.5 py-1 rounded bg-error text-on-error font-medium transition-colors";
+        outageBanner.classList.remove('hidden');
+        camHealth.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-error"></span><span class="text-error">Camera: <strong>Offline</strong></span>`;
+      } else if (scenarioKey === 'load-fail') {
+        btnFail.className = "px-2.5 py-1 rounded bg-error text-on-error font-medium transition-colors";
+        failBanner.classList.remove('hidden');
+        authHealth.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-error"></span><span class="text-error">Authorization service: <strong>Failed</strong></span>`;
+      } else if (scenarioKey === 'empty') {
+        btnEmpty.className = "px-2.5 py-1 rounded bg-primary-container text-on-tertiary font-medium transition-colors";
+        detectionCard.classList.add('hidden');
+        emptyStateCard.classList.remove('hidden');
+      }
+    }
+
+    // Action handlers for entry confirmation
+    function confirmEntry(plate, entered) {
+      const btnEntered = document.getElementById('btn-vehicle-entered');
+      const btnDeclined = document.getElementById('btn-vehicle-declined');
+      
+      if (entered) {
+        btnEntered.textContent = "Entry logged";
+        btnEntered.classList.add('bg-emerald-700');
+        setTimeout(() => {
+          btnEntered.innerHTML = `<span class="material-symbols-outlined text-lg" data-icon="done_all">done_all</span> Vehicle entered`;
+          btnEntered.classList.remove('bg-emerald-700');
+        }, 1500);
+      } else {
+        btnDeclined.textContent = "Declined recorded";
+        setTimeout(() => {
+          btnDeclined.innerHTML = `<span class="material-symbols-outlined text-lg" data-icon="block">block</span> Did not enter`;
+        }, 1500);
+      }
+    }
+
+    function triggerManualBarrier(action) {
+      alert(`Manual override triggered: Barrier set to ${action}. Event logged to Audit Trail.`);
+    }
+
+    // Keyboard shortcut helper for Guard (Enter key confirms vehicle)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.target.matches('input, textarea')) {
+        confirmEntry('BKX-482', true);
+      }
+    });
+  </script>
+</body></html>

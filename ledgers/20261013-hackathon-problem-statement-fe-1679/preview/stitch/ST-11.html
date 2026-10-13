@@ -1,0 +1,595 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Ledger — Lots</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F5F5F5;
+      --surface: #FFFFFF;
+      --text: #262626;
+      --quiet: #626262;
+      --border: #D8D8D8;
+      --primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-refused: #A13D36;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 650;
+      line-height: 40px;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 32px;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .border-rule {
+      border-color: var(--border);
+    }
+
+    .focus-ring:focus-visible, .focus-ring:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Motion tokens */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .live-status-dot {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .live-status-dot {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Interactive state styles */
+    .control-interactive {
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+    }
+    .control-interactive:hover {
+      background-color: #fafafa;
+    }
+    .control-interactive:active {
+      transform: scale(0.99);
+    }
+    .row-card {
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+    .row-card:hover {
+      border-color: #bfbfbf;
+    }
+    .row-card:active {
+      background-color: #fafafa;
+    }
+
+    /* Details toggle without JS */
+    details summary {
+      list-style: none;
+    }
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-12 flex flex-col items-center">
+  <div class="w-full max-w-[440px] bg-[#F5F5F5] min-h-screen flex flex-col">
+    
+    <!-- Header (Plain, same on every page, phone width) -->
+    <header class="w-full bg-[#FFFFFF] border-b border-[#D8D8D8] px-4 py-3 relative z-30">
+      <div class="flex items-center justify-between min-h-[44px]">
+        <!-- Brand -->
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 bg-[#262626] rounded-[4px] flex items-center justify-center text-white font-semibold text-base leading-none select-none">
+            R
+          </div>
+          <span class="font-bold text-[18px] tracking-tight text-[#262626]">Range Ledger</span>
+        </div>
+
+        <!-- Menu button with dropdown drawer using standard details/summary -->
+        <details class="relative">
+          <summary class="min-h-[44px] min-w-[44px] px-2.5 py-1.5 flex items-center justify-center rounded-[4px] border border-[#D8D8D8] bg-[#FFFFFF] cursor-pointer focus-ring control-interactive select-none text-[#262626]" aria-label="Open menu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </summary>
+          <!-- Menu dropdown behind/below button -->
+          <div class="absolute right-0 mt-2 w-64 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-2 shadow-sm z-50">
+            <!-- User block -->
+            <div class="flex items-center gap-2.5 px-3 py-2 border-b border-[#D8D8D8] mb-1">
+              <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" class="w-8 h-8 rounded-[4px] object-cover aspect-square flex-shrink-0">
+              <div class="min-w-0">
+                <div class="text-[14px] font-semibold text-[#262626] truncate">Maya Chen</div>
+                <div class="text-[12px] text-[#626262] leading-tight">Yard manager</div>
+              </div>
+            </div>
+            <!-- Ordered allowed items -->
+            <nav class="flex flex-col text-[14px] py-1">
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Yard</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Imports</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Allocations</a>
+              <!-- Selected menu item in #B3473D -->
+              <a href="#" class="px-3 py-2 rounded-[4px] font-medium text-[#B3473D] bg-[#F5F5F5] focus-ring" aria-current="page">Lots</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Inventory</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Feed outlook</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Rations</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Feed plans</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Feeding</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Reports</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Feed-to-gain</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Profitability</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Sample data</a>
+              <a href="#" class="px-3 py-2 rounded-[4px] text-[#262626] hover:bg-[#F5F5F5] focus-ring">Delivery brief</a>
+            </nav>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="px-4 py-4 flex-1 flex flex-col gap-4 animate-entrance">
+      
+      <!-- Page Single Heading -->
+      <div>
+        <h1 class="text-[#262626] m-0">Lots</h1>
+      </div>
+
+      <!-- Single Leading Figure Above Table Panel -->
+      <section class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col gap-2">
+        <div class="flex items-baseline gap-2.5">
+          <span class="font-mono text-[36px] font-semibold text-[#262626] leading-none">360</span>
+          <span class="text-[18px] font-medium text-[#262626]">active head</span>
+        </div>
+        <div class="text-[13px] text-[#626262] leading-snug pt-1 border-t border-[#D8D8D8]">
+          Red Mesa Yard • <span class="font-mono">America/Denver</span> • Capacity <span class="font-mono">490</span> head across <span class="font-mono">P-04</span>, <span class="font-mono">P-07</span>, <span class="font-mono">P-12</span>
+        </div>
+      </section>
+
+      <!-- Immediate Filters (Pen, Breed, Sex, Lot Status) - 48px height on phone, 4px corners -->
+      <section class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col gap-3">
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Pen filter -->
+          <div class="flex flex-col gap-1">
+            <label for="filter-pen" class="text-[13px] font-semibold text-[#626262]">Pen</label>
+            <div class="relative">
+              <select id="filter-pen" class="w-full h-12 px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[15px] text-[#262626] focus-ring appearance-none pr-8 control-interactive">
+                <option value="all">All pens (P-04, P-07, P-12)</option>
+                <option value="p04">P-04</option>
+                <option value="p07">P-07</option>
+                <option value="p12">P-12</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-[#626262]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Breed filter -->
+          <div class="flex flex-col gap-1">
+            <label for="filter-breed" class="text-[13px] font-semibold text-[#626262]">Breed</label>
+            <div class="relative">
+              <select id="filter-breed" class="w-full h-12 px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[15px] text-[#262626] focus-ring appearance-none pr-8 control-interactive">
+                <option value="all">All breeds</option>
+                <option value="angus-steers">Angus steers</option>
+                <option value="angus-heifers">Angus heifers</option>
+                <option value="hereford">Hereford steers</option>
+                <option value="charolais">Charolais-cross</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-[#626262]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Sex filter -->
+          <div class="flex flex-col gap-1">
+            <label for="filter-sex" class="text-[13px] font-semibold text-[#626262]">Sex</label>
+            <div class="relative">
+              <select id="filter-sex" class="w-full h-12 px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[15px] text-[#262626] focus-ring appearance-none pr-8 control-interactive">
+                <option value="all">All sexes</option>
+                <option value="steers">Steers</option>
+                <option value="heifers">Heifers</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-[#626262]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lot Status filter -->
+          <div class="flex flex-col gap-1">
+            <label for="filter-status" class="text-[13px] font-semibold text-[#626262]">Lot status</label>
+            <div class="relative">
+              <select id="filter-status" class="w-full h-12 px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[15px] text-[#262626] focus-ring appearance-none pr-8 control-interactive">
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="review">Needs review</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-[#626262]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section Divider -->
+      <div class="w-full border-t-2 border-[#D8D8D8] my-1"></div>
+
+      <!-- Filterable Worklist (Stacked Labelled Records at Phone Width) -->
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <span class="text-[14px] font-semibold text-[#626262] uppercase tracking-wider">Lot Worklist</span>
+          <span class="text-[13px] font-mono text-[#626262]">4 lots</span>
+        </div>
+
+        <!-- Row 1: L-2407 (Changed inputs -> Compact review chip; opens L-2407 with exact label "L-2407") -->
+        <article class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col gap-3 row-card">
+          <!-- Header of record -->
+          <div class="flex items-start justify-between min-h-[48px] gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <a href="#lot-detail-L-2407" class="text-[20px] font-semibold text-[#262626] font-mono hover:underline focus-ring rounded-[2px]" title="Open lot L-2407">L-2407</a>
+                <!-- Pen badge -->
+                <span class="px-2 py-0.5 rounded-[4px] border border-[#D8D8D8] bg-[#F5F5F5] font-mono text-[13px] font-medium text-[#262626]">P-04</span>
+              </div>
+              <div class="text-[15px] text-[#626262]">Angus steers</div>
+            </div>
+
+            <!-- Compact review chip for lot with changed inputs -->
+            <div class="flex flex-col items-end gap-1">
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#FFF8EB] border border-[#E0A838] text-[12px] font-semibold text-[#805600]">
+                <span class="w-2 h-2 rounded-full bg-[#805600] live-status-dot flex-shrink-0"></span>
+                Review: 82 mapped vs 80 source
+              </span>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="w-full border-t border-[#D8D8D8]"></div>
+
+          <!-- Performance & Metrics grid -->
+          <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 text-[14px]">
+            <div>
+              <span class="text-[#626262] block text-[12px]">Head count</span>
+              <div class="flex items-baseline gap-1.5">
+                <span class="font-mono font-semibold text-[16px] text-[#262626]">80</span>
+                <span class="text-[12px] font-mono text-[#805600]">(82 mapped)</span>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Days on feed</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">84 days</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">ADG</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">3.12 lb/day</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">FCR</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">7.35</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Cost of gain</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">$1.07/lb</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Current wt</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">1,146 lb</span>
+            </div>
+          </div>
+
+          <!-- Market & Forecast -->
+          <div class="pt-2 border-t border-[#D8D8D8] text-[13px] flex flex-col gap-1">
+            <span class="text-[#626262] text-[12px] font-medium">Forecast &amp; market projection</span>
+            <div class="text-[#262626]">
+              Target <span class="font-mono">1,200 lb</span> (~<span class="font-mono">Jul 5</span> at <span class="font-mono">1,199 lb</span>) • Ship <span class="font-mono">Jul 16</span> at <span class="font-mono">~1,233 lb</span>
+            </div>
+          </div>
+
+          <!-- Primary row action (Exact label "L-2407") -->
+          <div class="pt-2 flex justify-end">
+            <a href="#lot-detail-L-2407" class="w-full h-12 flex items-center justify-center rounded-[4px] border border-[#D8D8D8] bg-[#FFFFFF] text-[#262626] font-medium text-[15px] focus-ring control-interactive">
+              L-2407
+            </a>
+          </div>
+        </article>
+
+
+        <!-- Row 2: L-2409, Hereford steers, 126, P-07, 72 days, 3.00, 7.38, $1.14 -->
+        <article class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col gap-3 row-card">
+          <div class="flex items-start justify-between min-h-[48px] gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <a href="#lot-detail-L-2409" class="text-[20px] font-semibold text-[#262626] font-mono hover:underline focus-ring rounded-[2px]" title="Open lot L-2409">L-2409</a>
+                <span class="px-2 py-0.5 rounded-[4px] border border-[#D8D8D8] bg-[#F5F5F5] font-mono text-[13px] font-medium text-[#262626]">P-07</span>
+              </div>
+              <div class="text-[15px] text-[#626262]">Hereford steers</div>
+            </div>
+            <div>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#EBF5EE] border border-[#83C29D] text-[12px] font-semibold text-[#286143]">
+                <span class="w-2 h-2 rounded-full bg-[#286143] flex-shrink-0"></span>
+                On plan
+              </span>
+            </div>
+          </div>
+
+          <div class="w-full border-t border-[#D8D8D8]"></div>
+
+          <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 text-[14px]">
+            <div>
+              <span class="text-[#626262] block text-[12px]">Head count</span>
+              <span class="font-mono font-semibold text-[16px] text-[#262626]">126</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Days on feed</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">72 days</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">ADG</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">3.00 lb/day</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">FCR</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">7.38</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Cost of gain</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">$1.14/lb</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Current wt</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">1,098 lb</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#D8D8D8] text-[13px] flex flex-col gap-1">
+            <span class="text-[#626262] text-[12px] font-medium">Forecast &amp; market projection</span>
+            <div class="text-[#262626]">
+              Default yard rate <span class="font-mono">2.85 lb/day</span> • Projected steady gain
+            </div>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <a href="#lot-detail-L-2409" class="w-full h-12 flex items-center justify-center rounded-[4px] border border-[#D8D8D8] bg-[#FFFFFF] text-[#262626] font-medium text-[15px] focus-ring control-interactive">
+              L-2409
+            </a>
+          </div>
+        </article>
+
+
+        <!-- Row 3: L-2411, Angus heifers, 60, P-04, 90 days, 2.68, 7.75, $1.21 (No positive forecast gain rate returned -> clear unavailable value) -->
+        <article class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col gap-3 row-card">
+          <div class="flex items-start justify-between min-h-[48px] gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <a href="#lot-detail-L-2411" class="text-[20px] font-semibold text-[#262626] font-mono hover:underline focus-ring rounded-[2px]" title="Open lot L-2411">L-2411</a>
+                <span class="px-2 py-0.5 rounded-[4px] border border-[#D8D8D8] bg-[#F5F5F5] font-mono text-[13px] font-medium text-[#262626]">P-04</span>
+              </div>
+              <div class="text-[15px] text-[#626262]">Angus heifers</div>
+            </div>
+            <div>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#F5F5F5] border border-[#D8D8D8] text-[12px] font-medium text-[#626262]">
+                <span class="w-2 h-2 rounded-full bg-[#626262] flex-shrink-0"></span>
+                Baseline verified
+              </span>
+            </div>
+          </div>
+
+          <div class="w-full border-t border-[#D8D8D8]"></div>
+
+          <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 text-[14px]">
+            <div>
+              <span class="text-[#626262] block text-[12px]">Head count</span>
+              <span class="font-mono font-semibold text-[16px] text-[#262626]">60</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Days on feed</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">90 days</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">ADG</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">2.68 lb/day</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">FCR</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">7.75</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Cost of gain</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">$1.21/lb</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Current wt</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">1,108 lb</span>
+            </div>
+          </div>
+
+          <!-- Market forecast: clear unavailable value when no positive forecast gain rate is returned -->
+          <div class="pt-2 border-t border-[#D8D8D8] text-[13px] flex flex-col gap-1">
+            <span class="text-[#626262] text-[12px] font-medium">Forecast &amp; market projection</span>
+            <div class="text-[#626262] italic">
+              Unavailable (no positive gain rate returned)
+            </div>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <a href="#lot-detail-L-2411" class="w-full h-12 flex items-center justify-center rounded-[4px] border border-[#D8D8D8] bg-[#FFFFFF] text-[#262626] font-medium text-[15px] focus-ring control-interactive">
+              L-2411
+            </a>
+          </div>
+        </article>
+
+
+        <!-- Row 4: L-2413, Charolais-cross steers, 94, P-12, 43 days, 3.28, 7.17, $1.04 -->
+        <article class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 flex flex-col gap-3 row-card">
+          <div class="flex items-start justify-between min-h-[48px] gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <a href="#lot-detail-L-2413" class="text-[20px] font-semibold text-[#262626] font-mono hover:underline focus-ring rounded-[2px]" title="Open lot L-2413">L-2413</a>
+                <span class="px-2 py-0.5 rounded-[4px] border border-[#D8D8D8] bg-[#F5F5F5] font-mono text-[13px] font-medium text-[#262626]">P-12</span>
+              </div>
+              <div class="text-[15px] text-[#626262]">Charolais-cross steers</div>
+            </div>
+            <div>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#EBF5EE] border border-[#83C29D] text-[12px] font-semibold text-[#286143]">
+                <span class="w-2 h-2 rounded-full bg-[#286143] flex-shrink-0"></span>
+                Top efficiency
+              </span>
+            </div>
+          </div>
+
+          <div class="w-full border-t border-[#D8D8D8]"></div>
+
+          <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 text-[14px]">
+            <div>
+              <span class="text-[#626262] block text-[12px]">Head count</span>
+              <span class="font-mono font-semibold text-[16px] text-[#262626]">94</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Days on feed</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">43 days</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">ADG</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">3.28 lb/day</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">FCR</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">7.17</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Cost of gain</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">$1.04/lb</span>
+            </div>
+
+            <div>
+              <span class="text-[#626262] block text-[12px]">Current wt</span>
+              <span class="font-mono font-medium text-[#262626] text-[15px]">1,056 lb</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#D8D8D8] text-[13px] flex flex-col gap-1">
+            <span class="text-[#626262] text-[12px] font-medium">Forecast &amp; market projection</span>
+            <div class="text-[#262626]">
+              Default yard rate <span class="font-mono">2.85 lb/day</span> • High efficiency curve
+            </div>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <a href="#lot-detail-L-2413" class="w-full h-12 flex items-center justify-center rounded-[4px] border border-[#D8D8D8] bg-[#FFFFFF] text-[#262626] font-medium text-[15px] focus-ring control-interactive">
+              L-2413
+            </a>
+          </div>
+        </article>
+      </section>
+
+      <!-- Thumb-friendly primary action at phone width -->
+      <section class="sticky bottom-4 z-20 pt-2">
+        <button type="button" class="w-full h-12 bg-[#B3473D] text-[#FFFFFF] rounded-[4px] font-medium text-[16px] flex items-center justify-center gap-2 shadow-sm focus-ring control-interactive select-none" style="background-color: #B3473D;">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Record Lot Movement
+        </button>
+      </section>
+
+    </main>
+
+  </div>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-5";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

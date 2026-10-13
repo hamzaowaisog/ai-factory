@@ -1,0 +1,39 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "PackageReference|TargetFramework|ProjectReference",
+    "glob": "**/*.csproj"
+   },
+   "ms": 1,
+   "resultChars": 1301,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;PackageReference|TargetFramework|ProjectReference&quot;,&quot;glob&quot;:&quot;**/*.csproj&quot;}\">\nApp.Api/App.Api.csproj:3: <TargetFramework>net9.0</TargetFramework>\nApp.Api/App.Api.csproj:11: <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\nApp.Api/App.Api.csproj:12: <PackageReference Include=\"Microsoft.Extensions.ApiDescription.Server\" Version=\"9.0.0\">\nApp.Api/App.Api.csproj:14: </PackageReference>\nApp.Api/App.Api.csproj:15: <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.2\" />\nApp.Api/App.Api.csproj:16: <PackageReference Include=\"Swashbuckle.AspNetCore.SwaggerUI\" Version=\"7.3.2\" />\nApp.Tests/App.Tests.csproj:3: <TargetFramework>net9.0</TargetFramework>\nApp.Tests/App.Tests.csproj:9: <PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.1\" />\nApp.Tests/App.Tests.csproj:10: <PackageReference Include=\"xunit\" Version=\"2.9.2\" />\nApp.Tests/App.Tests.csproj:11: <PackageReference Include=\"xunit.runner.visualstudio\" Version=\"2.8.2\" />\nApp.Tests/App.Tests.csproj:12: <PackageReference Include=\"Microsoft.AspNetCore.Mvc.Testing\" Version=\"9.0.0\" />\nApp.Tests/App.Tests.csproj:15: <ProjectReference Include=\"../App.Api/App.Api.csproj\" />\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "GetConnectionString|UseNpgsql|EnsureCreated|Migrate",
+    "glob": "**/*"
+   },
+   "ms": 3,
+   "resultChars": 360,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;GetConnectionString|UseNpgsql|EnsureCreated|Migrate&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/Program.cs:8: builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\nApp.Api/Program.cs:22: db.Database.EnsureCreated();\n</untrusted_document>"
+  },
+  {
+   "name": "repo_map",
+   "input": {
+    "focus": [
+     "App.Api"
+    ]
+   },
+   "ms": 0,
+   "resultChars": 297,
+   "result": "<untrusted_document id=\"repo_map\" source=\"{&quot;focus&quot;:[&quot;App.Api&quot;]}\">\nApp.Api/AppDb.cs\n  class AppDb\nApp.Api/Program.cs\n  class Program\nApp.Api/SeedData.cs\n  class SeedData\n    void Run(AppDb db)\nApp.Tests/HealthTests.cs\n  class HealthTests\n    Task ApiIsUp()\n</untrusted_document>"
+  }
+ ]
+}

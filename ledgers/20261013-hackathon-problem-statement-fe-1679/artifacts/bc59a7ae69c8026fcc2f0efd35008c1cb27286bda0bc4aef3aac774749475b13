@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 19,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 74,
+    "end": 79
+   },
+   "ms": 1,
+   "resultChars": 1222,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:74,&quot;end&quot;:79}\">\nlib/api/client.msw.ts lines 74-79\n74\t\n75\texport const getGetLotMetricsResponseMock = (): LotMetricsResponse => ({\"permissions\":[\"lots.view\"],\"lotId\":2407,\"receivingDate\":\"2026-06-18\",\"entryAverageWeight\":612,\"currentAverageWeight\":711,\"daysOnFeed\":92,\"totalWeightGain\":99,\"adg\":3.4,\"totalFeedConsumedPounds\":7029,\"feedConversionRatio\":7.1,\"costOfGain\":1.38,\"projectedShipDate\":\"2026-09-18\",\"feedCost\":9450})\n76\t\n77\texport const getGetLotInsightsResponseMock = (): InsightsResponse => ({\"permissions\":[\"lots.view\",\"plans.manage\"],\"suggestions\":[{\"id\":81,\"type\":\"saleTiming\",\"message\":\"Review sale timing; projected target is within 30 days.\",\"explanation\":\"Current weight trend projects target weight on 2026-09-18.\",\"suggestedSaleDate\":\"2026-09-18\",\"basis\":\"Rule: projected target date is within 30 days.\"}]})\n78\t\n79\texport const getActOnLotInsightResponseMock = (): InsightActionResponse => ({\"permissions\":[\"plans.manage\"],\"status\":\"completed\",\"message\":\"Suggested sale date saved.\",\"planId\":3301,\"saleDate\":\"2026-09-18\"})\n… (730 lines total; ask for start=80)\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,126 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-26",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "REQ-26 says the waitlist checks run \"after not_found and already_booked rules as listed in the assumptions\", but the assumptions' joinWaitlist order puts already_booked after outside_booking_window, so the two give different codes for an already-waitlisted record on a closed-window session."
+     },
+     {
+      "reqId": "REQ-34",
+      "rubric": 1,
+      "severity": "medium",
+      "finding": "REQ-34's EARS puts every Booked/Waitlisted record whose class has not ended into upcoming, but AC-34.4 expects a Booked record on a studio-cancelled session tomorrow to appear in past, and the stored row has no 'Cancelled by studio' status to tell them apart."
+     },
+     {
+      "reqId": "REQ-36",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "Stats upcoming (REQ-36) and the limit of 10 (REQ-21 and the assumptions) count Booked records for any session not yet started, so bookings on studio-cancelled sessions still count and use up limit slots, while My Bookings shows them as past and canChange false means the member can't free the slot by cancelling."
+     },
+     {
+      "reqId": "REQ-28",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "The simulate hook doesn't say what happens for studio-cancelled or already-started sessions, or when bookedCount is 0 (the count would go negative). It also lowers bookedCount even when the only booked member is the demo member's own Booked row, which leaves the counts and the rows out of step."
+     },
+     {
+      "reqId": "REQ-24",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The spec never says whether the stored session counts are other-members-only (as Q-4 suggests) or totals that include the demo member, yet REQ-24, REQ-27 and REQ-28 describe changes to the returned totals and AC-41.3 reads 'booked count equal to capacity' straight from the table, so how the counts are stored and updated is ambiguous."
+     },
+     {
+      "reqId": "REQ-37",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "AC-37.1 starts the app with an App connection string that can't be opened, but REQ-39 runs EnsureCreated and the seed at startup, which would fail before any request is served; the spec doesn't define what happens when startup schema creation or seeding fails."
+     },
+     {
+      "reqId": "REQ-37",
+      "rubric": 5,
+      "severity": "medium",
+      "finding": "REQ-37 (500 storage_failure), REQ-15 (400) and REQ-14 (404 on undo, cancel, leave-waitlist and simulate) assume the contract declares those statuses for every operation, with no contract anchor, while AC-1.2 and AC-2.2 require only declared status codes."
+     },
+     {
+      "reqId": "REQ-42",
+      "rubric": 1,
+      "severity": "low",
+      "finding": "REQ-42 (3–12 sessions, AC-42.1) and REQ-43 (at most 15 / 1–15, AC-43.1) set different seed-size bounds for the same behaviour, and REQ-41's required mix of sessions needs at least 4 sessions, so REQ-42's lower bound of 3 isn't enough."
+     },
+     {
+      "reqId": "NFR-2",
+      "rubric": 1,
+      "severity": "low",
+      "finding": "NFR-2 (p95 ≤ 200 ms, with a leftover '(d2: 50)' draft note) and NFR-3 (p95 ≤ 300 ms) set conflicting latency targets for the same GET /api/schedule measurement."
+     },
+     {
+      "reqId": "REQ-7",
+      "rubric": 1,
+      "severity": "low",
+      "finding": "REQ-7 gives the 'Full · N on waitlist' label only when N > 0 and has no branch for 0 spots with nobody waiting, while REQ-9 separately requires 'Full · 0 on waitlist'; the two label rules overlap and don't match."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "REQ-10 doesn't define actionState for a session whose class has ended when the demo member holds a Booked record (reported as Attended) or a Waitlisted record (which, per the assumptions, appears in neither list)."
+     },
+     {
+      "reqId": "REQ-22",
+      "rubric": 6,
+      "severity": "low",
+      "finding": "Undo checks only that the record is Booked and within 5 seconds of createdAt, so a waitlist record that was promoted within 5 seconds could be deleted by undo with no change to the waitlist counts, which breaks 'as if never made'."
+     },
+     {
+      "reqId": "NFR-1",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "NFR-1 requires every non-2xx body to be a contract Error, but no requirement covers non-integer path ids (e.g. /bookings/abc/undo) or framework-level 404/405 responses, which return empty bodies by default."
+     },
+     {
+      "reqId": "REQ-39",
+      "rubric": 6,
+      "severity": "low",
+      "finding": "'No tables or no data' is not defined against specific tables, so a database with tables but partial data (e.g. bookings but no sessions) gets no defined seed decision, and EnsureCreated does nothing on a database that already has a different schema."
+     },
+     {
+      "reqId": "REQ-40",
+      "rubric": 5,
+      "severity": "low",
+      "finding": "REQ-40 relies on detecting the GetDocument.Insider tool to skip database work during the build, but this is stated only in an assumption, with no anchor in the csproj or Program.cs."
+     },
+     {
+      "reqId": "REQ-3",
+      "rubric": 5,
+      "severity": "low",
+      "finding": "The demo member's identity values (id 1, 'Alex Rivera', 'AR', 'Unlimited Monthly') and the exact message strings across REQ-16 to REQ-32 have no anchor to the contract or the request."
+     },
+     {
+      "reqId": "AC-41.3",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-41.3, AC-16.4, AC-28.1 (promoted-at) and AC-33.1 (notice-acknowledged) check internal table columns rather than a public API surface."
+     },
+     {
+      "reqId": "NFR-4",
+      "rubric": 4,
+      "severity": "low",
+      "finding": "NFR-4 adds a write-latency budget (p95 < 300 ms) that the intent never asked for."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

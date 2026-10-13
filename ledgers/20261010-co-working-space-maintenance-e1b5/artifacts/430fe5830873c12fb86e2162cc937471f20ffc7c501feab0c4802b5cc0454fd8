@@ -1,0 +1,102 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [
+     {
+      "reqId": "REQ-7",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-7.2 and AC-7.3 are API tests whose 'given' needs seeded demo rows (and AC-7.3 counts on them in GET /api/requests), but intent I-4 says no test may count on those rows."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 1,
+      "severity": "high",
+      "finding": "AC-8.2 starts the API with Seed:Demo=true and checks that the three demo records come back from GET /api/requests, so it is a test that depends on seed rows, which I-4 forbids."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 5,
+      "severity": "medium",
+      "finding": "REQ-8 cites ASM-2 as a source and the spec lists 'd1 ASM-2' as an assumption, but the only accepted assumption is ASM-1, so the 'at least three' reading of 'a few' has no human approval."
+     },
+     {
+      "reqId": "REQ-8",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "The rule 'exactly one row for each selected contract-example title' uses titles as the identity key, so it does not say what happens if a user has already created a row with one of those titles, or if a seeded row's status has since changed (re-insert, skip, or overwrite)."
+     },
+     {
+      "reqId": "REQ-6",
+      "rubric": 6,
+      "severity": "high",
+      "finding": "Startup only calls EnsureCreated, which does nothing if the App database already exists, so in an existing database the new request table would never be created; the spec gives no migration or schema-upgrade path for existing databases."
+     },
+     {
+      "reqId": "REQ-1",
+      "rubric": 5,
+      "severity": "medium",
+      "finding": "REQ-1, REQ-2 and REQ-4 have no anchors, yet they assert exact messages such as \"Status must be Open, In progress, or Done.\", \"Unsupported status filter.\", \"Could not load requests.\", \"Could not create the request.\" and \"Could not load the request.\"; Q-3 limits errors to those in the contract, and nothing shows these messages are in it."
+     },
+     {
+      "reqId": "REQ-2",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "The spec does not say whether an ignored caller-supplied id, createdAt or status that has the wrong type or an invalid enum value (e.g. status \"Bogus\") is still ignored or is rejected with 400; AC-2.1 covers only 'valid' values, and AC-3.4 rejects any wrong field type."
+     },
+     {
+      "reqId": "REQ-1",
+      "rubric": 2,
+      "severity": "medium",
+      "finding": "The intent is tagged auth, payments and pii, but no requirement covers authentication, authorization or 401/403 permission paths for any of the four operations, and nothing records them as out of scope."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 5,
+      "severity": "medium",
+      "finding": "The anchored EnsureCreated call is indented inside a block that closes at line 25, and the anchors do not show that block's condition, so it is unproven that the database is reached at startup in every environment; the 'fail startup' claim may not hold (and the requirement is marked MODIFIED although the current code may already throw)."
+     },
+     {
+      "reqId": "REQ-10",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-10.1 asks a client to call GET / against a process that is expected to have exited, and checks 'a startup error is reported' without saying where it shows up (exit code, log), so the result cannot be checked precisely at a public surface."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 6,
+      "severity": "medium",
+      "finding": "AC-9.1 expects an empty list, and the existing test comment assumes tests start on an empty database, but REQ-6 requires rows to persist in the shared App database, and no requirement says how test databases are isolated or reset between tests."
+     },
+     {
+      "reqId": "REQ-9",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "The clause 'support API-operation tests that arrange any needed rows themselves' is a property of the test suite with no observable acceptance criterion."
+     },
+     {
+      "reqId": "REQ-12",
+      "rubric": 3,
+      "severity": "low",
+      "finding": "AC-12.1 and AC-13.1 are manual 'a person opens a browser' and 'a reviewer inspects' checks, not assertions at a public surface, and REQ-12 and REQ-13 duplicate each other."
+     },
+     {
+      "reqId": "REQ-1",
+      "rubric": 2,
+      "severity": "low",
+      "finding": "REQ-1 says GET /api/requests returns 'all matching requests' and defines no empty-list response or bound on result size, and only the status filter is covered."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

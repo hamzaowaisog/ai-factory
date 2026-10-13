@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meridian — One-time code verification</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography assignments */
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #202020;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance-animate {
+      animation: entranceFadeIn 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Container wrapper & centering */
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    /* Brand Header directly above panel */
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 20px;
+      line-height: 1.2;
+      color: #202020;
+      letter-spacing: -0.01em;
+    }
+
+    /* The single Panel */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 32px;
+      box-shadow: none;
+    }
+
+    .panel-heading {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      letter-spacing: -0.015em;
+    }
+
+    .panel-description {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #626262;
+      margin-bottom: 32px;
+      word-break: break-word;
+    }
+
+    .panel-description .recipient {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Form & Input grid */
+    .form-group {
+      margin-bottom: 32px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+      margin-bottom: 8px;
+    }
+
+    .code-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+
+    .code-slot {
+      height: 48px;
+      width: 100%;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 20px;
+      font-weight: 500;
+      color: #202020;
+      text-align: center;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+      -webkit-appearance: none;
+      -moz-appearance: textfield;
+      padding: 0;
+    }
+
+    .code-slot::-webkit-outer-spin-button,
+    .code-slot::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .code-slot:hover {
+      border-color: #202020;
+    }
+
+    .code-slot:focus {
+      border-color: #A94B1D;
+      outline: 2px solid #A94B1D;
+      outline-offset: -1px;
+    }
+
+    .code-slot:active {
+      background-color: #F7F7F7;
+    }
+
+    /* Buttons */
+    .button-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .btn-primary {
+      height: 48px;
+      width: 100%;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 46px;
+      text-align: center;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+      display: block;
+    }
+
+    .btn-primary:hover {
+      background-color: #8c3d16;
+      border-color: #8c3d16;
+    }
+
+    .btn-primary:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary:active {
+      background-color: #723111;
+      border-color: #723111;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      width: 100%;
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 46px;
+      text-align: center;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+      display: block;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:focus {
+      border-color: #A94B1D;
+      outline: 2px solid #A94B1D;
+      outline-offset: -1px;
+    }
+
+    .btn-secondary:active {
+      background-color: #EFEFEF;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container entrance-animate">
+    <!-- Meridian's square M and name above panel -->
+    <div class="brand-lockup">
+      <div class="brand-mark">M</div>
+      <div class="brand-name">Meridian</div>
+    </div>
+
+    <!-- Centered panel no wider than 440px -->
+    <div class="panel">
+      <h1 class="panel-heading">One-time code</h1>
+      
+      <p class="panel-description">
+        Enter the code sent to <span class="recipient">hana.youssef@cedarhealth.example</span>
+      </p>
+
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="field-label" for="code-1">Verification code</label>
+          <div class="code-grid">
+            <input type="text" id="code-1" class="code-slot font-mono" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus aria-label="First verification digit">
+            <input type="text" id="code-2" class="code-slot font-mono" maxlength="1" inputmode="numeric" pattern="[0-9]*" aria-label="Second verification digit">
+            <input type="text" id="code-3" class="code-slot font-mono" maxlength="1" inputmode="numeric" pattern="[0-9]*" aria-label="Third verification digit">
+            <input type="text" id="code-4" class="code-slot font-mono" maxlength="1" inputmode="numeric" pattern="[0-9]*" aria-label="Fourth verification digit">
+            <input type="text" id="code-5" class="code-slot font-mono" maxlength="1" inputmode="numeric" pattern="[0-9]*" aria-label="Fifth verification digit">
+            <input type="text" id="code-6" class="code-slot font-mono" maxlength="1" inputmode="numeric" pattern="[0-9]*" aria-label="Sixth verification digit">
+          </div>
+        </div>
+
+        <div class="button-stack">
+          <button type="submit" class="btn-primary">Verify code</button>
+          <button type="button" class="btn-secondary">Resend code</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Meridian - Stock</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#683b27",
+            "tertiary-container": "#006e99",
+            "on-error": "#ffffff",
+            "surface-container-high": "#e8e8e8",
+            "primary-container": "#a94b1d",
+            "primary-fixed": "#ffdbcd",
+            "on-secondary": "#ffffff",
+            "surface-variant": "#e2e2e2",
+            "on-primary": "#ffffff",
+            "surface-dim": "#dadada",
+            "tertiary-fixed-dim": "#82cfff",
+            "surface-bright": "#f9f9f9",
+            "secondary": "#84523d",
+            "on-error-container": "#93000a",
+            "on-surface": "#1a1c1c",
+            "surface-container": "#eeeeee",
+            "outline-variant": "#ddc1b6",
+            "on-primary-container": "#ffe0d4",
+            "on-tertiary-fixed-variant": "#004c6b",
+            "on-primary-fixed-variant": "#7d2d00",
+            "secondary-container": "#ffbda2",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#f3f3f3",
+            "on-background": "#1a1c1c",
+            "surface-tint": "#9e4315",
+            "on-secondary-container": "#7a4a35",
+            "primary": "#893405",
+            "primary-fixed-dim": "#ffb597",
+            "tertiary": "#005577",
+            "inverse-surface": "#2f3131",
+            "inverse-on-surface": "#f1f1f1",
+            "background": "#f9f9f9",
+            "on-tertiary": "#ffffff",
+            "on-surface-variant": "#56423b",
+            "tertiary-fixed": "#c6e7ff",
+            "secondary-fixed-dim": "#f9b89d",
+            "surface": "#f9f9f9",
+            "error": "#ba1a1a",
+            "secondary-fixed": "#ffdbcd",
+            "on-tertiary-fixed": "#001e2d",
+            "on-primary-fixed": "#360f00",
+            "inverse-primary": "#ffb597",
+            "surface-container-lowest": "#ffffff",
+            "outline": "#897269",
+            "surface-container-highest": "#e2e2e2",
+            "on-tertiary-container": "#cdeaff",
+            "on-secondary-fixed": "#331103"
+          },
+          "borderRadius": {
+            "DEFAULT": "2px",
+            "lg": "2px",
+            "xl": "2px",
+            "full": "2px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-tabular {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion specifications */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes settle {
+      from { opacity: 0.6; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-entrance {
+      animation: settle var(--dur-base) var(--ease-out) both;
+    }
+
+    .stagger-1 { animation-delay: 40ms; }
+    .stagger-2 { animation-delay: 90ms; }
+    .stagger-3 { animation-delay: 140ms; }
+
+    /* Custom touch feedback */
+    .press-feedback {
+      transition: transform var(--dur-instant) ease-out, background-color var(--dur-instant) ease-out;
+    }
+    .press-feedback:active {
+      transform: scale(0.97);
+    }
+
+    /* Strict Focus Ring */
+    input:focus, select:focus, button:focus {
+      outline: 2px solid #A94B1D !important;
+      outline-offset: 2px !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-property: opacity !important;
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#F7F7F7] text-[#202020] min-h-screen flex flex-col justify-start items-center selection:bg-primary-container selection:text-white">
+<!-- Mobile Screen Container (390px locked canvas) -->
+<div class="w-full max-w-[390px] min-h-screen bg-[#F7F7F7] flex flex-col relative pb-12">
+<!-- Top Navigation / Application Bar -->
+<header class="bg-surface-container-lowest border-b border-[#D5D5D5] sticky top-0 z-40 w-full px-4 h-12 flex justify-between items-center select-none">
+<div class="flex items-center gap-3">
+<button aria-label="Open menu" class="w-8 h-8 flex items-center justify-center text-[#202020] press-feedback hover:bg-surface-container-low" id="menu-toggle-btn">
+<span class="material-symbols-outlined text-[22px]" data-icon="menu">menu</span>
+</button>
+<div class="flex items-center gap-1.5">
+<span class="w-5 h-5 bg-[#A94B1D] text-white flex items-center justify-center font-headline font-bold text-xs rounded-[2px] leading-none">M</span>
+<span class="font-headline font-bold text-base text-[#202020] uppercase tracking-wider">Meridian</span>
+</div>
+</div>
+<!-- Right profile and language cluster -->
+<div class="flex items-center gap-2">
+<div class="flex items-center text-xs text-[#626262]">
+<span class="font-medium text-[#202020]">EN</span>
+<span class="mx-1 text-[#D5D5D5]">/</span>
+<span class="hover:text-[#202020] cursor-pointer" dir="rtl">العربية</span>
+</div>
+<div class="w-7 h-7 bg-[#202020] text-white font-mono text-[11px] font-medium flex items-center justify-center rounded-[2px]" title="Operator Leila Haddad">
+          LH
+        </div>
+</div>
+</header>
+<!-- Context Operator Sub-strip -->
+<div class="bg-surface-container-lowest px-4 py-2 border-b border-[#D5D5D5] flex items-center justify-between text-xs text-[#626262]">
+<div class="flex items-center gap-1.5 truncate">
+<span class="font-medium text-[#202020]">Leila Haddad</span>
+<span>·</span>
+<span class="truncate">Warehouse Operator</span>
+</div>
+<span class="font-mono text-[11px] text-[#A94B1D] bg-[#F7F7F7] px-1.5 py-0.5 border border-[#D5D5D5] shrink-0">NQ-01</span>
+</div>
+<!-- Mobile Drawer Overlay & Panel (Shared Component implementation) -->
+<div class="fixed inset-0 bg-[#202020] bg-opacity-40 z-50 hidden transition-opacity duration-200" id="drawer-backdrop">
+<nav class="fixed inset-y-0 left-0 w-[280px] bg-surface-container-lowest border-r border-[#D5D5D5] z-50 flex flex-col py-4 space-y-1" id="navigation-drawer">
+<!-- Drawer Header -->
+<div class="px-4 pb-4 border-b border-[#D5D5D5] mb-2">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-1.5">
+<span class="w-5 h-5 bg-[#A94B1D] text-white flex items-center justify-center font-headline font-bold text-xs rounded-[2px]">M</span>
+<span class="font-headline font-bold text-base text-[#202020] uppercase tracking-wider">Meridian</span>
+</div>
+<button class="w-7 h-7 flex items-center justify-center text-[#626262] press-feedback" id="drawer-close-btn">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 bg-[#202020] text-white font-mono text-xs font-medium flex items-center justify-center rounded-[2px]">LH</div>
+<div>
+<p class="font-medium text-sm text-[#202020] leading-tight">Leila Haddad</p>
+<p class="text-xs text-[#626262] leading-tight">Cold Chain Operator</p>
+<p class="text-[11px] font-mono text-[#A94B1D] mt-0.5">North Quay Facility</p>
+</div>
+</div>
+</div>
+<!-- Drawer Links (Exact Match: Stock is Active) -->
+<a class="flex items-center gap-3 px-4 py-3 text-[#626262] font-normal press-feedback hover:bg-[#F3F3F3]" href="#receipts">
+<span class="material-symbols-outlined text-xl" data-icon="inventory_2">inventory_2</span>
+<span class="text-sm">Receipts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-[#EEEEEE] text-[#A94B1D] font-medium border-l-2 border-[#A94B1D] press-feedback" href="#stock">
+<span class="material-symbols-outlined text-xl" data-icon="warehouse">warehouse</span>
+<span class="text-sm">Stock</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#626262] font-normal press-feedback hover:bg-[#F3F3F3]" href="#moves">
+<span class="material-symbols-outlined text-xl" data-icon="sync_alt">sync_alt</span>
+<span class="text-sm">Moves</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#626262] font-normal press-feedback hover:bg-[#F3F3F3]" href="#boxes">
+<span class="material-symbols-outlined text-xl" data-icon="archive">archive</span>
+<span class="text-sm">Boxes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#626262] font-normal press-feedback hover:bg-[#F3F3F3]" href="#cold-rooms">
+<span class="material-symbols-outlined text-xl" data-icon="ac_unit">ac_unit</span>
+<span class="text-sm">Cold rooms</span>
+</a>
+</nav>
+</div>
+<!-- Main Content Area -->
+<main class="px-4 pt-4 pb-8 space-y-4 flex-1">
+<!-- Section: Heading & Lead Stock Metrics -->
+<section class="space-y-2 animate-entrance">
+<div class="flex items-baseline justify-between">
+<h1 class="font-headline font-[650] text-[28px] leading-[1.2] tracking-[-0.025em] text-[#202020]">Stock</h1>
+<span class="text-xs font-mono text-[#626262]">UTC 08:42</span>
+</div>
+<!-- Prominent Lead Figure (Non-card, sober hierarchy) -->
+<div class="border-b border-[#D5D5D5] pb-3 pt-1">
+<div class="flex items-baseline gap-2">
+<span class="font-mono font-[600] text-[32px] text-[#202020] leading-none font-tabular">124</span>
+<span class="text-base text-[#202020] font-normal">packs on hand</span>
+</div>
+<p class="text-xs text-[#626262] mt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="location_on">location_on</span>
+            North Quay Warehouse scope
+          </p>
+<!-- Mutually exclusive breakdown with semantic dots -->
+<div class="mt-2.5 pt-2 border-t border-[#D5D5D5] flex flex-wrap gap-x-2.5 gap-y-1.5 text-xs text-[#202020] font-body">
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#24704B]"></span>
+              Available <span class="font-mono font-medium font-tabular">60</span>
+</span>
+<span class="text-[#D5D5D5]">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#805800]"></span>
+              Allocated <span class="font-mono font-medium font-tabular">40</span>
+</span>
+<span class="text-[#D5D5D5]">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#805800]"></span>
+              Quarantined <span class="font-mono font-medium font-tabular">10</span>
+</span>
+<span class="text-[#D5D5D5]">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#805800]"></span>
+              On Hold <span class="font-mono font-medium font-tabular">5</span>
+</span>
+<span class="text-[#D5D5D5]">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#AE2C2C]"></span>
+              Rejected <span class="font-mono font-medium font-tabular">2</span>
+</span>
+<span class="text-[#D5D5D5]">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#AE2C2C]"></span>
+              Recalled <span class="font-mono font-medium font-tabular">4</span>
+</span>
+<span class="text-[#D5D5D5]">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#AE2C2C]"></span>
+              Expired <span class="font-mono font-medium font-tabular">3</span>
+</span>
+</div>
+</div>
+</section>
+<!-- Primary Actions (Accessible thumb reach, 48px height, 2px radius) -->
+<section class="grid grid-cols-2 gap-2 animate-entrance stagger-1">
+<button class="h-12 bg-[#A94B1D] text-white font-body text-sm font-medium rounded-[2px] flex items-center justify-center gap-1.5 press-feedback" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="add_box">add_box</span>
+<span>Opening stock</span>
+</button>
+<button class="h-12 bg-[#FFFFFF] text-[#202020] border border-[#D5D5D5] font-body text-sm font-medium rounded-[2px] flex items-center justify-center gap-1.5 press-feedback hover:bg-[#F3F3F3]" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="inventory">inventory</span>
+<span>Handling unit</span>
+</button>
+</section>
+<!-- Filter Controls (48px height, 2px radius, immediate feedback, no Apply button) -->
+<section class="bg-[#FFFFFF] border border-[#D5D5D5] p-3 rounded-[2px] space-y-3 animate-entrance stagger-2">
+<!-- Search Field -->
+<div>
+<label class="block text-xs font-medium text-[#202020] mb-1" for="search-input">Lot, unit, or location</label>
+<div class="relative">
+<input class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3 pl-9 text-sm text-[#202020] placeholder-[#626262] transition-colors focus:border-[#A94B1D]" id="search-input" placeholder="Search lot, handling unit, or location" type="text"/>
+<span class="material-symbols-outlined absolute left-2.5 top-3.5 text-[#626262] text-[18px]" data-icon="search">search</span>
+</div>
+</div>
+<!-- Dropdowns in single compact row -->
+<div class="grid grid-cols-2 gap-2">
+<div>
+<label class="block text-xs font-medium text-[#202020] mb-1" for="status-filter">Status</label>
+<select class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-2 text-xs text-[#202020] focus:border-[#A94B1D]" id="status-filter">
+<option value="all">All statuses</option>
+<option value="available">Available (60)</option>
+<option value="allocated">Allocated (40)</option>
+<option value="quarantined">Quarantined (10)</option>
+<option value="on-hold">On Hold (5)</option>
+<option value="rejected">Rejected (2)</option>
+<option value="recalled">Recalled (4)</option>
+<option value="expired">Expired (3)</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-medium text-[#202020] mb-1" for="hu-filter">Handling unit</label>
+<select class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-2 text-xs text-[#202020] focus:border-[#A94B1D]" id="hu-filter">
+<option value="all">All units</option>
+<option value="HU-81">HU-81 (100 pk)</option>
+<option value="HU-82">HU-82 (20 pk)</option>
+<option value="none">Unassigned (4 pk)</option>
+</select>
+</div>
+</div>
+<!-- Export Action Row -->
+<div class="pt-1 flex items-center justify-between border-t border-[#D5D5D5]">
+<span class="text-[11px] font-mono text-[#626262]">Scope: North Quay only</span>
+<button class="h-10 px-3 bg-[#FFFFFF] border border-[#D5D5D5] text-xs font-medium text-[#202020] rounded-[2px] flex items-center gap-1.5 press-feedback hover:bg-[#F3F3F3]" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="download">download</span>
+<span>CSV export</span>
+</button>
+</div>
+</section>
+<!-- Stock Inventory Records (Asymmetric High-Quality Mobile Cards, 100% strictly North Quay) -->
+<section aria-label="Inventory Records" class="space-y-3 animate-entrance stagger-3">
+<div class="flex items-center justify-between text-xs text-[#626262] px-0.5">
+<span class="font-medium uppercase tracking-[0.08em] text-[11px]">7 Allocations on hand</span>
+<span class="font-mono text-[11px]">Updated 08:00</span>
+</div>
+<!-- Card 1: Available -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin glargine pharmaceutical carton pack" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2511</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#24704B]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#24704B]"></span>
+                  Available
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">HU-81 · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">60 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 14 May 2026 08:00</span>
+<span class="text-right">Exp: 31 Mar 2027</span>
+</div>
+</article>
+<!-- Card 2: Allocated -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin glargine cartons" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2511</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#805800]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#805800]"></span>
+                  Allocated
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">HU-81 · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">40 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="bg-[#F7F7F7] px-2 py-1 text-xs text-[#202020] border-t border-[#D5D5D5]">
+<span class="text-[#626262]">Reference:</span> Order O-299 &amp; O-301
+          </div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 14 May 2026 08:00</span>
+<span class="text-right">Exp: 31 Mar 2027</span>
+</div>
+</article>
+<!-- Card 3: Quarantined -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin packaging unit" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2511</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#805800]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#805800]"></span>
+                  Quarantined
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">HU-82 · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">10 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="bg-[#F7F7F7] px-2 py-1 text-xs text-[#805800] border-t border-[#D5D5D5]">
+<span class="text-[#626262]">Flag:</span> Case Q-88
+          </div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 14 May 2026 08:00</span>
+<span class="text-right">Exp: 31 Mar 2027</span>
+</div>
+</article>
+<!-- Card 4: On Hold -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin carton units" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2511</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#805800]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#805800]"></span>
+                  On Hold
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">HU-82 · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">5 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="bg-[#F7F7F7] px-2 py-1 text-xs text-[#805800] border-t border-[#D5D5D5]">
+<span class="text-[#626262]">Audit:</span> 9.1°C excursion review
+          </div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 14 May 2026 08:00</span>
+<span class="text-right">Exp: 31 Mar 2027</span>
+</div>
+</article>
+<!-- Card 5: Rejected -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin stock" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2511</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#AE2C2C]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#AE2C2C]"></span>
+                  Rejected
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">HU-82 · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">2 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="bg-[#F7F7F7] px-2 py-1 text-xs text-[#AE2C2C] border-t border-[#D5D5D5]">
+<span class="text-[#626262]">Disposition:</span> Awaiting destruction
+          </div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 14 May 2026 08:00</span>
+<span class="text-right">Exp: 31 Mar 2027</span>
+</div>
+</article>
+<!-- Card 6: Expired -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin stock packaging" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2511</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#AE2C2C]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#AE2C2C]"></span>
+                  Expired
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">HU-82 · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">3 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 14 May 2026 08:00</span>
+<span class="text-right text-[#AE2C2C]">Exp: 31 Mar 2027</span>
+</div>
+</article>
+<!-- Card 7: Recalled -->
+<article class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-3 space-y-2.5 press-feedback hover:border-[#626262]">
+<div class="flex items-start gap-3">
+<img alt="Insulin pack photography" class="w-20 h-15 aspect-[4/3] object-cover rounded-[2px] border border-[#D5D5D5] bg-[#F7F7F7] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-mono font-semibold text-sm text-[#202020]">Lot IG-2509</span>
+<span class="inline-flex items-center gap-1 text-xs font-medium text-[#AE2C2C]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#AE2C2C]"></span>
+                  Recalled
+                </span>
+</div>
+<p class="font-mono text-xs text-[#626262] mt-0.5">— · North Quay</p>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-mono font-[600] text-lg text-[#202020] font-tabular">4 packs</span>
+<span class="text-[11px] text-[#626262]">Cold Room C2, Rack 4</span>
+</div>
+</div>
+</div>
+<div class="bg-[#F7F7F7] px-2 py-1 text-xs text-[#AE2C2C] border-t border-[#D5D5D5]">
+<span class="text-[#626262]">Notice:</span> Active recall RC-12
+          </div>
+<div class="border-t border-[#D5D5D5] pt-1.5 grid grid-cols-2 text-[11px] text-[#626262] font-mono">
+<span>Rec: 12 May 2026 09:10</span>
+<span class="text-right">Exp: 30 Nov 2026</span>
+</div>
+</article>
+</section>
+<!-- Scope and Evidence Summary Line (Sober, unadorned warehouse record) -->
+<section class="mt-4 pt-3 border-t border-[#D5D5D5] text-center">
+<p class="text-xs text-[#626262] leading-relaxed">
+          Showing 7 inventory allocations across 2 lots · North Quay scope only | Total on-hand: <span class="font-mono font-medium text-[#202020] font-tabular">124 packs</span>
+</p>
+</section>
+</main>
+</div>
+<!-- Micro-interactions: Drawer toggle logic -->
+<script>
+    const menuBtn = document.getElementById('menu-toggle-btn');
+    const closeBtn = document.getElementById('drawer-close-btn');
+    const backdrop = document.getElementById('drawer-backdrop');
+
+    function openDrawer() {
+      backdrop.classList.remove('hidden');
+    }
+
+    function closeDrawer() {
+      backdrop.classList.add('hidden');
+    }
+
+    menuBtn.addEventListener('click', openDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) closeDrawer();
+    });
+  </script>
+</body></html>

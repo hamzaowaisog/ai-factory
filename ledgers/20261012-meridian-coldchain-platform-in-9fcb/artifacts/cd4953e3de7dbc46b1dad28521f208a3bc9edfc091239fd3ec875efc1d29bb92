@@ -1,0 +1,1 @@
+{"changeClass":"feature","header":{"createdAt":"2026-10-12T19:22:21.823Z","inputsHash":"","kind":"intent","producedBy":{"model":"gpt-6-luna","stage":"intake"},"runId":"20261012-meridian-coldchain-platform-in-9fcb","schemaVersion":1},"rigor":"full","risk":"high","riskTags":["auth","payments","pii","migration","public-api"],"source":"cli","spans":[],"touchesUi":true}

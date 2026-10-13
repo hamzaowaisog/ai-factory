@@ -1,0 +1,70 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every path, HTTP method, parameter, request and response schema, status code, and security rule in the OpenAPI contract; expose no undocumented operations or product screens, and return 404 for undefined paths and 405 for unsupported methods."
+     },
+     {
+      "n": 2,
+      "text": "Return contract-defined sign-in, session, dashboard, and filtered lot values, including declared permissions and authorized yards and correct ranking results; do not impose an extra authorized-yard restriction on matching lots, return contract-declared authentication errors, and do not deny authorized requests under undeclared role rules."
+     },
+     {
+      "n": 3,
+      "text": "Return available procurement and receiving records, process imports with contract-defined matching results and allocation conflicts, and save allocations with PO-line-to-lot and lot-to-pen traceability, quantities, and capacity information; return the declared conflict or validation errors for invalid requests."
+     },
+     {
+      "n": 4,
+      "text": "Return contract-defined lot forecasts, effective assumptions, metrics, and explainable insights, including null unavailable metric values; persist forecast-setting updates, planner actions, and weight measurements, return them in subsequent relevant responses, and use the declared validation or not-found errors."
+     },
+     {
+      "n": 5,
+      "text": "Return contract-defined inventory totals, items, movements, stock fields, and projections for all supported horizons; persist valid inventory item and movement changes, return validation errors for invalid requests, and provide the requested CSV export as a Base64 file artifact."
+     },
+     {
+      "n": 6,
+      "text": "Return saved ration definitions, persist valid ration creation and revision with calculated contract fields, provide optimization results and cost comparisons, and return approval results with the updated approval status."
+     },
+     {
+      "n": 7,
+      "text": "Return saved feed plans and their execution and audit fields; persist valid plan creation, review, and status changes with contract-defined calculated quantities, costs, energy, and status values."
+     },
+     {
+      "n": 8,
+      "text": "Persist feeding events and return their variance, cost, energy, inventory movements, and updated lot feed totals; support corrections and voids with reconciled stock and totals that do not double-count event movements, and return the declared conflict or validation errors."
+     },
+     {
+      "n": 9,
+      "text": "Return operational, feed-to-gain, and profitability reports using supported filters and contract-defined calculations, summaries, and exports; enforce the separate profitability view and export permissions, omit non-null profitability values when view access is absent, and return validation errors for missing required dates or unsupported export formats."
+     },
+     {
+      "n": 10,
+      "text": "Return sample-data status and records, load samples without duplicates, and require explicit confirmation for reset or replacement; leave records unchanged when confirmation is absent and report the resulting status and records after confirmed operations."
+     },
+     {
+      "n": 11,
+      "text": "Store contract domain data in the configured App PostgreSQL database, preserve successful writes across API restarts, and upgrade existing databases with required contract tables without changing existing row values."
+     },
+     {
+      "n": 12,
+      "text": "When Seed:Demo is true, run SeedData.Run at startup to add three to five believable, contract-example-derived rows to each empty application table, leave nonempty tables unchanged, and fail startup while surfacing seed-write errors."
+     },
+     {
+      "n": 13,
+      "text": "When Seed:Demo is false, serve collection operations from persisted records only, return empty lists for empty collections, and allow tests to create and retrieve records without depending on demo-seed values or counts."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,299 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to see its lines, delivery and status.",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Placed",
+          "Packed",
+          "Dispatched",
+          "Delivered",
+          "Cancelled"
+         ],
+         "value": "All"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "ORD-24817",
+         "meta": "13 Mar 2026 · 7 items · £186.40",
+         "badge": "Placed"
+        },
+        {
+         "title": "ORD-24790",
+         "meta": "11 Mar 2026 · 2 items · £64.18",
+         "badge": "Packed"
+        },
+        {
+         "title": "ORD-24751",
+         "meta": "9 Mar 2026 · 12 items · £1,092.75",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "ORD-24702",
+         "meta": "4 Mar 2026 · 3 items · £238.90",
+         "badge": "Delivered"
+        },
+        {
+         "title": "ORD-24655",
+         "meta": "27 Feb 2026 · 1 item · £17.45",
+         "badge": "Cancelled"
+        },
+        {
+         "title": "ORD-24610",
+         "meta": "24 Feb 2026 · 20 items · £412.60",
+         "badge": "Delivered"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Find parts",
+         "variant": "secondary",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "ORD-24817",
+       "title": "Order ORD-24817",
+       "text": "Placed 13 Mar 2026 · 7 items",
+       "blocks": [
+        {
+         "type": "detail",
+         "title": "ORD-24817",
+         "rows": [
+          {
+           "label": "6204-2RS × 4",
+           "value": "Ball bearing · £6.85 ea"
+          },
+          {
+           "label": "SPA1250 × 2",
+           "value": "V-belt SPA · £18.50 ea"
+          },
+          {
+           "label": "HF-3021 × 1",
+           "value": "Hydraulic filter · £110.00 ea"
+          },
+          {
+           "label": "Deliver to",
+           "value": "Unit 4, Brindley Rd, CV7 9EP"
+          },
+          {
+           "label": "Delivery",
+           "value": "Next day · £12.00"
+          },
+          {
+           "label": "Total",
+           "value": "£186.40"
+          },
+          {
+           "label": "Status",
+           "value": "Placed",
+           "badge": true
+          }
+         ]
+        },
+        {
+         "type": "timeline",
+         "items": [
+          {
+           "time": "13 Mar, 08:42",
+           "title": "Placed",
+           "meta": "Current status",
+           "status": "now"
+          },
+          {
+           "time": "Pending",
+           "title": "Packed",
+           "status": "next"
+          },
+          {
+           "time": "Pending",
+           "title": "Dispatched",
+           "status": "next"
+          },
+          {
+           "time": "Est. 14 Mar",
+           "title": "Delivered",
+           "status": "next"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Close",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel ORD-24817?",
+       "text": "It won't be packed or sent. This can't be undone.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "ORD-24817 cancelled",
+       "tone": "ok"
+      },
+      {
+       "after": "Yes, cancel order",
+       "text": "Can't cancel: already packed",
+       "tone": "bad"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders show up here.",
+      "error": "Orders didn't load. Try again.",
+      "success": "ORD-24817 cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to see its lines, delivery and status.",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Placed",
+          "Packed",
+          "Dispatched",
+          "Delivered",
+          "Cancelled"
+         ],
+         "value": "All"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "ORD-24817",
+         "meta": "13 Mar 2026 · 7 items · £186.40",
+         "badge": "Placed"
+        },
+        {
+         "title": "ORD-24809",
+         "meta": "12 Mar 2026 · 4 items · £93.20",
+         "badge": "Placed"
+        },
+        {
+         "title": "ORD-24790",
+         "meta": "11 Mar 2026 · 2 items · £64.18",
+         "badge": "Packed"
+        },
+        {
+         "title": "ORD-24771",
+         "meta": "10 Mar 2026 · 15 items · £327.05",
+         "badge": "Packed"
+        },
+        {
+         "title": "ORD-24751",
+         "meta": "9 Mar 2026 · 12 items · £1,092.75",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "ORD-24733",
+         "meta": "6 Mar 2026 · 6 items · £148.60",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "ORD-24702",
+         "meta": "4 Mar 2026 · 3 items · £238.90",
+         "badge": "Delivered"
+        },
+        {
+         "title": "ORD-24655",
+         "meta": "27 Feb 2026 · 1 item · £17.45",
+         "badge": "Cancelled"
+        },
+        {
+         "title": "ORD-24610",
+         "meta": "24 Feb 2026 · 20 items · £412.60",
+         "badge": "Delivered"
+        },
+        {
+         "title": "ORD-24588",
+         "meta": "19 Feb 2026 · 9 items · £276.30",
+         "badge": "Delivered"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Find parts",
+         "variant": "secondary",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders show up here.",
+      "error": "Orders didn't load. Try again.",
+      "success": "ORD-24817 cancelled."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

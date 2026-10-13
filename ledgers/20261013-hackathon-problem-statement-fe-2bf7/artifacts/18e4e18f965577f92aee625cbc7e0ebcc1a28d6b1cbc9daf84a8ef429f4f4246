@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2268,
+    "end": 2310
+   },
+   "ms": 1,
+   "resultChars": 1338,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2268,&quot;end&quot;:2310}\">\ncontracts/openapi.yaml lines 2268-2310\n2268\t        - name\n2269\t      properties:\n2270\t        id:\n2271\t          type: integer\n2272\t        name:\n2273\t          type: string\n2274\t    SignInRequest:\n2275\t      type: object\n2276\t      required:\n2277\t        - email\n2278\t        - password\n2279\t      properties:\n2280\t        email:\n2281\t          type: string\n2282\t          format: email\n2283\t        password:«SECRET_1»          type: string\n2285\t          format: password\n2286\t    SignInResponse:\n2287\t      type: object\n2288\t      required:\n2289\t        - accessToken\n2290\t        - user\n2291\t      properties:\n2292\t        accessToken:«SECRET_2»          type: string\n2294\t        user:\n2295\t          $ref: '#/components/schemas/SessionUser'\n2296\t    SessionResponse:\n2297\t      type: object\n2298\t      required:\n2299\t        - user\n2300\t      properties:\n2301\t        user:\n2302\t          $ref: '#/components/schemas/SessionUser'\n2303\t    YardSummary:\n2304\t      type: object\n2305\t      required:\n2306\t        - totalHead\n2307\t        - averageAdg\n2308\t        - averageCostOfGain\n2309\t        - totalFeedCost\n2310\t      properties:\n… (4376 lines total; ask for start=2311)\n</untrusted_document>"
+  }
+ ]
+}

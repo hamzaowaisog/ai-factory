@@ -1,0 +1,151 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat the supplied user stories and acceptance criteria as the observable behavior of the locked API operations; the API exposes these capabilities to clients and does not imply a new user interface.",
+      "behaviours": [
+       {
+        "text": "For every operation in the locked OpenAPI contract, the API accepts the documented method, path, parameters, request body and authentication context, and returns the documented status, response body and errors. Undocumented substitutes or altered contract shapes are not exposed as replacements.",
+        "kind": "happy"
+       },
+       {
+        "text": "An authenticated driver can retrieve only their own routes, with stops in route order, and the boxes, current temperature, status and alerts associated with those routes. A driver cannot retrieve another driver's route.",
+        "kind": "permission"
+       },
+       {
+        "text": "When a driver submits loading scans, the API reports boxes that belong to another route and boxes that are missing; loading is not accepted as complete until every route box has been scanned.",
+        "kind": "error"
+       },
+       {
+        "text": "A driver can submit stop scans and handovers. A box whose stock is On Hold or Recalled is reported as not deliverable, with the applicable reason, and cannot be handed over. Eligible handovers retain receiver name, signature, delivered-box photo, occurrence time and location.",
+        "kind": "data"
+       },
+       {
+        "text": "A driver can record a full or partial refusal, including a reason for each refused box. Refused boxes are returned to warehouse stock in Quarantined status.",
+        "kind": "data"
+       },
+       {
+        "text": "Loading, handover and refusal submissions can be queued while offline and synchronized when connectivity returns. An offline handover retains the time it occurred rather than the later synchronization time; submitting the same handover more than once records it only once.",
+        "kind": "data"
+       },
+       {
+        "text": "When an offline driver reconnects after a route change, the API exposes the changed route information so the client can show the difference before continuing. An already completed offline handover is retained and is not undone. If a hold was placed while offline and that box was handed over, the handover remains recorded, a conflict is flagged and a quality case is opened.",
+        "kind": "data"
+       },
+       {
+        "text": "A dispatcher can retrieve each stop's status and the time it was last updated.",
+        "kind": "permission"
+       },
+       {
+        "text": "A reviewer can retrieve the temperature history, per-tier budget used and remaining, and the system's Release or Reject recommendation for each affected handling unit. A Quality Officer can decide alone only when the excursion stayed within the first tier above or below the band and allowance remains. In other cases a Quality Officer proposes and a different Quality Manager approves; a proposer cannot approve their own proposal, even if they hold both roles.",
+        "kind": "permission"
+       },
+       {
+        "text": "Signing a decision requires the signer to confirm their identity again and provide a reason. A decision contrary to the recommendation requires both Quality Officer and Quality Manager participation and written justification. Signed decisions cannot be edited or deleted, including by a System Administrator; a replacement is a new signed decision and the earlier decision remains available.",
+        "kind": "data"
+       },
+       {
+        "text": "A release returns affected stock to its prior availability or order and route. A rejection removes stock from available stock and its order, and makes it available for the order reallocation process. Rejected stock can be listed for destruction; destruction records date, quantity and witness, and cannot exceed the rejected quantity. Decisions waiting more than four hours are escalated to a Quality Manager.",
+        "kind": "data"
+       },
+       {
+        "text": "A Quality Manager can start a signed recall for a product and one or more lots with a reason and severity, and can close a recall only with a signed action. Starting one marks Meridian-held stock of those lots Recalled across warehouses, removes it from orders, and blocks handover, including for boxes already on a route.",
+        "kind": "permission"
+       },
+       {
+        "text": "The API provides a recall trace of affected warehouse locations, boxes, routes and customer deliveries with quantities, available within one minute of the request; the trace quantities add up to the lot's received quantity. It identifies customers who received the lot, with quantities, delivery dates and receivers, and recall progress reports the accounted-for percentage.",
+        "kind": "data"
+       },
+       {
+        "text": "Customers can report, per delivery, packs on hand, used or dispensed, and destroyed on site. The API rejects reported quantities exceeding that delivery's quantity; packs reported on hand can be returned on a route and quarantined on arrival. Customers are notified of recalls by email and portal, and customers still outstanding after 24 hours are reminded and visible to the Quality Manager.",
+        "kind": "error"
+       },
+       {
+        "text": "A recall cannot be closed while any pack remains unaccounted for unless it is written off with a signed justification. A driver online after a recall sees a recalled box as Do not deliver.",
+        "kind": "error"
+       },
+       {
+        "text": "An authenticated customer can retrieve current and past orders, allocated lots and expiry dates, and on-road delivery planned arrival and temperature-range status only for their own organization. On-road responses do not reveal other customers on the route.",
+        "kind": "permission"
+       },
+       {
+        "text": "For a completed delivery, a customer can obtain a PDF delivery certificate containing products, lots, expiry dates, quantities, receiver and handover time, each box's temperature chart from sealing to handover, excursions and their signed decisions. Certificates are available in the customer's selected English or Arabic preference; dates and times use the customer's time zone.",
+        "kind": "data"
+       },
+       {
+        "text": "An issued certificate remains unchanged. If late readings change the temperature history, the API makes a new certificate version available while retaining the earlier version.",
+        "kind": "data"
+       },
+       {
+        "text": "The API records creation, change and deletion of regulated records, including the stated product, stock, order, route, handover, excursion, decision, recall, user, role and configuration data. Entries include actor, time, changed values and any reason supplied; automatic actions are attributed to the system. Entries are immutable, retained for seven years, and alterations made outside the application can be detected.",
+        "kind": "data"
+       },
+       {
+        "text": "An Auditor can filter audit records by record, user, date range and action type, export the filtered view, and retrieve a lot's ordered history from receipt through delivery or destruction. Times are stored in one reference time and shown in the viewer's time zone.",
+        "kind": "permission"
+       },
+       {
+        "text": "The API makes daily warehouse summaries available to the relevant Quality Officers, covering the prior 24 hours' excursions, pending decisions, silent devices and On Hold stock; scheduled summaries are sent at 07:00 in each warehouse's time zone. It generates and emails monthly reports on the first day of the month to configured stakeholders.",
+        "kind": "data"
+       },
+       {
+        "text": "Report data includes excursion counts and rates by route, driver, vehicle and shipper-box type; rejected and destroyed packs by product and cause; on-time and in-full delivery percentages; average excursion-to-decision time; stock within 60 days of expiry by product and warehouse; and open recalls with progress. The API supports on-screen date-range and warehouse filtering and export; staff can see only their own warehouses' figures. On-time means handover within 60 minutes of planned arrival, and in-full means every ordered pack was handed over.",
+        "kind": "permission"
+       },
+       {
+        "text": "Requests with invalid or incomplete data, unsupported state transitions, unauthorized roles, cross-customer or cross-warehouse access, invalid signatures or reasons, and attempts to edit immutable signed records are rejected without applying the prohibited change. A customer cannot report more packs than delivered, and a destruction request exceeding rejected quantity is rejected.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, SeedData writes a small set of believable sample records, based on examples in the contract, for each database table so API list operations have sample records to return. Related sample records refer to one another consistently; the contract's Cedar Clinic receipt example is among the sample data where applicable.",
+        "kind": "data"
+       },
+       {
+        "text": "A list operation against a table with no persisted records returns an empty list rather than fabricated sample rows.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "With Seed:Demo false or unset, application startup does not write demo records; tests and API behavior cannot assume that sample rows exist. Lists may therefore be empty when no records have otherwise been created.",
+        "kind": "data"
+       },
+       {
+        "text": "With Seed:Demo true, the application runs the demo seeder and its sample records are available to API reads.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "This repository provides the API behavior and data responses only; it does not deliver portal or driver web screens. Clients in the separate web-app repository consume the API operations.",
+        "kind": "data"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

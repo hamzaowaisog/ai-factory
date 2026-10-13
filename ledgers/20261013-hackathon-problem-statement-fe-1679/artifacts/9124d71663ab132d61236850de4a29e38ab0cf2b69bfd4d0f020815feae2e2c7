@@ -1,0 +1,1 @@
+[{"check":"design-fidelity","frames":[],"message":"lint: tokens only: 0 hex colour(s), 3 arbitrary value(s) the building blocks don't already use, 0 inline style(s): components/screens/s-3/container.tsx: w-[165px]; components/screens/s-3/container.tsx: w-[165px]; components/screens/s-3/container.tsx: min-w-[950px]"}]

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Folio3 Parking · Dashboard</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-container": "#c8e6db",
+            "tertiary-container": "#945044",
+            "primary-fixed": "#a5f2d9",
+            "surface-bright": "#f7faf7",
+            "secondary-fixed": "#cbe9dd",
+            "on-error": "#ffffff",
+            "inverse-surface": "#2d312f",
+            "surface-variant": "#e0e3e0",
+            "tertiary-fixed": "#ffdad4",
+            "on-background": "#181c1b",
+            "surface-container-lowest": "#ffffff",
+            "on-surface-variant": "#3f4945",
+            "on-primary-container": "#a3efd7",
+            "surface-container-low": "#f1f4f1",
+            "secondary": "#49645b",
+            "on-secondary-fixed-variant": "#314c44",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#002019",
+            "surface-container-high": "#e6e9e6",
+            "surface-container": "#ecefeb",
+            "inverse-primary": "#8ad5be",
+            "inverse-on-surface": "#eef1ee",
+            "primary": "#005645",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-tertiary-fixed": "#3a0a05",
+            "on-surface": "#181c1b",
+            "on-tertiary-container": "#ffd7d0",
+            "primary-container": "#1f6f5c",
+            "error": "#ba1a1a",
+            "surface-dim": "#d8dbd8",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "primary-fixed-dim": "#8ad5be",
+            "outline-variant": "#bec9c4",
+            "on-primary": "#ffffff",
+            "surface": "#f7faf7",
+            "surface-container-highest": "#e0e3e0",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-primary-fixed-variant": "#005141",
+            "outline": "#6f7975",
+            "on-secondary-container": "#4d685f",
+            "error-container": "#ffdad6",
+            "surface-tint": "#186a57",
+            "on-secondary": "#ffffff",
+            "background": "#f7faf7",
+            "on-secondary-fixed": "#042019",
+            "on-error-container": "#93000a",
+            "tertiary": "#77392e"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.92); }
+    }
+    .live-dot {
+      animation: live-breathe 4s ease-in-out infinite;
+    }
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 4px 10px;
+      background: #FFFFFF;
+      color: #18181B;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 4px 10px;
+      background: #E6F0ED;
+      color: #1F6F5C;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+    .tabular-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="min-h-full font-body text-on-surface antialiased bg-background flex flex-col">
+<!-- TOP APP BAR (Shared Components JSON execution) -->
+<header class="bg-surface-container-lowest docked full-width top-0 z-40 border-b border-outline-variant flat no shadows">
+<div class="flex justify-between items-center w-full px-6 h-16 max-w-7xl mx-auto">
+<!-- Brand & Facility Indicator -->
+<div class="flex items-center gap-6">
+<a class="flex items-center gap-2.5 text-decoration-none" href="#">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary font-headline font-bold text-sm tracking-tight shadow-sm">
+            F3
+          </div>
+<span class="font-headline font-bold text-lg text-on-surface tracking-tight">Folio3 Parking</span>
+</a>
+<!-- Facility Sync Indicator -->
+<div class="hidden lg:flex items-center gap-2 pl-4 border-l border-outline-variant text-xs text-on-surface-variant font-medium">
+<span class="w-2 h-2 rounded-full bg-primary-container live-dot"></span>
+<span>HQ East Wing Bays</span>
+<span class="text-outline">·</span>
+<span class="tabular-mono text-on-surface font-medium">08:02 PKT</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-secondary-container text-on-secondary-container font-mono ml-1">LIVE FEED</span>
+</div>
+</div>
+<!-- Navigation Links from Shared Components JSON -->
+<nav class="hidden md:flex items-center h-full gap-1">
+<a class="text-primary border-b-2 border-primary font-medium h-full flex items-center px-3 text-sm" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3 text-sm transition-colors" href="#">Claim Space</a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3 text-sm transition-colors" href="#">Release</a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3 text-sm transition-colors" href="#">Guard Console</a>
+</nav>
+<!-- Right Actions: Help Desk + User Profile -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded hover:bg-surface-variant transition-colors" title="Contact Guard &amp; Facilities Help Desk">
+<span class="material-symbols-outlined text-[18px]">help</span>
+<span class="hidden sm:inline">Help Desk</span>
+</button>
+<button aria-label="Notifications" class="text-on-surface-variant hover:text-on-surface p-1.5 rounded hover:bg-surface-variant transition-colors relative" title="Notifications">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
+</button>
+<!-- User profile pill -->
+<div class="flex items-center gap-3 pl-2 border-l border-outline-variant">
+<div aria-label="User Initials Avatar" class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center font-headline font-semibold text-xs text-on-surface">
+            BK
+          </div>
+<div class="hidden xl:flex flex-col text-left">
+<span class="text-xs font-semibold text-on-surface leading-tight">Bilal Khan</span>
+<span class="text-[11px] text-on-surface-variant leading-tight">bilal.khan@folio3.com</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- SIMULATOR CONTROL BAR (Pinned interactive controller for evaluation) -->
+<div class="bg-surface-container-high border-b border-outline-variant py-2.5 px-6">
+<div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">tune</span>
+<span class="text-xs font-headline font-semibold uppercase tracking-wider text-on-surface">State Preview Simulator</span>
+<span class="hidden sm:inline text-xs text-on-surface-variant">— Switch card context in real time:</span>
+</div>
+<div class="inline-flex p-1 bg-surface-container-lowest border border-outline-variant rounded-lg gap-1 text-xs">
+<button class="px-3 py-1 font-medium rounded transition-colors text-white bg-primary-container shadow-xs" id="sim-default" onclick="setDashboardState('default')">
+          Default (3 Open)
+        </button>
+<button class="px-3 py-1 font-medium rounded transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-variant" id="sim-claiming" onclick="setDashboardState('claiming')">
+          Claiming...
+        </button>
+<button class="px-3 py-1 font-medium rounded transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-variant" id="sim-success" onclick="setDashboardState('success')">
+          Success (Claimed)
+        </button>
+<button class="px-3 py-1 font-medium rounded transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-variant" id="sim-error" onclick="setDashboardState('error')">
+          Conflict Error
+        </button>
+<button class="px-3 py-1 font-medium rounded transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-variant" id="sim-empty" onclick="setDashboardState('empty')">
+          Empty (0 Open)
+        </button>
+</div>
+</div>
+</div>
+<!-- MAIN CANVAS -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+<!-- 1. HEADER SECTION -->
+<section class="mb-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-outline-variant">
+<div>
+<div class="flex items-center gap-2 mb-1.5">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-surface-container text-on-surface-variant border border-outline-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+              Standard Employee Pass · General Pool (No Dedicated Bay Assigned)
+            </span>
+</div>
+<h1 class="font-headline font-bold text-2xl sm:text-3xl text-on-surface tracking-tight">
+            Good morning, Bilal
+          </h1>
+<p class="text-xs text-on-surface-variant mt-1 tabular-mono">
+            Tuesday, 10 June 2025 · HQ Morning Pool Release
+          </p>
+</div>
+<!-- Release Window Metadata Badge -->
+<div class="flex items-center gap-3 bg-surface-container-lowest px-4 py-2.5 rounded-lg border border-outline-variant">
+<div class="flex flex-col text-right">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-outline">Next Drop Window</span>
+<span class="text-xs font-mono font-medium text-on-surface">11:30 PKT (Afternoon Release)</span>
+</div>
+<span class="material-symbols-outlined text-primary-container text-2xl">schedule</span>
+</div>
+</div>
+</section>
+<!-- 12-COLUMN WORKSPACE GRID (8 cols Main Action / 4 cols Rail) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- MAIN COLUMN: SECTIONS 2 & 3 (Columns 1 to 8) -->
+<div class="lg:col-span-8 space-y-6">
+<!-- 2. LARGE AVAILABILITY CARD (DYNAMIC / INTERACTIVE) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 sm:p-8 transition-all" id="availability-card">
+<!-- STATE 1: DEFAULT AVAILABLE -->
+<div class="space-y-6" id="state-default-view">
+<div class="flex flex-wrap items-start justify-between gap-4">
+<div>
+<div class="flex items-center gap-2.5 mb-2">
+<span class="flex h-3 w-3 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary-container"></span>
+</span>
+<span class="text-xs font-semibold uppercase tracking-wider text-primary-container">Real-time Pool Availability</span>
+</div>
+<h2 class="font-headline font-bold text-3xl sm:text-4xl text-on-surface tracking-tight flex items-baseline gap-2">
+<span>3 spaces</span>
+<span class="text-xl sm:text-2xl font-medium text-on-surface-variant">available now</span>
+</h2>
+</div>
+<!-- Time Badge -->
+<div class="text-right">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container text-xs font-mono text-on-surface border border-outline-variant">
+<span class="material-symbols-outlined text-[15px] text-outline">update</span>
+                  Updated 08:02 PKT
+                </span>
+</div>
+</div>
+<!-- Key Micro-metrics strip -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+<div class="p-3.5 rounded bg-surface border border-outline-variant flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[18px]">layers</span>
+</div>
+<div>
+<div class="text-[11px] uppercase tracking-wider font-semibold text-outline">Open Zones</div>
+<div class="text-xs font-semibold text-on-surface">Floor B2 &amp; B3 slots open</div>
+</div>
+</div>
+<div class="p-3.5 rounded bg-surface border border-outline-variant flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[18px]">trending_up</span>
+</div>
+<div>
+<div class="text-[11px] uppercase tracking-wider font-semibold text-outline">Traffic Demand</div>
+<div class="text-xs font-semibold text-on-surface">High demand window active <span class="text-outline font-normal">(08:00–09:30 PKT)</span></div>
+</div>
+</div>
+</div>
+<!-- Primary Action & Policy Note -->
+<div class="pt-2">
+<button class="w-full sm:w-auto bg-primary-container hover:bg-[#185849] text-white font-medium px-8 py-3.5 rounded-lg active:scale-95 transition flex items-center justify-center gap-2.5 text-sm shadow-sm" onclick="handleClaimClick()">
+<span class="material-symbols-outlined text-[20px]">local_parking</span>
+<span>Claim a space for today</span>
+</button>
+<div class="flex items-center gap-2 mt-3 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline">info</span>
+<span>One claim per day. Claims can't be cancelled.</span>
+</div>
+</div>
+</div>
+<!-- STATE 2: CLAIMING... (LOADING) -->
+<div class="hidden space-y-6" id="state-claiming-view">
+<div class="flex flex-wrap items-start justify-between gap-4">
+<div>
+<div class="flex items-center gap-2.5 mb-2">
+<span class="w-2.5 h-2.5 rounded-full bg-outline"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Allocating Bay</span>
+</div>
+<h2 class="font-headline font-bold text-3xl sm:text-4xl text-on-surface tracking-tight">
+                  Reserving spot...
+                </h2>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container text-xs font-mono text-on-surface border border-outline-variant">
+                Contacting barrier server
+              </span>
+</div>
+<div class="p-4 rounded bg-surface-container-low border border-outline-variant text-xs text-on-surface-variant flex items-center gap-3">
+<span class="w-4 h-4 rounded-full border-2 border-primary-container border-t-transparent animate-spin flex-shrink-0"></span>
+<span>Validating vehicle plate <span class="font-mono font-medium text-on-surface">BKX-482</span> with Floor B2 barrier controller...</span>
+</div>
+<div class="pt-2">
+<button class="w-full sm:w-auto bg-primary-container opacity-80 cursor-wait text-white font-medium px-8 py-3.5 rounded-lg flex items-center justify-center gap-2.5 text-sm" disabled="">
+<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewbox="0 0 24 24">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+<span>Claiming…</span>
+</button>
+<div class="mt-3 text-xs text-on-surface-variant">Please do not refresh or close this window.</div>
+</div>
+</div>
+<!-- STATE 3: SUCCESS CLAIMED -->
+<div class="hidden space-y-6" id="state-success-view">
+<!-- Green confirmation banner -->
+<div class="p-4 rounded-lg bg-secondary-container/40 border border-secondary-container flex items-start gap-3.5">
+<div class="w-7 h-7 rounded-full bg-primary-container text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<div class="flex-1">
+<h3 class="font-headline font-bold text-lg text-on-surface">
+                  You're parked for today — Space B2-14, Floor B2
+                </h3>
+<p class="text-xs text-on-surface-variant mt-0.5">
+                  Your electronic bay permit is confirmed and active for 10 June 2025.
+                </p>
+</div>
+</div>
+<!-- Space Assignment & Barrier Pass Details -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+<!-- Left: Claim Details -->
+<div class="p-4 rounded-lg bg-surface border border-outline-variant space-y-3">
+<div class="text-[11px] uppercase tracking-wider font-semibold text-outline">Bay Assignment</div>
+<div class="flex items-center gap-3">
+<span class="space-chip text-sm">B2-14</span>
+<span class="text-xs text-on-surface-variant font-medium">Underground Level B2</span>
+</div>
+<div class="pt-2 border-t border-outline-variant space-y-2 text-xs">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Claimed timestamp:</span>
+<span class="tabular-mono font-medium text-on-surface">08:02:41 PKT</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Plate on record:</span>
+<span class="plate-chip text-xs">BKX-482</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Assigned Entry Gate:</span>
+<span class="font-medium text-on-surface">Barrier Gate 2 (East)</span>
+</div>
+</div>
+</div>
+<!-- Right: Security Barrier Access Pass -->
+<div class="p-4 rounded-lg bg-surface border border-outline-variant flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between text-[11px] uppercase tracking-wider font-semibold text-outline mb-2">
+<span>Gate Barcode Pass</span>
+<span class="text-primary-container font-mono">AUTOMATED ANPR</span>
+</div>
+<!-- Barcode Graphic Simulation -->
+<div class="bg-white p-3 rounded border border-outline-variant flex flex-col items-center justify-center my-1">
+<div class="flex items-center gap-0.5 h-10 w-full justify-center overflow-hidden">
+<div class="w-1 bg-on-surface h-full"></div>
+<div class="w-0.5 bg-on-surface h-full"></div>
+<div class="w-2 bg-on-surface h-full"></div>
+<div class="w-1 bg-on-surface h-full"></div>
+<div class="w-0.5 bg-on-surface h-full"></div>
+<div class="w-1.5 bg-on-surface h-full"></div>
+<div class="w-0.5 bg-on-surface h-full"></div>
+<div class="w-2 bg-on-surface h-full"></div>
+<div class="w-1 bg-on-surface h-full"></div>
+<div class="w-2.5 bg-on-surface h-full"></div>
+<div class="w-0.5 bg-on-surface h-full"></div>
+<div class="w-1 bg-on-surface h-full"></div>
+<div class="w-2 bg-on-surface h-full"></div>
+<div class="w-0.5 bg-on-surface h-full"></div>
+<div class="w-1 bg-on-surface h-full"></div>
+</div>
+<span class="text-[10px] font-mono tracking-widest text-outline mt-1.5">F3-HQ-20250610-B214</span>
+</div>
+</div>
+<div class="mt-2 text-xs text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary-container">sensor_door</span>
+<span>Show badge or drive to Barrier Gate 2.</span>
+</div>
+</div>
+</div>
+<!-- Footer actions -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-outline-variant text-xs">
+<span class="text-on-surface-variant">Need to surrender your slot? Space automatically releases at 20:00 PKT.</span>
+<button class="text-primary-container hover:underline font-semibold flex items-center gap-1" onclick="setDashboardState('default')">
+<span>View general pool rules</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- STATE 4: ERROR / CONFLICT -->
+<div class="hidden space-y-6" id="state-error-view">
+<!-- Inline Alert Banner -->
+<div class="p-4 rounded-lg bg-[#FBEAE8] border-l-4 border-error flex items-start gap-3.5">
+<div class="w-7 h-7 rounded-full bg-error text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">priority_high</span>
+</div>
+<div class="flex-1">
+<h3 class="font-headline font-bold text-base text-on-surface">
+                  Someone claimed the last space first. 0 spaces available now.
+                </h3>
+<p class="text-xs text-on-surface-variant mt-0.5">
+                  Another employee confirmed slot B3-09 seconds earlier. Real-time pool exhausted.
+                </p>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="p-4 rounded bg-surface border border-outline-variant">
+<div class="text-[11px] uppercase tracking-wider font-semibold text-outline">Current Status</div>
+<div class="text-sm font-semibold text-error mt-1 flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                  0 General Pool Slots Open
+                </div>
+<div class="text-xs text-on-surface-variant mt-1 tabular-mono">Refreshed 08:02:44 PKT</div>
+</div>
+<div class="p-4 rounded bg-surface border border-outline-variant">
+<div class="text-[11px] uppercase tracking-wider font-semibold text-outline">Next Release Opportunity</div>
+<div class="text-sm font-semibold text-on-surface mt-1">11:30 PKT (Midday Pool)</div>
+<div class="text-xs text-on-surface-variant mt-1">Released spaces alert automatically</div>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3 pt-2">
+<button class="bg-primary-container hover:bg-[#185849] text-white font-medium px-5 py-2.5 rounded-lg active:scale-95 transition flex items-center gap-2 text-xs" onclick="setDashboardState('default')">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+<span>Refresh feed</span>
+</button>
+<button class="bg-surface-container-lowest border border-outline-variant hover:bg-surface-container text-on-surface font-medium px-5 py-2.5 rounded-lg active:scale-95 transition flex items-center gap-2 text-xs">
+<span class="material-symbols-outlined text-[16px]">notifications_active</span>
+<span>Join waitlist queue</span>
+</button>
+</div>
+</div>
+<!-- STATE 5: EMPTY (0 SPACES AVAILABLE) -->
+<div class="hidden space-y-6" id="state-empty-view">
+<div class="flex flex-wrap items-start justify-between gap-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">General Pool Status</span>
+</div>
+<h2 class="font-headline font-bold text-3xl sm:text-4xl text-on-surface tracking-tight">
+                  0 spaces available
+                </h2>
+<p class="text-xs text-on-surface-variant mt-1.5">
+                  We'll notify you immediately if a space is released by another employee today.
+                </p>
+</div>
+<!-- Time Badge -->
+<div class="text-right">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container text-xs font-mono text-on-surface border border-outline-variant">
+<span class="material-symbols-outlined text-[15px] text-outline">update</span>
+                  Updated 08:02 PKT
+                </span>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-surface border border-outline-variant text-xs text-on-surface-variant flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] text-outline mt-0.5">event_busy</span>
+<div>
+<span class="font-medium text-on-surface">Morning claiming window is fully allocated.</span>
+<p class="mt-0.5">Colleagues travelling for client meetings frequently surrender passes between 09:30 and 11:30 PKT.</p>
+</div>
+</div>
+<!-- Disabled Primary Button as per spec -->
+<div class="pt-2">
+<button class="w-full sm:w-auto bg-primary-container opacity-50 cursor-not-allowed text-white font-medium px-8 py-3.5 rounded-lg flex items-center justify-center gap-2.5 text-sm" disabled="">
+<span class="material-symbols-outlined text-[20px]">block</span>
+<span>Claim a space for today</span>
+</button>
+<div class="mt-3 text-xs text-on-surface-variant">Claiming disabled while total free bay count is zero.</div>
+</div>
+</div>
+</div>
+<!-- 3. NOTIFICATION PERMISSION TILE -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-5 sm:p-6">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">notifications_active</span>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm text-on-surface">
+                  Push notifications on — we'll alert you when spaces are released.
+                </h3>
+<p class="text-xs text-on-surface-variant mt-1">
+                  Instant drop notifications enabled for <span class="tabular-mono font-medium text-on-surface">08:00 – 11:00 AM</span> window.
+                </p>
+<div class="flex items-center gap-2 mt-2">
+<span class="inline-flex items-center gap-1 text-[11px] font-mono text-primary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                    Push active (Chrome / Mobile)
+                  </span>
+<span class="text-outline text-xs">·</span>
+<span class="text-[11px] text-on-surface-variant font-mono">Channel ID: #push-hq-bays</span>
+</div>
+</div>
+</div>
+<!-- Interactive Toggle Switch -->
+<div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-outline-variant">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" id="notification-toggle" onchange="toggleNotification(this)" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+<span class="text-[11px] font-medium text-on-surface-variant" id="toggle-label">Enabled</span>
+</div>
+</div>
+</div>
+</div>
+<!-- RAIL COLUMN: SECTION 4 & POLICY (Columns 9 to 12) -->
+<div class="lg:col-span-4 space-y-6">
+<!-- 4. 'MY VEHICLES' SUMMARY SECTION -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6">
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<h3 class="font-headline font-semibold text-base text-on-surface">
+              My vehicles
+            </h3>
+<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-medium">
+              1 Primary
+            </span>
+</div>
+<!-- Vehicle detail card -->
+<div class="pt-4 space-y-4">
+<div class="p-4 rounded-lg bg-surface border border-outline-variant space-y-3">
+<!-- Signature Licence Plate Chip -->
+<div class="flex items-center justify-between">
+<span class="plate-chip text-sm tracking-widest font-semibold">BKX-482</span>
+<span class="inline-flex items-center gap-1 text-[11px] text-primary-container font-medium">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+                  Verified Corporate
+                </span>
+</div>
+<!-- Vehicle description -->
+<div>
+<div class="text-xs font-semibold text-on-surface">Toyota Corolla · White</div>
+<div class="text-[11px] text-on-surface-variant mt-0.5 font-mono">VIN: ...98421 · Sedan 2022</div>
+</div>
+<!-- ANPR Barrier Notice -->
+<div class="pt-2.5 border-t border-outline-variant text-[11px] text-on-surface-variant leading-relaxed">
+                Active vehicle registered for automated ANPR barrier access at Folio3 HQ.
+              </div>
+</div>
+<!-- Profile Action Link -->
+<div class="pt-1">
+<a class="inline-flex items-center gap-1.5 text-xs text-primary-container hover:text-[#185849] font-medium transition-colors" href="#">
+<span>Manage vehicle profile</span>
+<span class="material-symbols-outlined text-[15px]">open_in_new</span>
+</a>
+<p class="text-[11px] text-outline mt-1">Need to register a temporary rental or loaner vehicle? Edit details in profile.</p>
+</div>
+</div>
+</div>
+<!-- General Pool Rules Context Panel -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 space-y-3">
+<div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-outline">
+<span class="material-symbols-outlined text-[16px] text-primary-container">gavel</span>
+<span>Policy Summary</span>
+</div>
+<ul class="text-xs text-on-surface-variant space-y-2.5 leading-relaxed">
+<li class="flex items-start gap-2">
+<span class="text-primary-container font-bold">·</span>
+<span><strong>Allocation:</strong> General pool claims operate on first-confirmed basis between 08:00 and 09:30 PKT.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="text-primary-container font-bold">·</span>
+<span><strong>Barrier Entry:</strong> ANPR camera recognizes registered plates within 3 meters of Gate 2.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="text-primary-container font-bold">·</span>
+<span><strong>Auto-Release:</strong> Unoccupied bays after 10:15 PKT are surrendered to the standby queue.</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+<!-- REUSABLE INLINE JAVASCRIPT FOR REAL-TIME SIMULATOR -->
+<script>
+    // State controller for preview simulator
+    const states = ['default', 'claiming', 'success', 'error', 'empty'];
+
+    function setDashboardState(state) {
+      // Hide all states
+      states.forEach(s => {
+        const el = document.getElementById(`state-${s}-view`);
+        if (el) el.classList.add('hidden');
+        
+        const btn = document.getElementById(`sim-${s}`);
+        if (btn) {
+          btn.classList.remove('bg-primary-container', 'text-white', 'shadow-xs');
+          btn.classList.add('text-on-surface-variant');
+        }
+      });
+
+      // Show targeted state
+      const targetView = document.getElementById(`state-${state}-view`);
+      if (targetView) {
+        targetView.classList.remove('hidden');
+      }
+
+      // Highlight simulator button
+      const targetBtn = document.getElementById(`sim-${state}`);
+      if (targetBtn) {
+        targetBtn.classList.remove('text-on-surface-variant');
+        targetBtn.classList.add('bg-primary-container', 'text-white', 'shadow-xs');
+      }
+    }
+
+    // Simulated action for "Claim a space for today"
+    function handleClaimClick() {
+      setDashboardState('claiming');
+      // Simulate real-world barrier server validation delay
+      setTimeout(() => {
+        setDashboardState('success');
+      }, 1600);
+    }
+
+    // Interactive Notification toggle
+    function toggleNotification(checkbox) {
+      const label = document.getElementById('toggle-label');
+      if (checkbox.checked) {
+        label.textContent = 'Enabled';
+        label.classList.remove('text-outline');
+        label.classList.add('text-on-surface-variant');
+      } else {
+        label.textContent = 'Disabled';
+        label.classList.remove('text-on-surface-variant');
+        label.classList.add('text-outline');
+      }
+    }
+  </script>
+</body></html>

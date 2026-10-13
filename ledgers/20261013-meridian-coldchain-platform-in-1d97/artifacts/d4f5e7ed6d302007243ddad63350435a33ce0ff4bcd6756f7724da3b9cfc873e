@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Packed|Quarantined|status:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 3,
+   "resultChars": 573,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Packed|Quarantined|status:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:355: summary: \"List packed boxes and compatibility status.\"\ncontracts/openapi.yaml:1821: Status:\ncontracts/openapi.yaml:1954: status:\ncontracts/openapi.yaml:2008: status:\ncontracts/openapi.yaml:2579: status: \"Quarantined\"\ncontracts/openapi.yaml:2598: status: \"In transit\"\ncontracts/openapi.yaml:2618: status: \"Accepted\"\ncontracts/openapi.yaml:2628: status: \"Challenge sent\"\n</untrusted_document>"
+  }
+ ]
+}

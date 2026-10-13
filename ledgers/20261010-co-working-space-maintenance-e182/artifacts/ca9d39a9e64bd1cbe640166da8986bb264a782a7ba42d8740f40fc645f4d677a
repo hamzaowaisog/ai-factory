@@ -1,0 +1,43 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The maintenance request system shall provide a browser-accessible web front end, an HTTP API, and a database that stores request records.",
+      "op": "MODIFIED",
+      "sources": [
+       "I-1",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "The application and database are running.",
+        "when": "A client creates a request through the HTTP API and retrieves it through a separate get-by-ID API call using the ID from the create response.",
+        "then": "The create response record and get-by-ID response record contain the same generated ID and request field values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "The application is running.",
+        "when": "A user opens the application in a browser.",
+        "then": "The Requests screen is displayed.",
+        "level": "manual"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

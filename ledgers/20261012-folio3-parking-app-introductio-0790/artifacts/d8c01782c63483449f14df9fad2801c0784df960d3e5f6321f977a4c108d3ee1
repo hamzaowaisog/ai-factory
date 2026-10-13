@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#F5F7F6]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ananya Rao — Parking Assignment &amp; Vehicle Clearance — Folio3 Parking</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary-fixed-variant": "#78301e",
+            "secondary-fixed-dim": "#f1baac",
+            "tertiary": "#006056",
+            "on-secondary-container": "#794f45",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface-variant": "#efdfdb",
+            "surface-dim": "#e7d7d3",
+            "on-secondary": "#ffffff",
+            "inverse-on-surface": "#feede9",
+            "on-secondary-fixed": "#31130b",
+            "secondary": "#7e5449",
+            "on-surface": "#221a18",
+            "on-primary-fixed": "#3c0700",
+            "on-tertiary": "#ffffff",
+            "surface-container-high": "#f5e5e1",
+            "secondary-container": "#fdc5b7",
+            "on-tertiary-fixed-variant": "#005047",
+            "primary-fixed-dim": "#ffb4a2",
+            "primary-fixed": "#ffdad2",
+            "surface-container-low": "#fff1ed",
+            "on-primary": "#ffffff",
+            "inverse-surface": "#382e2c",
+            "tertiary-fixed": "#96f3e3",
+            "on-surface-variant": "#55433e",
+            "surface-bright": "#fff8f6",
+            "outline-variant": "#dac1bb",
+            "primary-container": "#a95540",
+            "tertiary-container": "#007b6e",
+            "inverse-primary": "#ffb4a2",
+            "tertiary-fixed-dim": "#79d7c7",
+            "on-error": "#ffffff",
+            "background": "#fff8f6",
+            "surface-container": "#fbeae6",
+            "surface": "#fff8f6",
+            "secondary-fixed": "#ffdad2",
+            "outline": "#88726d",
+            "surface-tint": "#974733",
+            "on-primary-container": "#ffece8",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-highest": "#efdfdb",
+            "on-tertiary-fixed": "#00201c",
+            "on-secondary-fixed-variant": "#643d33",
+            "on-tertiary-container": "#b2fff0",
+            "error": "#ba1a1a",
+            "primary": "#8b3e2a",
+            "on-background": "#221a18",
+            // Design system semantic names
+            "daylight": "#F5F7F6",
+            "graphite": "#222927",
+            "slate": "#596560",
+            "rule": "#D8DEDB",
+            "clay": "#A95540",
+            "neutral-fill": "#F1F3F2"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["'Hanken Grotesk'", "sans-serif"],
+            display: ["'Hanken Grotesk'", "sans-serif"],
+            body: ["'Source Sans 3'", "sans-serif"],
+            mono: ["'IBM Plex Mono'", "monospace"],
+            label: ["'Hanken Grotesk'", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    @keyframes settle-in {
+      from { opacity: 0.84; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes active-check {
+      0%, 100% { opacity: 0.76; }
+      50% { opacity: 1; }
+    }
+
+    .page-intro {
+      animation: settle-in var(--dur-slow) var(--ease-out) both;
+    }
+
+    .entry-check-live::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 9999px;
+      background-color: #007b6e;
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: active-check 7.5s var(--ease-inout) infinite;
+    }
+
+    /* Primary clay button interactions */
+    .btn-primary {
+      background-color: #A95540;
+      color: #FFFFFF;
+      transition: background-color var(--dur-quick) ease, transform var(--dur-instant) ease;
+    }
+    .btn-primary:hover {
+      background-color: #8b3e2a;
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #A95540;
+      outline-offset: 2px;
+    }
+
+    /* Stall cue styling: paired hairline visual anchor */
+    .stall-bay-mark {
+      position: relative;
+      padding-left: 10px;
+    }
+    .stall-bay-mark::before,
+    .stall-bay-mark::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      width: 2px;
+      background-color: #A95540;
+    }
+    .stall-bay-mark::before { left: 0; }
+    .stall-bay-mark::after { left: 4px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-intro, .entry-check-live::before {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      *, *::before, *::after {
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-body text-[#222927] antialiased bg-[#F5F7F6]">
+<!-- Top App Bar / Shared Header -->
+<header class="w-full bg-white border-b border-[#D8DEDB] shrink-0 sticky top-0 z-40">
+<div class="w-full max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+<!-- Left: Brand mark & primary web navigation cluster -->
+<div class="flex items-center space-x-8">
+<!-- Brand Identity -->
+<a class="flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A95540] rounded p-1" href="#">
+<div class="w-7 h-7 rounded bg-[#A95540] flex items-center justify-center text-white font-headline font-semibold text-xs tracking-tight">
+            F3
+          </div>
+<span class="font-headline text-base font-semibold tracking-tight text-[#222927]">
+            Folio3 Parking
+          </span>
+</a>
+<!-- Desktop Navigation Bar -->
+<nav aria-label="Administrator Navigation" class="hidden md:flex items-center space-x-1 font-headline text-sm font-semibold tracking-tight">
+<a class="text-[#596560] font-normal hover:text-[#222927] px-3.5 py-5 transition-colors duration-150" href="#">
+            Overview
+          </a>
+<!-- Active Tab: Employees -->
+<a aria-current="page" class="text-[#222927] font-semibold border-b-2 border-[#A95540] px-3.5 py-5 -mb-px" href="#">
+            Employees
+          </a>
+<a class="text-[#596560] font-normal hover:text-[#222927] px-3.5 py-5 transition-colors duration-150" href="#">
+            Parking setup
+          </a>
+<a class="text-[#596560] font-normal hover:text-[#222927] px-3.5 py-5 transition-colors duration-150" href="#">
+            Weekly report
+          </a>
+<a class="text-[#596560] font-normal hover:text-[#222927] px-3.5 py-5 transition-colors duration-150" href="#">
+            Entry checks
+          </a>
+<a class="text-[#596560] font-normal hover:text-[#222927] px-3.5 py-5 transition-colors duration-150" href="#">
+            Audit history
+          </a>
+</nav>
+</div>
+<!-- Right: Administrator Context & Profile (Priya Nair) -->
+<div class="flex items-center space-x-3 pl-4">
+<div class="text-right hidden sm:block">
+<div class="font-headline text-sm font-semibold text-[#222927] leading-none">
+            Priya Nair
+          </div>
+<div class="font-body text-xs text-[#596560] tracking-normal mt-1 leading-none">
+            Parking Administrator
+          </div>
+</div>
+<img alt="Priya Nair, Parking Administrator" class="w-9 h-9 rounded-full object-cover border border-[#D8DEDB] shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1VwWzSJ8eWrtaCfTF8yQAHJ5ml32Y3DrT-0xxblKf3Br833Qba3zhfSj2EwvG04AqTk4HdxTcNMoXR2tJ6wZygjw343-wMiQrYS7VU6v7JVo44sQpgzO_D_3bDyHjMMcDKYfXRftvYU3H5BBkL_l2Khnp2Wv5wnS1zBnWogkHipU87ihc8ItVkN38W98tmaWJtwxWsMUaAKeIho6E3uE-n-Tx0SnQfmxH5cgU_X5z3crRn3kVI3oQ32"/>
+</div>
+</div>
+</header>
+<!-- Main Content Work Area -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 py-6 md:py-8">
+<!-- Page Header / Contextual Anchor -->
+<div class="page-intro mb-6 pb-4 border-b border-[#D8DEDB]">
+<!-- Breadcrumb & Campus Moment Line -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
+<nav aria-label="Breadcrumb">
+<a class="inline-flex items-center gap-1.5 text-xs font-headline font-semibold text-[#596560] hover:text-[#222927] transition-colors duration-150 group" href="#">
+<span class="material-symbols-outlined text-[16px] text-[#596560] group-hover:text-[#222927]" data-icon="arrow_back">arrow_back</span>
+            Back to Employees Directory
+          </a>
+</nav>
+<!-- Campus Live Time Stamp -->
+<div class="flex items-center gap-2 text-xs text-[#596560] font-body">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#007b6e]"></span>
+<span>Bengaluru Campus:</span>
+<span class="font-mono text-[11px] font-medium text-[#222927] tracking-tight">Tue 19 May 2026, 09:15 AM IST</span>
+</div>
+</div>
+<!-- Headings & Subtitle -->
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2">
+<div>
+<h1 class="font-headline text-2xl sm:text-3xl font-semibold text-[#222927] tracking-[-0.025em]">
+            Ananya Rao
+          </h1>
+<p class="font-body text-sm sm:text-base text-[#596560] mt-0.5">
+            Employee parking assignment &amp; vehicle clearance profile
+          </p>
+</div>
+<div class="inline-flex items-center gap-2 px-2.5 py-1 bg-white border border-[#D8DEDB] rounded text-xs text-[#596560]">
+<span class="text-[10px] uppercase font-label tracking-[0.07em] font-semibold text-[#596560]">Emp ID:</span>
+<span class="font-mono text-xs font-medium text-[#222927]">F3-BLR-0418</span>
+</div>
+</div>
+</div>
+<!-- 2-Column Responsive Workspace Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT COLUMN (4 Cols): Read-Only Corporate Directory Profile -->
+<section class="lg:col-span-5 bg-white border border-[#D8DEDB] rounded-lg p-5 sm:p-6 shadow-none">
+<!-- Header / Scope indicator -->
+<div class="flex items-center justify-between pb-4 border-b border-[#D8DEDB]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#596560] text-lg" data-icon="badge">badge</span>
+<span class="font-headline text-xs font-semibold text-[#222927] tracking-normal">
+              Corporate Directory
+            </span>
+</div>
+<span class="text-[11px] font-label uppercase tracking-[0.07em] font-medium text-[#596560] bg-[#F1F3F2] px-2 py-0.5 rounded">
+            Read-only
+          </span>
+</div>
+<!-- Directory Portrait & Primary Details -->
+<div class="mt-5 flex flex-col sm:flex-row lg:flex-col gap-4 items-center sm:items-start lg:items-center">
+<div class="relative shrink-0">
+<img alt="Ananya Rao" class="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-lg object-cover border border-[#D8DEDB]" src="https://lh3.googleusercontent.com/aida/AEtjO1Wz8hgT6O5PFblsHQYnEr-HD3q3wNp8RDaTzOFBmkLjYYg0_WmlJ3STYrgGrCG0B6yWbMy1iOIG8fg7qFQ83g8SgO5qLtPjVvsNQFOuSffx1aYv7b6DJ_4pI_uFB8YPehAd6T76AuBYYG8jh6zuB6ZeHL-VBqdYpD_edoOF155bfWZ8glisMULj-xXKmB1YWSJpIoaOMIHg5_08IZMaFJMJtxtL2ciwRBA_PDVgstZr4l6GPnBJJj6V"/>
+<div class="absolute bottom-2 right-2 bg-white px-2 py-0.5 rounded border border-[#D8DEDB] shadow-sm flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#007b6e]"></span>
+<span class="text-[10px] font-label font-semibold text-[#222927] uppercase tracking-[0.05em]">Active</span>
+</div>
+</div>
+<div class="w-full text-center sm:text-left lg:text-center mt-1">
+<h2 class="font-headline text-lg font-semibold text-[#222927]">
+              Ananya Rao
+            </h2>
+<p class="font-body text-sm text-[#596560] mt-0.5">
+              Product Design
+            </p>
+</div>
+</div>
+<!-- Directory Metadata Table / Field Stack -->
+<dl class="mt-6 border-t border-[#D8DEDB] divide-y divide-[#D8DEDB] text-sm">
+<div class="py-3 flex justify-between items-center gap-2">
+<dt class="font-body text-[#596560] text-xs">Work Email</dt>
+<dd class="font-body text-[#222927] font-medium text-xs break-all text-right">
+              ananya.rao@folio3.com
+            </dd>
+</div>
+<div class="py-3 flex justify-between items-center gap-2">
+<dt class="font-body text-[#596560] text-xs">Department</dt>
+<dd class="font-body text-[#222927] font-medium text-xs text-right">
+              Product Design
+            </dd>
+</div>
+<div class="py-3 flex justify-between items-center gap-2">
+<dt class="font-body text-[#596560] text-xs">Employee Role</dt>
+<dd class="font-body text-[#222927] font-medium text-xs text-right">
+              Employee
+            </dd>
+</div>
+<div class="py-3 flex justify-between items-center gap-2">
+<dt class="font-body text-[#596560] text-xs">Directory Status</dt>
+<dd class="inline-flex items-center gap-1.5 text-xs font-medium text-[#222927]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#007b6e]"></span>
+              Active
+            </dd>
+</div>
+<div class="py-3 flex justify-between items-start gap-4">
+<dt class="font-body text-[#596560] text-xs pt-0.5">Office Location</dt>
+<dd class="font-body text-[#222927] font-medium text-xs text-right leading-snug">
+              Bengaluru Office<br/>
+<span class="text-[#596560] font-normal">Tower B, Level 1</span>
+</dd>
+</div>
+</dl>
+<!-- HR Sync Notice -->
+<div class="mt-6 p-3 bg-[#F1F3F2] rounded border border-[#D8DEDB] flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#596560] text-base shrink-0 mt-0.5" data-icon="sync_saved_locally">sync_saved_locally</span>
+<p class="font-body text-xs text-[#596560] leading-relaxed">
+            Directory records are synchronized automatically from corporate People Operations. To update job role or floor base, file a People Ops request.
+          </p>
+</div>
+</section>
+<!-- RIGHT COLUMN (7 Cols): Administrator-Maintained Parking Allocation & Vehicle Details -->
+<section class="lg:col-span-7 bg-white border border-[#D8DEDB] rounded-lg p-5 sm:p-6 shadow-none">
+<!-- Header & Section Badge -->
+<div class="flex items-center justify-between pb-4 border-b border-[#D8DEDB]">
+<div>
+<h2 class="font-headline text-base font-semibold text-[#222927] tracking-tight">
+              Parking Allocation &amp; ANPR Clearance
+            </h2>
+<p class="font-body text-xs text-[#596560] mt-0.5">
+              Live operational stall reservation, plate recognition, and access policy.
+            </p>
+</div>
+<span class="text-[11px] font-label uppercase tracking-[0.07em] font-semibold text-[#A95540] bg-[#fff1ed] border border-[#ffdad2] px-2.5 py-0.5 rounded">
+            Admin Controlled
+          </span>
+</div>
+<!-- Administrator Form -->
+<form class="mt-6 space-y-5" id="parkingAllocationForm" onsubmit="event.preventDefault();">
+<!-- Stall & Floor Assignment (Side-by-side) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Dedicated Stall Assignment -->
+<div>
+<label class="block font-headline text-xs font-semibold text-[#222927] mb-1.5" for="stallInput">
+                Dedicated Stall Assignment <span class="text-[#A95540]">*</span>
+</label>
+<div class="relative">
+<input aria-describedby="stallHelp" class="w-full h-11 px-3 bg-white border border-[#D8DEDB] rounded font-mono text-sm font-semibold text-[#222927] focus:border-[#A95540] focus:ring-1 focus:ring-[#A95540] focus:outline-none transition-colors" id="stallInput" name="stall" type="text" value="P1-12"/>
+<div aria-hidden="true" class="absolute right-3 top-3 pointer-events-none stall-bay-mark">
+<!-- Paired hairline stall mark visual token -->
+<span class="text-xs font-mono font-medium text-[#596560] pl-2">Stall 12</span>
+</div>
+</div>
+<p class="mt-1 font-body text-xs text-[#596560]" id="stallHelp">
+                Floor P1 primary dedicated reserved stall.
+              </p>
+</div>
+<!-- Assigned Level / Floor -->
+<div>
+<label class="block font-headline text-xs font-semibold text-[#222927] mb-1.5" for="floorSelect">
+                Assigned Level / Floor <span class="text-[#A95540]">*</span>
+</label>
+<select class="w-full h-11 px-3 bg-white border border-[#D8DEDB] rounded font-mono text-sm text-[#222927] focus:border-[#A95540] focus:ring-1 focus:ring-[#A95540] focus:outline-none transition-colors" id="floorSelect" name="floor">
+<option selected="" value="P1">P1 (Floor capacity: 40 spaces)</option>
+<option value="P2">P2 (Floor capacity: 45 spaces)</option>
+<option value="Basement">Basement 1 (Overflow)</option>
+</select>
+<p class="mt-1 font-body text-xs text-[#596560]">
+                Baseline level zone clearance.
+              </p>
+</div>
+</div>
+<!-- Space Status Detail Box (Read/Verified State) -->
+<div class="p-3.5 bg-[#F5F7F6] border border-[#D8DEDB] rounded-lg">
+<div class="flex items-center justify-between">
+<span class="font-headline text-xs font-semibold text-[#222927]">
+                Current Allocation State
+              </span>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-[#A95540] text-white">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                Reserved
+              </span>
+</div>
+<p class="font-body text-xs text-[#222927] mt-2">
+              Reserved for Ananya today, <span class="font-medium">Tue 19 May 2026</span>.
+            </p>
+<!-- Scheduled Releases -->
+<div class="mt-2.5 pt-2.5 border-t border-[#D8DEDB] flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#596560]">
+<span class="font-medium text-[#222927]">Scheduled space releases:</span>
+<span class="inline-flex items-center gap-1 font-mono text-[11px] text-[#222927] bg-white px-2 py-0.5 rounded border border-[#D8DEDB]">
+<span class="material-symbols-outlined text-[13px] text-[#A95540]" data-icon="event_busy">event_busy</span>
+                Thu 21 May 2026
+              </span>
+<span class="inline-flex items-center gap-1 font-mono text-[11px] text-[#222927] bg-white px-2 py-0.5 rounded border border-[#D8DEDB]">
+<span class="material-symbols-outlined text-[13px] text-[#A95540]" data-icon="event_busy">event_busy</span>
+                Mon 25 May 2026
+              </span>
+</div>
+</div>
+<!-- Vehicle Plate & Type (Side-by-side) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+<!-- Registered Vehicle Plate -->
+<div>
+<label class="block font-headline text-xs font-semibold text-[#222927] mb-1.5" for="plateInput">
+                Registered Vehicle Plate <span class="text-[#A95540]">*</span>
+</label>
+<div class="relative">
+<input class="w-full h-11 px-3 bg-white border border-[#D8DEDB] rounded font-mono text-sm tracking-wider font-semibold text-[#222927] focus:border-[#A95540] focus:ring-1 focus:ring-[#A95540] focus:outline-none transition-colors" id="plateInput" name="plate" type="text" value="KA03MN4821"/>
+<span class="absolute right-3 top-3 material-symbols-outlined text-[#596560] text-lg pointer-events-none" data-icon="directions_car">directions_car</span>
+</div>
+<p class="mt-1 font-body text-xs text-[#596560]">
+                Primary camera OCR match key.
+              </p>
+</div>
+<!-- Vehicle Type / Classification -->
+<div>
+<label class="block font-headline text-xs font-semibold text-[#222927] mb-1.5" for="vehicleType">
+                Vehicle Type / Classification
+              </label>
+<select class="w-full h-11 px-3 bg-white border border-[#D8DEDB] rounded font-body text-sm text-[#222927] focus:border-[#A95540] focus:ring-1 focus:ring-[#A95540] focus:outline-none transition-colors" id="vehicleType" name="vehicle_type">
+<option selected="" value="four_wheeler_primary">Four-wheeler (Primary vehicle)</option>
+<option value="ev_sedan">EV Sedan (Charging required)</option>
+<option value="two_wheeler">Two-wheeler</option>
+</select>
+<p class="mt-1 font-body text-xs text-[#596560]">
+                Standard parking dimensions.
+              </p>
+</div>
+</div>
+<!-- ANPR Gate Access Switch / Status -->
+<div class="pt-2">
+<div class="p-3.5 bg-white border border-[#D8DEDB] rounded-lg flex items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-[#007b6e] text-xl mt-0.5" data-icon="verified_user">verified_user</span>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline text-sm font-semibold text-[#222927]">
+                      ANPR Gate Access
+                    </span>
+<span class="entry-check-live text-xs font-medium text-[#007b6e]">
+                      Enabled
+                    </span>
+</div>
+<p class="font-body text-xs text-[#596560] mt-0.5">
+                    Automatic boom barrier clearance active at Bengaluru North Gate &amp; Tower B Ramp.
+                  </p>
+</div>
+</div>
+<!-- Functional Toggle State -->
+<label class="relative inline-flex items-center cursor-pointer shrink-0">
+<input aria-label="ANPR Gate Access" checked="" class="sr-only peer" id="anprToggle" type="checkbox"/>
+<div class="w-11 h-6 bg-[#D8DEDB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D8DEDB] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#A95540]"></div>
+</label>
+</div>
+</div>
+<!-- Administrative Operational Notes -->
+<div class="pt-1">
+<label class="block font-headline text-xs font-semibold text-[#222927] mb-1.5" for="adminNotes">
+              Administrative Notes
+            </label>
+<textarea class="w-full px-3 py-2 bg-white border border-[#D8DEDB] rounded font-body text-sm text-[#222927] focus:border-[#A95540] focus:ring-1 focus:ring-[#A95540] focus:outline-none transition-colors" id="adminNotes" name="notes" placeholder="Record operational overrides, temporary guest clearance notes, or maintenance directives..." rows="3">Confirmed clearance with facility team. Space P1-12 reserved through Q2 review cycle.</textarea>
+<p class="mt-1 font-body text-xs text-[#596560]">
+              Visible strictly to facility and parking operations administrators.
+            </p>
+</div>
+<!-- Action Buttons Bar -->
+<div class="pt-4 border-t border-[#D8DEDB] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+<button class="h-11 px-5 border border-[#D8DEDB] hover:bg-[#F1F3F2] active:scale-[0.97] transition-all rounded font-headline text-xs font-semibold text-[#596560] hover:text-[#222927] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A95540]" id="resetBtn" type="button">
+              Reset changes
+            </button>
+<button class="btn-primary h-11 px-6 rounded font-headline text-xs font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm" id="saveBtn" type="submit">
+<span class="material-symbols-outlined text-base" data-icon="save">save</span>
+              Save parking details
+            </button>
+</div>
+</form>
+</section>
+</div>
+</main>
+<script>
+    // Lightweight toast/feedback micro-interaction
+    const saveBtn = document.getElementById('saveBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = `
+          <span class="material-symbols-outlined text-base" data-icon="check">check</span>
+          Saved successfully
+        `;
+        saveBtn.style.backgroundColor = '#006056';
+        
+        setTimeout(() => {
+          saveBtn.innerHTML = originalText;
+          saveBtn.style.backgroundColor = '';
+        }, 1800);
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        document.getElementById('stallInput').value = 'P1-12';
+        document.getElementById('floorSelect').value = 'P1';
+        document.getElementById('plateInput').value = 'KA03MN4821';
+        document.getElementById('adminNotes').value = 'Confirmed clearance with facility team. Space P1-12 reserved through Q2 review cycle.';
+      });
+    }
+  </script>
+</body></html>

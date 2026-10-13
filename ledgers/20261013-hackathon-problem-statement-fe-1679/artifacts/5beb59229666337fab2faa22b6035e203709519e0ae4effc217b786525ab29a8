@@ -1,0 +1,23 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "verdicts": [
+     {
+      "testId": "tests/acceptance.test.tsx::approved web acceptance criteria > AC_2_2_SubmitsSelectedSourceRecordsAndShowsImportResult",
+      "verdict": "test",
+      "why": "Line 203 waits for the response through `expectValues`, whose `findByText` at line 83 uses the default 1-second timeout; the locked import mock itself delays 1 second before responding (`client.msw.ts:193–198`), making the assertion time out before a correct result can reliably render. Increase the wait timeout; the asserted status, record, counts, and selected-ID payload all match AC-2.2."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

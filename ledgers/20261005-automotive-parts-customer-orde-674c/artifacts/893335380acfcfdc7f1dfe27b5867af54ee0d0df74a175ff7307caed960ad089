@@ -1,0 +1,620 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I've repaired the spec. All nine findings are fixed, and requirement IDs are unchanged wherever the meaning stayed the same.\n\n**One decision needs your confirmation: payments (REQ-75).** Your request (section 32) says the portal takes no online card payments in this phase. ASM-24 assumed Stripe card payments, but that came from a default setting and didn't answer its own question. I reconciled the two this way:\n- **This phase:** no payment-provider integration. Staff record the payment date manually, and the system records who entered it.\n- **Later:** if card payments are added, Stripe is the only provider.\n- **Card data:** the portal never stores it. A new check, AC-75.6, covers this.\n\nThis is flagged in the assumptions for you to confirm at review.\n\n**Removed (each pair contradicted itself):**\n- **REQ-85:** the sales report is now defined only by REQ-86. It counts all non-cancelled orders by order date, not only delivered ones.\n- **REQ-68:** the dashboard's failed-import count follows REQ-67 only, meaning failures since the last successful import.\n- **REQ-81:** only administrators create and edit customer companies. This matches the request, which gives Office Staff view and search only.\n- **NFR-2:** NFR-1 now sets one catalogue search target: 95% of responses within 1.0 s, with 50,000 products and 100 concurrent users. This meets the stricter of the old targets.\n\n**Changed:**\n- **One \"shall\" per sentence:** REQ-8, 21, 25, 38, 40, 54, 55 and 82 are reworded with the same meaning.\n- **Password reset (REQ-9, REQ-11):**\n  - No reset email goes to deactivated users, pending invitees or users of inactive companies, and the response looks the same as for any other request.\n  - Locked accounts can still reset.\n  - A reset link stops working if the user is deactivated or their company becomes inactive after it was sent.\n- **Order emails (REQ-47):** emails go to the Buyer who placed the order only while that Buyer is active and still belongs to the order's company. Otherwise, and for orders staff created, they go to the company's contact email.\n\n**Added:**\n- **REQ-87:** an administrator can't deactivate their own account or change their own role. Since only an active administrator can make these changes, this also means the last administrator can't be removed.\n\n**Not changed:** NFR-3/4, NFR-5/6/7, NFR-8/9 and NFR-15/16 still set conflicting targets for the same thing, the same problem as NFR-1/2. None of them were flagged, so I left them alone. They should be settled before testing starts.",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-8",
+      "ears": "While a Buyer is signed in, the portal shall return only orders, invoices, prices, delivery addresses and account data that belong to the Buyer's own customer company, responding with status 404 to requests for such records of another company.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-5",
+       "I-9",
+       "Q-2"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "Buyer A of company A and order ORD-000200 of company B",
+        "when": "Buyer A requests ORD-000200",
+        "then": "The response status is 404 and no order data is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "Company B has invoice INV-000050",
+        "when": "Buyer A requests the PDF of INV-000050",
+        "then": "The response status is 404 and no file is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "Company A has 3 orders (2 by Buyer A, 1 by colleague Buyer A2) and company B has 2 orders",
+        "when": "Buyer A lists orders",
+        "then": "The returned list contains exactly the 3 company A orders",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "Company B has a delivery address and a price list different from company A",
+        "when": "Buyer A lists delivery addresses and opens a product",
+        "then": "The returned address list contains only company A addresses and the returned price value comes from company A's price list",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "When a Buyer filters the catalogue by a category, the portal shall return only active products assigned to that category that also match any supplied search term, returning all active products again once the category filter is cleared.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-10",
+       "ASM-15"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "3 active products in Filters and 2 in Brake system",
+        "when": "A Buyer lists the catalogue filtered by Filters",
+        "then": "The returned list count is 3 and every returned product has the category value Filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.2",
+        "given": "The products of AC-21.1",
+        "when": "A Buyer lists the catalogue with no category filter",
+        "then": "The returned list count is 5",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.3",
+        "given": "Active products \"Oil Filter\" (Filters) and \"Oil Pump\" (Engine parts)",
+        "when": "A Buyer searches \"oil\" filtered by Filters",
+        "then": "The returned list contains Oil Filter only",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The portal shall price every product shown to a Buyer, and every line of that company's basket, staff-created orders and repeat orders, from the price list assigned to the Buyer's customer company at the time of the request, so that a changed assignment applies from then on.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-11",
+       "I-17"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "Product X costs 50.00 on Standard and 40.00 on Workshop A, and company A is assigned Workshop A",
+        "when": "A Buyer of company A opens product X",
+        "then": "The returned price value is 40.00 and the value 50.00 does not appear in the response",
+        "level": "api"
+       },
+       {
+        "id": "AC-25.2",
+        "given": "The setup of AC-25.1",
+        "when": "An administrator assigns Standard to company A and the Buyer opens product X again",
+        "then": "The returned price value is 50.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-25.3",
+        "given": "Product BP-1001 priced 15.00 on Standard and 12.50 on Workshop A; company A on Workshop A and company B on Standard",
+        "when": "A Buyer of each company opens BP-1001",
+        "then": "The price value returned to company A's Buyer is 12.50 and to company B's Buyer is 15.00",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-38",
+      "ears": "The portal shall keep each Buyer's basket for the duration of the Buyer's session only, letting the Buyer add products, change line quantities (minimum 1) and remove lines, and returning each line's unit price, quantity and line total and the tax-exclusive basket subtotal.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-9",
+       "ASM-14"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-38.1",
+        "given": "Product X at 12.50 and product Z at 4.00 on the Buyer's price list, both in stock",
+        "when": "The Buyer adds 2 of X and 3 of Z",
+        "then": "The returned line totals are 25.00 and 12.00 and the subtotal value is 37.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.2",
+        "given": "The basket from AC-38.1",
+        "when": "The Buyer changes X to quantity 3 and removes the Z line",
+        "then": "The returned line count is 1, the line total is 37.50 and the subtotal value is 37.50",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.3",
+        "given": "The basket from AC-38.1",
+        "when": "The Buyer sets X to quantity 0 or -1",
+        "then": "The response status is 422, the error names the quantity field and the line quantity value stays 2",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.4",
+        "given": "A Buyer with 2 basket lines",
+        "when": "The Buyer lists the catalogue and then requests the basket in the same session",
+        "then": "The returned basket has the same 2 lines",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.5",
+        "given": "A Buyer with 2 basket lines",
+        "when": "The Buyer signs out, signs in again and requests the basket",
+        "then": "The returned basket line count is 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-40",
+      "ears": "The portal shall accept as a delivery date for Buyer baskets, submitted orders and staff-created orders only a working day from the earliest delivery date up to the configured maximum number of days ahead, checked at submission time, offering exactly those dates as selectable and rejecting any other date with an error naming the delivery date.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-12"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-40.1",
+        "given": "Maximum 14 days ahead, weekends non-working, current time Monday 10:00",
+        "when": "A Buyer requests the selectable delivery dates",
+        "then": "The returned list starts with Tuesday, contains no Saturday or Sunday, and its last value is no later than 14 days after today",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.2",
+        "given": "Now is Monday 2026-10-05 15:00, cutoff 14:00, maximum 30 days ahead",
+        "when": "The Buyer sets the basket delivery date to 2026-10-06, 2026-10-10 (Saturday) and 2026-11-20 in turn",
+        "then": "Each response is a validation error status with an error naming the date rule broken",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.3",
+        "given": "The settings of AC-40.2",
+        "when": "The Buyer sets the basket delivery date to 2026-10-07",
+        "then": "The response status is 200 and the basket delivery date field is 2026-10-07",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.4",
+        "given": "A Buyer basket with delivery date Tuesday chosen at Monday 13:50",
+        "when": "The Buyer submits the order at Monday 14:05",
+        "then": "The response status is 422, the error names the deliveryDate field and no order record is created",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-54",
+      "ears": "When a staff user searches customers by partial company name or account number or opens a customer company, the portal shall return the matching customer companies or, for the opened company, its details, delivery addresses, assigned price list, users, active status, orders and invoices.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-6"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-54.1",
+        "given": "Companies \"Northside Motors\" (account C-1001) and \"Fleetline\" (C-2002)",
+        "when": "A staff user searches \"north\" and then \"C-2002\"",
+        "then": "The first returned list contains only Northside Motors and the second only Fleetline",
+        "level": "api"
+       },
+       {
+        "id": "AC-54.2",
+        "given": "Company Smith Motors with 2 addresses, 3 users, orders and invoices",
+        "when": "A staff user opens the company",
+        "then": "The response contains the company fields, an addresses list of count 2, the price list name, a users list of count 3, the status, and orders and invoices lists",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-55",
+      "ears": "The portal shall let staff edit an order only while it is in Received status, limited to changing line quantities, removing lines, changing the note, changing the delivery address to another address of the same company and changing the delivery date to a date selectable at the time of the edit.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-14",
+       "Q-4",
+       "ASM-35"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-55.1",
+        "given": "A Received order with delivery date Thursday",
+        "when": "At Monday 15:00 staff change the date to Wednesday, then to Tuesday",
+        "then": "The Wednesday change response status is 200 and the Tuesday change response status is 422 with an error naming the deliveryDate field",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.2",
+        "given": "A Received order of company A",
+        "when": "Staff change the delivery address to an address of company B",
+        "then": "The response status is 422 and the order's address value is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.3",
+        "given": "A Received order with 2 lines",
+        "when": "Staff remove one line and change the note",
+        "then": "The response status is 200 and the order record has 1 line, the new note and a recalculated total",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.4",
+        "given": "A Confirmed order",
+        "when": "Staff change a line quantity",
+        "then": "The response status is 409 and the line quantity value is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-82",
+      "ears": "The portal shall restrict adding, editing and removing a customer company's delivery addresses, each with label, address lines 1 and 2, city, region, postal code, country, contact person and contact phone, to staff and administrators and return every delivery address of a Buyer's own company to that Buyer.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "I-17",
+       "Q-7",
+       "ASM-13"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-82.1",
+        "given": "Company A",
+        "when": "A staff user adds address \"Depot 2\" and a Buyer of company A lists addresses",
+        "then": "The create response status is 201 and the returned address list contains Depot 2",
+        "level": "api"
+       },
+       {
+        "id": "AC-82.2",
+        "given": "A signed-in Buyer",
+        "when": "The Buyer POSTs a new address for their company",
+        "then": "The response status is 403 and the address count is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-82.3",
+        "given": "Order ORD-000124 delivered to address Depot 2",
+        "when": "Staff remove Depot 2 and the order is opened",
+        "then": "The returned order delivery address still shows the Depot 2 details",
+        "level": "api"
+       },
+       {
+        "id": "AC-82.4",
+        "given": "Acme Garage has 2 delivery addresses and Fleet Co has 1",
+        "when": "A Buyer of Acme Garage lists addresses",
+        "then": "The returned list contains exactly the 2 Acme Garage addresses with all address fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When a password reset is requested for an email address, the portal shall return the same response whether or not the email exists and send a reset email with a single-use link valid for the configured period (default 1 hour) only if the email belongs to an active (including temporarily locked) account whose customer company, if any, is active.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "Q-5",
+       "ASM-18",
+       "ASM-19"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "An active account exists for buyer@a.test",
+        "when": "POST a password reset request for buyer@a.test",
+        "then": "The response status is 202 and exactly one email containing a reset link is sent to buyer@a.test",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "No account exists for ghost@x.test",
+        "when": "POST a password reset request for ghost@x.test",
+        "then": "The response status and body equal those of AC-9.1 and no email is sent",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.3",
+        "given": "A user deactivated by an administrator",
+        "when": "POST a password reset request for that user's email",
+        "then": "The response status and body equal those of AC-9.1 and no email is sent",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.4",
+        "given": "A pending invitee who has not yet accepted the invitation",
+        "when": "POST a password reset request for that invitee's email",
+        "then": "The response status and body equal those of AC-9.1, no email is sent and the user record status stays \"Pending\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.5",
+        "given": "An active Buyer whose customer company has been set inactive",
+        "when": "POST a password reset request for that Buyer's email",
+        "then": "The response status and body equal those of AC-9.1 and no email is sent",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.6",
+        "given": "An active account temporarily locked after 5 failed sign-in attempts",
+        "when": "POST a password reset request for that account's email",
+        "then": "The response status is 202 and exactly one reset email is sent to that address",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "If a reset link is expired or already used, or its user is pending, deactivated or belongs to an inactive customer company when the link is used, then the portal shall reject the password change, keeping the existing password and any sign-in lock unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "Q-5",
+       "ASM-19"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "A reset link that has already been used",
+        "when": "A new password is submitted through it again",
+        "then": "The response status is 400 and the error message says the link is invalid or expired",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "A reset link issued 61 minutes ago with the default validity",
+        "when": "A new password is submitted through it and then sign-in with the old password is attempted",
+        "then": "The reset response status is 400 with an error saying the link is invalid or expired, and the old-password sign-in response status is 200",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "A reset link issued 5 minutes ago to an active Buyer, after which an administrator deactivated that Buyer",
+        "when": "A new password is submitted through the link",
+        "then": "The response status is 400 and the user record status value stays \"Deactivated\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.4",
+        "given": "A reset link issued 5 minutes ago to a Buyer whose company was then set inactive",
+        "when": "A new password is submitted through the link and the company is later reactivated and the Buyer signs in with the old password",
+        "then": "The reset response status is 400 and the later old-password sign-in response status is 200",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-47",
+      "ears": "The portal shall send each order email to the Buyer who placed the order while that Buyer is active and still linked to the order's customer company, and otherwise, including for orders created by staff, to the customer company's contact email.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-14",
+       "ASM-17",
+       "ASM-33"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-47.1",
+        "given": "An order placed by active Buyer buyer@a.test of company A",
+        "when": "Staff confirm the order",
+        "then": "The confirmation email is sent to buyer@a.test only",
+        "level": "api"
+       },
+       {
+        "id": "AC-47.2",
+        "given": "An order created by staff for company A whose contact email is orders@a.test",
+        "when": "Staff confirm the order",
+        "then": "The confirmation email is sent to orders@a.test and not to any Buyer",
+        "level": "api"
+       },
+       {
+        "id": "AC-47.3",
+        "given": "A Received order placed by Buyer ann@a.test of company A (contact email orders@a.test), after which an administrator deactivated Ann",
+        "when": "Staff confirm the order",
+        "then": "The confirmation email is sent to orders@a.test and no email is sent to ann@a.test",
+        "level": "api"
+       },
+       {
+        "id": "AC-47.4",
+        "given": "A Picking order placed by Buyer ann@a.test of company A (contact email orders@a.test), after which an administrator moved Ann to Fleet Co",
+        "when": "Staff set the order to Out for delivery",
+        "then": "The out-for-delivery email is sent to orders@a.test and no email is sent to ann@a.test",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-75",
+      "ears": "When staff mark an Unpaid or Overdue invoice as paid with a payment date no later than today, the portal shall set its status to Paid and record the payment date and the staff user, storing no card data.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "I-16",
+       "ASM-24"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-75.1",
+        "given": "An Unpaid invoice",
+        "when": "A staff user marks it paid with payment date 6 Oct 2026",
+        "then": "The invoice record has status Paid, payment date 6 Oct 2026 and recordedBy the staff user",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.2",
+        "given": "An Unpaid invoice",
+        "when": "A staff user marks it paid without a payment date",
+        "then": "The response is a validation error status (400/422) and the status value stays Unpaid",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.3",
+        "given": "Unpaid invoice INV-000051 and today is 2026-10-20",
+        "when": "Staff mark it paid with date 2026-10-21",
+        "then": "The response status is 400 with error code INVALID_PAYMENT_DATE",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.4",
+        "given": "Invoice INV-000050 already Paid",
+        "when": "Staff mark it paid again",
+        "then": "The response status is 409 with error code ALREADY_PAID",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.5",
+        "given": "A signed-in Buyer",
+        "when": "The Buyer tries to mark an invoice of their company paid",
+        "then": "The response status is 403",
+        "level": "api"
+       },
+       {
+        "id": "AC-75.6",
+        "given": "An Unpaid invoice",
+        "when": "A staff user marks it paid with payment date 6 Oct 2026 and an extra cardNumber field 4242424242424242 in the request",
+        "then": "The returned invoice record and its stored row contain no card number value",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-87",
+      "ears": "If an administrator tries to deactivate their own account or change their own role, then the portal shall reject the change and leave the account unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-17",
+       "ASM-28"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-87.1",
+        "given": "Signed-in Administrator A1 and a second active Administrator A2",
+        "when": "A1 calls the deactivate endpoint for A1's own account",
+        "then": "The response status is 409 and A1's user record status value stays \"Active\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-87.2",
+        "given": "Signed-in Administrator A1 who is the only active Administrator",
+        "when": "A1 changes A1's own role to Office Staff",
+        "then": "The response status is 409 and A1's user record role value stays \"Administrator\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-87.3",
+        "given": "Signed-in Administrator A1 and a second active Administrator A2",
+        "when": "A1 deactivates A2",
+        "then": "The response status is 200 and A2's user record status value is \"Deactivated\" while A1's stays \"Active\"",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Catalogue search, category filter and vehicle search respond within a bounded time under load (single agreed target replacing the d1/d2/d3 variants).",
+      "metric": "p95 response time ≤ 1.0 s with 50,000 active products and 100 concurrent signed-in users"
+     }
+    ],
+    "removed": [
+     "REQ-85",
+     "REQ-68",
+     "REQ-81",
+     "NFR-2"
+    ],
+    "outOfScope": [
+     "Customer Account Manager role (Q-1)",
+     "Saved basket templates, request section 16 (ASM-1)",
+     "Buyers creating or editing their own delivery addresses (Q-7, ASM-13)",
+     "Basket persistence across sessions (ASM-14)",
+     "Nested categories (ASM-15)",
+     "Separate Rejected order status; rejection uses Cancelled with a reason (ASM-16)",
+     "SMS and push notifications (ASM-17, ASM-18)",
+     "Full field-level audit trail beyond created/last-changed by and at, status timeline and amendment records (ASM-21)",
+     "Custom report builder (ASM-20)",
+     "Migration of existing customer, product, price or vehicle data; system starts empty with seed data (ASM-22)",
+     "CSV upload of vehicle compatibility data (ASM-23)",
+     "Native mobile apps (ASM-30)",
+     "Languages other than English (ASM-10)",
+     "Backorders and ordering above imported stock (request section 8; ASM-4)",
+     "Online card payments and any payment-provider (Stripe) integration in this phase, partial payments and payment-method capture (request section 32; reconciled with ASM-24, see assumptions; pending human confirmation)",
+     "Route planning (request section 22)",
+     "Volume, promotional, discount and date-effective pricing (request section 10: one price per product per price list)",
+     "Any modification of or writing back to ERP stock or orders (request section 9)",
+     "Reproducing an existing client invoice template (ASM-26)"
+    ],
+    "assumptions": [
+     "There is no existing code, so every requirement is ADDED. Endpoint paths in acceptance criteria only show the contract.",
+     "Payments: request section 32, the client's own text, says the portal takes no online card payments in this phase and that staff record the payment date and the recording user. ASM-24 came from a default (fromDefault: payments) and did not answer its own question about what staff record. The spec reconciles them without dropping either: no payment-provider integration is built in this phase (section 32); any later card payment must use Stripe only (ASM-24); and the portal never stores card data (ASM-24, AC-75.6). This reconciliation is flagged for the human to confirm at spec review.",
+     "Rejection HTTP status codes differ between drafts (e.g. 400 vs 410 for expired links, 400 vs 422 vs 409 for validation errors, 202 vs 200 for reset requests). d3 states codes are examples; the merged ACs use one code where drafts agree on the outcome, and the fixed rule is success or rejection with no record change on rejection.",
+     "The pending invitation status is called \"Pending\" (d1/d2) or \"Invited\" (d3); these are the same state.",
+     "An ERP file fails validation as a whole if it is missing, unreadable, empty, missing a required column, or has any non-numeric or negative quantity. Unknown product identifiers alone do not fail the file (ASM-6).",
+     "Stock import rows are matched by distributor product code until the client supplies the column layout (ASM-7). Products missing from a valid file keep their previous quantity; a product never imported counts as Out of stock.",
+     "Placing or confirming an order does not reduce imported stock; nothing is reserved.",
+     "Price or stock changes at checkout reject the submission and return current values; the order is never silently repriced.",
+     "Repeat order works for an order of any status and adds lines at their original quantity, capped at available stock and flagged when reduced.",
+     "Order and basket totals are net (tax-exclusive); tax and gross appear only on invoices (ASM-9). One currency with 2 decimal places.",
+     "A deactivated price list cannot be newly assigned. If a company has no assigned or an inactive price list, every product shows 'Price on request' (d3).",
+     "Search is a case-insensitive substring match; ranking is not specified.",
+     "Vehicle compatibility entries store a model-year range (from–to) (d1); d3 says model year.",
+     "Confirmation validation means every line is active and within available stock and the delivery address still exists.",
+     "A password reset request returns the same response whether or not the email exists, and whether or not the account is eligible for a reset.",
+     "Password reset is available only to active accounts, including temporarily locked ones (ASM-19), of active companies. Pending invitees must use their invitation link, and deactivated users or users of inactive companies get no reset email; a link issued before deactivation or company deactivation can no longer be used (Q-5).",
+     "Order emails go to the placing Buyer only while that Buyer is active and still linked to the order's company; otherwise they go to the company's contact email, so a deactivated or moved Buyer receives no details of the old company's orders.",
+     "An administrator cannot deactivate or change the role of their own account. Because only an active Administrator can make these changes, this also guarantees at least one active Administrator always remains.",
+     "Customer companies are created and edited by Administrators only (request section 3.4 'Manage customer accounts'); Office Staff can search and view companies (request section 3.3) and manage delivery addresses (Q-7).",
+     "The sales report (REQ-86) is built from non-Cancelled orders whose order date falls in the selected range; the delivered-date basis from the d1 draft is dropped.",
+     "The dashboard failedImports count is the number of failed stock imports since the last successful import (REQ-67); the 7-day variant from another draft is dropped.",
+     "The stock quantity limit (ASM-4) applies to Buyer baskets, staff-created order lines and staff amendments.",
+     "Staff removing an order line counts as a quantity change to 0 and triggers the amendment email (ASM-35). Staff cannot add new lines to Received orders.",
+     "Product images may be JPEG, PNG or WebP; ASM-29 sets the 10 MB limit.",
+     "Delivery list CSV columns are those in REQ-64 until the client confirms them.",
+     "The invoice date is the date the order became Delivered.",
+     "Management has no separate role; managers use Office Staff or Administrator accounts for the sales report.",
+     "Reactivating a user is allowed only while the user's company is active (d3 reading of 'where permitted').",
+     "Session idle timeout values are draft assumptions; the request only says 'session management'."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement only the operations and behavior defined in the OpenAPI contract, retaining the root health, OpenAPI-document, and Swagger UI routes, and ensure responses, filtering, and scope enforcement conform to the contract."
+     },
+     {
+      "n": 2,
+      "text": "Persist contract-defined business changes in the configured PostgreSQL database, apply only contract-defined lifecycle constraints, use EnsureCreated only for a genuinely empty database, and use a reviewed migration that preserves existing data for existing databases."
+     },
+     {
+      "n": 3,
+      "text": "Run the demo seeder at startup only when Seed:Demo is true; have it add two to five contract-example-based rows only to each empty contract-backed table, preserve existing rows, and create valid references."
+     },
+     {
+      "n": 4,
+      "text": "When demo seeding is false or unset, do not run the seeder or create demo rows, and return empty lists for collection operations with no matching persisted records."
+     },
+     {
+      "n": 5,
+      "text": "Use the organization’s existing staff identity provider, with authorization URL and token-validation settings from deployment configuration and valid nonproduction settings in test and factory runs; fail startup with an error identifying any missing or invalid required setting."
+     },
+     {
+      "n": 6,
+      "text": "Implement customer and staff authentication and authorization only through the contract; store customer passwords as salted hashes, authorize using PostgreSQL account roles and scopes, match staff token email claims to enabled account emails, deny unmatched or disabled accounts, and add no extra lockout or one-time-code policies."
+     },
+     {
+      "n": 7,
+      "text": "Provision the initial PostgreSQL account through deployment, outside the API."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

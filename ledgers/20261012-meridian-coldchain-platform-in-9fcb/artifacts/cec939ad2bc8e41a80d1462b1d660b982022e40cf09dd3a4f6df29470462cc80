@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit trail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFade {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .motion-saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-waiting {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Fonts & Typography */
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .font-body {
+      font-family: 'Public Sans', sans-serif;
+    }
+
+    /* Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-logo-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-link {
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      text-decoration: none;
+      padding: 20px 0;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 4px;
+    }
+
+    .nav-link.active {
+      color: #202020;
+      font-weight: 600;
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-initials-badge {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .user-name-title {
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .user-role-label {
+      color: #626262;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+      user-select: none;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* Page Heading Area */
+    .page-title-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .main-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+      letter-spacing: -0.02em;
+    }
+
+    /* Controls & Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr auto;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .form-control {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 14px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      width: 100%;
+      outline: none;
+      transition: border-color 140ms ease;
+    }
+
+    .form-control.font-mono-val {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+    }
+
+    .form-control:hover {
+      border-color: #A0A0A0;
+    }
+
+    .form-control:focus {
+      border-color: #A94B1D;
+      outline: 1px solid #A94B1D;
+    }
+
+    select.form-control {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23626262' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    /* Ledger Panel */
+    .ledger-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .ledger-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #626262;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .ledger-table td {
+      height: 48px;
+      padding: 8px 16px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .ledger-row {
+      transition: background-color 100ms ease;
+    }
+
+    .ledger-row:hover {
+      background-color: #FAFAFA;
+    }
+
+    .ledger-row.expanded-parent {
+      background-color: #FBFBFB;
+    }
+
+    .col-time {
+      width: 140px;
+      white-space: nowrap;
+    }
+
+    .col-record {
+      width: 160px;
+      white-space: nowrap;
+    }
+
+    .col-action {
+      width: 160px;
+    }
+
+    .col-user {
+      width: 200px;
+    }
+
+    .col-summary {
+      min-width: 260px;
+    }
+
+    .col-status {
+      width: 140px;
+      white-space: nowrap;
+    }
+
+    .col-detail {
+      width: 110px;
+      text-align: right;
+    }
+
+    /* Status Indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Expand / Action Button inside table */
+    .btn-table-expand {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 2px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      font-size: 13px;
+      font-weight: 500;
+      color: #202020;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color 140ms ease, border-color 140ms ease;
+    }
+
+    .btn-table-expand:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-table-expand:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Inline Expanded Details Container */
+    .expanded-row-cell {
+      background-color: #FBFBFB;
+      padding: 0 !important;
+      border-bottom: 1px solid #D5D5D5;
+    }
+
+    .expanded-content-box {
+      padding: 24px 32px;
+      border-top: 1px solid #EBEBEB;
+    }
+
+    .expanded-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .expanded-section-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .audit-provenance {
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      gap: 20px;
+    }
+
+    .provenance-item span {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Sub-table for Field Changes */
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+
+    .diff-table th {
+      background-color: #F7F7F7;
+      height: 40px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .diff-table td {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #202020;
+      border-bottom: 1px solid #E5E5E5;
+      vertical-align: top;
+      height: auto;
+    }
+
+    .diff-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .old-value-cell {
+      color: #626262;
+    }
+
+    .new-value-cell {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Supplied Reason Block */
+    .reason-box {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .reason-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #626262;
+    }
+
+    .reason-text {
+      font-size: 14px;
+      color: #202020;
+      line-height: 1.5;
+    }
+
+    /* Ledger Summary Footer Bar */
+    .ledger-footer-bar {
+      padding: 16px 24px;
+      background-color: #FFFFFF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .mono-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: #626262;
+    }
+
+    .page-link-lot {
+      color: #202020;
+      font-weight: 500;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .page-link-lot:hover {
+      color: #A94B1D;
+    }
+
+    .page-link-lot:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header: Common across every page -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand">
+        <div class="brand-logo-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="#" class="nav-link">Products</a></li>
+          <li><a href="#" class="nav-link">Organisations</a></li>
+          <li><a href="#" class="nav-link">Accounts</a></li>
+          <li><a href="#" class="nav-link active">Audit trail</a></li>
+          <li><a href="#" class="nav-link">Reports</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-initials-badge">MV</div>
+        <div class="user-name-title">
+          Marcus Vale <span class="user-role-label">· System Administrator</span>
+        </div>
+      </div>
+      <div class="lang-switcher">
+        EN / العربية
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Worksurface -->
+  <main class="animate-entrance">
+
+    <!-- Page Title Area -->
+    <div class="page-title-row">
+      <h1 class="main-heading">Audit trail</h1>
+    </div>
+
+    <!-- Instant Filter Panel -->
+    <section class="filter-panel">
+      <div class="filter-grid">
+        <div class="form-group">
+          <label for="filter-record" class="form-label">Record</label>
+          <input 
+            type="text" 
+            id="filter-record" 
+            class="form-control font-mono-val" 
+            placeholder="Search lot, order, box or route..." 
+            value="All records"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="filter-user" class="form-label">User</label>
+          <select id="filter-user" class="form-control">
+            <option value="all" selected>All users</option>
+            <option value="leila">Leila Haddad (Warehouse Operator)</option>
+            <option value="omar">Omar Saleh (Quality Officer)</option>
+            <option value="priya">Priya Nair (Dispatcher)</option>
+            <option value="nadia">Nadia Farouk (Quality Manager)</option>
+            <option value="tariq">Tariq Mansour (Driver)</option>
+            <option value="hana">Hana Youssef (Cedar Health Buyer)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="filter-date" class="form-label">Date range</label>
+          <select id="filter-date" class="form-control font-mono-val">
+            <option value="today" selected>14 May 2026 (Today)</option>
+            <option value="yesterday">13 May 2026</option>
+            <option value="all-dates">12 May – 14 May 2026</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="filter-action" class="form-label">Action type</label>
+          <select id="filter-action" class="form-control">
+            <option value="all" selected>All action types</option>
+            <option value="receipt">Stock receipt</option>
+            <option value="release">Quality release</option>
+            <option value="route">Route confirmation</option>
+            <option value="recall">Recall initiation</option>
+            <option value="handover">Consignment handover</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <button type="button" class="btn btn-secondary" style="width: 100%;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export filtered CSV
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dense Audit Ledger Panel -->
+    <section class="ledger-panel">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th class="col-time">Date & time</th>
+            <th class="col-record">Record</th>
+            <th class="col-action">Action</th>
+            <th class="col-user">User & role</th>
+            <th class="col-summary">Event summary</th>
+            <th class="col-status">Result status</th>
+            <th class="col-detail">Audit detail</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Event 1: Nadia Farouk 10:00 recall (Expanded Inline) -->
+          <tr class="ledger-row expanded-parent">
+            <td class="col-time font-mono">14 May 10:00</td>
+            <td class="col-record font-mono">RC-12 · IG-2509</td>
+            <td class="col-action">Start recall</td>
+            <td class="col-user">Nadia Farouk · Quality Manager</td>
+            <td class="col-summary">Active manufacturer recall RC-12 initiated on Lot IG-2509; 4 packs quarantined, 20 traced to Cedar Clinic</td>
+            <td class="col-status">
+              <span class="status-badge status-refused">
+                <span class="status-dot"></span>
+                refused active
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Collapse</button>
+            </td>
+          </tr>
+
+          <!-- Inline Expanded Detail Row for Nadia's Recall -->
+          <tr>
+            <td colspan="7" class="expanded-row-cell">
+              <div class="expanded-content-box">
+                <div class="expanded-header-row">
+                  <h3 class="expanded-section-title">Audit event fields & state transition</h3>
+                  <div class="audit-provenance">
+                    <div class="provenance-item">Creator: <span>Nadia Farouk (Quality Manager)</span></div>
+                    <div class="provenance-item">Last changer: <span>Nadia Farouk</span></div>
+                    <div class="provenance-item font-mono">Timestamp: <span>14 May 2026 10:00:00 BST</span></div>
+                  </div>
+                </div>
+
+                <table class="diff-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 25%;">Field name</th>
+                      <th style="width: 35%;">Old value</th>
+                      <th style="width: 40%;">New value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">recall_status</td>
+                      <td class="old-value-cell font-mono">none</td>
+                      <td class="new-value-cell font-mono">active (RC-12)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">lot_governance_state</td>
+                      <td class="old-value-cell font-mono">good delivered (20 pk) / available (4 pk)</td>
+                      <td class="new-value-cell font-mono">refused active (4 on hand quarantined, 20 customer reconciliation)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">quarantine_location</td>
+                      <td class="old-value-cell font-mono">Cold Room C2, Rack 4 (Available)</td>
+                      <td class="new-value-cell font-mono">Cold Room C2, Rack 4 (Isolated rack tray)</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">traced_scope_quota</td>
+                      <td class="old-value-cell font-mono">0 / 24 packs</td>
+                      <td class="new-value-cell font-mono">24 / 24 packs traced (100% physically accounted)</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="reason-box">
+                  <span class="reason-label">Supplied reason</span>
+                  <p class="reason-text">Manufacturer defect notification RC-12 received for Lot IG-2509. Immediate mandatory physical quarantine applied to 4 remaining North Quay units; electronic consignment alert transmitted to Cedar Clinic recipient and buyer for remaining 20 delivered packs pending physical reconciliation.</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Event 2: Priya Nair 09:30 route confirmation -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">14 May 09:30</td>
+            <td class="col-record font-mono">Route R-204</td>
+            <td class="col-action">Route confirmation</td>
+            <td class="col-user">Priya Nair · Dispatcher</td>
+            <td class="col-summary">Confirmed departure schedule for R-204 to Cedar Clinic (15:00 BST); VAN-27 Tariq Mansour, boxes B-701 &amp; B-702</td>
+            <td class="col-status">
+              <span class="status-badge status-good motion-saved-handoff">
+                <span class="status-dot"></span>
+                good confirmed
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 3: Hana Youssef 09:00 place order -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">14 May 09:00</td>
+            <td class="col-record font-mono">Order O-301</td>
+            <td class="col-action">Order registered</td>
+            <td class="col-user">Hana Youssef · Cedar Health buyer</td>
+            <td class="col-summary">Placed consignment order for 30 packs Insulin Glargine to Cedar Clinic; 20 packs allocated from HU-81, 10 outstanding</td>
+            <td class="col-status">
+              <span class="status-badge status-waiting">
+                <span class="status-dot status-dot-waiting"></span>
+                waiting allocation
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 4: Logger telemetry excursion 08:30 (Q-88) -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">14 May 08:30</td>
+            <td class="col-record font-mono">HU-82 · Q-88</td>
+            <td class="col-action">Telemetry breach</td>
+            <td class="col-user">North Quay logger (Datalogger)</td>
+            <td class="col-summary">Reported HU-82 at 9.1°C for 22 minutes (first upper tier); 22m used / 8m remaining. Quality case Q-88 opened</td>
+            <td class="col-status">
+              <span class="status-badge status-waiting">
+                <span class="status-dot status-dot-waiting"></span>
+                waiting review
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 5: Omar Saleh 08:19 quality release -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">14 May 08:19</td>
+            <td class="col-record font-mono">HU-81 · IG-2511</td>
+            <td class="col-action">Quality release</td>
+            <td class="col-user">Omar Saleh · Quality Officer</td>
+            <td class="col-summary">Released 100 packs in HU-81 to Available stock following compliant steady temperature verification (4.4°C)</td>
+            <td class="col-status">
+              <span class="status-badge status-good motion-saved-handoff">
+                <span class="status-dot"></span>
+                good available
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 6: Leila Haddad 08:11 logger upload -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">14 May 08:11</td>
+            <td class="col-record font-mono">LOG-994102</td>
+            <td class="col-action">Upload logger</td>
+            <td class="col-user">Leila Haddad · Warehouse Operator</td>
+            <td class="col-summary">Uploaded inbound supplier datalogger file for IG-2511; 480 points parsed, steady baseline 4.6°C</td>
+            <td class="col-status">
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good parsed
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 7: Leila Haddad 08:00 receipt -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">14 May 08:00</td>
+            <td class="col-record font-mono">Lot IG-2511</td>
+            <td class="col-action">Record receipt</td>
+            <td class="col-user">Leila Haddad · Warehouse Operator</td>
+            <td class="col-summary">Received 120 packs Insulin Glargine from Sanofi Pasteur UK into Cold Room C2 Rack 4; quarantined awaiting logger parse</td>
+            <td class="col-status">
+              <span class="status-badge status-waiting">
+                <span class="status-dot status-dot-waiting"></span>
+                waiting quarantine
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 8: Tariq Mansour 13 May 10:14 delivery handover -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">13 May 10:14</td>
+            <td class="col-record font-mono">Order O-290</td>
+            <td class="col-action">Consignment handover</td>
+            <td class="col-user">Tariq Mansour · Driver</td>
+            <td class="col-summary">Handed 20 packs Lot IG-2509 to Rania Karim at Cedar Clinic via route R-201 (VAN-27); signature captured</td>
+            <td class="col-status">
+              <span class="status-badge status-good motion-saved-handoff">
+                <span class="status-dot"></span>
+                good delivered
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 9: Omar Saleh 12 May 10:05 release -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">12 May 10:05</td>
+            <td class="col-record font-mono">Lot IG-2509</td>
+            <td class="col-action">Quality release</td>
+            <td class="col-user">Omar Saleh · Quality Officer</td>
+            <td class="col-summary">Authorized release of 24 packs Lot IG-2509 to available picking inventory in Cold Room C2 Rack 4</td>
+            <td class="col-status">
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good released
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+          <!-- Event 10: Leila Haddad 12 May 09:10 receipt -->
+          <tr class="ledger-row">
+            <td class="col-time font-mono">12 May 09:10</td>
+            <td class="col-record font-mono">Lot IG-2509</td>
+            <td class="col-action">Record receipt</td>
+            <td class="col-user">Leila Haddad · Warehouse Operator</td>
+            <td class="col-summary">Dock receipt of 24 packs Lot IG-2509 from Sanofi Pasteur UK; inbound quarantine hold assigned</td>
+            <td class="col-status">
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                waiting quarantine
+              </span>
+            </td>
+            <td class="col-detail">
+              <button type="button" class="btn-table-expand">Details</button>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <!-- Ledger Summary Bar -->
+      <div class="ledger-footer-bar">
+        <div>
+          Showing 10 immutable events recorded across active cold chain operations · North Quay Warehouse scope
+        </div>
+        <div class="mono-meta">
+          Cross-reference: <a href="#" class="page-link-lot">Lot history</a> · Prototype date: 14 May 2026 Europe/London (BST)
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

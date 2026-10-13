@@ -1,0 +1,116 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-8",
+      "ears": "If a required staff identity-provider authorization URL or token-validation setting is missing or invalid, then the Meridian API shall fail application startup with an error identifying the affected setting; the existing `HealthTests.ApiIsUp` and factory checks use valid nonproduction settings and continue to reach the health, OpenAPI-document, and Swagger UI routes.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "Deployment configuration with a required staff identity-provider setting missing or invalid.",
+        "when": "The API process starts.",
+        "then": "The process exit status is nonzero and the startup error identifies the configuration problem.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "A required staff identity-provider authorization URL or token-validation setting is missing or invalid.",
+        "when": "The application host starts with that deployment configuration.",
+        "then": "The process exit status is nonzero and the startup error identifies the affected setting.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "The existing `HealthTests.ApiIsUp` and factory checks run with valid nonproduction staff identity-provider authorization URL and token-validation settings.",
+        "when": "The test and factory hosts start and clients request `GET /`, `GET /openapi/v1.json`, and `GET /swagger`.",
+        "then": "The process exit status is 0 and the response status for each request is 200.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The Meridian API shall authenticate customer accounts through the contract's email-and-password and one-time-code flow and authorize each authenticated caller using the roles, `warehouseIds`, and `organizationIds` in the PostgreSQL account record associated with that caller.",
+      "op": "ADDED",
+      "anchors": [
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 20,
+        "lineEnd": 40,
+        "quote": "  /auth/customer/sign-in:\n    post:\n      operationId: signInCustomer\n      summary: \"Submit customer email and password and begin one-time-code verification.\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/Credentials\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AuthResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\""
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 2535,
+        "lineEnd": 2567,
+        "quote": "    AccountInput:\n      type: object\n      required:\n        - fullName\n        - email\n        - roles\n      properties:\n        fullName:\n          type: string\n        email:\n          type: string\n          format: email\n        roles:\n          type: array\n          items:\n            type: string\n            enum:\n              - Driver\n              - Dispatcher\n              - Quality Officer\n              - Quality Manager\n              - Auditor\n              - System Administrator\n              - Customer Administrator\n              - Customer\n        warehouseIds:\n          type: array\n          items:\n            type: integer\n        organizationIds:\n          type: array\n          items:\n            type: integer"
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 1650,
+        "lineEnd": 1685,
+        "quote": "  /admin/accounts:\n    get:\n      operationId: listAccounts\n      summary: \"List accounts, roles and access scope.\"\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/Status\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Collection\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: createAccount\n      summary: \"Create an account and assign its roles and access scope.\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/AccountInput\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecordResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\""
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 1036,
+        "lineEnd": 1060,
+        "quote": "  /quality/recalls/{recallId}/write-offs:\n    post:\n      operationId: writeOffRecallRemainder\n      summary: \"Submit a signed Quality Manager write-off for unaccounted recall quantity.\"\n      parameters:\n        - $ref: \"#/components/parameters/RecallId\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/WriteOffInput\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecordResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\""
+       }
+      ],
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A valid staff identity-provider token associated with a PostgreSQL account record that has the role permitted for stock listing and `warehouseIds` containing only 10. Persisted stock rows exist in warehouses 10 and 20.",
+        "when": "The caller requests the stock collection with `warehouseId=20`.",
+        "then": "The response status is 403 and the returned list contains no row from warehouse 20.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "An existing customer account with credentials accepted by the contracted sign-in operation, a valid one-time code available for that account, an associated PostgreSQL account record assigned organization 10, and persisted orders for organizations 10 and 20.",
+        "when": "The customer submits credentials to `POST /api/auth/customer/sign-in`, submits the issued challenge and valid code to `POST /api/auth/customer/code/verify`, then lists orders and requests an order belonging to organization 20.",
+        "then": "The sign-in and code-verification response statuses are 200, the response list contains only organization-10 records, and the response status for the organization-20 order is 403.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.3",
+        "given": "Two authenticated staff identities with associated PostgreSQL account records assigned Quality Officer and Quality Manager roles, respectively, and the same permitted quality scope; an open recall has an unaccounted quantity.",
+        "when": "Each account submits the contract's signed `POST /api/quality/recalls/{recallId}/write-offs` operation for that recall.",
+        "then": "The Quality Officer response status is 403 and the Quality Manager response status is 200.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.3333333333333333
+     }
+    ],
+    "removed": [
+     "REQ-10"
+    ],
+    "assumptions": [
+     "ASM-1: For this specification, “a few” sample rows means between two and five rows per empty contract-backed table."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

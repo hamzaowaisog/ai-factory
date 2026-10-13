@@ -1,0 +1,740 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When a user submits an email address and password, the web app shall send those credentials to the sign-in API and show the signed-in operational pages or the returned authentication error.",
+      "op": "ADDED",
+      "sources": [
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The sign-in screen is displayed",
+        "when": "The user submits an email address and password accepted by the sign-in API",
+        "then": "The screen displays the signed-in landing page returned for that user",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "The sign-in screen is displayed",
+        "when": "The sign-in API refuses the submitted credentials",
+        "then": "An authentication error message is shown on the screen",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-2",
+      "ears": "Where procurement and receiving import is available, the web app shall let operationally authorized users load the documented mock-data adapter, inspect vendor, cost, head-count, weight, breed, age, source, purchase-order, and receiving fields, and submit selected source records for import.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3",
+       "ASM-1",
+       "ASM-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "An operationally authorized user opens the import screen with mock adapter data available",
+        "when": "The user previews the source records",
+        "then": "The screen displays the vendor, cost, head-count, weight, breed, age, source, purchase-order, and receiving fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "An operationally authorized user has selected source records",
+        "when": "The user submits the import",
+        "then": "The screen displays the import result returned by the API, including created or updated record counts when supplied",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-2.3",
+        "given": "A user without operational access opens the import screen",
+        "when": "The screen is displayed",
+        "then": "The screen shows imported records without an import submission control",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.91
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When an operationally authorized user saves mapping allocations, the web app shall submit and display traceable PO-line-to-lot and lot-to-pen relationships with allocated animal quantities, including one PO line split across multiple lots and a lot allocated across multiple pens.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3",
+       "ASM-2",
+       "ASM-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "The mapping screen receives a PO line allocated to multiple lots and a lot allocated to multiple pens",
+        "when": "The screen renders the returned mappings",
+        "then": "The screen shows each PO-line-to-lot and lot-to-pen relationship with its allocated animal quantity",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "An operationally authorized user changes mapping quantities",
+        "when": "The user saves the mappings",
+        "then": "The screen displays the saved mapping values returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-3.3",
+        "given": "A user without operational access opens the mapping screen",
+        "when": "The screen is displayed",
+        "then": "The screen shows mapping records without mapping edit controls",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-4",
+      "ears": "Where lifecycle forecasts are displayed, the web app shall show projected market dates and target weights based on incoming animal data and configured yard defaults, use lot-specific overrides when present, show a forecast as unavailable when no positive gain rate is available, and expose assumption-edit controls only to authorized managers.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-4",
+       "ASM-3",
+       "ASM-33"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "The forecast response contains incoming animal data, yard defaults, and a lot-specific override",
+        "when": "The user opens the lot forecast",
+        "then": "The screen displays the projected market date and target weight using the lot-specific override",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "A lot forecast has no positive gain rate available",
+        "when": "The user opens the forecast",
+        "then": "The projected date field displays an unavailable value on the screen",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-4.3",
+        "given": "An authorized manager opens the forecast settings",
+        "when": "The screen is displayed",
+        "then": "The screen shows editable yard defaults and lot-specific override fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-4.4",
+        "given": "A user who is not an authorized manager opens the forecast settings",
+        "when": "The screen is displayed",
+        "then": "The screen shows forecast values without assumption-edit controls",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-5",
+      "ears": "Where inventory is displayed, the web app shall show each feed item's name, category, available quantity, unit of measure, unit cost, dry-matter percentage, energy value, storage location, and opening, received, consumed, and closing stock values, and expose receipt, adjustment, and wastage-setting controls only to authorized inventory users.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-5",
+       "ASM-4",
+       "ASM-34"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "The inventory response contains feed items and stock movements",
+        "when": "The user opens the inventory screen",
+        "then": "The screen displays the requested item fields and opening, received, consumed, and closing stock values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "An authorized inventory user opens an inventory item",
+        "when": "The user selects receipt, adjustment, or wastage settings",
+        "then": "The screen displays controls for those inventory changes",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-5.3",
+        "given": "A user without authorized inventory access opens an inventory item",
+        "when": "The screen is displayed",
+        "then": "The screen displays inventory values without receipt, adjustment, or wastage-setting controls",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-6",
+      "ears": "Where inventory projections are displayed, the web app shall offer daily, weekly, monthly, quarterly, bi-annual, and annual horizons and show projected consumption based on saved upcoming feed plans with the configured wastage ratio, while presenting known actual wastage as a separate stock movement.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-4",
+       "ASM-27",
+       "ASM-28"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "The inventory projection screen is displayed",
+        "when": "The user opens the horizon selector",
+        "then": "The screen lists daily, weekly, monthly, quarterly, bi-annual, and annual projection values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "The API returns projections based on upcoming plans and a configured wastage ratio",
+        "when": "The user selects a projection horizon",
+        "then": "The screen displays the returned projected consumption and remaining inventory values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-6.3",
+        "given": "The API returns a known actual wastage movement",
+        "when": "The user views inventory movements",
+        "then": "The screen lists actual wastage as a separate movement from delivered feed consumption",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-7",
+      "ears": "Where ration management is available, the web app shall let authorized ration managers create, revise, optimize, and approve rations, display ingredient proportions, ration type, intended animal type or weight range, dry-matter and energy values, and cost per pound, and present the lowest-cost candidate mix that satisfies user-selected nutrition requirements without saving it until selected by the user.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-6",
+       "ASM-5",
+       "ASM-20",
+       "ASM-29"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "An authorized ration manager opens ration management",
+        "when": "The user creates or revises a ration",
+        "then": "The screen displays fields for ingredients, proportions, ration type, intended animal type or weight range, dry matter, energy, and cost per pound",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "The API returns candidate mixes and nutrition requirements selected by the user",
+        "when": "The user runs optimization",
+        "then": "The screen identifies the lowest-cost returned mix that satisfies the selected requirements and shows its nutrition and cost values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-7.3",
+        "given": "An optimized candidate is displayed",
+        "when": "The user has not selected a save action",
+        "then": "The screen shows the candidate without showing it as a saved ration",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-7.4",
+        "given": "A user without authorized ration-management access opens ration management",
+        "when": "The screen is displayed",
+        "then": "The screen shows existing rations without create, revise, optimize, or approve controls",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When an authorized planner generates a feed plan for a date and pen, the web app shall submit the daily bunk rate, selected ration, and animal count and display the returned plan's pen, assigned lots, animal count, ration, planned quantity, planned time, quantity per animal, total cost, expected energy, and execution status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-7",
+       "ASM-8",
+       "ASM-20"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "An authorized planner has selected a date, pen, bunk rate, ration, and animal count",
+        "when": "The planner generates the feed plan",
+        "then": "The screen displays the returned planned quantity, quantity per animal, total cost, expected energy, and plan status with the selected pen, date, lots, and ration",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-8.2",
+        "given": "A user without planning access opens feed planning",
+        "when": "The screen is displayed",
+        "then": "The screen shows existing plans without plan-generation controls",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-9",
+      "ears": "While a saved plan's bunk rate, animal count, or ration assignment differs from its generation inputs, the web app shall flag the plan for review, retain its saved values, expose authorized planner controls to confirm an update or regenerate it, allow assigned-pen operators to update execution status, and show intake variance without automatically rewriting the saved plan.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-7",
+       "ASM-7",
+       "ASM-19",
+       "ASM-30"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "A saved plan's bunk rate, animal count, or ration assignment has changed since generation",
+        "when": "The user opens the plan",
+        "then": "The screen flags the plan for review and displays its previously saved values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "An authorized planner opens a plan flagged for review",
+        "when": "The screen is displayed",
+        "then": "The screen shows confirm-update and regenerate controls",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-9.3",
+        "given": "An operator assigned to the plan's pen opens the plan",
+        "when": "The operator updates its execution status",
+        "then": "The screen displays the returned status value",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-9.4",
+        "given": "Actual bunk intake differs from the saved plan",
+        "when": "The user views the feeding plan and activity",
+        "then": "The screen displays actual intake and variance while the saved plan values remain unchanged",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When an operational user records feeding activity, the web app shall submit the feeding date, pen, lot, ration, planned and delivered quantities, and status, show the actual-minus-planned variance and returned feed cost, energy, inventory consumption, and lot consumption totals, and display the returned stock-control error when the API refuses an event for insufficient stock.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "Q-5",
+       "ASM-9",
+       "ASM-11",
+       "ASM-20",
+       "ASM-28",
+       "ASM-31"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "An operational user enters feeding activity and the API accepts it",
+        "when": "The user saves the activity",
+        "then": "The screen displays the saved event, its actual-minus-planned variance, feed cost, energy, inventory consumption, and returned lot consumption totals",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "The API accepts a feeding event with a delivered quantity",
+        "when": "The user views the returned inventory movement",
+        "then": "The screen displays stock consumption based on the delivered quantity without adding wastage to that actual movement",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-10.3",
+        "given": "The API refuses a feeding event because available stock is insufficient",
+        "when": "The user saves the activity",
+        "then": "An insufficient-stock error message is shown on the screen",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-10.4",
+        "given": "A user without operational access opens feeding activity",
+        "when": "The screen is displayed",
+        "then": "The screen shows existing activity without controls to record a feeding event",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-11",
+      "ears": "Where lot weight history is displayed, the web app shall show a time-ordered series of measurements and let authorized livestock or operations users submit a measurement containing lot, date, animals weighed, average weight, total lot weight, gain since the prior measurement, and notes.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "Q-8",
+       "ASM-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "A lot has returned weight measurements",
+        "when": "The user opens its weight history",
+        "then": "The screen displays the measurements in time order with their returned measurement fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "An authorized livestock or operations user enters a weight measurement",
+        "when": "The user submits the measurement",
+        "then": "The screen displays the saved measurement in the lot's time series",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-11.3",
+        "given": "A user without weight-entry access opens the lot history",
+        "when": "The screen is displayed",
+        "then": "The screen shows measurement history without an add-measurement control",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.91
+     },
+     {
+      "id": "REQ-12",
+      "ears": "Where lot performance metrics are displayed, the web app shall present returned DOF as current date minus receiving date, total weight gain as current average weight minus entry average weight, ADG as total weight gain divided by DOF, total feed consumed in pounds, FCR as consumed pounds divided by total weight gain, cost of gain as total feed cost divided by total weight gain, and projected ship date as current date plus (target weight minus current weight) divided by positive ADG, showing the projected date as unavailable when no positive ADG is available.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-6",
+       "I-8",
+       "ASM-13",
+       "ASM-20",
+       "ASM-33"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "The API returns a lot with receiving date, entry and current weights, feeding totals, target weight, and positive ADG",
+        "when": "The user opens the lot performance view after a feeding or weight event",
+        "then": "The screen displays the returned DOF, total gain, ADG, feed pounds, FCR, cost of gain, and projected ship date",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "The API returns no positive ADG for a lot",
+        "when": "The user opens the lot performance view",
+        "then": "The projected ship date field displays an unavailable value on the screen",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-13",
+      "ears": "Where the operational dashboard is displayed, the web app shall show active lots and pens, animal counts, inventory status, ration usage, daily pen bunk rates, planned versus actual feed, feed quantity and cost, starting and current weights, weight gain, ADG, feed-to-gain, feed cost per gain, and energy consumed using dashboard data for the user's authorized yards.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "I-8",
+       "I-9",
+       "Q-1",
+       "ASM-14",
+       "ASM-36"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "The dashboard response contains operational metrics for the user's authorized yards",
+        "when": "The user opens the dashboard",
+        "then": "The screen displays the listed inventory, feeding, animal, weight, cost, energy, and performance metrics for those yards",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-13.2",
+        "given": "The API response excludes a yard not authorized for the signed-in user",
+        "when": "The user opens the dashboard",
+        "then": "The screen does not display records from the excluded yard",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-13.3",
+        "given": "The API response indicates that the user cannot view profitability values",
+        "when": "The user opens the dashboard",
+        "then": "The screen hides profitability fields while continuing to show other permitted dashboard values",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-14",
+      "ears": "Where lot rankings and predictive insights are displayed, the web app shall let users choose FCR, ADG, or cost of gain as the ranking measure, show the selected measure as the best- and worst-lot ranking basis, and present explainable rule-based feeding or sale-timing suggestions without applying changes automatically.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-8",
+       "I-9",
+       "ASM-18",
+       "ASM-22"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "The ranking screen has multiple lots with returned performance metrics",
+        "when": "The user selects FCR, ADG, or cost of gain",
+        "then": "The screen displays best and worst lots and identifies the selected metric as the ranking basis",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-14.2",
+        "given": "The API returns rule-based feeding or sale-timing suggestions with their supporting trend values",
+        "when": "The user opens predictive insights",
+        "then": "The screen displays each suggestion with its returned explanation and does not change a plan or sale setting",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.87
+     },
+     {
+      "id": "REQ-15",
+      "ears": "Where lot profitability analysis is displayed, the web app shall show a filterable on-screen lot list with the profitability values returned for the user's authorized yards and display a CSV file containing the filtered authorized results when the user exports the list.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-9",
+       "Q-1",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "The API returns profitability rows for yards authorized to the user",
+        "when": "The user opens and filters the lot profitability view",
+        "then": "The screen displays only the returned authorized-yard rows and their available profitability values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-15.2",
+        "given": "The user has applied filters to the authorized lot profitability list",
+        "when": "The user selects CSV export",
+        "then": "The downloaded file contains the filtered authorized rows displayed by the screen",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-15.3",
+        "given": "The API indicates that the user cannot view profitability values",
+        "when": "The user opens the lot profitability view",
+        "then": "The screen hides profitability values",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-16",
+      "ears": "Where the feed-to-gain report is displayed, the web app shall allow comparison of lot ADG, FCR, and cost of gain with date-range, breed, sex, and pen filters, show the sex filter as unavailable when the records lack sex, and export the filtered authorized-yard results as CSV or PDF subject to the user's profitability access.",
+      "op": "ADDED",
+      "sources": [
+       "I-10",
+       "Q-1",
+       "ASM-21",
+       "ASM-35"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "The feed-to-gain report screen is displayed",
+        "when": "The user opens its filters",
+        "then": "The screen shows date-range, breed, sex, and pen filters and the ADG, FCR, and cost-of-gain comparison fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-16.2",
+        "given": "Report records do not contain sex values",
+        "when": "The user opens the report filters",
+        "then": "The sex filter is displayed as unavailable on the screen",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-16.3",
+        "given": "The user applies report filters and has access to profitability values",
+        "when": "The user downloads CSV or PDF",
+        "then": "The downloaded file contains only the filtered report rows and metrics for the user's authorized yards",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-16.4",
+        "given": "The API indicates that the user cannot view profitability values",
+        "when": "The user views or exports the report",
+        "then": "The screen and downloaded file omit profitability-restricted values",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-17",
+      "ears": "Where sample data controls are available, the web app shall visibly distinguish sample records from operational records, require explicit confirmation before sending a reset request, and show the API result for sample loading, duplicate loading, or reset.",
+      "op": "ADDED",
+      "sources": [
+       "I-11",
+       "I-12",
+       "ASM-15",
+       "ASM-37"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "Sample records are returned with the sample-data indicator",
+        "when": "The user views operational screens",
+        "then": "The screen labels those records as sample data and distinguishes them from operational records",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "The user selects a sample-data reset action",
+        "when": "The confirmation has not been accepted",
+        "then": "The screen shows a confirmation prompt and sends no reset request",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-17.3",
+        "given": "The API reports that sample data is already loaded or a duplicate load was refused",
+        "when": "The user attempts to load sample data",
+        "then": "The screen displays the returned duplicate-load result message",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-17.4",
+        "given": "The API returns a sample-load or reset result",
+        "when": "The operation completes",
+        "then": "The screen displays the returned operation status and record count when supplied",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-18",
+      "ears": "Where the yard-level summary is displayed, the web app shall show aggregate active-lot head count, average ADG, average cost of gain, and total feed cost, using the returned aggregate calculations across included active lots and showing unavailable values when required source data is missing.",
+      "op": "ADDED",
+      "sources": [
+       "I-11",
+       "ASM-16",
+       "ASM-38"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "The API returns aggregate values for active lots",
+        "when": "The user opens the yard summary",
+        "then": "The screen displays total head, average ADG, average cost of gain, and total feed cost",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-18.2",
+        "given": "The API indicates that a summary metric lacks required source data",
+        "when": "The user opens the yard summary",
+        "then": "The affected metric is displayed as unavailable on the screen",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-19",
+      "ears": "Where the product presentation screen is available, the web app shall provide the proposed solution, architecture diagrams, an app demo entry point, the super prompt and other prompts, testing and validation overview, challenges, production-readiness assessment, and go-to-market analysis.",
+      "op": "ADDED",
+      "sources": [
+       "I-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-19.1",
+        "given": "The presentation screen is opened",
+        "when": "The user views the presentation content",
+        "then": "The screen displays sections or links for the solution, architecture diagrams, app demo, prompts, testing and validation, challenges, production readiness, and go-to-market analysis",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-20",
+      "ears": "Where any web-app page is rendered at phone, tablet, or desktop viewport widths, the web app shall reflow the page for that viewport and provide touch-sized controls at narrow widths.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-9",
+       "I-10",
+       "I-11",
+       "I-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-20.1",
+        "given": "Any app page is rendered at 320, 768, and 1440 CSS-pixel viewport widths",
+        "when": "The page is displayed at each width",
+        "then": "The screen has no horizontal page overflow and its content remains visible",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-20.2",
+        "given": "An app page is rendered at a 320 CSS-pixel viewport width",
+        "when": "A user inspects interactive controls",
+        "then": "Each primary touch control has a screen bounding box at least 44 by 44 CSS pixels",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Every web-app page shall render without horizontal page overflow at phone, tablet, and desktop reference widths.",
+      "metric": "0 horizontal overflow at viewport widths of 320, 768, and 1440 CSS px; primary touch controls are at least 44 × 44 CSS px at 320 CSS px."
+     }
+    ],
+    "outOfScope": [],
+    "assumptions": [
+     "ASM-1 and ASM-23: procurement and receiving ingestion uses a documented mock-data adapter; a live source connector awaits identification of the source interface.",
+     "ASM-2 and ASM-25: allocations retain animal quantities across PO-line-to-lot and lot-to-pen relationships, including splits.",
+     "ASM-3: forecasts use configurable yard target-weight and expected-gain defaults with optional lot-specific overrides.",
+     "ASM-4, ASM-27, and ASM-28: wastage affects estimates and projections based on saved plans; actual stock consumption uses delivered feed and known actual wastage is a separate movement.",
+     "ASM-5 and ASM-29: optimization compares candidate mixes against user-selected nutrition requirements, highlights the lowest-cost qualifying mix, and saves only when selected.",
+     "ASM-7 and ASM-30: changed plan inputs flag the saved plan for review; its values remain unchanged until an authorized planner confirms an update or regenerates it.",
+     "ASM-9 and ASM-31: insufficient stock causes the API to refuse the feeding event; the web app presents the refusal.",
+     "ASM-13 and ASM-33: projected ship date uses current date plus (target weight minus current weight) divided by positive ADG and is unavailable without positive ADG.",
+     "ASM-18 and ASM-19: predictive insights are explainable rule-based suggestions; intake variance is shown without automatically rewriting a saved plan.",
+     "ASM-20 and ASM-34: plan and delivered-feed quantities use as-fed units, feed totals convert to pounds for feed-to-gain metrics, and nutrition uses dry matter.",
+     "ASM-21: report metrics use records and relevant starting and ending weights within the selected date range.",
+     "ASM-22: users choose the measure used to rank best- and worst-performing lots.",
+     "ASM-35: sex is retained when provided by the source and the sex filter is unavailable for records without sex.",
+     "ASM-36: dashboards are summary-only; lot and report screens provide detail.",
+     "ASM-37 and ASM-15: sample records remain distinct from operational records, duplicate load results are surfaced, and reset requires confirmation.",
+     "ASM-38: yard summary average ADG and cost of gain use aggregate total gain and total feed cost across included active lots.",
+     "ASM-17: lot profitability is presented as an on-screen filtered list with CSV export rather than a custom report builder.",
+     "The separate API is authoritative for server-side calculations and permissions; this web app displays returned values and refusal messages."
+    ],
+    "suggestions": [
+     "Consider adding a live procurement connector after the source system and interface are identified (ASM-1, ASM-23).",
+     "Consider a later production-readiness review of audit retention, security controls, and integrations beyond the mock adapter."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

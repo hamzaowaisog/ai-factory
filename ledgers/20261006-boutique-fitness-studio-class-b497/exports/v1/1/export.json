@@ -1,0 +1,38 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261006-boutique-fitness-studio-class-b497",
+  "version": 1,
+  "designSha": "992a53b84b2214af4e35428e944f5b94cc0739c2250f7893e3c1d74ef35ed295",
+  "at": "2026-10-06T23:23:33.941Z",
+  "options": {
+    "formats": [
+      "pdf"
+    ]
+  },
+  "files": [
+    {
+      "format": "pdf",
+      "path": "design-book.pdf",
+      "sha256": "a2f947aa68231e1e5777bae7e57f18874ae3a62aae4a193cf84a4df86f1d5b7d",
+      "bytes": 36971906
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "pdf.screens",
+      "status": "PASS",
+      "detail": "every screen is in the book"
+    },
+    {
+      "check": "pdf.fonts",
+      "status": "PASS",
+      "detail": "every font is embedded"
+    },
+    {
+      "check": "pdf.pages",
+      "status": "PASS",
+      "detail": "design-book.pdf 57 page(s), 3 screen(s), 43 font(s)"
+    }
+  ]
+}

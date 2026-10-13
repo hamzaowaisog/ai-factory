@@ -1,0 +1,737 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I've repaired the spec for all four groups of findings. Most of the 28 \"not asked for\" findings come from the source IDs, not from what was requested.\n\n1. **Three requirements had more than one \"shall\".** I reworded REQ-9, REQ-27 and REQ-30 so each has one \"shall\". Their meaning and acceptance criteria are unchanged.\n2. **REQ-7 didn't say what happens when the audit write fails.** ASM-9 never answered this, so I added a new assumption: the audit record is written in the same transaction as the business action. If the audit write fails, the action is undone and a generic error with a reference id is returned. I added REQ-40 with an API test for it. I chose roll-back because the risk is high and the work touches payments and permissions. Hamza should confirm this before build.\n3. **The \"not asked for\" findings.** The request does ask for every one of these. The problem is that the intent artifact has no span text, so the earlier spec guessed which I-1…I-45 IDs matched which section. I added the section-based span IDs from the assumptions artifact (for example `39-reporting`, `50-data-isolation`) to each flagged requirement. I kept the existing I-n IDs so spans stay covered, and I removed no requirements.\n\nThe section-based span IDs are taken from the assumptions artifact's own span names. Item 3 is only fixed if the checker recognises those IDs. Section 72 appears there both as `72-acceptance-criteria` and `72-acceptance-criteria-examples`, and I used the first.\n\nNothing moved out of scope, and the NFRs are unchanged.",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When a staff or admin user requests the Orders per Day report for a date range, the portal shall return one row per date with the number of orders and the order value.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "39-reporting",
+       "Q-1",
+       "ASM-44"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "2 non-cancelled orders on 2026-03-02 with line totals 100.00 and 50.00, and 1 order on 2026-03-03 for 20.00",
+        "when": "staff calls GET /reports/orders-per-day?start=2026-03-02&end=2026-03-03",
+        "then": "The response status is 200 and the returned rows are (2026-03-02, 2, 150.00) and (2026-03-03, 1, 20.00)",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When a staff or admin user requests the Top Products report for a date range, the portal shall return one row per product with quantity sold and revenue, ordered by revenue descending.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "39-reporting",
+       "Q-1",
+       "ASM-44"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "Product A sold 5 units at 10.00 and Product B sold 1 unit at 80.00 in the range",
+        "when": "staff calls GET /reports/top-products for that range",
+        "then": "The returned list is [(B, 1, 80.00), (A, 5, 50.00)]",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When a staff or admin user requests the Revenue per Customer report for a date range, the portal shall return one row per customer with the number of orders and revenue.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "39-reporting",
+       "Q-1",
+       "ASM-44"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "Customer A has 2 orders totalling 300.00 and Customer B has 1 cancelled order in the range",
+        "when": "staff calls GET /reports/revenue-per-customer for that range",
+        "then": "The returned rows contain (A, 2, 300.00) and no row for Customer B",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When a report is requested with a start date and end date, the portal shall include only orders whose submission date, in the business timezone, falls within the inclusive range.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "40-report-filters",
+       "ASM-45",
+       "I-33"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "orders submitted on 2026-02-28, 2026-03-01 and 2026-03-31 and 2026-04-01",
+        "when": "staff requests Orders per Day with start=2026-03-01 and end=2026-03-31",
+        "then": "The returned rows cover only 2026-03-01 and 2026-03-31",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When any of the listed business actions occurs (user invited or deactivated; product created, changed or retired; price or customer price list changed; order created, amended, confirmed, cancelled or status changed; invoice created or marked paid; ERP import succeeded or failed), the portal shall write an audit record with event type, actor, target record and timestamp.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "42-audit-history",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "a staff user confirms order 42",
+        "when": "the confirm call returns 200",
+        "then": "An audit row exists with event 'Order confirmed', the staff user as actor, order 42 as target and a timestamp",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The portal shall retain order, invoice and audit records for at least 7 years, deactivating rather than deleting users so that their links to orders and invoices remain.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "46-data-retention",
+       "Q-7",
+       "ASM-22",
+       "I-36"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "a customer user who placed order 42",
+        "when": "an admin deactivates the user",
+        "then": "The user record's status field is Deactivated, order 42 and its invoice are still returned to other users of that customer, and the user's sign-in returns an error",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When a user is invited, a password reset is requested, or an order is confirmed, amended, out for delivery, cancelled or rejected, the portal shall send the matching template email through the configured email provider.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "43-notifications",
+       "44-email-provider",
+       "67-business-rules-summary",
+       "ASM-11",
+       "ASM-12",
+       "I-37"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "a stubbed email provider and order 42 in status Picking",
+        "when": "staff sets order 42 to Out for Delivery",
+        "then": "One email with the 'Order out for delivery' template referencing order 42 is sent to the ordering user's address at the provider stub",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "If sending a notification email fails, then the portal shall still complete the triggering action and record the failed email with its error.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "52-error-handling",
+       "43-notifications",
+       "ASM-48",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "the email provider stub returns an error",
+        "when": "staff confirms order 42",
+        "then": "The response status is 200, order 42's status field is Confirmed, and an email notification row has status Failed with the error message",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When the scheduled stock import runs (default 02:00, configurable), the portal shall read the ERP CSV from the configured location and set stock quantity for each valid row's product, leaving products not in the file unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "45-erp-stock-integration",
+       "62-background-jobs",
+       "67-business-rules-summary",
+       "ASM-13",
+       "ASM-15",
+       "ASM-16",
+       "I-24",
+       "I-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "products P1 (stock 5) and P2 (stock 9), and a file containing only 'P1,12'",
+        "when": "the stock import job runs",
+        "then": "P1's stock record value is 12 and P2's stock record value is still 9",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When the stock import validates a file, the portal shall reject the whole file if it is empty or missing required headers, and otherwise apply valid rows and reject rows with unknown or duplicate product codes or non-numeric or negative quantities, recording received, processed and rejected counts with error details.",
+      "op": "ADDED",
+      "sources": [
+       "I-27",
+       "65-csv-import-requirements",
+       "ASM-14",
+       "ASM-46",
+       "I-38"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "a file with 4 rows: one valid, one unknown code, one quantity 'abc', one quantity -3",
+        "when": "the stock import job runs",
+        "then": "The import record shows received 4, processed 1, rejected 3 with one error detail per rejected row",
+        "level": "job"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "a file with no header row",
+        "when": "the stock import job runs",
+        "then": "The import record status is Failed and no stock value changes",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "The portal shall not send any stock or inventory write request to the ERP.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "45-erp-stock-integration",
+       "67-business-rules-summary",
+       "I-30"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "an ERP endpoint stub that records requests",
+        "when": "the stock import job runs and an order is submitted and delivered",
+        "then": "The stub's recorded request count is 0",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When a stock import finishes, the portal shall show its status and counts on the System/Import status screen and write an 'ERP import succeeded' or 'ERP import failed' audit record.",
+      "op": "ADDED",
+      "sources": [
+       "45-erp-stock-integration",
+       "57-main-admin-screens",
+       "52-error-handling",
+       "ASM-17",
+       "ASM-47",
+       "I-19"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "a stock import that failed on missing headers",
+        "when": "an admin calls GET /admin/imports",
+        "then": "The returned latest import has status Failed with its error message, and an audit row 'ERP import failed' exists",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "If a customer user requests an order, invoice, address, price, user or account record belonging to another customer, then the portal shall return status 404 without the record's data.",
+      "op": "ADDED",
+      "sources": [
+       "I-12",
+       "I-11",
+       "50-data-isolation",
+       "72-acceptance-criteria",
+       "I-39"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "a buyer of Customer A and order 77 belonging to Customer B",
+        "when": "the buyer calls GET /orders/77 and GET /invoices/{B's invoice id}",
+        "then": "Both response statuses are 404 and the responses contain no Customer B data",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "If a user calls an endpoint outside their role (customer calling staff or admin endpoints, staff calling admin endpoints, or an unauthenticated caller), then the portal shall reject the request server-side with status 401 for unauthenticated and 403 otherwise.",
+      "op": "ADDED",
+      "sources": [
+       "I-11",
+       "49-security",
+       "50-data-isolation",
+       "ASM-21",
+       "I-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-18.1",
+        "given": "an unauthenticated client, a customer user and a staff user",
+        "when": "each calls POST /admin/products",
+        "then": "The response statuses are 401, 403 and 403 respectively",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "If sign-in fails for any reason, then the portal shall return the same generic invalid-credentials error message without revealing whether the email exists.",
+      "op": "ADDED",
+      "sources": [
+       "52-error-handling",
+       "49-security",
+       "ASM-1",
+       "ASM-3",
+       "ASM-38",
+       "ASM-40",
+       "I-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "a known email with wrong password and an unknown email",
+        "when": "each is submitted to POST /auth/sign-in",
+        "then": "Both response statuses are 401 with an identical error message",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "ears": "If a password-reset link older than its configured lifetime (default 1 hour) or an invitation older than its configured lifetime (default 7 days) is used, then the portal shall reject it with an expired-link error.",
+      "op": "ADDED",
+      "sources": [
+       "52-error-handling",
+       "49-security",
+       "ASM-25",
+       "I-11",
+       "I-24"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "a reset token issued 61 minutes ago",
+        "when": "it is submitted to POST /auth/reset-password",
+        "then": "The response status is 400 with error code 'link_expired' and the password is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "If an unexpected server error occurs, then the portal shall return a generic error message with a reference id and no stack trace or internal details.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "52-error-handling"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "the database is made unavailable",
+        "when": "a client calls GET /orders",
+        "then": "The response status is 500 and the body contains a message and reference id but no stack trace, SQL or file paths",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "ears": "If an order status change is requested other than Received→Confirmed→Picking→Out for Delivery→Delivered or a permitted cancellation, then the portal shall reject it with status 409.",
+      "op": "ADDED",
+      "sources": [
+       "I-20",
+       "58-order-lifecycle",
+       "Q-4",
+       "I-40"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "order 42 in status Received",
+        "when": "staff requests status Picking",
+        "then": "The response status is 409 and order 42's status field is still Received",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When a customer cancels an order, the portal shall set it to Cancelled only if its status is Received and otherwise reject the cancellation with status 409.",
+      "op": "ADDED",
+      "sources": [
+       "I-20",
+       "58-order-lifecycle",
+       "67-business-rules-summary",
+       "72-acceptance-criteria",
+       "I-29",
+       "I-34",
+       "I-41"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "order 1 in Received and order 2 in Confirmed",
+        "when": "the customer calls POST /orders/{id}/cancel for each",
+        "then": "Order 1 response is 200 with status Cancelled; order 2 response is 409 and its status stays Confirmed",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-24",
+      "ears": "When staff reject or cancel an order, the portal shall set it to Cancelled only if its status is Received or Confirmed and otherwise reject with status 409.",
+      "op": "ADDED",
+      "sources": [
+       "58-order-lifecycle",
+       "61-api-areas",
+       "ASM-18",
+       "I-20"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "order 1 in Confirmed and order 2 in Picking",
+        "when": "staff calls POST /staff/orders/{id}/reject for each",
+        "then": "Order 1 status field is Cancelled; order 2 response status is 409",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-27",
+      "ears": "When staff mark an Unpaid or Overdue invoice paid, the portal shall record status Paid, the payment date and the staff user, after which any further status change of that invoice is rejected with status 409.",
+      "op": "ADDED",
+      "sources": [
+       "Q-5",
+       "ASM-43",
+       "59-invoice-lifecycle",
+       "I-21",
+       "I-29"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-27.1",
+        "given": "an Overdue invoice",
+        "when": "staff calls POST /staff/invoices/{id}/mark-paid with date 2026-03-10",
+        "then": "The invoice record has status Paid, payment date 2026-03-10 and the staff user; a second mark-paid call returns status 409",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-28",
+      "ears": "When an authorised user downloads an invoice PDF, the portal shall return a PDF rendered from the stored invoice record showing tax-exclusive line prices and no tax lines.",
+      "op": "ADDED",
+      "sources": [
+       "I-26",
+       "64-pdf-generation",
+       "ASM-41",
+       "ASM-50",
+       "I-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-28.1",
+        "given": "invoice 9 of Customer A with 2 lines",
+        "when": "a Customer A user calls GET /invoices/9/pdf",
+        "then": "The response status is 200, content type is application/pdf and the file text contains the invoice number and both line totals",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-29",
+      "ears": "When a customer submits an order, the portal shall set the earliest delivery date to the next working day if submitted on a working day before the configured cut-off (default 14:00 business time), and otherwise to the second working day, where working days are Monday–Friday excluding configured public holidays.",
+      "op": "ADDED",
+      "sources": [
+       "67-business-rules-summary",
+       "72-acceptance-criteria",
+       "ASM-49",
+       "ASM-20",
+       "I-29",
+       "I-34",
+       "I-43"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-29.1",
+        "given": "no holidays configured",
+        "when": "the delivery-date calculation is called for Tue 13:59, Tue 14:00 and Sat 10:00",
+        "then": "The returned dates are Wed, Thu and Tue respectively",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-30",
+      "ears": "When a customer views a product or places an order, the portal shall use the price from the customer's assigned price list, with a placed order's line prices staying unchanged after later price-list changes.",
+      "op": "ADDED",
+      "sources": [
+       "67-business-rules-summary",
+       "72-acceptance-criteria",
+       "I-29",
+       "I-34",
+       "I-44"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-30.1",
+        "given": "Customer A on Price List A with Product X at 10.00 and an order placed at 10.00",
+        "when": "Price List A changes X to 12.00 and the customer calls GET /products/X and GET /orders/{id}",
+        "then": "The product response price is 12.00 and the order line price value is 10.00",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-32",
+      "ears": "If a basket that has already been turned into an order is submitted again, then the portal shall reject the submission with status 409 without creating another order.",
+      "op": "ADDED",
+      "sources": [
+       "71-testing-requirements",
+       "ASM-2",
+       "I-23",
+       "I-33"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-32.1",
+        "given": "a basket just submitted as order 42",
+        "when": "the same basket submit request is sent again",
+        "then": "The response status is 409 and the customer's order count is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-33",
+      "ears": "When a customer repeats an order or loads a saved basket template, the portal shall add the items at current price-list prices, skip retired products and return a notice listing skipped products.",
+      "op": "ADDED",
+      "sources": [
+       "67-business-rules-summary",
+       "ASM-24",
+       "I-29",
+       "I-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-33.1",
+        "given": "a previous order with products X (now 12.00) and Y (retired)",
+        "when": "the customer calls POST /orders/{id}/repeat",
+        "then": "The returned basket contains X at 12.00 and not Y, and the response notice field lists Y",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-34",
+      "ears": "If staff edit an order whose status is not Received, then the portal shall reject the edit with status 409.",
+      "op": "ADDED",
+      "sources": [
+       "67-business-rules-summary",
+       "I-29",
+       "I-20"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-34.1",
+        "given": "order 1 in Received and order 2 in Confirmed",
+        "when": "staff change a line quantity on each",
+        "then": "Order 1 response is 200 with the new quantity; order 2 response status is 409",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-35",
+      "ears": "If an uploaded file is not an image or PDF or exceeds 10 MB, then the portal shall reject the upload with status 400.",
+      "op": "ADDED",
+      "sources": [
+       "49-security",
+       "63-file-storage",
+       "ASM-30",
+       "I-11",
+       "I-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-35.1",
+        "given": "an admin user",
+        "when": "they upload an 11 MB JPEG and a 1 MB .exe as product images",
+        "then": "Both response statuses are 400 with a validation error message",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-36",
+      "ears": "The portal shall provide the listed customer, staff and admin screens, each usable at 360 px viewport width as well as tablet and desktop widths in the latest two versions of Chrome, Edge, Safari and Firefox.",
+      "op": "ADDED",
+      "sources": [
+       "47-responsive-design",
+       "55-main-customer-screens",
+       "56-main-staff-screens",
+       "57-main-admin-screens",
+       "I-9",
+       "I-17",
+       "I-18",
+       "I-19",
+       "ASM-28",
+       "I-22",
+       "I-45"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-36.1",
+        "given": "each listed screen opened at 360 px, 768 px and 1280 px widths",
+        "when": "a tester completes the screen's main task",
+        "then": "The task completes with no horizontal scrolling or clipped controls",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-37",
+      "ears": "While a list or search has no results, the portal shall display an empty-state message specific to that list (search results, basket, orders, invoices, templates, products, report results).",
+      "op": "ADDED",
+      "sources": [
+       "I-15",
+       "53-empty-states"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-37.1",
+        "given": "a customer with no orders and an empty basket",
+        "when": "a tester opens My orders and Basket",
+        "then": "Each screen shows its empty-state message instead of a blank list",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-38",
+      "ears": "While a catalogue, search, basket, checkout, order submission, invoice download, report or staff queue request is in progress, the portal shall display a loading indicator and keep the order submit button disabled until the submission completes.",
+      "op": "ADDED",
+      "sources": [
+       "I-16",
+       "54-loading-states",
+       "ASM-39"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-38.1",
+        "given": "network throttled to slow 3G",
+        "when": "a tester submits an order",
+        "then": "A loading indicator is shown and the submit button cannot be pressed again until the confirmation screen appears",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-39",
+      "ears": "The portal shall be deployable through the build pipeline to separate staging and production environments in one cloud region of the client's account, serving production only over HTTPS.",
+      "op": "ADDED",
+      "sources": [
+       "70-environments",
+       "49-security",
+       "I-32",
+       "ASM-31",
+       "ASM-32",
+       "I-10",
+       "I-13",
+       "I-31",
+       "I-35"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-39.1",
+        "given": "a merged change",
+        "when": "the pipeline runs and a tester requests the production URL over http",
+        "then": "The change is deployed to staging then production, and the http request is redirected to https",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-40",
+      "ears": "If writing the audit record for a business action fails, then the portal shall roll back that business action and return a generic error response with a reference id.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-9",
+       "ASM-51",
+       "42-audit-history",
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-40.1",
+        "given": "order 42 in status Received and the audit log write forced to fail",
+        "when": "staff calls the confirm endpoint for order 42",
+        "then": "The response status is 500 with a message and reference id, order 42's status field is still Received and no 'Order confirmed' audit row exists",
+        "level": "api"
+       },
+       {
+        "id": "AC-40.2",
+        "given": "an Unpaid invoice and the audit log write forced to fail",
+        "when": "staff calls POST /staff/invoices/{id}/mark-paid",
+        "then": "The response status is 500 and the invoice record's status field is still Unpaid with no payment date",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "assumptions": [
+     "Where assumptions conflict, the later clarification round wins: ASM-49 (holiday list) over ASM-19, ASM-50 (no tax lines) over ASM-23, ASM-41 (PDF rendered per download) over ASM-4, Q-7 over ASM-8, ASM-2 plus ASM-39 combined.",
+     "Report 'order value' and 'revenue' = sum of order line quantity × unit price, excluding tax and excluding Cancelled orders (ASM-44 gave no rule).",
+     "Report date range filters on order submission date in the business timezone, inclusive of both ends (ASM-45).",
+     "Order emails go to the user who placed the order (ASM-12 gave no rule).",
+     "A failed email does not roll back the triggering action and is recorded as Failed (ASM-48 gave no rule).",
+     "Cross-customer access returns 404 rather than 403 to avoid revealing record existence.",
+     "Intent span IDs I-1..I-45 were mapped to request sections in order since span text was not supplied; each requirement also cites the request section span it comes from (e.g. 39-reporting, 50-data-isolation) so it traces to the request text.",
+     "ASM-51: The audit record is written in the same transaction as the business action, so if the audit write fails the action is rolled back and an error is returned (ASM-9 gave no rule; chosen because risk is high: auth, payments)."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

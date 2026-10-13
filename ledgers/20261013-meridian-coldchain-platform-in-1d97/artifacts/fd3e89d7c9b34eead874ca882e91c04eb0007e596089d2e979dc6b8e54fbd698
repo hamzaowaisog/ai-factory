@@ -1,0 +1,215 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-2",
+      "ears": "When a contract operation creates or changes business data, the Meridian API shall persist the resulting records in the PostgreSQL database configured by `ConnectionStrings:App` and apply only lifecycle constraints explicitly described by that operation in the contract.",
+      "op": "ADDED",
+      "anchors": [
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 162,
+        "lineEnd": 183,
+        "quote": "    post:\n      operationId: createReceipt\n      summary: \"Record and quarantine an inbound receipt.\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ReceiptInput\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecordResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\""
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 1124,
+        "lineEnd": 1149,
+        "quote": "    patch:\n      operationId: changeCustomerOrder\n      summary: \"Change a customer order before packing.\"\n      parameters:\n        - $ref: \"#/components/parameters/OrderId\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/OrderInput\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecordResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\""
+       }
+      ],
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A configured PostgreSQL database and a valid request to a contract operation that creates or changes persistent business data.",
+        "when": "A client calls the operation and then reads the affected entity through the corresponding contract operation or directly from the database.",
+        "then": "The response status is the operation's contract-declared success status, the returned record identifier and values reflect the requested change, and the persisted row values match that change.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "A configured PostgreSQL database and a valid receipt input.",
+        "when": "A client calls `POST /api/warehouse/receipts` and reads the resulting receipt.",
+        "then": "The response status is 200, the returned record status is Quarantined, and the persisted row status is Quarantined.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "A customer-owned order that is before packing and a valid order change input.",
+        "when": "The authenticated customer sends a valid `PATCH /api/customer/orders/{orderId}` request.",
+        "then": "The response status is 200, and the returned record and persisted row reflect the change.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-5",
+      "ears": "If `Seed:Demo` is false or unset, then the Meridian API shall not run the demo seeder or create demo rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 24,
+        "quote": "        using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();\n        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       }
+      ],
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "A configured PostgreSQL database containing a non-demo account row provisioned by deployment and no rows matching the contract's demo examples, with valid staff identity-provider settings and `Seed:Demo` false or unset.",
+        "when": "The API starts.",
+        "then": "The provisioned account row values remain unchanged and the row count matching each contract demo example remains zero.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.3333333333333333
+     },
+     {
+      "id": "REQ-8",
+      "ears": "If a required staff identity-provider authorization URL or token-validation setting is missing or invalid, then the Meridian API shall fail application startup with an error identifying the affected setting.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "Deployment configuration with a required staff identity-provider setting missing or invalid.",
+        "when": "The API process starts.",
+        "then": "The process exit status is nonzero and the startup error identifies the configuration problem.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "A required staff identity-provider authorization URL or token-validation setting is missing or invalid.",
+        "when": "The application host starts with that deployment configuration.",
+        "then": "The process exit status is nonzero and the startup error identifies the affected setting.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "A test or factory host configuration that includes a valid nonproduction staff identity-provider authorization URL and token-validation settings.",
+        "when": "The host starts and a client requests `GET /`.",
+        "then": "The process exit status is 0 and the response status is 200.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The Meridian API shall authenticate customer accounts through the contract's email-and-password and one-time-code flow and authorize each authenticated caller using the roles, `warehouseIds`, and `organizationIds` in the PostgreSQL account record matched to that caller's authenticated email, with account records created or updated through contracted account operations or provisioned by deployment without demo seeding.",
+      "op": "ADDED",
+      "anchors": [
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 20,
+        "lineEnd": 40,
+        "quote": "  /auth/customer/sign-in:\n    post:\n      operationId: signInCustomer\n      summary: \"Submit customer email and password and begin one-time-code verification.\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/Credentials\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/AuthResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\""
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 2535,
+        "lineEnd": 2567,
+        "quote": "    AccountInput:\n      type: object\n      required:\n        - fullName\n        - email\n        - roles\n      properties:\n        fullName:\n          type: string\n        email:\n          type: string\n          format: email\n        roles:\n          type: array\n          items:\n            type: string\n            enum:\n              - Driver\n              - Dispatcher\n              - Quality Officer\n              - Quality Manager\n              - Auditor\n              - System Administrator\n              - Customer Administrator\n              - Customer\n        warehouseIds:\n          type: array\n          items:\n            type: integer\n        organizationIds:\n          type: array\n          items:\n            type: integer"
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 1650,
+        "lineEnd": 1685,
+        "quote": "  /admin/accounts:\n    get:\n      operationId: listAccounts\n      summary: \"List accounts, roles and access scope.\"\n      parameters:\n        - $ref: \"#/components/parameters/Search\"\n        - $ref: \"#/components/parameters/Status\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/Collection\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"500\":\n          $ref: \"#/components/responses/ServerError\"\n    post:\n      operationId: createAccount\n      summary: \"Create an account and assign its roles and access scope.\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/AccountInput\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecordResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\""
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 1036,
+        "lineEnd": 1060,
+        "quote": "  /quality/recalls/{recallId}/write-offs:\n    post:\n      operationId: writeOffRecallRemainder\n      summary: \"Submit a signed Quality Manager write-off for unaccounted recall quantity.\"\n      parameters:\n        - $ref: \"#/components/parameters/RecallId\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/WriteOffInput\"\n      responses:\n        \"200\":\n          $ref: \"#/components/responses/RecordResult\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\""
+       }
+      ],
+      "sources": [
+       "I-1",
+       "Q-1",
+       "Q-3",
+       "ASM-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A newly created database with `Seed:Demo` false, a non-demo staff account row provisioned by deployment and matched by email to a valid staff identity-provider token, and persisted stock rows in warehouses 10 and 20. The account has the role permitted for stock listing and `warehouseIds` containing only 10.",
+        "when": "The caller requests the stock collection with `warehouseId=20`.",
+        "then": "The response status is 403 and the returned list contains no row from warehouse 20.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "A non-demo customer account row matched by email, assigned organization 10, and authenticated by completing the contract's sign-in and one-time-code verification flow; persisted orders exist for organizations 10 and 20.",
+        "when": "The customer lists orders and requests an order belonging to organization 20.",
+        "then": "The response list contains only organization-10 records, and the response status for the organization-20 order is 403.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.3",
+        "given": "Non-demo account rows assigned Quality Officer and Quality Manager roles with the same permitted quality scope, and an open recall with an unaccounted quantity.",
+        "when": "Each account submits the contract's signed `POST /api/quality/recalls/{recallId}/write-offs` operation for that recall.",
+        "then": "The Quality Officer response status is 403 and the Quality Manager response status is 200.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.8
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When the Meridian API starts against the configured PostgreSQL database, the Meridian API shall apply ordered, versioned schema migrations at startup, baseline a compatible schema created by its existing `EnsureCreated` startup, and preserve existing rows; incompatible schema drift that cannot be migrated without data loss produces a startup error rather than data loss.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "An existing configured PostgreSQL database with a compatible schema created by the previous `EnsureCreated` startup, pre-existing rows, and valid staff identity-provider settings.",
+        "when": "The API starts.",
+        "then": "The database table list includes the tables required by the contract-backed model and every pre-existing row retains its values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "An existing configured PostgreSQL database with incompatible schema drift that cannot be migrated without data loss, pre-existing rows, and valid staff identity-provider settings.",
+        "when": "The API starts.",
+        "then": "The process exit status is nonzero, the startup error identifies the schema incompatibility, and the pre-existing row values remain unchanged.",
+        "level": "api"
+       }
+      ],
+      "stability": 0.8
+     }
+    ],
+    "assumptions": [
+     "ASM-1: For this specification, “a few” sample rows means between two and five rows per empty contract-backed table.",
+     "ASM-2: Deployment provisions initial non-demo account records directly in the configured PostgreSQL database, matched to authenticated identities by email; contracted account operations create and update subsequent account assignments."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,275 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "S-1 /sign-in",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "S-2 /yard",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "S-3 /imports",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "S-4 /allocations",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "S-5 /lots",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "S-6 /lots/L-2407",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "S-7 /inventory",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "S-8 /feed-outlook",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "S-9 /rations",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "S-10 /feed-plans",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "S-11 /feeding",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-12",
+        "title": "S-12 /reports",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-13",
+        "title": "S-13 /reports/feed-to-gain",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-14",
+        "title": "S-14 /reports/profitability",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-15",
+        "title": "S-15 /sample-data",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-16",
+        "title": "S-16 /delivery-brief",
+        "req": "REQ-1"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "frames/stitch-S-1-normal-2a1f12c7.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-1-error-962ce329.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-normal-8d43afb6.png",
+      "screen": "S-2 /yard",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-error-a521bf5e.png",
+      "screen": "S-2 /yard",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-phone-7b020f92.png",
+      "screen": "S-2 /yard",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-normal-9dfbac05.png",
+      "screen": "S-3 /imports",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-error-8e258312.png",
+      "screen": "S-3 /imports",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-normal-6eb8eb28.png",
+      "screen": "S-4 /allocations",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-normal-c5a100d9.png",
+      "screen": "S-5 /lots",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-empty-c54579da.png",
+      "screen": "S-5 /lots",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-phone-e64070c8.png",
+      "screen": "S-5 /lots",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-normal-8a91fb55.png",
+      "screen": "S-6 /lots/L-2407",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-phone-badfa95e.png",
+      "screen": "S-6 /lots/L-2407",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-normal-3ec197f5.png",
+      "screen": "S-7 /inventory",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-empty-1cb4e0ed.png",
+      "screen": "S-7 /inventory",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-error-2c2a1689.png",
+      "screen": "S-7 /inventory",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-normal-b9206b58.png",
+      "screen": "S-8 /feed-outlook",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-error-91387edc.png",
+      "screen": "S-8 /feed-outlook",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-normal-d7e84352.png",
+      "screen": "S-9 /rations",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-normal-acb9aff8.png",
+      "screen": "S-10 /feed-plans",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-phone-509ae098.png",
+      "screen": "S-10 /feed-plans",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-normal-c2123e89.png",
+      "screen": "S-11 /feeding",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-error-49a96ce4.png",
+      "screen": "S-11 /feeding",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-phone-949f998f.png",
+      "screen": "S-11 /feeding",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-normal-5876d243.png",
+      "screen": "S-12 /reports",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-empty-74bee394.png",
+      "screen": "S-12 /reports",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-normal-b40e8c4a.png",
+      "screen": "S-13 /reports/feed-to-gain",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-empty-1b8c6432.png",
+      "screen": "S-13 /reports/feed-to-gain",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-14-normal-137cf33c.png",
+      "screen": "S-14 /reports/profitability",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-15-normal-e51b585c.png",
+      "screen": "S-15 /sample-data",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-16-normal-261309ae.png",
+      "screen": "S-16 /delivery-brief",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    }
+  ]
+}

@@ -1,0 +1,225 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "scope",
+      "text": "The request says unresolved items in the 'Open Questions' section must be clarified or turned into assumptions, but that section isn't included. How should the estimate handle them?",
+      "options": [
+       "List each unresolved item as an explicit assumption in the estimate",
+       "Provide the Open Questions section so each item can be clarified first",
+       "Leave them out of the estimate and note it as excluded"
+      ],
+      "recommended": "List each unresolved item as an explicit assumption in the estimate",
+      "reason": "The request itself allows this, and it doesn't hold up the estimate.",
+      "spans": [
+       "I-45"
+      ],
+      "impact": 2,
+      "impactReason": "Decides whether the estimate can be finished now or has to wait for missing input."
+     },
+     {
+      "id": "Q-7",
+      "category": "scope",
+      "text": "What format and unit should the itemised estimate use?",
+      "options": [
+       "Person-days per checklist item as a low/high range, with totals per section",
+       "A single person-day figure per checklist item",
+       "Person-days plus a cost figure using supplied day rates"
+      ],
+      "recommended": "Person-days per checklist item as a low/high range, with totals per section",
+      "reason": "Ranges show how uncertain open items are, and no rates are needed.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Sets the shape of the main deliverable."
+     },
+     {
+      "id": "Q-8",
+      "category": "data-model",
+      "topic": "volumes",
+      "text": "The stack must support 'the expected scale', but no figures are given. What volumes should the proposal and estimate assume?",
+      "options": [
+       "Assume tens of customer companies, a few hundred users, up to ~50k products and ~1k orders per day, stated as an assumption",
+       "Client will supply actual user, product and order volumes"
+      ],
+      "recommended": "Assume tens of customer companies, a few hundred users, up to ~50k products and ~1k orders per day, stated as an assumption",
+      "reason": "A stated assumption lets the proposal go ahead and can be corrected later.",
+      "spans": [
+       "I-44"
+      ],
+      "impact": 2,
+      "impactReason": "Affects the database, hosting and monitoring choices and the effort for them."
+     },
+     {
+      "id": "Q-9",
+      "category": "external",
+      "topic": "hosting",
+      "text": "Are there any constraints on the hosting or cloud platform the proposal may recommend?",
+      "options": [
+       "No constraints; propose the best fit",
+       "Must use the client's existing cloud provider",
+       "Must be hosted in a specific region for data-residency reasons"
+      ],
+      "recommended": "No constraints; propose the best fit",
+      "reason": "The request says the stack is 'Not decided', and nothing restricts it.",
+      "spans": [
+       "I-44"
+      ],
+      "impact": 2,
+      "impactReason": "Shapes the whole technology proposal and the DevOps estimate."
+     },
+     {
+      "id": "Q-10",
+      "category": "external",
+      "text": "How does the ERP stock CSV reach the portal, and how often?",
+      "options": [
+       "An admin uploads the CSV manually through the portal",
+       "A scheduled job picks the file up from SFTP or file storage",
+       "Assume a daily scheduled pickup, stated as an assumption"
+      ],
+      "recommended": "Assume a daily scheduled pickup, stated as an assumption",
+      "reason": "This matches the 'Scheduled jobs' item in the checklist and keeps the estimate moving.",
+      "spans": [
+       "I-30"
+      ],
+      "impact": 3,
+      "impactReason": "Changes how stock data is written, plus the integration and import-testing effort."
+     },
+     {
+      "id": "Q-11",
+      "category": "existing-data",
+      "text": "Now that staff can amend orders before dispatch: when is the invoice created automatically, and what happens to it if an order is amended?",
+      "options": [
+       "Invoice is created on dispatch, so amendments before dispatch never touch an invoice",
+       "Invoice is created on order placement and is regenerated after an amendment",
+       "Invoice is created on order placement, and an amendment issues a credit note plus a new invoice"
+      ],
+      "recommended": "Invoice is created on dispatch, so amendments before dispatch never touch an invoice",
+      "reason": "This is the least effort and fits 'amend before dispatch'.",
+      "spans": [
+       "I-27"
+      ],
+      "impact": 3,
+      "impactReason": "Changes when financial records are written and whether invoices can change."
+     },
+     {
+      "id": "Q-12",
+      "category": "roles",
+      "text": "Who can cancel an order, and up to which point?",
+      "options": [
+       "Customers and staff can cancel before dispatch",
+       "Customers can cancel only before staff start processing; staff can cancel before dispatch",
+       "Only staff can cancel"
+      ],
+      "recommended": "Customers and staff can cancel before dispatch",
+      "reason": "This uses the same cut-off as amendments and keeps the state rules simple.",
+      "spans": [
+       "I-27"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can change order state."
+     },
+     {
+      "id": "Q-13",
+      "category": "existing-data",
+      "topic": "audit",
+      "text": "Does the 7-year retention apply only to orders and invoices, or also to audit history?",
+      "options": [
+       "Orders and invoices only; audit logs follow a shorter default retention",
+       "Orders, invoices and audit logs are all kept for 7 years"
+      ],
+      "recommended": "Orders and invoices only; audit logs follow a shorter default retention",
+      "reason": "The request names only order/invoice retention.",
+      "spans": [
+       "I-44"
+      ],
+      "impact": 2,
+      "impactReason": "Affects storage, backup and archiving effort."
+     },
+     {
+      "id": "Q-14",
+      "category": "scope",
+      "topic": "sign-in",
+      "text": "Which sign-in approach should the estimate and proposal assume?",
+      "options": [
+       "Email and password with password reset, for all roles",
+       "Email/password for customers; single sign-on for staff and admins",
+       "Single sign-on for all users"
+      ],
+      "recommended": "Email and password with password reset, for all roles",
+      "reason": "Nothing in the request asks for SSO.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Changes authentication effort and the proposed auth approach."
+     },
+     {
+      "id": "Q-15",
+      "category": "scope",
+      "topic": "browsers",
+      "text": "Which browsers and devices should the browser and responsive testing cover?",
+      "options": [
+       "Latest two versions of Chrome, Edge, Safari and Firefox, plus iOS Safari and Android Chrome",
+       "Chrome and Edge desktop only, plus mobile Safari/Chrome"
+      ],
+      "recommended": "Latest two versions of Chrome, Edge, Safari and Firefox, plus iOS Safari and Android Chrome",
+      "reason": "This is the usual baseline for a mobile-first responsive portal.",
+      "spans": [
+       "I-37"
+      ],
+      "impact": 1,
+      "impactReason": "Only changes how much QA effort is needed."
+     },
+     {
+      "id": "Q-16",
+      "category": "scope",
+      "topic": "accessibility",
+      "text": "Is there an accessibility level to estimate for?",
+      "options": [
+       "No formal target; follow good-practice accessibility",
+       "WCAG 2.1 AA conformance, including an audit"
+      ],
+      "recommended": "No formal target; follow good-practice accessibility",
+      "reason": "The request doesn't mention accessibility.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 1,
+      "impactReason": "Changes UX and QA effort."
+     },
+     {
+      "id": "Q-17",
+      "category": "scope",
+      "topic": "languages",
+      "text": "Which languages does the portal need to support?",
+      "options": [
+       "English only",
+       "Several languages, with a translation framework"
+      ],
+      "recommended": "English only",
+      "reason": "The request doesn't mention localisation.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 1,
+      "impactReason": "Changes frontend and content effort."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

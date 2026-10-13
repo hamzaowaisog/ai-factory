@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lot history</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .main-title {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .sub-title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quieter-text {
+      color: #626262;
+    }
+
+    /* Motion Tokens & Animations (CSS Only) */
+    @keyframes pageFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .dot-breathing {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Header Component */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-square {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-item {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      border-bottom-color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .avatar-square {
+      width: 28px;
+      height: 28px;
+      background-color: #F0F0F0;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Layout Container */
+    .page-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 48px;
+      display: flex;
+      flex-col: column;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Page Header Section */
+    .page-heading-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Panel Styling */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+    }
+
+    /* Product Showcase Card */
+    .product-card {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .product-photo-wrap {
+      width: 240px;
+      height: 180px; /* 4:3 aspect ratio */
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      background-color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .product-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .product-details {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .product-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid #D5D5D5;
+      padding-bottom: 16px;
+    }
+
+    .product-name {
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 4px;
+    }
+
+    .product-spec {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .product-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding-top: 16px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .metric-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .metric-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .metric-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .metric-number {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1;
+      color: #202020;
+    }
+
+    .metric-unit {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .metric-footer {
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Status Tokens */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Ledger Table Section */
+    .ledger-section {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ledger-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .ledger-table th {
+      background-color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #626262;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 14px 24px;
+      border-bottom: 1px solid #D5D5D5;
+    }
+
+    .ledger-table td {
+      padding: 12px 24px;
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 15px;
+      color: #202020;
+      vertical-align: middle;
+    }
+
+    .ledger-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .ledger-table tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    .col-timestamp {
+      width: 180px;
+    }
+
+    .col-actor {
+      width: 150px;
+    }
+
+    .col-place {
+      width: 220px;
+    }
+
+    .col-qty {
+      width: 110px;
+      text-align: right;
+    }
+
+    .col-result {
+      width: auto;
+    }
+
+    .col-status {
+      width: 180px;
+    }
+
+    /* Meta bar / Footer info */
+    .table-footer-bar {
+      padding: 12px 24px;
+      background-color: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #626262;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-mark">
+        <div class="brand-square">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item">Audit trail</a>
+        <a href="#" class="nav-item active">Lot history</a>
+        <a href="#" class="nav-item">Reports</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-badge">
+        <div class="avatar-square">ER</div>
+        <span>Esha Raman · Auditor</span>
+      </div>
+      <div class="lang-switcher">
+        <span>EN / العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="page-container">
+    
+    <!-- Page Heading -->
+    <div class="page-heading-row">
+      <h1 class="main-title">Lot history</h1>
+    </div>
+
+    <!-- Product Card -->
+    <section class="panel product-card">
+      <div class="product-photo-wrap">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine 100 units/mL packaging" class="product-photo">
+      </div>
+      <div class="product-details">
+        <div class="product-header">
+          <div>
+            <h2 class="product-name">Insulin Glargine 100 units/mL</h2>
+            <div class="product-spec">Pack of 10 pens · Lot <span class="mono">IG-2509</span></div>
+          </div>
+          <div>
+            <span class="status-badge status-refused">
+              <span class="status-dot"></span>
+              refused active recall
+            </span>
+          </div>
+        </div>
+
+        <div class="product-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Expiry date</span>
+            <span class="meta-value mono">30 November 2026</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Temperature profile</span>
+            <span class="meta-value">profile v3 (<span class="mono">2.0°C–8.0°C</span>)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Storage location</span>
+            <span class="meta-value">North Quay Cold Room C2, Rack 4</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Mandated shelf life</span>
+            <span class="meta-value"><span class="mono">90</span> days minimum</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics Grid -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Total received intake</span>
+        <div class="metric-value-row">
+          <span class="metric-number mono">24</span>
+          <span class="metric-unit">packs</span>
+        </div>
+        <div class="metric-footer">
+          <span>Inbound shipment dock</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-label">Delivered packs (consigned)</span>
+        <div class="metric-value-row">
+          <span class="metric-number mono">20</span>
+          <span class="metric-unit">packs</span>
+        </div>
+        <div class="metric-footer">
+          <span class="status-badge status-good">
+            <span class="status-dot"></span>
+            good delivered
+          </span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-label">Warehouse on hand</span>
+        <div class="metric-value-row">
+          <span class="metric-number mono">4</span>
+          <span class="metric-unit">packs</span>
+        </div>
+        <div class="metric-footer">
+          <span class="status-badge status-refused">
+            <span class="status-dot"></span>
+            refused 4 recalled on hand
+          </span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-label">Traced lot scope</span>
+        <div class="metric-value-row">
+          <span class="metric-number mono">24 / 24</span>
+          <span class="metric-unit">packs</span>
+        </div>
+        <div class="metric-footer">
+          <span><span class="mono">20</span> delivered + <span class="mono">4</span> on hand</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ordered Ledger -->
+    <section class="ledger-section">
+      <div class="ledger-header">
+        <div>
+          <h2 class="section-title">Chronological trace</h2>
+          <p class="quieter-text" style="font-size: 14px; margin-top: 2px;">Ordered ledger of custody, movement, and quality governance for Lot <span class="mono">IG-2509</span></p>
+        </div>
+        <div>
+          <span class="status-badge status-refused">
+            <span class="status-dot"></span>
+            4 recalled on hand
+          </span>
+        </div>
+      </div>
+
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th class="col-timestamp">Date &amp; Time</th>
+            <th class="col-actor">Actor</th>
+            <th class="col-place">Place</th>
+            <th class="col-qty">Quantity</th>
+            <th class="col-result">Returned Result</th>
+            <th class="col-status">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-timestamp mono">12 May 2026 09:10</td>
+            <td class="col-actor">Leila Haddad</td>
+            <td class="col-place">North Quay Warehouse</td>
+            <td class="col-qty mono">24 packs</td>
+            <td class="col-result">Receipt of 24 packs Lot <span class="mono">IG-2509</span>, assigned to quarantine</td>
+            <td class="col-status">
+              <span class="status-badge status-waiting">
+                <span class="status-dot dot-breathing"></span>
+                waiting quarantine
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-timestamp mono">12 May 2026 10:05</td>
+            <td class="col-actor">Omar Saleh</td>
+            <td class="col-place">North Quay Warehouse</td>
+            <td class="col-qty mono">24 packs</td>
+            <td class="col-result">Release of 24 packs to available stock in Cold Room C2, Rack 4</td>
+            <td class="col-status">
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good released
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-timestamp mono">13 May 2026 10:14</td>
+            <td class="col-actor">Tariq Mansour</td>
+            <td class="col-place">Cedar Clinic, 42 River Road</td>
+            <td class="col-qty mono">20 packs</td>
+            <td class="col-result">Delivery of 20 packs on order <span class="mono">O-290</span> via route <span class="mono">R-201</span> to Rania Karim</td>
+            <td class="col-status">
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                good delivered
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-timestamp mono">14 May 2026 10:00</td>
+            <td class="col-actor">Nadia Farouk</td>
+            <td class="col-place">North Quay Warehouse</td>
+            <td class="col-qty mono">4 packs</td>
+            <td class="col-result">Manufacturer recall <span class="mono">RC-12</span> started; 4 packs on hand quarantined</td>
+            <td class="col-status">
+              <span class="status-badge status-refused">
+                <span class="status-dot"></span>
+                refused active
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-timestamp mono">14 May 2026 10:20</td>
+            <td class="col-actor">Omar Saleh</td>
+            <td class="col-place">Quality Assurance</td>
+            <td class="col-qty mono">20 packs</td>
+            <td class="col-result">Quality Case <span class="mono">Q-89</span> opened after corrected readings for delivered order <span class="mono">O-290</span></td>
+            <td class="col-status">
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                waiting review
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="table-footer-bar">
+        <span>Prototype date: <span class="mono">14 May 2026</span> · Europe/London (BST)</span>
+        <span>Showing <span class="mono">5</span> immutable events across lot lifecycle · <span class="mono">4</span> recalled on hand</span>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,241 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "Driver route, loading, handover and refusal",
+      "readingChosen": "Treat driver workflows as features of the responsive web app, including browser-based offline use; when disconnected, show the latest available box temperature/status and identify it as potentially stale rather than implying a live reading.",
+      "behaviours": [
+       {
+        "text": "A signed-in driver sees only routes assigned to that driver, with today's stops in route order; the driver cannot view another driver's routes.",
+        "kind": "permission"
+       },
+       {
+        "text": "For each route, show its stops and the boxes expected at each stop. During the route, show each box's latest available temperature, status and alerts; when readings are unavailable or stale, make that visible.",
+        "kind": "data"
+       },
+       {
+        "text": "Before departure, the driver scans each box being loaded. Accept scans for expected route boxes, identify boxes assigned to another route, and report expected boxes not scanned. Do not mark loading complete until every expected route box has been scanned and no wrong box is treated as loaded.",
+        "kind": "happy"
+       },
+       {
+        "text": "If a scanned box is not on the route, identify it as a wrong-route box and prevent it from satisfying an expected-box scan. If any expected box is missing, show which box is missing and keep loading incomplete.",
+        "kind": "error"
+       },
+       {
+        "text": "At a stop, the driver scans boxes expected for that stop and sees whether each can be handed over. For a box with On Hold stock, show “Do not deliver” and the hold reason, and prevent that box from being handed over.",
+        "kind": "error"
+       },
+       {
+        "text": "For eligible boxes, let the driver record the receiver's name, capture a signature and a photo of delivered boxes, and complete the handover. Record handover time and location automatically.",
+        "kind": "data"
+       },
+       {
+        "text": "Allow the driver to record refusal of all or selected boxes, capturing a reason for each refused box. Record refused boxes as returning to the warehouse and set them to Quarantined when they arrive.",
+        "kind": "data"
+       },
+       {
+        "text": "Allow loading, handover and refusal to be recorded while disconnected, retain the work locally until connectivity returns, and send it automatically when connectivity returns. Preserve the time the offline handover actually occurred rather than substituting its upload time.",
+        "kind": "data"
+       },
+       {
+        "text": "If the route changed while the driver was offline, show the driver the differences before they continue, including affected stops or boxes. Do not discard or undo a handover already completed offline when reconciling the route.",
+        "kind": "error"
+       },
+       {
+        "text": "If an offline handover is uploaded after a hold was placed on that box, keep the handover, flag the hold/handover conflict and open a quality case; do not silently reject or erase the handover.",
+        "kind": "error"
+       },
+       {
+        "text": "If the same handover is submitted more than once, retain one recorded handover rather than creating duplicates.",
+        "kind": "data"
+       },
+       {
+        "text": "Show dispatchers the status of each stop and the time it was last updated.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "US-010: Decide What Happens to Affected Stock",
+      "behaviours": [
+       {
+        "text": "For every affected handling unit, require a recorded decision of Release or Reject. Show the reviewer the full temperature history, budget used and remaining for every tier, and the system recommendation: Release if every tier has allowance remaining; Reject if any tier is exhausted or a not-permitted range was reached.",
+        "kind": "data"
+       },
+       {
+        "text": "Allow a Quality Officer to make and sign a decision alone only when the excursion stayed within the first tier above or below the band and allowance remains.",
+        "kind": "permission"
+       },
+       {
+        "text": "For every other case, require a Quality Officer to propose and a different person acting as Quality Manager to approve. Do not allow the proposer to approve, even if that person holds both roles.",
+        "kind": "permission"
+       },
+       {
+        "text": "If the proposed decision goes against the system recommendation, require both Quality Officer proposal and Quality Manager approval and require a written justification.",
+        "kind": "error"
+       },
+       {
+        "text": "At signing, require the decision-maker to confirm their identity again and enter a reason. Record each decision as electronically signed.",
+        "kind": "data"
+       },
+       {
+        "text": "After signing, prevent anyone, including a System Administrator, from editing or deleting the decision. Permit a later decision only as a new signed decision that supersedes the earlier one, retaining both in the record.",
+        "kind": "permission"
+       },
+       {
+        "text": "Keep On Hold stock unavailable for allocation, packing, loading and handover.",
+        "kind": "error"
+       },
+       {
+        "text": "On Release, restore the stock to its prior disposition: available stock remains available, and stock previously on an order or route returns to that order or route.",
+        "kind": "data"
+       },
+       {
+        "text": "On Reject, remove the stock from its order and trigger reallocation of the order under US-005; remove rejected stock from available stock and list it for destruction.",
+        "kind": "data"
+       },
+       {
+        "text": "Allow destruction to be recorded with a date, quantity and witness, and reject any destruction entry that would make the destroyed quantity exceed the rejected quantity.",
+        "kind": "error"
+       },
+       {
+        "text": "Escalate a decision that has been waiting longer than four hours to the Quality Manager.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "US-011: Recall a Lot",
+      "behaviours": [
+       {
+        "text": "Allow only a Quality Manager to start a recall, specifying a product, one or more lot numbers, a reason and severity; record the start as signed. Allow only a Quality Manager to close a recall, also as a signed action.",
+        "kind": "permission"
+       },
+       {
+        "text": "On starting a recall, set all Meridian-held stock in the specified lots, across all warehouses, to Recalled and block it from allocation/use and handover, including stock already packed or on a vehicle.",
+        "kind": "data"
+       },
+       {
+        "text": "When a route device is online, show “Do not deliver” for a recalled box. Apply the block to the recalled box even if it is already on a route.",
+        "kind": "error"
+       },
+       {
+        "text": "Make a trace available within one minute showing every affected warehouse location, box, route and customer delivery, with quantities, and list customers who received the lots with quantities, delivery dates and receivers. Ensure trace quantities reconcile exactly to the lot's total quantity received.",
+        "kind": "data"
+       },
+       {
+        "text": "Notify affected customers by email and in the customer portal. Let each customer respond in the portal for each delivery with packs still on hand, used or dispensed, and destroyed on site.",
+        "kind": "data"
+       },
+       {
+        "text": "Reject a customer response whose reported quantities exceed the quantity delivered to that customer for that delivery.",
+        "kind": "error"
+       },
+       {
+        "text": "Arrange packs reported on hand for collection on a return route and set them to Quarantined when they arrive.",
+        "kind": "data"
+       },
+       {
+        "text": "After 24 hours without a customer response, send that customer a reminder and show the outstanding customer to the Quality Manager.",
+        "kind": "data"
+       },
+       {
+        "text": "Show recall progress as the percentage of packs accounted for.",
+        "kind": "data"
+       },
+       {
+        "text": "Allow recall closure only when every pack is accounted for as held by Meridian, returned, reported used, reported destroyed, or written off as unaccounted with a signed justification. Do not allow closure while any pack is unaccounted for without such a write-off.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "US-012: Follow Orders in the Customer Portal",
+      "behaviours": [
+       {
+        "text": "Show a customer user current and past orders belonging to that user's organisation only; prevent access to another organisation's orders.",
+        "kind": "permission"
+       },
+       {
+        "text": "For orders, show status, allocated lots and expiry dates. For a delivery on the road, show planned arrival time and whether its temperature is in or out of range, without exposing other customers on the route.",
+        "kind": "data"
+       },
+       {
+        "text": "For each completed delivery, let the customer download a PDF delivery certificate containing products, lots, expiry dates, quantities, receiver and handover time, each box's temperature chart from sealing to handover, excursions and their signed decisions.",
+        "kind": "happy"
+       },
+       {
+        "text": "Keep an issued certificate version unchanged. If late readings change the history, issue a new certificate version and keep both the original and new versions available.",
+        "kind": "data"
+       },
+       {
+        "text": "Show dates and times in the customer's own time zone, and provide the portal and certificates in English or Arabic according to the user's preference. When Arabic is selected, display the entire portal right-to-left, including tables and charts, and render the certificate accordingly.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "US-013: Audit Trail",
+      "behaviours": [
+       {
+        "text": "Record every creation, change and deletion of regulated data, including products and profiles, stock, orders and allocations, boxes and routes, handovers, excursions, decisions, recalls, users and roles, and configuration. Each entry records who acted, when, what changed, old and new values, and any reason provided.",
+        "kind": "data"
+       },
+       {
+        "text": "Record automatic actions, such as automatic holds and allocations, with the system identified as the actor.",
+        "kind": "data"
+       },
+       {
+        "text": "Prevent every user, including a System Administrator, from editing or deleting audit entries; provide evidence that can detect alteration of the trail outside the application.",
+        "kind": "permission"
+       },
+       {
+        "text": "Store audit times in one reference time and display them in the viewer's time zone, including the distinct time zones for Karachi/Lahore and Dubai. Retain records for seven years.",
+        "kind": "data"
+       },
+       {
+        "text": "Let an Auditor filter the audit trail by record, user, date range and action type, and export any filtered view. Restrict this audit capability to an Auditor.",
+        "kind": "permission"
+       },
+       {
+        "text": "Let a user view the full history of one lot in time order, from receipt through delivery or destruction.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "US-014: Reports and Scheduled Summaries",
+      "behaviours": [
+       {
+        "text": "At 07:00 in each warehouse's own time zone, email that warehouse's Quality Officers a daily summary of excursions in the last 24 hours, decisions still waiting, silent devices and stock On Hold.",
+        "kind": "data"
+       },
+       {
+        "text": "On the first day of each month, generate and email a monthly report to configured stakeholders. Include excursion count and rate by route, driver, vehicle and shipper-box type; packs rejected and destroyed by product and cause; on-time and in-full delivery percentages; average time from excursion to decision; stock expiring within 60 days by product and warehouse; and open recalls with progress.",
+        "kind": "data"
+       },
+       {
+        "text": "Define on-time delivery as handover within 60 minutes of planned arrival, and in-full as handover of every ordered pack; calculate report figures from the underlying records for the same reporting period.",
+        "kind": "data"
+       },
+       {
+        "text": "Let staff view the same figures on screen for any date range, filter by warehouse and export the report. Restrict each staff member's report figures to their own warehouses.",
+        "kind": "permission"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

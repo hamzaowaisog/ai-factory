@@ -1,0 +1,468 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Feedlot API shall expose and implement every path and HTTP method declared in contracts/openapi.yaml, with the declared parameters, request and response schemas, and status codes, and shall not add undocumented operations.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The locked contracts/openapi.yaml and a running API",
+        "when": "a client calls each declared path and method using valid contract inputs",
+        "then": "the response status and response body fields match the operation's declared success contract",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A running API",
+        "when": "a client calls a path or HTTP method not defined in the contract",
+        "then": "the response status is the normal 404 or 405 and no undocumented operation is invoked",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When a client submits credentials or requests its current session, the Feedlot API shall return the contract-defined sign-in or session response and enforce only the authentication and authorization requirements declared in the contract.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A valid sign-in request with no bearer token",
+        "when": "the client calls POST /api/auth/sign-in",
+        "then": "the response status is 200 and the response contains an accessToken and user fields including permissions and authorizedYards",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "A valid authenticated bearer token",
+        "when": "the client calls GET /api/session",
+        "then": "the response status is 200 and the response contains the current user and refreshed permissions",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.3",
+        "given": "A missing or expired token, or a user without the permission required by a contract operation",
+        "when": "the client calls that protected operation",
+        "then": "the response status is 401 for missing or expired authentication or 403 for insufficient permission, as declared by the contract",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When an authorized client requests dashboard, lot, forecast, metric, insight, or weight-history operations, the Feedlot API shall return the contract-defined values, filtered rows, calculations, and persisted updates for those operations.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "Authorized dashboard data and a valid rankBy value",
+        "when": "the client calls GET /api/dashboard with rankBy=fcr, adg, or costOfGain",
+        "then": "the response status is 200 and the response rankingMeasure and bestLots and worstLots correspond to the selected measure",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "Lots with distinct pen, breed, sex, and status values",
+        "when": "the client calls GET /api/lots with supported query filters",
+        "then": "the response status is 200 and the response lots list contains only rows matching the supplied filters, with contract-defined forecast and performance fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.3",
+        "given": "An existing lot and yard forecast defaults",
+        "when": "the client calls GET /api/lots/{lotId}/forecast and PATCHes /api/forecast-settings or /api/lots/{lotId}/forecast-settings",
+        "then": "the response status and response fields match the contract, and a subsequent forecast response contains the persisted effective assumptions and projectedMarketDate",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.4",
+        "given": "An existing lot with feeding and weight records",
+        "when": "the client calls GET /api/lots/{lotId}/metrics or GET /api/lots/{lotId}/insights",
+        "then": "the response status is 200 and the response contains the contract-defined lot metrics or suggestions with their basis, including null unavailable metric values where applicable",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.5",
+        "given": "An existing lot and a valid planner-selected insight action or weight measurement",
+        "when": "the client calls POST /api/lots/{lotId}/insights/actions, GET /api/lots/{lotId}/weights, or POST /api/lots/{lotId}/weights",
+        "then": "the response status and response fields match the contract, and the returned action or measurement is present in the subsequent relevant response",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When an authorized client previews or imports procurement records or saves allocations, the Feedlot API shall return and persist contract-defined PO-line-to-lot and lot-to-pen traceability, including import match and allocation-conflict results.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "Procurement adapter records are available",
+        "when": "the client calls GET /api/imports/source-records and POST /api/imports with selectedRecordIds",
+        "then": "the response status is 200 and the response records, createdCount, updatedCount, status, and allocationConflicts reflect the selected source records and current matches",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "Valid PO-line-to-lot and lot-to-pen quantities",
+        "when": "the client calls PUT /api/allocations and then GET /api/allocations",
+        "then": "both response statuses are 200 and the response poLines, lotPens, and pens contain the saved quantities, traceability status, and capacity information",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.3",
+        "given": "An invalid selection, conflicting import, or allocation that violates saved state",
+        "when": "the client submits the relevant import or allocation request",
+        "then": "the response status and error response match the operation's declared 409 or 422 contract",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When an authorized client reads or changes inventory, the Feedlot API shall return contract-defined stock, movement, projection, and export values and persist valid inventory changes in PostgreSQL.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "Inventory items and movements exist",
+        "when": "the client calls GET /api/inventory",
+        "then": "the response status is 200 and the response contains items, movements, operationalTotals, and the contract-defined stock fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "A valid inventory item request or update request",
+        "when": "the client calls POST /api/inventory/items or PATCH /api/inventory/items/{itemId}",
+        "then": "the response status and returned item fields match the contract and the saved item is returned by a subsequent GET /api/inventory",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.3",
+        "given": "A valid receipt or stock-adjustment request for an existing item",
+        "when": "the client calls POST /api/inventory/movements",
+        "then": "the response status is 201 and the response movement and item stock values reflect the posted movement",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.4",
+        "given": "A supported horizon and inventory with applicable plans and wastage settings",
+        "when": "the client calls GET /api/inventory/projections with daily, weekly, monthly, quarterly, semiAnnual, or annual horizon",
+        "then": "the response status is 200 and the response contains the selected horizon, projections with projected consumption and balance, and movement distinctions",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.5",
+        "given": "Authorized operational inventory rows",
+        "when": "the client calls GET /api/inventory/export",
+        "then": "the response status is 200 and the response contains a CSV fileName, text/csv contentType, and a base64-encoded file derived from operational records",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When an authorized client reads, creates, revises, optimizes, or approves a ration, the Feedlot API shall return the contract-defined ration data and optimization or approval result and persist valid ration changes.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "Saved ration definitions",
+        "when": "the client calls GET /api/rations",
+        "then": "the response status is 200 and the response rations list contains the saved ingredients, proportions, nutrition, cost, and approval status",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "A valid ration request",
+        "when": "the client calls POST /api/rations or PATCH /api/rations/{rationId}",
+        "then": "the response status is 201 for creation or 200 for revision and the response ration contains the persisted definition and calculated contract fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.3",
+        "given": "Valid candidate mixes and nutrition requirements",
+        "when": "the client calls POST /api/rations/optimization",
+        "then": "the response status is 200 and the response contains either the lowest-cost qualifying candidate or an explicit qualifyingMixFound=false result",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.4",
+        "given": "An existing ration in a state eligible for approval",
+        "when": "the client calls POST /api/rations/{rationId}/approval",
+        "then": "the response status is 200 and the response approvalStatus is Approved",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When an authorized client reads, creates, reviews, or changes the execution status of a feed plan, the Feedlot API shall return and persist the contract-defined pen-level plan, calculated quantities, audit state, and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "Saved feed plans",
+        "when": "the client calls GET /api/feed-plans",
+        "then": "the response status is 200 and the response plans list contains the saved plan details, execution state, and audit-related fields",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "A valid dated pen, ration, bunk rate, and animal-count request",
+        "when": "the client calls POST /api/feed-plans",
+        "then": "the response status is 201 and the response plan contains calculated plannedQuantity, quantityPerAnimal, totalFeedCost, and expectedEnergyIntake",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.3",
+        "given": "An existing plan eligible for review or status change",
+        "when": "the client calls POST /api/feed-plans/{planId}/review or PATCH /api/feed-plans/{planId}/status",
+        "then": "the response status is 200 and the response plan contains the saved reviewRequired value or requested execution status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When an authorized client records, corrects, or voids a feeding event, the Feedlot API shall persist the event and return its contract-defined variance, cost, energy, inventory movements, and updated lot feed totals.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "Saved feeding events and lot allocations",
+        "when": "the client calls GET /api/feeding-events",
+        "then": "the response status is 200 and the response events list contains the saved activity, lotAllocations, and inventoryMovements",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.2",
+        "given": "A valid feeding-event request with planned and delivered quantities",
+        "when": "the client calls POST /api/feeding-events",
+        "then": "the response status is 201 and the response event variance equals deliveredQuantity minus plannedQuantity and includes calculated grossCost, energy, movements, and lotFeedTotals",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.3",
+        "given": "An existing feeding event that can be corrected or voided",
+        "when": "the client calls PATCH /api/feeding-events/{eventId} or POST /api/feeding-events/{eventId}/void",
+        "then": "the response status is 200 and the response event status is Corrected or Voided as applicable, with reversal/correction movements and recalculated lotFeedTotals",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.4",
+        "given": "A successfully saved feeding event",
+        "when": "the API process restarts and the client reads the event and inventory",
+        "then": "the response contains the saved event and corresponding stock and lot totals",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When an authorized client requests an operational, feed-to-gain, or profitability report or export, the Feedlot API shall return the contract-defined permission-filtered rows, calculations, summaries, and requested export artifact.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "Operational feeding, performance, and inventory data",
+        "when": "the client calls GET /api/reports/operational with supported filters or GET /api/reports/operational/export",
+        "then": "the response status is 200 and the response rows and summary reflect the filters, or the export response contains a text/csv file derived from the authorized filtered rows",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "A valid required date range and optional breed, sex, or pen filter",
+        "when": "the client calls GET /api/reports/feed-to-gain",
+        "then": "the response status is 200 and the response rows contain contract-defined ADG, feedDelivered, FCR, costOfGain, feedCost, and energy fields for matching lots",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.3",
+        "given": "A valid feed-to-gain date range, supported filters, and format csv or pdf",
+        "when": "the client calls GET /api/reports/feed-to-gain/export",
+        "then": "the response status is 200 and the response fileName, contentType, and contentBase64 describe the requested filtered CSV or PDF file",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.4",
+        "given": "Profitability data and optional horizon, breed, penId, or roiStatus filters",
+        "when": "the client calls GET /api/reports/profitability or GET /api/reports/profitability/export",
+        "then": "the response status is 200 and the response rows contain only authorized matching profitability fields, or the export response contains a CSV file",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When an authorized client reads, loads, resets, or replaces sample records, the Feedlot API shall return the contract-defined sample status and records, avoid duplicate loading, and require explicit confirmation for reset or replacement.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "No sample records or already-loaded sample records",
+        "when": "the client calls GET /api/sample-data or POST /api/sample-data/load",
+        "then": "the response status and response loaded, recordCount, records, and load status distinguish an empty set, a successful load, and already_loaded without duplicating records",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "A reset or replacement request without confirmation and then one with explicit confirmation",
+        "when": "the client calls POST /api/sample-data/reset or POST /api/sample-data/replace",
+        "then": "the response status is 422 without required confirmation, and the confirmed response has reset or replaced status and the resulting recordCount",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The Feedlot API shall store its application data in the project's PostgreSQL database configured by the connection string named App and retain successful writes across API process restarts.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "The API is configured with a PostgreSQL connection string named App",
+        "when": "a client successfully creates or updates a contract resource",
+        "then": "a corresponding PostgreSQL row is present and a subsequent API read returns the saved value",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "A successful API write and a working App PostgreSQL database",
+        "when": "the API process restarts and the client reads the resource again",
+        "then": "the response contains the value saved before restart",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When Seed:Demo is true at startup, the Feedlot API shall insert a few believable, contract-example-derived demo rows for each application table without replacing rows in a non-empty table, and shall fail startup while surfacing the seed-write error if a seed write fails.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "A working empty App database and Seed:Demo=true",
+        "when": "the API starts",
+        "then": "a row derived from a contract example is present in each seeded application table and each contract list has demo data",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "A non-empty application table and Seed:Demo=true",
+        "when": "the API starts",
+        "then": "the existing row values in that table remain unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.3",
+        "given": "A database that rejects a demo seed write and Seed:Demo=true",
+        "when": "the API starts",
+        "then": "the process does not become ready and the startup error output contains the seed-write error",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When Seed:Demo is false, the Feedlot API shall start without inserting demo rows, so API behavior and tests do not depend on demo seed contents.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "A new empty App database and Seed:Demo=false",
+        "when": "the API starts and an authorized client reads a contract list",
+        "then": "the response list is empty and contains no rows introduced by demo seeding",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "The Feedlot API shall remain a backend-only service and shall not add feedlot product screens or screen routes.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "A running API host",
+        "when": "a client requests GET /yard",
+        "then": "the response status is 404 and no feedlot product screen is returned",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Successful API writes must use PostgreSQL durability so they remain available after an API restart.",
+      "metric": "100% of successful writes in restart-persistence tests remain readable after restarting the API process."
+     }
+    ],
+    "outOfScope": [],
+    "assumptions": [],
+    "suggestions": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

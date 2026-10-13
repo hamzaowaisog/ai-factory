@@ -1,0 +1,915 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "S-1 /sign-in",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "S-2 /sign-in/code",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "S-3 /reset",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "S-4 /reset/:token",
+        "req": "REQ-29"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "S-5 /access-refused",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "S-6 /warehouse/receipts",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "S-7 /warehouse/receipts/new",
+        "req": "REQ-7"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "S-8 /warehouse/receipts/:receiptId",
+        "req": "REQ-7"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "S-9 /warehouse/stock",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "S-10 /warehouse/stock/:unitId",
+        "req": "REQ-10"
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "S-11 /warehouse/stock/:unitId/move",
+        "req": "REQ-12"
+      },
+      {
+        "path": "index.html#S-12",
+        "title": "S-12 /warehouse/moves",
+        "req": "REQ-12"
+      },
+      {
+        "path": "index.html#S-13",
+        "title": "S-13 /warehouse/boxes",
+        "req": "REQ-17"
+      },
+      {
+        "path": "index.html#S-14",
+        "title": "S-14 /warehouse/boxes/:boxId?",
+        "req": "REQ-17"
+      },
+      {
+        "path": "index.html#S-15",
+        "title": "S-15 /warehouse/stock/opening",
+        "req": "REQ-61"
+      },
+      {
+        "path": "index.html#S-16",
+        "title": "S-16 /warehouse/cold-rooms",
+        "req": "REQ-19"
+      },
+      {
+        "path": "index.html#S-17",
+        "title": "S-17 /warehouse/cold-rooms/c2",
+        "req": "REQ-19"
+      },
+      {
+        "path": "index.html#S-18",
+        "title": "S-18 /dispatch/orders",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-19",
+        "title": "S-19 /dispatch/orders/:orderId",
+        "req": "REQ-15"
+      },
+      {
+        "path": "index.html#S-20",
+        "title": "S-20 /dispatch/routes",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-21",
+        "title": "S-21 /dispatch/routes/plan/:routeId?",
+        "req": "REQ-18"
+      },
+      {
+        "path": "index.html#S-22",
+        "title": "S-22 /dispatch/routes/:routeId",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-23",
+        "title": "S-23 /dispatch/boxes/:boxId/temperature",
+        "req": "REQ-19"
+      },
+      {
+        "path": "index.html#S-24",
+        "title": "S-24 /dispatch/deliveries/:deliveryId/evidence",
+        "req": "REQ-25"
+      },
+      {
+        "path": "index.html#S-25",
+        "title": "S-25 /driver/today",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-26",
+        "title": "S-26 /driver/routes/:routeId",
+        "req": "REQ-24"
+      },
+      {
+        "path": "index.html#S-27",
+        "title": "S-27 /driver/routes/:routeId/load",
+        "req": "REQ-24"
+      },
+      {
+        "path": "index.html#S-28",
+        "title": "S-28 /driver/routes/:routeId/stops/:stopId",
+        "req": "REQ-25"
+      },
+      {
+        "path": "index.html#S-29",
+        "title": "S-29 /driver/routes/:routeId/stops/:stopId/handover",
+        "req": "REQ-24"
+      },
+      {
+        "path": "index.html#S-30",
+        "title": "S-30 /driver/pending",
+        "req": "REQ-24"
+      },
+      {
+        "path": "index.html#S-31",
+        "title": "S-31 /driver/routes/:routeId/changes",
+        "req": "REQ-24"
+      },
+      {
+        "path": "index.html#S-32",
+        "title": "S-32 /quality/cases",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-33",
+        "title": "S-33 /quality/cases/:caseId",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-34",
+        "title": "S-34 /quality/decisions/:decisionId",
+        "req": "REQ-45"
+      },
+      {
+        "path": "index.html#S-35",
+        "title": "S-35 /quality/stock/:unitId/destruction",
+        "req": "REQ-47"
+      },
+      {
+        "path": "index.html#S-36",
+        "title": "S-36 /quality-manager/waiting",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-37",
+        "title": "S-37 /quality-manager/decisions/:proposalId",
+        "req": "REQ-9"
+      },
+      {
+        "path": "index.html#S-38",
+        "title": "S-38 /quality-manager/recalls",
+        "req": "REQ-26"
+      },
+      {
+        "path": "index.html#S-39",
+        "title": "S-39 /quality-manager/recalls/new",
+        "req": "REQ-26"
+      },
+      {
+        "path": "index.html#S-40",
+        "title": "S-40 /quality-manager/recalls/:recallId",
+        "req": "REQ-26"
+      },
+      {
+        "path": "index.html#S-41",
+        "title": "S-41 /customer/orders",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-42",
+        "title": "S-42 /customer/orders/new",
+        "req": "REQ-14"
+      },
+      {
+        "path": "index.html#S-43",
+        "title": "S-43 /customer/orders/:orderId",
+        "req": "REQ-15"
+      },
+      {
+        "path": "index.html#S-44",
+        "title": "S-44 /customer/orders/:orderId/change",
+        "req": "REQ-15"
+      },
+      {
+        "path": "index.html#S-45",
+        "title": "S-45 /customer/deliveries",
+        "req": "REQ-54"
+      },
+      {
+        "path": "index.html#S-46",
+        "title": "S-46 /customer/deliveries/:deliveryId",
+        "req": "REQ-23"
+      },
+      {
+        "path": "index.html#S-47",
+        "title": "S-47 /customer/deliveries/:deliveryId/certificates",
+        "req": "REQ-55"
+      },
+      {
+        "path": "index.html#S-48",
+        "title": "S-48 /customer/recalls",
+        "req": "REQ-26"
+      },
+      {
+        "path": "index.html#S-49",
+        "title": "S-49 /customer/recalls/:recallId/deliveries/:deliveryId",
+        "req": "REQ-26"
+      },
+      {
+        "path": "index.html#S-50",
+        "title": "S-50 /customer/account",
+        "req": "REQ-13"
+      },
+      {
+        "path": "index.html#S-51",
+        "title": "S-51 /customer-admin/addresses",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-52",
+        "title": "S-52 /customer-admin/team",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-53",
+        "title": "S-53 /admin/products",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-54",
+        "title": "S-54 /admin/products/:productId",
+        "req": "REQ-5"
+      },
+      {
+        "path": "index.html#S-55",
+        "title": "S-55 /admin/products/:productId/profiles",
+        "req": "REQ-5"
+      },
+      {
+        "path": "index.html#S-56",
+        "title": "S-56 /admin/products/:productId/profiles/new",
+        "req": "REQ-5"
+      },
+      {
+        "path": "index.html#S-57",
+        "title": "S-57 /admin/organisations",
+        "req": "REQ-13"
+      },
+      {
+        "path": "index.html#S-58",
+        "title": "S-58 /admin/organisations/:orgId",
+        "req": "REQ-13"
+      },
+      {
+        "path": "index.html#S-59",
+        "title": "S-59 /admin/accounts",
+        "req": "REQ-30"
+      },
+      {
+        "path": "index.html#S-60",
+        "title": "S-60 /admin/accounts/:accountId?",
+        "req": "REQ-29"
+      },
+      {
+        "path": "index.html#S-61",
+        "title": "S-61 /admin/audit",
+        "req": "REQ-27"
+      },
+      {
+        "path": "index.html#S-62",
+        "title": "S-62 /admin/reports",
+        "req": "REQ-27"
+      },
+      {
+        "path": "index.html#S-63",
+        "title": "S-63 /admin/lots/:lotId/history",
+        "req": "REQ-59"
+      },
+      {
+        "path": "index.html#S-64",
+        "title": "S-64 /auditor/audit",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-65",
+        "title": "S-65 /auditor/lots/:lotId/history",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-66",
+        "title": "S-66 /auditor/reports",
+        "req": "REQ-3"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "frames/stitch-S-1-normal-6918e28b.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-normal-eee3058e.png",
+      "screen": "S-2 /sign-in/code",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-normal-fcf21186.png",
+      "screen": "S-3 /reset",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-normal-b10f169d.png",
+      "screen": "S-4 /reset/:token",
+      "req": "REQ-29",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-normal-4f07b5ce.png",
+      "screen": "S-5 /access-refused",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-normal-a0dd8c6b.png",
+      "screen": "S-6 /warehouse/receipts",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-empty-3f4ba360.png",
+      "screen": "S-6 /warehouse/receipts",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-phone-ce2a55f4.png",
+      "screen": "S-6 /warehouse/receipts",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-normal-0d537729.png",
+      "screen": "S-7 /warehouse/receipts/new",
+      "req": "REQ-7",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-normal-affb686a.png",
+      "screen": "S-8 /warehouse/receipts/:receiptId",
+      "req": "REQ-7",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-normal-4377f616.png",
+      "screen": "S-9 /warehouse/stock",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-empty-3d36b354.png",
+      "screen": "S-9 /warehouse/stock",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-phone-d6ad8e46.png",
+      "screen": "S-9 /warehouse/stock",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-normal-5580f1a3.png",
+      "screen": "S-10 /warehouse/stock/:unitId",
+      "req": "REQ-10",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-phone-b16f3ac3.png",
+      "screen": "S-10 /warehouse/stock/:unitId",
+      "req": "REQ-10",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-normal-15d8af88.png",
+      "screen": "S-11 /warehouse/stock/:unitId/move",
+      "req": "REQ-12",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-normal-568cce2e.png",
+      "screen": "S-12 /warehouse/moves",
+      "req": "REQ-12",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-empty-aac08b7e.png",
+      "screen": "S-12 /warehouse/moves",
+      "req": "REQ-12",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-normal-f0104ebb.png",
+      "screen": "S-13 /warehouse/boxes",
+      "req": "REQ-17",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-empty-03d1ca7e.png",
+      "screen": "S-13 /warehouse/boxes",
+      "req": "REQ-17",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-14-normal-e2b49f32.png",
+      "screen": "S-14 /warehouse/boxes/:boxId?",
+      "req": "REQ-17",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-15-normal-a90ded02.png",
+      "screen": "S-15 /warehouse/stock/opening",
+      "req": "REQ-61",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-16-normal-42007c12.png",
+      "screen": "S-16 /warehouse/cold-rooms",
+      "req": "REQ-19",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-17-normal-cf3e0bbe.png",
+      "screen": "S-17 /warehouse/cold-rooms/c2",
+      "req": "REQ-19",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-18-normal-ae83503c.png",
+      "screen": "S-18 /dispatch/orders",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-18-empty-95b8273b.png",
+      "screen": "S-18 /dispatch/orders",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-19-normal-e644f051.png",
+      "screen": "S-19 /dispatch/orders/:orderId",
+      "req": "REQ-15",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-20-normal-c7133305.png",
+      "screen": "S-20 /dispatch/routes",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-20-empty-b81ac776.png",
+      "screen": "S-20 /dispatch/routes",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-21-normal-b6743924.png",
+      "screen": "S-21 /dispatch/routes/plan/:routeId?",
+      "req": "REQ-18",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-21-error-c4d9ba77.png",
+      "screen": "S-21 /dispatch/routes/plan/:routeId?",
+      "req": "REQ-18",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-22-normal-a85b227f.png",
+      "screen": "S-22 /dispatch/routes/:routeId",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-23-normal-7a6914db.png",
+      "screen": "S-23 /dispatch/boxes/:boxId/temperature",
+      "req": "REQ-19",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-24-normal-6fd15b49.png",
+      "screen": "S-24 /dispatch/deliveries/:deliveryId/evidence",
+      "req": "REQ-25",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-25-normal-18292a95.png",
+      "screen": "S-25 /driver/today",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-25-error-ae023af8.png",
+      "screen": "S-25 /driver/today",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-25-phone-da330b79.png",
+      "screen": "S-25 /driver/today",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-26-normal-6fb7bbea.png",
+      "screen": "S-26 /driver/routes/:routeId",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-26-error-a4ce2122.png",
+      "screen": "S-26 /driver/routes/:routeId",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-26-phone-a5e645e0.png",
+      "screen": "S-26 /driver/routes/:routeId",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-27-normal-c2ba81a1.png",
+      "screen": "S-27 /driver/routes/:routeId/load",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-27-error-a6a76524.png",
+      "screen": "S-27 /driver/routes/:routeId/load",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-28-normal-3202fdcc.png",
+      "screen": "S-28 /driver/routes/:routeId/stops/:stopId",
+      "req": "REQ-25",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-28-error-0ce95077.png",
+      "screen": "S-28 /driver/routes/:routeId/stops/:stopId",
+      "req": "REQ-25",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-29-normal-49193694.png",
+      "screen": "S-29 /driver/routes/:routeId/stops/:stopId/handover",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-29-error-440a5c79.png",
+      "screen": "S-29 /driver/routes/:routeId/stops/:stopId/handover",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-30-normal-ad68aaba.png",
+      "screen": "S-30 /driver/pending",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-30-error-afaf802b.png",
+      "screen": "S-30 /driver/pending",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-31-normal-8814dbc6.png",
+      "screen": "S-31 /driver/routes/:routeId/changes",
+      "req": "REQ-24",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-32-normal-58870f7e.png",
+      "screen": "S-32 /quality/cases",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-32-empty-2aa5b9ef.png",
+      "screen": "S-32 /quality/cases",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-33-normal-0d50e11e.png",
+      "screen": "S-33 /quality/cases/:caseId",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-34-normal-0c1cffbc.png",
+      "screen": "S-34 /quality/decisions/:decisionId",
+      "req": "REQ-45",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-35-normal-60e0c94e.png",
+      "screen": "S-35 /quality/stock/:unitId/destruction",
+      "req": "REQ-47",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-36-normal-a535c26f.png",
+      "screen": "S-36 /quality-manager/waiting",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-36-empty-7085c0c6.png",
+      "screen": "S-36 /quality-manager/waiting",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-37-normal-6a2c07f6.png",
+      "screen": "S-37 /quality-manager/decisions/:proposalId",
+      "req": "REQ-9",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-37-error-1c42aef9.png",
+      "screen": "S-37 /quality-manager/decisions/:proposalId",
+      "req": "REQ-9",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-38-normal-f5783783.png",
+      "screen": "S-38 /quality-manager/recalls",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-38-empty-68a6d89e.png",
+      "screen": "S-38 /quality-manager/recalls",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-39-normal-d74cb54f.png",
+      "screen": "S-39 /quality-manager/recalls/new",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-40-normal-0c2bb9e8.png",
+      "screen": "S-40 /quality-manager/recalls/:recallId",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-41-normal-0162efbf.png",
+      "screen": "S-41 /customer/orders",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-41-empty-d2510fa3.png",
+      "screen": "S-41 /customer/orders",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-42-normal-90559fb9.png",
+      "screen": "S-42 /customer/orders/new",
+      "req": "REQ-14",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-43-normal-1264a496.png",
+      "screen": "S-43 /customer/orders/:orderId",
+      "req": "REQ-15",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-44-normal-ecc042a8.png",
+      "screen": "S-44 /customer/orders/:orderId/change",
+      "req": "REQ-15",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-45-normal-a7e1a69e.png",
+      "screen": "S-45 /customer/deliveries",
+      "req": "REQ-54",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-46-normal-ae63ae27.png",
+      "screen": "S-46 /customer/deliveries/:deliveryId",
+      "req": "REQ-23",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-47-normal-eb9a3454.png",
+      "screen": "S-47 /customer/deliveries/:deliveryId/certificates",
+      "req": "REQ-55",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-48-normal-e7d7d46a.png",
+      "screen": "S-48 /customer/recalls",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-49-normal-0cb13f16.png",
+      "screen": "S-49 /customer/recalls/:recallId/deliveries/:deliveryId",
+      "req": "REQ-26",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-50-normal-7cf377f6.png",
+      "screen": "S-50 /customer/account",
+      "req": "REQ-13",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-51-normal-efca8d02.png",
+      "screen": "S-51 /customer-admin/addresses",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-52-normal-4a88946c.png",
+      "screen": "S-52 /customer-admin/team",
+      "req": "REQ-4",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-53-normal-6bd38297.png",
+      "screen": "S-53 /admin/products",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-53-empty-5397f8d3.png",
+      "screen": "S-53 /admin/products",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-54-normal-b2be9266.png",
+      "screen": "S-54 /admin/products/:productId",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-55-normal-3f5ec97d.png",
+      "screen": "S-55 /admin/products/:productId/profiles",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-56-normal-3c34de2b.png",
+      "screen": "S-56 /admin/products/:productId/profiles/new",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-57-normal-52677c0a.png",
+      "screen": "S-57 /admin/organisations",
+      "req": "REQ-13",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-57-empty-0956f752.png",
+      "screen": "S-57 /admin/organisations",
+      "req": "REQ-13",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-58-normal-19cd2c8a.png",
+      "screen": "S-58 /admin/organisations/:orgId",
+      "req": "REQ-13",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-59-normal-130ff8fd.png",
+      "screen": "S-59 /admin/accounts",
+      "req": "REQ-30",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-59-empty-2e6a2684.png",
+      "screen": "S-59 /admin/accounts",
+      "req": "REQ-30",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-60-normal-59d410fb.png",
+      "screen": "S-60 /admin/accounts/:accountId?",
+      "req": "REQ-29",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-61-normal-e16ebffb.png",
+      "screen": "S-61 /admin/audit",
+      "req": "REQ-27",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-61-empty-b1e2b0e2.png",
+      "screen": "S-61 /admin/audit",
+      "req": "REQ-27",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-62-normal-c8470c1f.png",
+      "screen": "S-62 /admin/reports",
+      "req": "REQ-27",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-62-empty-49d8daae.png",
+      "screen": "S-62 /admin/reports",
+      "req": "REQ-27",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-63-normal-82030a17.png",
+      "screen": "S-63 /admin/lots/:lotId/history",
+      "req": "REQ-59",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-64-normal-0a58ce24.png",
+      "screen": "S-64 /auditor/audit",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-64-empty-a69275a2.png",
+      "screen": "S-64 /auditor/audit",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-65-normal-42784c17.png",
+      "screen": "S-65 /auditor/lots/:lotId/history",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-66-normal-a0162bfb.png",
+      "screen": "S-66 /auditor/reports",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-66-empty-df648875.png",
+      "screen": "S-66 /auditor/reports",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    }
+  ]
+}

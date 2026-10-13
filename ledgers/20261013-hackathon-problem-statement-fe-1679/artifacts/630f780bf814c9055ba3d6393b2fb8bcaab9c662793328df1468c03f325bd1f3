@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 16,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getVoidFeedingEventResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 473,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getVoidFeedingEventResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:121: export const getVoidFeedingEventResponseMock = (): FeedingEventResponse => ({\"permissions\":[\"feeding.void\"],\"event\":{\"id\":4501,\"dateTime\":\"2026-08-20T06:10:00-06:00\",\"penId\":12,\"pen\":\"P-12\",\"rationId\"\nlib/api/client.msw.ts:557: : getVoidFeedingEventResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

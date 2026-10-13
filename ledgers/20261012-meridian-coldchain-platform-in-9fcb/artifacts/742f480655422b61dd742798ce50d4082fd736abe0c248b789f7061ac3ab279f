@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route changes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #F7F7F7;
+      --bg-surface: #FFFFFF;
+      --text-main: #202020;
+      --text-quieter: #626262;
+      --border-color: #D5D5D5;
+      --primary-accent: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-failed: #AE2C2C;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: var(--text-main);
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo-box {
+      width: 28px;
+      height: 28px;
+      background: #000000;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--text-quieter);
+      font-size: 15px;
+      font-weight: 500;
+      padding: 20px 0;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+
+    .nav-link:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-accent);
+      border-radius: 2px;
+    }
+
+    .nav-link.active {
+      color: var(--primary-accent);
+      font-weight: 600;
+      border-bottom: 2px solid var(--primary-accent);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-main);
+    }
+
+    .user-initials {
+      width: 32px;
+      height: 32px;
+      background: #EDEDED;
+      color: var(--text-main);
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      border: 1px solid var(--border-color);
+    }
+
+    .lang-switch {
+      color: var(--text-quieter);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    /* Layout */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .page-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .panel-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .supporting-text {
+      font-size: 14px;
+      color: var(--text-quieter);
+      line-height: 1.4;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good {
+      color: var(--status-good);
+    }
+    .status-good .status-dot {
+      background-color: var(--status-good);
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+    }
+    .status-waiting .status-dot {
+      background-color: var(--status-waiting);
+    }
+
+    .status-failed {
+      color: var(--status-failed);
+    }
+    .status-failed .status-dot {
+      background-color: var(--status-failed);
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+      background: var(--bg-surface);
+      border: 1px solid var(--status-failed);
+      border-left: 4px solid var(--status-failed);
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .alert-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Comparison side-by-side */
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .diff-column {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .diff-column.stale-col {
+      border-top: 3px solid var(--border-color);
+      background: #FAFAFA;
+    }
+
+    .diff-column.returned-col {
+      border-top: 3px solid var(--primary-accent);
+      background: var(--bg-surface);
+    }
+
+    .diff-field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .diff-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .diff-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .diff-label {
+      font-size: 14px;
+      color: var(--text-quieter);
+      font-weight: 500;
+    }
+
+    .diff-val {
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    .diff-val.changed {
+      font-weight: 600;
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead th {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-quieter);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: #FAFAFA;
+    }
+
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody td {
+      padding: 8px 16px;
+      font-size: 15px;
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      border-radius: 2px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Public Sans', sans-serif;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-accent);
+    }
+
+    .btn-primary {
+      background-color: var(--primary-accent);
+      color: #FFFFFF;
+      border: 1px solid var(--primary-accent);
+    }
+
+    .btn-primary:hover {
+      background-color: #933F17;
+      border-color: #933F17;
+    }
+
+    .btn-primary:disabled {
+      background-color: #C9C9C9;
+      border-color: #C9C9C9;
+      color: #7A7A7A;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: #F0F0F0;
+      border-color: #C0C0C0;
+    }
+
+    /* Checkbox & review items */
+    .review-action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 2px;
+      background: var(--bg-surface);
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      margin-top: 2px;
+    }
+
+    .custom-checkbox {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primary-accent);
+      cursor: pointer;
+    }
+
+    .action-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .action-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      color: var(--text-quieter);
+    }
+
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-top: 1px solid var(--border-color);
+      margin-top: 8px;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes syncDotBreath {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes handoffRise {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    main {
+      animation: entranceFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-waiting .status-dot {
+      animation: syncDotBreath 6s ease-in-out infinite;
+    }
+
+    .handoff-synced {
+      animation: handoffRise 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, main, .status-waiting .status-dot, .handoff-synced {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Mobile sequential view */
+    @media (max-width: 840px) {
+      header {
+        padding: 0 16px;
+      }
+      .header-left {
+        gap: 16px;
+      }
+      .header-nav {
+        gap: 16px;
+      }
+      main {
+        padding: 16px;
+        gap: 24px;
+      }
+      .diff-grid {
+        grid-template-columns: 1fr;
+      }
+      .page-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .bottom-bar {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 16px;
+      }
+      .bottom-bar .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header: Meridian · Today's routes, Pending work · TM Tariq Mansour · EN / العربية -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="brand-logo-box">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="header-nav">
+        <a href="#" class="nav-link">Today's routes</a>
+        <a href="#" class="nav-link">Pending work</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <span class="user-initials">TM</span>
+        <span>Tariq Mansour · Driver</span>
+      </div>
+      <a href="#" class="lang-switch">EN / العربية</a>
+    </div>
+  </header>
+
+  <!-- Main Body -->
+  <main>
+    <!-- Page Header & Action -->
+    <div class="page-header-row">
+      <div>
+        <h1>Route changes</h1>
+        <p class="supporting-text">Returned dispatch updates for route R-204 schedule and consignments.</p>
+      </div>
+      <a href="#" class="btn btn-secondary">Route stops</a>
+    </div>
+
+    <!-- Alert / Notice of returned changes -->
+    <div class="alert-banner">
+      <div class="alert-content">
+        <div class="status-badge status-failed">
+          <span class="status-dot"></span>
+          <span>failed rejected: Stale-route outcome modified by dispatch</span>
+        </div>
+        <p class="supporting-text">Server dispatch revised departure schedule and consigned shipper verification on route R-204. Stored local actions must be reviewed before reconciling with server schedule.</p>
+      </div>
+      <div class="status-badge status-waiting">
+        <span class="status-dot"></span>
+        <span>waiting review</span>
+      </div>
+    </div>
+
+    <!-- Stop & Box Details Comparison: Side-by-side desktop, sequential on mobile -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2>R-204 stop and box details</h2>
+          <p class="supporting-text">Comparison of previous cached device state versus newly returned dispatch schedule. Only actual returned differences are highlighted.</p>
+        </div>
+        <span class="status-badge status-waiting">
+          <span class="status-dot"></span>
+          <span>waiting reconciliation</span>
+        </span>
+      </div>
+
+      <div class="diff-grid">
+        <!-- Old Cached Column -->
+        <div class="diff-column stale-col">
+          <div class="panel-header">
+            <div>
+              <h3>Old cached route state</h3>
+              <p class="supporting-text font-mono">VAN-27 (plate MTR-482) · Tariq Mansour</p>
+            </div>
+            <span class="status-badge status-failed">
+              <span class="status-dot"></span>
+              <span>failed stale</span>
+            </span>
+          </div>
+
+          <div class="diff-field-group">
+            <div class="diff-row">
+              <span class="diff-label">Cedar Clinic planned departure</span>
+              <span class="diff-val font-mono">14:45 BST</span>
+            </div>
+            <div class="diff-row">
+              <span class="diff-label">Qualified-duration safety margin</span>
+              <span class="diff-val font-mono">35 min safety margin</span>
+            </div>
+            <div class="diff-row">
+              <span class="diff-label">Box consignment check</span>
+              <span class="diff-val font-mono">B-701 single load</span>
+            </div>
+            <div class="diff-row">
+              <span class="diff-label">Order O-299 allocated units</span>
+              <span class="diff-val font-mono">12 packs in B-701</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Newly Returned Column -->
+        <div class="diff-column returned-col">
+          <div class="panel-header">
+            <div>
+              <h3>Newly returned dispatch schedule</h3>
+              <p class="supporting-text font-mono">Confirmed schedule update 14 May 09:30 BST</p>
+            </div>
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              <span>good confirmed</span>
+            </span>
+          </div>
+
+          <div class="diff-field-group">
+            <div class="diff-row">
+              <span class="diff-label">Cedar Clinic planned departure</span>
+              <span class="diff-val changed font-mono">15:00 BST (+15 min buffer)</span>
+            </div>
+            <div class="diff-row">
+              <span class="diff-label">Qualified-duration safety margin</span>
+              <span class="diff-val changed font-mono">30 min safety margin (Profile v3 synchronized)</span>
+            </div>
+            <div class="diff-row">
+              <span class="diff-label">Box consignment check</span>
+              <span class="diff-val changed font-mono">B-701 (12 packs) + B-702 (8 packs)</span>
+            </div>
+            <div class="diff-row">
+              <span class="diff-label">Order O-299 allocated units</span>
+              <span class="diff-val changed font-mono">20 packs total across 2 eligible boxes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Required: Affected Unsent Actions -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2>Affected unsent driver actions (review required)</h2>
+          <p class="supporting-text">Unsent actions queued on Tariq's device conflicting with returned schedule modifications. Review each action below before resolving route changes.</p>
+        </div>
+        <span class="status-badge status-waiting">
+          <span class="status-dot"></span>
+          <span>waiting driver review</span>
+        </span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Review Action 1 -->
+        <div class="review-action-item">
+          <div class="checkbox-wrap">
+            <input type="checkbox" id="review-1" class="custom-checkbox" checked>
+          </div>
+          <div class="action-details">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="review-1" style="font-weight: 600; cursor: pointer;">Departure check submission</label>
+              <span class="status-badge status-failed">
+                <span class="status-dot"></span>
+                <span>failed rejected</span>
+              </span>
+            </div>
+            <p class="supporting-text">Logged timestamp at <span class="font-mono">13:40 BST</span> based on previous 14:45 planned departure. Dispatch requires rescheduling to 15:00 BST.</p>
+            <div class="action-meta">
+              <span>Target: <strong class="font-mono">Route R-204</strong></span>
+              <span>Outcome: <span class="font-mono">Stale schedule modified by dispatch</span></span>
+              <span>Action: <strong>Acknowledge revised departure 15:00 BST</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review Action 2 -->
+        <div class="review-action-item">
+          <div class="checkbox-wrap">
+            <input type="checkbox" id="review-2" class="custom-checkbox" checked>
+          </div>
+          <div class="action-details">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="review-2" style="font-weight: 600; cursor: pointer;">Loading scan verification</label>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>waiting stored locally</span>
+              </span>
+            </div>
+            <p class="supporting-text">Scanned only B-701 (<span class="font-mono">12 packs</span>) under single-box assignment at <span class="font-mono">14:15 BST</span>. Now requires verifying box B-702 (<span class="font-mono">8 packs</span>).</p>
+            <div class="action-meta">
+              <span>Target: <strong class="font-mono">Box B-701 &amp; B-702</strong></span>
+              <span>Outcome: <span class="font-mono">Van barcode scan pending second shipper</span></span>
+              <span>Action: <strong>Append B-702 to outbound loading manifest</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review Action 3 -->
+        <div class="review-action-item">
+          <div class="checkbox-wrap">
+            <input type="checkbox" id="review-3" class="custom-checkbox" checked>
+          </div>
+          <div class="action-details">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="review-3" style="font-weight: 600; cursor: pointer;">Refusal exception notification</label>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>waiting syncing</span>
+              </span>
+            </div>
+            <p class="supporting-text">Logged damaged external seal note at <span class="font-mono">14:48 BST</span>. Dispatch confirms B-701 and B-702 are verified whole without active excursion.</p>
+            <div class="action-meta">
+              <span>Target: <strong class="font-mono">Cedar Clinic Consignment</strong></span>
+              <span>Outcome: <span class="font-mono">Active background transmission preserved</span></span>
+              <span>Action: <strong>Hold exception note in local audit</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preserved Offline Handovers Table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2>Preserved offline handovers &amp; completed work</h2>
+          <p class="supporting-text">Completed handovers recorded offline are cryptographically preserved. Delivered work will not be silently discarded during route reconciliation.</p>
+        </div>
+        <span class="status-badge status-good">
+          <span class="status-dot"></span>
+          <span>good preserved</span>
+        </span>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Time (BST)</th>
+              <th>Action</th>
+              <th>Entity / Stop</th>
+              <th>Payload summary</th>
+              <th>Transmission status</th>
+              <th>Preservation outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-mono">14:52</td>
+              <td><strong>Handover</strong></td>
+              <td>Cedar Clinic (Box B-701)</td>
+              <td>12 packs Insulin Glargine (IG-2511), recipient signature captured</td>
+              <td>
+                <span class="status-badge status-waiting">
+                  <span class="status-dot"></span>
+                  <span>waiting needs Tariq to sign in</span>
+                </span>
+              </td>
+              <td>Stored locally; pending reauthentication to transmit. <strong>Not discarded.</strong></td>
+            </tr>
+            <tr>
+              <td class="font-mono">10:14</td>
+              <td><strong>Handover</strong></td>
+              <td>Cedar Clinic (Order O-290)</td>
+              <td>20 packs (IG-2509) delivered to Rania Karim</td>
+              <td>
+                <span class="status-badge status-good">
+                  <span class="status-dot"></span>
+                  <span>good acknowledged</span>
+                </span>
+              </td>
+              <td class="handoff-synced">Confirmed by service; Certificate v1 &amp; v2 linked to Q-89.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resolution Controls -->
+    <div class="bottom-bar">
+      <a href="#" class="btn btn-secondary">Route stops</a>
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <span class="supporting-text font-mono">3 of 3 affected actions reviewed</span>
+        <button type="button" class="btn btn-primary">Resolve changes</button>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

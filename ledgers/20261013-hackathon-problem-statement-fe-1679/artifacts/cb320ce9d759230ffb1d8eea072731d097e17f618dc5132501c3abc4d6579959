@@ -1,0 +1,528 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 10,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "AC_1_1_RoutesToReturnedLandingPageAfterAcceptedCredentials",
+      "verdict": "weak",
+      "why": "Also assert the navigation actions allowed by the returned permissions; the test only verifies routing to /yard and the submitted credentials."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the exact returned error, the sign-in heading, and that no navigation occurred."
+     },
+     {
+      "acId": "AC-1.3",
+      "testId": "AC_1_3_ClearsProtectedDataAndReturnsToSignInOnUnauthorizedRequest",
+      "verdict": "weak",
+      "why": "First establish that protected data was displayed before returning a 401, then assert that it is cleared and sign-in is shown."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test previews the available source record and checks every field named in the criterion."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the selected record ID in the request and the returned status, record, and created/updated counts."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "AC_2_3_ShowsImportedRecordsWithoutEnabledImportForUnauthorizedUser",
+      "verdict": "weak",
+      "why": "Use an imported-record response and assert its records are displayed, rather than populating the screen only with preview source records."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "AC_3_1_ShowsOneToManyPurchaseOrderLotAndLotPenAllocations",
+      "verdict": "weak",
+      "why": "Assert each PO-line-to-lot and lot-to-pen pairing with its quantity in the same relationship row; global text checks can pass with incorrect pairings."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the mapped pen ID and each returned capacity, current-count, and allocation value."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "AC_3_3_ShowsSavedMappingsAndHidesChangesWithoutPermission",
+      "verdict": "weak",
+      "why": "Change a mapping quantity before saving and assert the returned saved value, since the authorized path currently saves unchanged defaults."
+     },
+     {
+      "acId": "AC-3.4",
+      "testId": "AC_3_4_ShowsSaveRefusalAndRetainsLastSavedMappings",
+      "verdict": "weak",
+      "why": "Edit an allocation into a head-count or capacity conflict before submitting, then verify the refusal leaves the previously saved values displayed."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies the repeated-import status, matched record, zero-created/one-updated counts, and absence of a new-duplicate indication."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_ShowsUpdatedHeadCountAndAllocationConflictForMatchedRecord",
+      "verdict": "weak",
+      "why": "Assert that the record is identified as matched and that the returned import status is displayed, in addition to its head count and conflict."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned incoming head and weight, target weight, overridden gain rate, projected date, and lot-specific forecast basis."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "AC_5_2_ShowsUnavailableProjectedDateWhenGainIsNotPositive",
+      "verdict": "weak",
+      "why": "Assert the unavailable value specifically in the projected market-date field rather than accepting any unavailable text on the screen."
+     },
+     {
+      "acId": "AC-5.3",
+      "testId": "AC_5_3_ShowsSavedForecastSettingsAndHidesEditorWithoutManagerAccess",
+      "verdict": "weak",
+      "why": "Submit an edited forecast assumption and assert the returned saved value; the authorized path currently only opens the editor."
+     },
+     {
+      "acId": "AC-6.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned item's named properties, wastage setting, and opening, received, consumed, and closing quantities."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "AC_6_2_ShowsReturnedInventoryRecordAndMovementAfterSave",
+      "verdict": "weak",
+      "why": "Exercise the other named change types—adjustment, item edit, and wastage-setting change—or add separate cases asserting their returned records and movements."
+     },
+     {
+      "acId": "AC-6.3",
+      "testId": "AC_6_3_ShowsInventoryValuesWithoutEnabledEditActions",
+      "verdict": "weak",
+      "why": "Also assert that item-edit, adjustment, and wastage-edit actions are absent or disabled for the view-only user."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test selects all six supported horizons and checks the projected, wastage-adjusted, remaining-inventory, and wastage-ratio values for each."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test sets an item to have no upcoming plans and asserts the response's empty-data message."
+     },
+     {
+      "acId": "AC-7.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts distinct movement rows for actual wastage and delivered-feed consumption with their returned quantities."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "AC_8_1_OffersRationAndIngredientNutritionFields",
+      "verdict": "weak",
+      "why": "Also assert ration name/type and intended animal type or weight-range fields, which are not covered by the current field checks."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned dry matter, energy, and cost-per-pound values for the ration."
+     },
+     {
+      "acId": "AC-8.3",
+      "testId": "AC_8_3_IdentifiesLowestCostQualifyingMixWithSeparateSaveAction",
+      "verdict": "weak",
+      "why": "Assert that the displayed candidate is identified as the returned lowest-cost qualifying mix, not just that its values qualify and a save button exists."
+     },
+     {
+      "acId": "AC-8.4",
+      "testId": "AC_8_4_KeepsCandidateUnsavedAndHidesManagementActionsWithoutPermission",
+      "verdict": "weak",
+      "why": "Assert the candidate is absent from the saved-ration list or that no save request occurred, and check unauthorized create and revise actions as well as optimize."
+     },
+     {
+      "acId": "AC-8.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the no-qualifying-mix message and that no enabled save action is available."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_SendsSelectedPlanInputsAndShowsReturnedPlan",
+      "verdict": "weak",
+      "why": "Select non-default pen, bunk rate, ration, and animal count before submitting and assert those selected values in the request; currently only the date is entered."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test displays an existing plan and verifies that the generation and commit/adjustment actions are absent for the view-only user."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_ShowsSavedPlanValuesAndReviewFlagAfterInputChanges",
+      "verdict": "weak",
+      "why": "Change a plan input after generation and compare the displayed saved values with their pre-change values while checking the review flag."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test renders a review-flagged plan and checks for both authorized confirm-update and regenerate actions."
+     },
+     {
+      "acId": "AC-10.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks that the request carries the selected regenerate action and that the returned plan and status are displayed."
+     },
+     {
+      "acId": "AC-10.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits the status update and asserts the returned Completed status."
+     },
+     {
+      "acId": "AC-10.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks actual intake and variance while also asserting that the saved planned quantity remains displayed."
+     },
+     {
+      "acId": "AC-10.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test renders the plan with view-only returned permissions, checks its current status, and verifies the status-update action is absent or disabled."
+     },
+     {
+      "acId": "AC-10.7",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the exact refusal error and confirms the current Planned status remains displayed."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_SubmitsFeedingEventWithLotAllocationsSummingToDeliveredFeed",
+      "verdict": "weak",
+      "why": "Assert the submitted date, pen, ration, planned and actual quantities, status, and each affected lot's allocation; the test currently checks only the allocation sum and a few response values."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "AC_11_2_ShowsReturnedVarianceCostEnergyConsumptionAndLotTotals",
+      "verdict": "weak",
+      "why": "Assert the returned inventory consumption by ingredient, since the current checks cover totals and a movement label but no ingredient-level consumption."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies the specified 100-pound plan, 115-pound delivery, and 15-pound returned variance, then asserts the exact displayed variance."
+     },
+     {
+      "acId": "AC-11.4",
+      "testId": "AC_11_4_ShowsDeliveredConsumptionAndSeparateActualWastageMovement",
+      "verdict": "weak",
+      "why": "Assert separate movement entries and that delivered-feed consumption remains 1,700 rather than including the 12-pound wastage."
+     },
+     {
+      "acId": "AC-11.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the exact insufficient-stock error and verifies that the newly returned event ID is not displayed as saved."
+     },
+     {
+      "acId": "AC-11.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks existing feeding activity and verifies that the record-feeding action is absent for the user without operational access."
+     },
+     {
+      "acId": "AC-11.7",
+      "testId": "AC_11_7_RetainsSubmittedFieldsAndShowsUnknownSaveOutcomeOnTimeout",
+      "verdict": "weak",
+      "why": "Simulate a timeout and submit multiple event fields, then assert they are all retained; the current test simulates a generic network failure and checks only the date."
+     },
+     {
+      "acId": "AC-11.10",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies correction and void permissions and checks that both actions are shown on a saved event."
+     },
+     {
+      "acId": "AC-11.11",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies view-only permission and verifies that correction and void actions are absent or disabled."
+     },
+     {
+      "acId": "AC-11.12",
+      "testId": "AC_11_12_ShowsCorrectedEventMovementAndUpdatedLotTotals",
+      "verdict": "weak",
+      "why": "Assert the corrected event's returned fields, including its corrected delivered quantity, rather than relying on the movement quantity and status to stand for the event."
+     },
+     {
+      "acId": "AC-11.13",
+      "testId": "AC_11_13_ShowsVoidedStatusMovementAndUpdatedLotTotals",
+      "verdict": "weak",
+      "why": "Assert the returned inventory movement and its value, since the current test checks the void status and lot totals only."
+     },
+     {
+      "acId": "AC-11.14",
+      "testId": "AC_11_14_RejectsLotAllocationsThatDoNotEqualDeliveredQuantity",
+      "verdict": "weak",
+      "why": "Set lot allocations whose sum explicitly differs from the pen delivery and assert the displayed validation message before checking that no request was sent."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_SubmitsWeightMeasurementAndShowsSavedMeasurement",
+      "verdict": "weak",
+      "why": "Assert the submitted measurement date in the request and explicitly enter or verify each required measurement field rather than relying on defaults."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks that the returned measurements are in date order and verifies the weights and returned gain since the previous measurement."
+     },
+     {
+      "acId": "AC-12.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test displays weight-history data for a viewer and verifies that the add-measurement action is absent."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned days on feed, gain, ADG, feed consumed, FCR, cost of gain, and projected ship date."
+     },
+     {
+      "acId": "AC-13.2",
+      "testId": "AC_13_2_ShowsProjectedShipDateUnavailableWithoutPositiveAdg",
+      "verdict": "weak",
+      "why": "Assert the unavailable value specifically in the projected ship-date field rather than accepting any unavailable text on the screen."
+     },
+     {
+      "acId": "AC-13.3",
+      "testId": "AC_13_3_ShowsRecalculatedLotMetricsReturnedAfterRecordSave",
+      "verdict": "weak",
+      "why": "Save a feeding or weight record and then open or refresh performance before asserting the updated metrics; the current test only supplies a changed metrics response."
+     },
+     {
+      "acId": "AC-13.4",
+      "testId": "AC_13_4_DisplaysServiceMetricsWithoutWebRecalculation",
+      "verdict": "weak",
+      "why": "Use service metric values that differ from any web-calculated values and assert those exact values, since the current overrides equal the default fixture values."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned suggestion and its explanation and cited rule basis."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "AC_14_2_LeavesSavedPlanAndSaleDateUnchangedUntilChosen",
+      "verdict": "weak",
+      "why": "Assert that no change request is sent and compare the saved plan and sale date before and after viewing the suggestion."
+     },
+     {
+      "acId": "AC-14.3",
+      "testId": "AC_14_3_SendsChosenInsightActionAndShowsResponseStatus",
+      "verdict": "weak",
+      "why": "Assert the exact selected action in the request; checking only that action is a string allows the wrong action value to pass."
+     },
+     {
+      "acId": "AC-14.4",
+      "testId": "AC_14_4_HidesPlanChangeWithoutPermissionAndRetainsSavedPlanOnRefusal",
+      "verdict": "weak",
+      "why": "Assert the saved plan remains unchanged and add the refused-change branch with its returned error; the current test checks only that a view-only user lacks an action."
+     },
+     {
+      "acId": "AC-15.1",
+      "testId": "AC_15_1_ShowsReturnedYardAndPerformanceDashboardValues",
+      "verdict": "weak",
+      "why": "Also assert animals per lot and pen and both best- and worst-performing lot rankings; the current values do not cover those required results."
+     },
+     {
+      "acId": "AC-15.2",
+      "testId": "AC_15_2_ShowsRankingMeasureAsBasisForSelectedMeasure",
+      "verdict": "weak",
+      "why": "Assert that the displayed best/worst ranking is ordered according to each selected measure and explicitly labels that measure as the ranking basis."
+     },
+     {
+      "acId": "AC-15.3",
+      "testId": "AC_15_3_ShowsReturnedEmptyStateForMissingDashboardSummary",
+      "verdict": "weak",
+      "why": "Assert the empty-data state in the inventory-status field specifically, since the generic text match could find an unrelated unavailable value."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_ShowsOperationalReportFindingsAcrossPensLotsRationsAndCosts",
+      "verdict": "weak",
+      "why": "Assert the most-feed pen, best-FCR and highest-ADG lots, most-used ration, over/under-feeding results, remaining inventory, and feed cost per weight gain rather than a few labels."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_ExportsTheFilteredOperationalRowsDisplayedOnScreen",
+      "verdict": "weak",
+      "why": "Apply a report filter and assert the corresponding filtered rows on screen before verifying the downloaded file contains exactly those rows."
+     },
+     {
+      "acId": "AC-17.1",
+      "testId": "AC_17_1_ShowsOnlyReturnedAuthorizedYardAndPermittedProfitabilityFields",
+      "verdict": "weak",
+      "why": "Include an unauthorized-yard record and both permitted and forbidden profitability fields in the response, then assert only authorized records and permitted fields appear."
+     },
+     {
+      "acId": "AC-17.2",
+      "testId": "AC_17_2_ExportsOnlyAuthorizedYardRowsAndPermittedProfitabilityFields",
+      "verdict": "weak",
+      "why": "Put an unauthorized-yard row and a forbidden profitability field in the mocked export data and assert both are omitted from the downloaded file."
+     },
+     {
+      "acId": "AC-17.3",
+      "testId": "AC_17_3_RemovesRevokedYardDataAndExportsCurrentPermissionsOnly",
+      "verdict": "weak",
+      "why": "Process a permissions update in the displayed view and include revoked yard records as well as fields in the response and export, then assert all revoked data disappears."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "AC_18_1_SendsDateAndDimensionFiltersAndShowsMatchingLotMetrics",
+      "verdict": "weak",
+      "why": "Assert that the request includes the selected date range, breed, sex, and pen filters; the test currently checks only the breed query parameter."
+     },
+     {
+      "acId": "AC-18.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test returns a row with no sex data and checks that the sex selector offers an unavailable option."
+     },
+     {
+      "acId": "AC-18.3",
+      "testId": "AC_18_3_ExportsFilteredFeedToGainRowsAndOmitsUnauthorizedFields",
+      "verdict": "weak",
+      "why": "Apply filters and return an export containing a forbidden yard or profitability field, then verify the download contains only the filtered displayed rows and omits that field."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "AC_19_1_ShowsAuthorizedProfitabilityRowsAndDefinesReturnedROI",
+      "verdict": "weak",
+      "why": "Apply a filter and include an unauthorized-yard row in the response so the test can verify both the filtered authorized rows and the ROI definition."
+     },
+     {
+      "acId": "AC-19.2",
+      "testId": "AC_19_2_ExportsFilteredAuthorizedProfitabilityRows",
+      "verdict": "weak",
+      "why": "Apply filters and assert the downloaded file matches the filtered authorized rows shown on screen; the current test exports an unfiltered mock file."
+     },
+     {
+      "acId": "AC-19.3",
+      "testId": "AC_19_3_HidesProfitabilityValuesWhenPermissionIsDenied",
+      "verdict": "weak",
+      "why": "Assert that all returned profitability values are hidden, not only the ROI percentage."
+     },
+     {
+      "acId": "AC-19.4",
+      "testId": "AC_19_4_ShowsROIUnavailableWhenServiceOmitsPercentage",
+      "verdict": "weak",
+      "why": "Assert the unavailable value for the specific row's ROI field rather than accepting unavailable text from any field."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "AC_20_1_ShowsLoadedSampleRecordsWithSampleDesignation",
+      "verdict": "weak",
+      "why": "Assert the returned sample record identity and fields as well as its sample designation; the current checks can pass on operation-status text alone."
+     },
+     {
+      "acId": "AC-20.2",
+      "testId": "AC_20_2_ShowsDuplicateLoadResultWithoutDuplicateSampleRecords",
+      "verdict": "weak",
+      "why": "Assert the returned sample-record list has no duplicate records, since the current count and one record ID do not detect duplicate entries."
+     },
+     {
+      "acId": "AC-20.3",
+      "testId": "AC_20_3_CancelledResetLeavesRecordsAndSendsNoRequest",
+      "verdict": "weak",
+      "why": "Capture and compare the existing sample-record list before and after cancellation; the current assertion checks only generic sample text."
+     },
+     {
+      "acId": "AC-20.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned replacement status and message and the supplied resulting record count."
+     },
+     {
+      "acId": "AC-20.5",
+      "testId": "AC_20_5_ShowsSampleRecordsWithoutEnabledManagementActions",
+      "verdict": "weak",
+      "why": "Assert the existing sample records themselves are displayed, since the generic word Sample does not establish that the record list is present."
+     },
+     {
+      "acId": "AC-20.6",
+      "testId": "AC_20_6_ShowsPermissionRefusalAndRetainsSampleRecords",
+      "verdict": "weak",
+      "why": "Compare the existing sample-record list before and after refusal; the current test checks only a generic Sample label."
+     },
+     {
+      "acId": "AC-20.7",
+      "testId": "AC_20_7_UsesOperationalRecordsForReportsAndLabelsSampleRows",
+      "verdict": "weak",
+      "why": "Assert operational totals/findings remain based only on operational rows and either verify any displayed sample rows are labelled or explicitly assert they are omitted."
+     },
+     {
+      "acId": "AC-20.8",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test includes a sample record and verifies that the downloaded operational export contains the operational row and no sample designation or sample row."
+     },
+     {
+      "acId": "AC-20.9",
+      "testId": "AC_20_9_ShowsDashboardAggregateExactlyAsServiceReturnedIt",
+      "verdict": "weak",
+      "why": "Return aggregate values that differ from values calculable from operational-only data and assert those exact response values, since the current values equal the defaults."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the returned active-lot total head, average ADG, average cost of gain, and total feed cost."
+     },
+     {
+      "acId": "AC-21.2",
+      "testId": "AC_21_2_ShowsAvailableSummaryValuesAndExplicitMissingValues",
+      "verdict": "weak",
+      "why": "Assert an unavailable state beside each specifically missing summary metric; the current generic placeholder count does not associate placeholders with those fields."
+     },
+     {
+      "acId": "AC-22.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks that the page contains each of the eight required delivery-brief sections or entry points."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,166 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Provide the Meridian responsive web app with individual email-and-password sign-in and self-service password reset for driver, staff, and customer areas."
+     },
+     {
+      "n": 2,
+      "text": "Provide System Administrator screens to create and deactivate accounts and assign roles, staff warehouse access, and customer-organisation access."
+     },
+     {
+      "n": 3,
+      "text": "Show drivers only their assigned routes for today, with each route’s stops in route order."
+     },
+     {
+      "n": 4,
+      "text": "Compare scanned shipper boxes with expected boxes before departure, report missing or wrong-route boxes, and keep departure blocked until all expected boxes are scanned and wrong boxes are removed or corrected."
+     },
+     {
+      "n": 5,
+      "text": "Show dispatchers each route stop’s status and last-updated time."
+     },
+     {
+      "n": 6,
+      "text": "Show each route box’s latest available temperature, status, and alerts from gateway data, and mark cached temperature data as stale while disconnected."
+     },
+     {
+      "n": 7,
+      "text": "For boxes with On Hold stock status, display “Do not deliver” and the returned hold reason, and prevent handover; allow handover only for deliverable boxes."
+     },
+     {
+      "n": 8,
+      "text": "When online service data reports a scanned box as Recalled, display “Do not deliver” and prevent handover of that box."
+     },
+     {
+      "n": 9,
+      "text": "Let drivers record eligible handovers with receiver name, signature, delivery photo, actual handover time, and available browser location."
+     },
+     {
+      "n": 10,
+      "text": "If browser location is denied or unavailable, allow an otherwise eligible handover and record location as unavailable."
+     },
+     {
+      "n": 11,
+      "text": "Let drivers record full or partial refusals only by whole box, require a reason for each refused box, and display returned refusal and quarantine statuses."
+     },
+     {
+      "n": 12,
+      "text": "While offline, retain loading, handover, and refusal work locally across session expiry or sign-out; allow work to be recorded after expiry; require re-authentication before queued work syncs; automatically send queued work when connectivity returns; preserve handover occurrence time and identifier on retries; clear queued payload only after successful service acknowledgement; and show a storage error without reporting work as queued if local storage cannot retain the complete payload."
+     },
+     {
+      "n": 13,
+      "text": "When an assigned route changes while a driver is offline, show route differences, require review and resolution of affected unsent work before continuing, and preserve completed offline handovers."
+     },
+     {
+      "n": 14,
+      "text": "When an offline handover conflicts with an On Hold status upon synchronization, retain and flag the handover and display the returned quality-case result."
+     },
+     {
+      "n": 15,
+      "text": "Show Quality reviewers the full excursion temperature history, allowance used and remaining for each tier, and the returned recommendation, using configured tier rules."
+     },
+     {
+      "n": 16,
+      "text": "Present a single-person quality-decision flow only when an excursion is within the first tier above or below the permitted band, allowance remains, and the proposed decision matches the recommendation; otherwise require a Quality Officer proposal and separate approval by a different Quality Manager. Require written justification when a decision opposes the recommendation."
+     },
+     {
+      "n": 17,
+      "text": "Require identity confirmation using the account’s sign-in method and a reason when a user signs a quality decision; show signed decisions as read-only with a separate superseding-decision action."
+     },
+     {
+      "n": 18,
+      "text": "When the service returns a quality disposition, show resulting stock, order, and route status and, when superseded, the earlier and current disposition."
+     },
+     {
+      "n": 19,
+      "text": "Collect destruction date, quantity, and witness for rejected stock, and prevent entry of a quantity greater than the displayed rejected quantity."
+     },
+     {
+      "n": 20,
+      "text": "Identify quality decisions waiting more than four hours as escalated in the Quality Manager’s waiting-decisions view."
+     },
+     {
+      "n": 21,
+      "text": "Provide a Quality Manager flow to start and close recalls with signed actions; collect product, one or more lots, reason, and severity for recall start, and display each returned action result."
+     },
+     {
+      "n": 22,
+      "text": "Display the returned recall trace, including warehouse locations, boxes, routes, customer deliveries, quantities, delivery dates, receivers, and the trace total alongside received quantity when supplied."
+     },
+     {
+      "n": 23,
+      "text": "Show customer recall notices in the portal, link notices to affected deliveries, and provide a response entry point."
+     },
+     {
+      "n": 24,
+      "text": "Let customers submit or update per-delivery on-hand, used or dispensed, and destroyed quantities; allow a total below the delivered amount as unaccounted, and reject a total above it."
+     },
+     {
+      "n": 25,
+      "text": "Show recall progress as the returned percentage accounted for, identify outstanding customers and reminder status when supplied, and let a Quality Manager submit a signed write-off justification for unaccounted quantity."
+     },
+     {
+      "n": 26,
+      "text": "Show customers only their organisation’s current and past orders, allocated lots and expiry dates, order status, and in-transit delivery arrival and temperature status, without exposing other route customers."
+     },
+     {
+      "n": 27,
+      "text": "Provide a PDF certificate for each completed delivery in the signed-in customer’s organisation, containing products, lots, expiry dates, quantities, receiver, handover time, each box’s temperature chart from sealing to handover, excursions, and signed excursion decisions."
+     },
+     {
+      "n": 28,
+      "text": "When late readings produce a new certificate version, list the new and earlier versions for the signed-in customer’s completed delivery and keep each available for download."
+     },
+     {
+      "n": 29,
+      "text": "Present the customer portal and certificates in the user’s selected English or Arabic, render Arabic right to left including tables and charts, and show dates and times in the account’s configured time zone."
+     },
+     {
+      "n": 30,
+      "text": "Provide an audit-trail screen showing returned entries with actor, time, changed fields, old and new values, and supplied reason, with filters by record, user, date range, and action type and export of the filtered view."
+     },
+     {
+      "n": 31,
+      "text": "Show the returned history of a lot from receipt through delivery or destruction in time order."
+     },
+     {
+      "n": 32,
+      "text": "Provide on-screen reports for selected date ranges and warehouses, with CSV export of displayed figures, including excursion counts and rates by route, driver, vehicle, and shipper box type; packs rejected and destroyed by product and cause; deliveries on time within 60 minutes of planned arrival and in full when every ordered pack is handed over, each as a percentage; average time from excursion to decision; stock within 60 days of expiry by product and warehouse; and open recalls and their progress."
+     },
+     {
+      "n": 33,
+      "text": "Provide forms to enter opening lots and stock records and submit them to the service."
+     },
+     {
+      "n": 34,
+      "text": "Make recorded handover signatures and delivery photos available from a delivery record within its seven-year evidence-retention period."
+     },
+     {
+      "n": 35,
+      "text": "Make the web app responsive on phone, tablet, and desktop browsers, with touch-sized controls on narrow screens."
+     },
+     {
+      "n": 36,
+      "text": "Render the full recall trace returned by the service within 60 seconds after response receipt."
+     },
+     {
+      "n": 37,
+      "text": "Make the complete returned lot trace available through the client screen within 60 seconds of the user’s request."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

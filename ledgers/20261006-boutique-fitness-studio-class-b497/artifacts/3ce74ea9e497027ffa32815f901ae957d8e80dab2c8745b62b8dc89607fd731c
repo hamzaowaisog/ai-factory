@@ -1,0 +1,318 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "App targets a single studio location (Pulse Studio) with exactly the 5 listed class types; no multi-location or sign-in logic needed.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "App loads showing Pulse Studio branding (logo/wordmark) on every screen."
+       },
+       {
+        "kind": "happy",
+        "text": "App renders usably on phone, tablet, and desktop viewports."
+       },
+       {
+        "kind": "data",
+        "text": "Only Yoga, Pilates, HIIT, Spin, and Boxing appear as selectable class types anywhere in the UI."
+       },
+       {
+        "kind": "error",
+        "text": "No location picker or multi-studio switcher is present; attempting to access such a route/feature is unavailable."
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "Member actions (book, cancel, waitlist join/leave) are available directly from schedule cards and class detail, with immediate state feedback.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Member can browse classes for any day within the allowed window and see live availability."
+       },
+       {
+        "kind": "happy",
+        "text": "Member taps 'Book' on an available class and the class moves to their Upcoming bookings."
+       },
+       {
+        "kind": "happy",
+        "text": "Member taps 'Join waitlist' on a full class and sees their waitlist position update (e.g. 'Waitlisted #3')."
+       },
+       {
+        "kind": "happy",
+        "text": "Member can leave a waitlist, removing them from the queue and shifting subsequent members up one position."
+       },
+       {
+        "kind": "happy",
+        "text": "Member cancels a booked class and it moves to Past/Cancelled in My Bookings."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to book/cancel/waitlist a class that violates a business rule (capacity, window, overlap, limit) is rejected with a specific error message naming the reason."
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Exactly three navigable screens/routes exist: Schedule (default/home), Class Detail, My Bookings.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Navigating to the app root loads the Schedule screen by default."
+       },
+       {
+        "kind": "happy",
+        "text": "Tapping a class card (outside its action button) navigates to Class Detail for that session."
+       },
+       {
+        "kind": "happy",
+        "text": "Tapping the member avatar in the top bar navigates to My Bookings."
+       },
+       {
+        "kind": "happy",
+        "text": "Tapping a row in My Bookings navigates to Class Detail for that session."
+       },
+       {
+        "kind": "happy",
+        "text": "No other top-level screens (e.g. sign-in, admin) are reachable via navigation."
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "readingChosen": "All listed rules are enforced server/data-layer side, independent of UI, and surfaced as explicit error messages when violated.",
+      "behaviours": [
+       {
+        "kind": "error",
+        "text": "Booking is rejected once a class's booked count equals capacity; member is offered waitlist join instead."
+       },
+       {
+        "kind": "happy",
+        "text": "Joining a full class's waitlist assigns the next sequential waitlist position and displays it."
+       },
+       {
+        "kind": "happy",
+        "text": "When a Booked member cancels, the first waitlisted member is automatically promoted to Booked status and their booking reflects this on next view."
+       },
+       {
+        "kind": "error",
+        "text": "Booking attempts more than 7 days before a class's start are rejected."
+       },
+       {
+        "kind": "error",
+        "text": "Booking attempts within 15 minutes of a class's start (or after it starts) are rejected."
+       },
+       {
+        "kind": "happy",
+        "text": "Cancelling more than 2 hours before start completes without warning."
+       },
+       {
+        "kind": "error",
+        "text": "Cancelling within 2 hours before start is allowed but shows warning text 'Late cancellation — this counts as a missed class.' before confirming."
+       },
+       {
+        "kind": "error",
+        "text": "Booking a class that overlaps in time with an existing Booked class is rejected with a message naming the conflicting class."
+       },
+       {
+        "kind": "error",
+        "text": "Booking attempt is rejected once the member already holds 10 upcoming Booked classes, with message stating the limit."
+       },
+       {
+        "kind": "error",
+        "text": "Classes with a start time in the past cannot be booked, cancelled, or waitlisted via API/data layer even if UI is bypassed."
+       },
+       {
+        "kind": "error",
+        "text": "Classes marked 'Cancelled by studio' cannot be booked, and attempts are rejected at the data layer."
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "readingChosen": "Seed data is generated/loaded at app start and meets all listed minimums exactly as stated.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "On first load, at least 40 class sessions exist spanning current week and next week."
+       },
+       {
+        "kind": "data",
+        "text": "Seed data includes sessions of all 5 class types and all 3 rooms (Studio A, Studio B, Spin Room)."
+       },
+       {
+        "kind": "data",
+        "text": "Seed data includes exactly 5 distinct instructors, each with name, bio, and photo/avatar."
+       },
+       {
+        "kind": "data",
+        "text": "At least 3 seeded classes show as Full with a waitlist count > 0."
+       },
+       {
+        "kind": "data",
+        "text": "At least 3 seeded classes show '≤3 spots left' availability label."
+       },
+       {
+        "kind": "data",
+        "text": "At least 1 seeded class has status 'Cancelled by studio' and renders struck-through on the schedule."
+       },
+       {
+        "kind": "data",
+        "text": "Demo member (Alex Rivera) has exactly 2 upcoming Booked classes, 1 Waitlisted class, and 3 past Attended classes visible in My Bookings on first load."
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "readingChosen": "Bookings/cancellations are persisted (backend DB or local storage) such that a full page reload shows the same booking state.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "After booking a class and reloading the page, the class still shows as Booked and appears in My Bookings."
+       },
+       {
+        "kind": "happy",
+        "text": "After cancelling a booking and reloading the page, the class no longer appears as Booked in My Bookings."
+       },
+       {
+        "kind": "happy",
+        "text": "After joining a waitlist and reloading, the waitlist position is preserved."
+       },
+       {
+        "kind": "error",
+        "text": "If persistence write fails, booking/cancel action rolls back in the UI and shows an error toast rather than appearing to succeed."
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "readingChosen": "Visual design tokens and dark mode are implemented and verifiably meet WCAG AA; each class type has a distinct accent colour used consistently.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Background renders as warm off-white in light mode and switches to a dark-mode palette when system preference is dark."
+       },
+       {
+        "kind": "happy",
+        "text": "Each class type tag/card edge/detail hero uses its assigned accent colour (sage green=Yoga, dusty rose=Pilates, coral/orange=HIIT, electric blue=Spin, deep plum=Boxing) consistently across screens."
+       },
+       {
+        "kind": "happy",
+        "text": "All text/background colour pairs used in the UI meet WCAG AA contrast ratio (4.5:1 for normal text)."
+       },
+       {
+        "kind": "data",
+        "text": "Colours are defined as design tokens (CSS variables or equivalent) rather than hard-coded per component."
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "readingChosen": "Full accessibility compliance: keyboard-only operation, screen reader labelling, and minimum touch target sizing for all interactive elements.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Every interactive element (buttons, tabs, chips, day strip, dialogs) is reachable and operable via Tab/Shift+Tab/Enter/Space keyboard navigation alone."
+       },
+       {
+        "kind": "happy",
+        "text": "Focus states are visibly indicated on every focusable element."
+       },
+       {
+        "kind": "happy",
+        "text": "Capacity bar exposes an accessible label, e.g. 'X of Y spots left', read by screen readers."
+       },
+       {
+        "kind": "happy",
+        "text": "All touch targets (buttons, chips, tabs, icons) measure at least 44×44 px."
+       },
+       {
+        "kind": "happy",
+        "text": "Dialogs (e.g. cancel confirmation) trap keyboard focus and close when Escape is pressed."
+       },
+       {
+        "kind": "error",
+        "text": "Status/type information is never conveyed by colour alone; text or icon labels accompany colour-coded tags and badges."
+       }
+      ]
+     },
+     {
+      "id": "I-9",
+      "readingChosen": "Automated unit/integration tests cover each listed business rule individually, plus one full end-to-end user flow test.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "A test verifies booking succeeds when spots are available."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies booking is rejected when full and waitlist join succeeds instead."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies waitlist promotion occurs automatically after a cancellation."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies booking window enforcement (7 days ahead, 15 minutes before start) rejects out-of-window attempts."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies late-cancellation flag triggers inside the 2-hour window."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies an overlapping booking attempt is rejected."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies the 10-booking limit is enforced."
+       },
+       {
+        "kind": "happy",
+        "text": "A test verifies past and studio-cancelled classes cannot be booked."
+       },
+       {
+        "kind": "happy",
+        "text": "An end-to-end test runs: open schedule → filter by Yoga → book a class → confirm it appears in My Bookings → cancel it → confirm removal."
+       }
+      ]
+     },
+     {
+      "id": "I-10",
+      "readingChosen": "Layout breakpoints are implemented exactly as specified: single column from 360px, 2-column tablet grid, desktop with side-panel detail view.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "At 360 px viewport width, all three screens render with no horizontal page scrolling (day strip may scroll horizontally)."
+       },
+       {
+        "kind": "happy",
+        "text": "At tablet widths, the schedule class cards display in a 2-column grid layout."
+       },
+       {
+        "kind": "happy",
+        "text": "At desktop widths (≥1024px), Class Detail opens as a side panel alongside the schedule list rather than a full-screen page."
+       },
+       {
+        "kind": "happy",
+        "text": "Content max-width is constrained on desktop so text lines don't stretch excessively."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

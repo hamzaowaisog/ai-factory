@@ -1,0 +1,25 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "findings": [],
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "the locked test asks for a missing order and expects 404"
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

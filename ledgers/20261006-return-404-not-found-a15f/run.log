@@ -1,0 +1,13 @@
+17:57:59      +0s  run                    executor started (pid 61873)
+17:57:59      +0s  discover#1             ▶ discover (attempt 1)
+17:57:59      +0s  discover#1             baseline: building and testing the untouched repo (first time is slow)
+17:57:59      +0s  discover#1               error: No usable container runtime. On a Mac: brew install colima docker && colima start (setup.sh does this). Tried: /usr/bin/docker not found; /opt/homebrew/bin/docker not found; /usr/local/bin/docker: daemon not running; docker: daemon not running; podman not found
+17:57:59      +0s  discover#1             attempt failed (other) → retry at rung 0: Retrying with the failures
+17:57:59      +0s  discover#1             ✗ discover: No usable container runtime. On a Mac: brew install colima docker && colima start (setup.sh does this). Tried: /usr/bin/docker not found; /opt/homebrew/bin/docker not found; /usr/local/bin/docker: daemon not running; docker: daemon not running; podman not found → retry
+17:57:59      +0s  discover#2             ▶ discover (attempt 2)
+17:57:59      +0s  discover#2             baseline: building and testing the untouched repo (first time is slow)
+17:57:59      +0s  discover#2               error: No usable container runtime. On a Mac: brew install colima docker && colima start (setup.sh does this). Tried: /usr/bin/docker not found; /opt/homebrew/bin/docker not found; /usr/local/bin/docker: daemon not running; docker: daemon not running; podman not found
+17:57:59      +0s  discover#2             attempt failed (other) → park at rung 0: Every retry option is used up
+17:57:59      +0s  discover#2             ✗ discover: No usable container runtime. On a Mac: brew install colima docker && colima start (setup.sh does this). Tried: /usr/bin/docker not found; /opt/homebrew/bin/docker not found; /usr/local/bin/docker: daemon not running; docker: daemon not running; podman not found → park
+17:57:59      +0s  discover#2             PARKED: discover: Every retry option is used up
+17:57:59      +0s  run                    executor stopped

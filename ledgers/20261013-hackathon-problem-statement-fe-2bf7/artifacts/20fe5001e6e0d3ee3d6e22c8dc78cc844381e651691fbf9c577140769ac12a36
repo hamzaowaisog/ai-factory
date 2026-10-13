@@ -1,0 +1,70 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every operation, method, path, parameter, schema, status code, and security rule in the OpenAPI contract; expose no undocumented operations or feedlot product screens."
+     },
+     {
+      "n": 2,
+      "text": "Return contract-defined authentication, session, dashboard, and filtered lot data."
+     },
+     {
+      "n": 3,
+      "text": "Support procurement-record preview and import, and persist PO-line-to-lot and lot-to-pen allocation traceability, including matching and conflict results."
+     },
+     {
+      "n": 4,
+      "text": "Return contract-defined forecasts, forecast settings, metrics, insights, planner actions, and weight histories, and persist valid setting and action updates."
+     },
+     {
+      "n": 5,
+      "text": "Return contract-defined inventory, movements, projections, and exports, and persist valid inventory changes in PostgreSQL."
+     },
+     {
+      "n": 6,
+      "text": "Return contract-defined rations and optimization and approval results, and persist valid ration changes."
+     },
+     {
+      "n": 7,
+      "text": "Return and persist contract-defined feed-plan details, calculated quantities, audit state, reviews, and execution status."
+     },
+     {
+      "n": 8,
+      "text": "Persist feeding events, corrections, and voids, and return contract-defined variance, cost, energy, inventory movements, and updated lot feed totals."
+     },
+     {
+      "n": 9,
+      "text": "Return contract-defined, permission-filtered operational, feed-to-gain, and profitability reports, calculations, summaries, and requested exports."
+     },
+     {
+      "n": 10,
+      "text": "Support sample-data status and loading without duplicates, and require explicit confirmation for reset or replacement."
+     },
+     {
+      "n": 11,
+      "text": "Store contract domain data in PostgreSQL using the configured App connection and preserve successful writes across API process restarts."
+     },
+     {
+      "n": 12,
+      "text": "When Seed:Demo is true, use SeedData.Run at startup to add 3 to 5 believable, contract-example-derived sample rows to each empty application table, leave nonempty tables unchanged, and fail startup while surfacing seed-write errors."
+     },
+     {
+      "n": 13,
+      "text": "When Seed:Demo is false and collections are empty, serve collection operations with empty lists; tests must create their own records when nonempty data is required."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

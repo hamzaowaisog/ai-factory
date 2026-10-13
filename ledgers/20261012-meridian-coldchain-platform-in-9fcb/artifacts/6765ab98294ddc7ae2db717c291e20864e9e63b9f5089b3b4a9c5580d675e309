@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temperature profiles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & System Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken+Grotesk', 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .dot-waiting-breathing {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Header Component */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      width: 100%;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-square {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 13px;
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.2px;
+    }
+
+    nav.main-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      font-size: 15px;
+      font-weight: 500;
+      color: #626262;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link.active {
+      color: #A94B1D;
+      border-bottom-color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .user-initials {
+      width: 28px;
+      height: 28px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+
+    /* Main Layout */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .page-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    h1.page-title {
+      font-size: 28px;
+      font-weight: 650;
+      color: #202020;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+    }
+
+    .sub-title-text {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Panels & Rules */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h2.section-heading {
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      letter-spacing: -0.2px;
+    }
+
+    h3.smaller-heading {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Public Sans', sans-serif;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #933E16;
+      border-color: #933E16;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Lead Profile Card Grid */
+    .lead-profile-banner {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .lead-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid #D5D5D5;
+      padding-bottom: 16px;
+    }
+
+    .lead-title-area {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .lead-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+    }
+
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .metric-value {
+      font-size: 16px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    .metric-value-large {
+      font-size: 20px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .table-container th {
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      padding: 12px 16px;
+      height: 48px;
+      background-color: #FFFFFF;
+    }
+
+    .table-container td {
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      padding: 12px 16px;
+      height: 48px;
+      vertical-align: middle;
+    }
+
+    .table-container tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-container tbody tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Recalculation Evaluation Grid */
+    .recalc-card {
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      background-color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .recalc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .sub-quiet {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .unaltered-notice {
+      border-left: 3px solid #202020;
+      padding: 12px 16px;
+      background-color: #F7F7F7;
+      font-size: 14px;
+      color: #202020;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header standard across every page -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="brand-square">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="main-nav">
+        <a href="#" class="nav-link">Products</a>
+        <a href="#" class="nav-link">Organisations</a>
+        <a href="#" class="nav-link">Accounts</a>
+        <a href="#" class="nav-link">Audit trail</a>
+        <a href="#" class="nav-link">Reports</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-initials">MV</div>
+        <span>Marcus Vale · System Administrator</span>
+      </div>
+      <div class="lang-switcher">
+        <span>EN / العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main>
+    <!-- Page Title Row -->
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title">Temperature profiles</h1>
+        <p class="sub-title-text">Regulated thermal operating envelopes and versioned release standards</p>
+      </div>
+      <div>
+        <button type="button" class="btn btn-secondary">Product detail</button>
+      </div>
+    </div>
+
+    <!-- Lead Profile Banner: Insulin Glargine current v3 -->
+    <div class="lead-profile-banner">
+      <div class="lead-header-bar">
+        <div class="lead-title-area">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <h2 class="section-heading">Insulin Glargine 100 units/mL · Profile v3</h2>
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              good active standard
+            </span>
+          </div>
+          <p class="sub-quiet">Product pack size: pack of 10 pens · Minimum remaining shelf life standard: <span class="font-mono">90</span> days</p>
+        </div>
+        <div style="text-align: right;">
+          <span class="sub-quiet">Prototype date: <span class="font-mono">14 May 2026</span> Europe/London (BST)</span>
+        </div>
+      </div>
+
+      <div class="lead-grid">
+        <div class="metric-cell">
+          <span class="metric-label">Permitted core band</span>
+          <span class="metric-value-large font-mono">2.0°C–8.0°C</span>
+          <span class="sub-quiet">Strict baseline cold chain</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">First upper tier allowance</span>
+          <span class="metric-value-large font-mono">&gt;8.0°C–10.0°C</span>
+          <span class="sub-quiet">Limited secondary tolerance</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Cumulative upper-tier budget</span>
+          <span class="metric-value-large font-mono">30 minutes</span>
+          <span class="sub-quiet">Excursion allowance window</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Version governance status</span>
+          <span class="metric-value font-mono">v3 (Current read-only release)</span>
+          <span class="sub-quiet">Enforced across depot allocations</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Primary Action & Version History Table Panel -->
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 class="section-heading">Chronological version history</h2>
+          <p class="sub-quiet">Comprehensive audit of baseline thermal envelopes, upper tiers and release reasons</p>
+        </div>
+        <!-- Primary button sits above the table -->
+        <button type="button" class="btn btn-primary">New profile version</button>
+      </div>
+
+      <div style="overflow-x: auto; border: 1px solid #D5D5D5; border-radius: 2px;">
+        <table class="table-container">
+          <thead>
+            <tr>
+              <th>Profile version</th>
+              <th>Effective date</th>
+              <th>Permitted band</th>
+              <th>Upper tier &amp; allowance</th>
+              <th>Status</th>
+              <th>Specification rationale &amp; reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="font-mono" style="font-weight: 600;">v3</span></td>
+              <td><span class="font-mono">12 May 2026 00:00 BST</span></td>
+              <td><span class="font-mono">2.0°C–8.0°C</span></td>
+              <td><span class="font-mono">&gt;8.0°C–10.0°C (30 min)</span></td>
+              <td>
+                <span class="status-badge status-good">
+                  <span class="status-dot"></span>
+                  good active standard
+                </span>
+              </td>
+              <td>Baseline release standard for North Quay intake and Cedar Health route allocations</td>
+            </tr>
+            <tr>
+              <td><span class="font-mono" style="font-weight: 600;">v2</span></td>
+              <td><span class="font-mono">15 Jan 2026 00:00 BST</span></td>
+              <td><span class="font-mono">2.0°C–8.0°C</span></td>
+              <td><span class="font-mono">&gt;8.0°C–10.0°C (15 min)</span></td>
+              <td>
+                <span class="status-badge status-good">
+                  <span class="status-dot"></span>
+                  good superseded
+                </span>
+              </td>
+              <td>Earlier release with conservative 15-minute tolerance threshold; read-only</td>
+            </tr>
+            <tr>
+              <td><span class="font-mono" style="font-weight: 600;">v1</span></td>
+              <td><span class="font-mono">01 Oct 2025 00:00 BST</span></td>
+              <td><span class="font-mono">2.0°C–8.0°C</span></td>
+              <td><span class="font-mono">Zero allowance</span></td>
+              <td>
+                <span class="status-badge status-good">
+                  <span class="status-dot"></span>
+                  good archived
+                </span>
+              </td>
+              <td>Initial validation release permitting strictly 2.0°C–8.0°C with no tier allowance; read-only</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Profile v4 Impact & Inventory Evaluation Panel -->
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h2 class="section-heading">Proposed profile v4 impact analysis</h2>
+          <p class="sub-quiet">API-returned recalculated budgets and current status for still-held inventory, active consignments and assigned transit routes</p>
+        </div>
+        <div>
+          <span class="status-badge status-waiting">
+            <span class="status-dot dot-waiting-breathing"></span>
+            waiting activation evaluation
+          </span>
+        </div>
+      </div>
+
+      <div class="recalc-grid">
+        <!-- Card 1: Still-held HU-81 & HU-82 -->
+        <div class="recalc-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="smaller-heading">Holding unit HU-81</h3>
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              good compliant
+            </span>
+          </div>
+          <p class="sub-quiet">Lot <span class="font-mono">IG-2511</span> (Cold Room C2, Rack 4) · <span class="font-mono">100</span> packs total</p>
+          <div style="margin-top: 8px;">
+            <span class="metric-label">API-returned recalculated budget</span>
+            <div class="font-mono" style="font-weight: 600; font-size: 15px; margin-top: 2px;">
+              0 min used / 30 min budget intact
+            </div>
+            <p class="sub-quiet" style="margin-top: 4px;">60 packs available, 40 allocated to O-299 &amp; O-301. Zero thermal excursions recorded.</p>
+          </div>
+        </div>
+
+        <div class="recalc-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="smaller-heading">Holding unit HU-82</h3>
+            <span class="status-badge status-waiting">
+              <span class="status-dot"></span>
+              waiting quality case Q-88
+            </span>
+          </div>
+          <p class="sub-quiet">Lot <span class="font-mono">IG-2511</span> (Cold Room C2, Rack 4) · <span class="font-mono">20</span> packs total</p>
+          <div style="margin-top: 8px;">
+            <span class="metric-label">API-returned recalculated budget</span>
+            <div class="font-mono" style="font-weight: 600; font-size: 15px; margin-top: 2px;">
+              22 min used / 8 min remaining
+            </div>
+            <p class="sub-quiet" style="margin-top: 4px;">Excursion recorded at 9.1°C for 22 min. 10 quarantined, 5 On Hold, 2 Rejected, 3 Expired.</p>
+          </div>
+        </div>
+
+        <!-- Card 2: Affected O-299 Boxes -->
+        <div class="recalc-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="smaller-heading">Order O-299 shipper boxes</h3>
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              good eligible
+            </span>
+          </div>
+          <p class="sub-quiet">Cedar Clinic consignment · <span class="font-mono">20</span> packs in B-701 &amp; B-702</p>
+          <div style="margin-top: 8px;">
+            <span class="metric-label">API-returned recalculated status</span>
+            <div class="font-mono" style="font-weight: 600; font-size: 15px; margin-top: 2px;">
+              B-701 (12 pk): 4.4°C · B-702 (8 pk): 4.8°C
+            </div>
+            <p class="sub-quiet" style="margin-top: 4px;">Both shipper cartons confirmed within permitted band. Packed from compliant HU-81 stock.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Row: Route R-204 and Governance Ledger Status -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="recalc-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="smaller-heading">Assigned delivery route R-204</h3>
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              good on schedule
+            </span>
+          </div>
+          <p class="sub-quiet">Assigned vehicle <span class="font-mono">VAN-27</span> (plate <span class="font-mono">MTR-482</span>) · Driver Tariq Mansour</p>
+          <div style="margin-top: 8px;">
+            <span class="metric-label">Departure &amp; stop qualification</span>
+            <div class="font-mono" style="font-weight: 600; font-size: 15px; margin-top: 2px;">
+              Planned departure 14 May 15:00 BST · Cedar Clinic stop
+            </div>
+            <p class="sub-quiet" style="margin-top: 4px;">Active transit safety margin maintained at 38 min qualified-duration buffer.</p>
+          </div>
+        </div>
+
+        <div class="recalc-card" style="justify-content: center;">
+          <div class="unaltered-notice">
+            <strong style="display: block; margin-bottom: 4px;">Immutable assurance protocol</strong>
+            Earlier signed decisions (including baseline release for HU-81, logged intake records, and historical dispositions) remain expressly unchanged by profile activation. System preserves immutable cryptographic audit history without simulated recalculation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

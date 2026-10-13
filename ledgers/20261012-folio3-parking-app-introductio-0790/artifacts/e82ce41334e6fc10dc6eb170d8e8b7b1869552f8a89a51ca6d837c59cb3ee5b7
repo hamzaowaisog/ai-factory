@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#F5F7F6]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Audit history · Folio3 Parking</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono, Public Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@500;600;700&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config from Brand Anchors -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-container": "#fdc5b7",
+            "surface-bright": "#fff8f6",
+            "on-secondary-fixed": "#31130b",
+            "surface-tint": "#974733",
+            "inverse-surface": "#382e2c",
+            "outline": "#88726d",
+            "surface-container": "#fbeae6",
+            "on-error": "#ffffff",
+            "primary-fixed-dim": "#ffb4a2",
+            "surface-container-low": "#fff1ed",
+            "tertiary-fixed": "#96f3e3",
+            "on-primary-fixed-variant": "#78301e",
+            "on-tertiary-container": "#b2fff0",
+            "on-primary-container": "#ffece8",
+            "on-tertiary-fixed-variant": "#005047",
+            "tertiary-fixed-dim": "#79d7c7",
+            "background": "#fff8f6",
+            "on-surface-variant": "#55433e",
+            "surface-container-highest": "#efdfdb",
+            "primary-fixed": "#ffdad2",
+            "secondary": "#7e5449",
+            "tertiary-container": "#007b6e",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#dac1bb",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#e7d7d3",
+            "secondary-fixed-dim": "#f1baac",
+            "error-container": "#ffdad6",
+            "secondary-fixed": "#ffdad2",
+            "on-error-container": "#93000a",
+            "on-primary": "#ffffff",
+            "primary-container": "#a95540",
+            "on-tertiary-fixed": "#00201c",
+            "surface-container-high": "#f5e5e1",
+            "surface-variant": "#efdfdb",
+            "inverse-primary": "#ffb4a2",
+            "inverse-on-surface": "#feede9",
+            "on-secondary-fixed-variant": "#643d33",
+            "tertiary": "#006056",
+            "on-secondary-container": "#794f45",
+            "on-surface": "#221a18",
+            "on-secondary": "#ffffff",
+            "surface": "#fff8f6",
+            "on-background": "#221a18",
+            "error": "#ba1a1a",
+            "primary": "#8b3e2a",
+            "on-primary-fixed": "#3c0700"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "Arial", "sans-serif"],
+            "display": ["Hanken Grotesk", "Arial", "sans-serif"],
+            "body": ["\"Source Sans 3\"", "Arial", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["\"IBM Plex Mono\"", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: 8px;
+    }
+    
+    @keyframes settle-in {
+      from { opacity: 0.84; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes active-check {
+      0%, 100% { opacity: 0.76; }
+      50% { opacity: 1; }
+    }
+
+    .page-intro > * {
+      animation: settle-in var(--dur-slow) var(--ease-out) both;
+    }
+
+    .entry-check-live::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 9999px;
+      background-color: #A95540;
+      margin-right: 6px;
+      animation: active-check 7.5s var(--ease-inout) infinite;
+    }
+
+    /* Parking-bay marker reference detail */
+    .stall-badge {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      padding-left: 6px;
+    }
+    .stall-badge::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 3px;
+      bottom: 3px;
+      width: 2px;
+      background-color: #dac1bb;
+      border-radius: 1px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-intro > *, .entry-check-live::before {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+      }
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="h-full font-body text-[#222927] antialiased bg-[#F5F7F6]">
+<!-- SHARED COMPONENT: TopNavBar -->
+<header class="bg-surface-container-lowest border-b border-outline-variant docked full-width top-0 z-30 sticky">
+<div class="flex justify-between items-center w-full px-6 max-w-[1440px] mx-auto h-14">
+<!-- Brand & Navigation Cluster -->
+<div class="flex items-center space-x-8">
+<!-- Brand Logo / Product Name -->
+<a class="flex items-center space-x-2.5 active:scale-[0.97] transition-transform duration-90" href="#overview">
+<div class="w-7 h-7 rounded bg-[#A95540] flex items-center justify-center text-white font-headline font-semibold text-sm tracking-tight shadow-sm">
+            P
+          </div>
+<span class="font-headline font-semibold text-lg text-on-surface tracking-tight">Folio3 Parking</span>
+</a>
+<!-- Desktop Navigation Links (exact text labels & active determination) -->
+<nav aria-label="Main Navigation" class="hidden md:flex items-center space-x-6 text-sm">
+<a class="text-on-surface-variant font-medium pb-3.5 pt-4 hover:text-on-surface transition-colors duration-160" href="#overview">Overview</a>
+<a class="text-on-surface-variant font-medium pb-3.5 pt-4 hover:text-on-surface transition-colors duration-160" href="#employees">Employees</a>
+<a class="text-on-surface-variant font-medium pb-3.5 pt-4 hover:text-on-surface transition-colors duration-160" href="#parking-setup">Parking setup</a>
+<a class="text-on-surface-variant font-medium pb-3.5 pt-4 hover:text-on-surface transition-colors duration-160" href="#weekly-report">Weekly report</a>
+<a class="text-on-surface-variant font-medium pb-3.5 pt-4 hover:text-on-surface transition-colors duration-160" href="#entry-checks">Entry checks</a>
+<a aria-current="page" class="text-primary font-semibold border-b-2 border-primary pb-3.5 pt-4" href="#audit-history">Audit history</a>
+</nav>
+</div>
+<!-- Right Header Profile Item: Priya Nair, Parking Administrator -->
+<div class="flex items-center space-x-3">
+<div class="text-right hidden sm:block">
+<p class="font-headline font-semibold text-sm text-[#222927] leading-tight">Priya Nair</p>
+<p class="text-xs text-[#596560]">Parking Administrator</p>
+</div>
+<div class="w-9 h-9 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Priya Nair, Parking Administrator profile portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VwWzSJ8eWrtaCfTF8yQAHJ5ml32Y3DrT-0xxblKf3Br833Qba3zhfSj2EwvG04AqTk4HdxTcNMoXR2tJ6wZygjw343-wMiQrYS7VU6v7JVo44sQpgzO_D_3bDyHjMMcDKYfXRftvYU3H5BBkL_l2Khnp2Wv5wnS1zBnWogkHipU87ihc8ItVkN38W98tmaWJtwxWsMUaAKeIho6E3uE-n-Tx0SnQfmxH5cgU_X5z3crRn3kVI3oQ32"/>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN VIEWPORT CANVAS -->
+<main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+<!-- PAGE HEADER & SUBHEAD ZONE -->
+<div class="page-intro mb-6">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-[#D8DEDB] pb-5">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h1 class="font-headline font-semibold text-2xl text-[#222927] tracking-tight">Audit history</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-[#F1F3F2] text-[#596560] border border-[#D8DEDB]">
+              12-col ledger
+            </span>
+</div>
+<p class="text-sm text-[#596560] max-w-2xl leading-relaxed">
+            Unified chronological audit log of parking releases, pool claims, gate verifications, and stall utilization events.
+          </p>
+</div>
+<div class="text-left md:text-right flex-shrink-0">
+<div class="font-mono text-xs text-[#596560] tabular-nums">
+            Bengaluru Campus · Asia/Kolkata (IST, UTC+05:30)
+          </div>
+<div class="text-xs text-[#596560] mt-0.5">
+            Records are kept under Folio3’s existing records-retention policy
+          </div>
+</div>
+</div>
+</div>
+<!-- FILTER BAR COMPONENT -->
+<section aria-label="Audit Log Filters" class="bg-surface-container-lowest rounded-lg border border-[#D8DEDB] p-4 mb-6 shadow-none">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<!-- Filter Select Inputs Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 flex-grow max-w-4xl">
+<!-- Date Window Dropdown -->
+<div>
+<label class="block font-label text-[11px] uppercase tracking-[0.07em] font-semibold text-[#596560] mb-1" for="filter-date">
+              Date window
+            </label>
+<select class="w-full text-sm text-[#222927] bg-[#FFFFFF] border border-[#D8DEDB] rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#A95540] focus:border-[#A95540] focus:outline-none" id="filter-date">
+<option selected="">Current cycle (18–19 May 2026)</option>
+<option>Today (19 May 2026)</option>
+<option>Yesterday (18 May 2026)</option>
+<option>All recorded dates</option>
+</select>
+</div>
+<!-- Event Type Dropdown -->
+<div>
+<label class="block font-label text-[11px] uppercase tracking-[0.07em] font-semibold text-[#596560] mb-1" for="filter-event-type">
+              Event type
+            </label>
+<select class="w-full text-sm text-[#222927] bg-[#FFFFFF] border border-[#D8DEDB] rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#A95540] focus:border-[#A95540] focus:outline-none" id="filter-event-type">
+<option selected="">All event types</option>
+<option>Space release</option>
+<option>Pool claim</option>
+<option>Entrance verification</option>
+<option>Stall utilization &amp; entry</option>
+<option>Schedule release logged</option>
+</select>
+</div>
+<!-- Event Result / Status Dropdown -->
+<div>
+<label class="block font-label text-[11px] uppercase tracking-[0.07em] font-semibold text-[#596560] mb-1" for="filter-status">
+              Event status
+            </label>
+<select class="w-full text-sm text-[#222927] bg-[#FFFFFF] border border-[#D8DEDB] rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#A95540] focus:border-[#A95540] focus:outline-none" id="filter-status">
+<option selected="">All statuses</option>
+<option>Allowed / Success</option>
+<option>Denied / Failed</option>
+<option>Released</option>
+<option>Held / Pending</option>
+</select>
+</div>
+<!-- Floor / Zone Dropdown -->
+<div>
+<label class="block font-label text-[11px] uppercase tracking-[0.07em] font-semibold text-[#596560] mb-1" for="filter-zone">
+              Floor / Zone
+            </label>
+<select class="w-full text-sm text-[#222927] bg-[#FFFFFF] border border-[#D8DEDB] rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#A95540] focus:border-[#A95540] focus:outline-none" id="filter-zone">
+<option selected="">All floors (P1 &amp; P2)</option>
+<option>Level P1 (Lower deck)</option>
+<option>Level P2 (Upper deck)</option>
+</select>
+</div>
+</div>
+<!-- Filter Actions & Ledger Count Summary -->
+<div class="flex items-center justify-between lg:justify-end gap-4 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#D8DEDB]">
+<span class="text-xs text-[#596560] font-medium hidden sm:inline">
+            Showing 8 recent audit events · Chronological log
+          </span>
+<button class="inline-flex items-center justify-center bg-[#A95540] hover:bg-[#8b3e2a] text-white px-5 py-2 rounded-lg font-medium text-sm shadow-sm transition-colors duration-160 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A95540]" type="button">
+            Apply filters
+          </button>
+</div>
+</div>
+</section>
+<!-- DENSE CHRONOLOGICAL AUDIT HISTORY WORKLIST -->
+<div class="bg-surface-container-lowest border border-[#D8DEDB] rounded-lg overflow-hidden">
+<!-- Desktop Table Header Strip (Hidden on phones) -->
+<div class="hidden md:grid grid-cols-12 gap-3 px-5 py-3 bg-[#F1F3F2] border-b border-[#D8DEDB] text-[11px] font-label uppercase tracking-[0.07em] font-semibold text-[#596560]">
+<div class="col-span-2">Timestamp (IST)</div>
+<div class="col-span-3">Actor / Entity</div>
+<div class="col-span-2">Event type</div>
+<div class="col-span-1">Stall ID</div>
+<div class="col-span-2">Result &amp; status</div>
+<div class="col-span-2 text-right">Gate / Context</div>
+</div>
+<!-- Events Stream Container -->
+<div class="divide-y divide-[#D8DEDB]">
+<!-- RECORD 1: KA02ZZ4401 Unregistered Visitor Denied -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Tue 19 May 2026 9:02 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded bg-[#efdfdb] border border-outline-variant flex items-center justify-center flex-shrink-0 text-[#8b3e2a]">
+<span class="material-symbols-outlined text-base">no_accounts</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-mono text-xs font-semibold text-[#222927] bg-[#F1F3F2] px-1 rounded border border-[#D8DEDB]">
+                    KA02ZZ4401
+                  </span>
+</div>
+<p class="text-xs text-[#596560] truncate">Unregistered visitor vehicle</p>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Entrance verification</span>
+<span class="text-[11px] text-[#596560]">Automated OCR check</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="font-mono text-xs text-[#596560]">—</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#ffdad6] text-[#93000a] border border-[#ffdad6]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#93000a]"></span>
+                Entry denied
+              </span>
+</div>
+<!-- Gate / Context / Detailed notes -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">Boom Gate 1</span>
+<span class="text-[11px] text-[#88726d] block truncate" title="No active reservation or visitor clearance found on campus registry">
+                No active registry clearance
+              </span>
+</div>
+</div>
+<!-- Mobile expanded info -->
+<p class="mt-2 text-xs text-[#596560] bg-[#fff8f6] p-2 rounded border border-[#dac1bb] md:hidden">
+            Unregistered visitor license plate KA02ZZ4401 detected; no active reservation or visitor clearance found on campus registry.
+          </p>
+</article>
+<!-- RECORD 2: Maya Krishnan Space release -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Tue 19 May 2026 8:48 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (Maya Krishnan) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Maya Krishnan portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1XvMGejAY6dK9JmQ2wVHyt_zszSaGUfnrDWDZApKkDZVYWYs8JBfEjl6gv-BNZy5IMZCp59QGeMa3m3uW-MEPD_Hxp-tupltK9R7TS5OXP_1EBnwVC_Xc_sfqm45nGeP35sMw3k7bbKhCpniSgQZxTp1O-6plzNoYYgf5n0LjT6pWFMqQjwwDolrjRE9OPY11AvW1dJSk80xHca7uSKl2R5zxvcsk8Kj0tKZXrmHL-uMcKfqIa1E9YJ"/>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-semibold text-[#222927] truncate">Maya Krishnan</p>
+<div class="flex items-center gap-1.5 text-[11px] text-[#596560]">
+<span>Software Eng.</span>
+<span>·</span>
+<span class="font-mono text-[10px]">KA03GH8820</span>
+</div>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Space release</span>
+<span class="text-[11px] text-[#596560]">Voluntary surrender</span>
+</div>
+<!-- Stall / Space with parking-bay paired rule -->
+<div class="md:col-span-1">
+<span class="stall-badge font-mono text-xs font-semibold text-[#222927]">
+                P2-14
+              </span>
+<span class="block text-[10px] text-[#596560]">L2</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#fff1ed] text-[#8b3e2a] border border-[#dac1bb]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#8b3e2a]"></span>
+                Space released
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">Released to pool</span>
+<span class="text-[11px] text-[#88726d] block truncate" title="Voluntarily surrendered prior to 9:00 AM daily cutoff">
+                Prior to 9:00 AM cutoff
+              </span>
+</div>
+</div>
+</article>
+<!-- RECORD 3: Devika Iyer Space release -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Tue 19 May 2026 8:42 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (Devika Iyer) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Devika Iyer portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1UA9VNRNHdnfy978GpK97RmquqQ0WEvrE65I9mL5AgMxgDACtbJk_AAFQQVj54Fl0DbVP252YOFOu2OBo6PXo9f8GmXwcDUJ-LfPCASZSwf-Xl13ekPGgSLbTkP825z4CEs3_Y4lUvZJ94Z-8NEslfKxeLXUQ0-8wbtjv7DJrx65xCxt1jvHA3c_uwUUmX5BRa64yJbe0UTcMjSwERUAm3Yvmxq4PCbCtd991J8eWIMRb1q7uG9DXvI"/>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-semibold text-[#222927] truncate">Devika Iyer</p>
+<div class="flex items-center gap-1.5 text-[11px] text-[#596560]">
+<span>Finance</span>
+<span>·</span>
+<span class="font-mono text-[10px]">KA04CD6190</span>
+</div>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Space release</span>
+<span class="text-[11px] text-[#596560]">Daily pool handover</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="stall-badge font-mono text-xs font-semibold text-[#222927]">
+                P1-18
+              </span>
+<span class="block text-[10px] text-[#596560]">L1</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#fff1ed] text-[#8b3e2a] border border-[#dac1bb]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#8b3e2a]"></span>
+                Space released
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">General queue</span>
+<span class="text-[11px] text-[#88726d] block truncate">
+                Tue 19 May allocation
+              </span>
+</div>
+</div>
+</article>
+<!-- RECORD 4: Ananya Rao Entrance verification allowed -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Tue 19 May 2026 8:42 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (Ananya Rao) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Ananya Rao portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Wz8hgT6O5PFblsHQYnEr-HD3q3wNp8RDaTzOFBmkLjYYg0_WmlJ3STYrgGrCG0B6yWbMy1iOIG8fg7qFQ83g8SgO5qLtPjVvsNQFOuSffx1aYv7b6DJ_4pI_uFB8YPehAd6T76AuBYYG8jh6zuB6ZeHL-VBqdYpD_edoOF155bfWZ8glisMULj-xXKmB1YWSJpIoaOMIHg5_08IZMaFJMJtxtL2ciwRBA_PDVgstZr4l6GPnBJJj6V"/>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-semibold text-[#222927] truncate">Ananya Rao</p>
+<div class="flex items-center gap-1.5 text-[11px] text-[#596560]">
+<span>Product Design</span>
+<span>·</span>
+<span class="font-mono text-[10px]">KA03MN4821</span>
+</div>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Entrance verification</span>
+<span class="text-[11px] text-[#596560]">ANPR automatic match</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="stall-badge font-mono text-xs font-semibold text-[#222927]">
+                P1-12
+              </span>
+<span class="block text-[10px] text-[#596560]">L1</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#e6f4ea] text-[#137333] border border-[#ceead6]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#137333]"></span>
+                Entry allowed
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">Boom Gate 1</span>
+<span class="text-[11px] text-[#88726d] block truncate">
+                Barrier cleared
+              </span>
+</div>
+</div>
+</article>
+<!-- RECORD 5: Rohan Mehta Stall utilization & entry -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Mon 18 May 2026 9:14 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (Rohan Mehta) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Rohan Mehta portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VStlzqIeDe32wdtzCV55MRl_1PM7dRxmLGCOZI2NitLOEh-y3FpTiGE25HEZgGNwcdtBQry5oGgzIKGgVKS17nUhuVo5Z94sOBlryZ-hSZ5FC6_2P-2_rjHfFHy3p1ux2fTby3qw7d_f_r3hcTfOR4iewPM2g8mjgJJ8Yaf-Owohi84Ng1zNDjfy9trg6_h0DtOVYVkb8uT_IRR9bZsA5sb4DtHbdQ0kFMbTwPHfsKyuBZrfDV-TYP"/>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-semibold text-[#222927] truncate">Rohan Mehta</p>
+<div class="flex items-center gap-1.5 text-[11px] text-[#596560]">
+<span>Engineering</span>
+<span>·</span>
+<span class="font-mono text-[10px]">KA05PQ7712</span>
+</div>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Stall utilization &amp; entry</span>
+<span class="text-[11px] text-[#596560]">Temporary allocation</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="stall-badge font-mono text-xs font-semibold text-[#222927]">
+                P1-18
+              </span>
+<span class="block text-[10px] text-[#596560]">L1</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#e6f4ea] text-[#137333] border border-[#ceead6]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#137333]"></span>
+                Entry allowed / Used
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">Boom Gate 1</span>
+<span class="text-[11px] text-[#88726d] block truncate">
+                Claimed pool space
+              </span>
+</div>
+</div>
+</article>
+<!-- RECORD 6: Rohan Mehta Pool claim -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Mon 18 May 2026 9:01 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (Rohan Mehta) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Rohan Mehta portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VStlzqIeDe32wdtzCV55MRl_1PM7dRxmLGCOZI2NitLOEh-y3FpTiGE25HEZgGNwcdtBQry5oGgzIKGgVKS17nUhuVo5Z94sOBlryZ-hSZ5FC6_2P-2_rjHfFHy3p1ux2fTby3qw7d_f_r3hcTfOR4iewPM2g8mjgJJ8Yaf-Owohi84Ng1zNDjfy9trg6_h0DtOVYVkb8uT_IRR9bZsA5sb4DtHbdQ0kFMbTwPHfsKyuBZrfDV-TYP"/>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-semibold text-[#222927] truncate">Rohan Mehta</p>
+<div class="flex items-center gap-1.5 text-[11px] text-[#596560]">
+<span>Engineering</span>
+<span>·</span>
+<span class="font-mono text-[10px]">KA05PQ7712</span>
+</div>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Pool claim</span>
+<span class="text-[11px] text-[#596560]">Daily pool dispatch</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="stall-badge font-mono text-xs font-semibold text-[#222927]">
+                P1-18
+              </span>
+<span class="block text-[10px] text-[#596560]">L1</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#e6f4ea] text-[#137333] border border-[#ceead6]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#137333]"></span>
+                Claim accepted
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">Post 9:00 AM queue</span>
+<span class="text-[11px] text-[#88726d] block truncate">
+                Inventory released
+              </span>
+</div>
+</div>
+</article>
+<!-- RECORD 7: Plate unreadable Gate 2 Check -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Mon 18 May 2026 8:57 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (OCR Low contrast) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded bg-[#F1F3F2] border border-[#D8DEDB] flex items-center justify-center flex-shrink-0 text-[#596560]">
+<span class="material-symbols-outlined text-base">document_scanner</span>
+</div>
+<div class="min-w-0">
+<span class="text-xs font-semibold text-[#222927] block truncate">Plate unreadable</span>
+<span class="text-[11px] text-[#596560] font-mono">OCR score 0.24</span>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Entrance verification</span>
+<span class="text-[11px] text-[#596560]">Low contrast OCR</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="font-mono text-xs text-[#596560]">—</span>
+</div>
+<!-- Result & Entry Status with ambient live dot -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#fbeae6] text-[#8b3e2a] border border-[#dac1bb]">
+<span class="entry-check-live"></span>
+                Entry held
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block">Boom Gate 2</span>
+<span class="text-[11px] text-[#88726d] block truncate" title="Security guard Kabir Shah (Security) requested for physical check">
+                Kabir Shah (Security)
+              </span>
+</div>
+</div>
+</article>
+<!-- RECORD 8: Ananya Rao Scheduled release logged -->
+<article class="p-4 sm:px-5 sm:py-3.5 hover:bg-[#F1F3F2] transition-colors duration-160">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center">
+<!-- Timestamp -->
+<div class="md:col-span-2">
+<span class="font-mono text-xs text-[#222927] tabular-nums font-medium block">
+                Mon 18 May 2026 8:15 AM
+              </span>
+<span class="text-[11px] text-[#596560] md:hidden">Timestamp</span>
+</div>
+<!-- Actor / Entity (Ananya Rao) -->
+<div class="md:col-span-3 flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-[#D8DEDB] flex-shrink-0 bg-surface-container-high">
+<img alt="Ananya Rao portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Wz8hgT6O5PFblsHQYnEr-HD3q3wNp8RDaTzOFBmkLjYYg0_WmlJ3STYrgGrCG0B6yWbMy1iOIG8fg7qFQ83g8SgO5qLtPjVvsNQFOuSffx1aYv7b6DJ_4pI_uFB8YPehAd6T76AuBYYG8jh6zuB6ZeHL-VBqdYpD_edoOF155bfWZ8glisMULj-xXKmB1YWSJpIoaOMIHg5_08IZMaFJMJtxtL2ciwRBA_PDVgstZr4l6GPnBJJj6V"/>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-semibold text-[#222927] truncate">Ananya Rao</p>
+<div class="flex items-center gap-1.5 text-[11px] text-[#596560]">
+<span>Product Design</span>
+<span>·</span>
+<span class="font-mono text-[10px]">KA03MN4821</span>
+</div>
+</div>
+</div>
+<!-- Event Type -->
+<div class="md:col-span-2">
+<span class="text-xs font-medium text-[#222927] block">Schedule release logged</span>
+<span class="text-[11px] text-[#596560]">Advance calendar booking</span>
+</div>
+<!-- Stall / Space -->
+<div class="md:col-span-1">
+<span class="stall-badge font-mono text-xs font-semibold text-[#222927]">
+                P1-12
+              </span>
+<span class="block text-[10px] text-[#596560]">L1</span>
+</div>
+<!-- Result & Entry Status -->
+<div class="md:col-span-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#F1F3F2] text-[#222927] border border-[#D8DEDB]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#596560]"></span>
+                Scheduled
+              </span>
+</div>
+<!-- Context -->
+<div class="md:col-span-2 md:text-right">
+<span class="text-xs text-[#596560] block font-mono">21 &amp; 25 May</span>
+<span class="text-[11px] text-[#88726d] block truncate">
+                Advance auto-release
+              </span>
+</div>
+</div>
+</article>
+</div>
+<!-- Pagination / Bottom Ledger Summary -->
+<div class="px-5 py-3.5 bg-surface-container-lowest border-t border-[#D8DEDB] flex flex-col sm:flex-row items-center justify-between text-xs text-[#596560] gap-3">
+<div class="flex items-center gap-2">
+<span>Displaying 8 of 8 records in cycle</span>
+<span>·</span>
+<span class="text-[#222927] font-medium">Immutable audit trail verified</span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="px-3 py-1.5 rounded border border-[#D8DEDB] text-[#88726d] bg-[#F5F7F6] cursor-not-allowed" disabled="" type="button">
+            Previous
+          </button>
+<span class="font-mono px-2">Page 1 of 1</span>
+<button class="px-3 py-1.5 rounded border border-[#D8DEDB] text-[#88726d] bg-[#F5F7F6] cursor-not-allowed" disabled="" type="button">
+            Next
+          </button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

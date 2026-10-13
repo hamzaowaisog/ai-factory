@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Exact border and color styling */
+    .border-custom {
+      border-color: #D5D5D5;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .waiting-pulse {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance, .waiting-pulse {
+        animation: none !important;
+        transform: none !important;
+      }
+    }
+
+    /* Control interactive states */
+    .btn-secondary {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      color: #202020;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #626262;
+    }
+    .btn-secondary:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+    .btn-secondary:active {
+      background-color: #EDEDED;
+    }
+
+    .btn-primary {
+      height: 48px;
+      background-color: #A94B1D;
+      border-radius: 2px;
+      color: #FFFFFF;
+      transition: opacity 150ms ease;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #A94B1D;
+    }
+    .btn-primary:active {
+      opacity: 0.84;
+    }
+
+    input, select {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      color: #202020;
+      transition: border-color 150ms ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    .nav-item {
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+    .nav-item:hover {
+      color: #202020;
+    }
+    .nav-item:focus {
+      outline: none;
+      border-color: #A94B1D;
+    }
+
+    /* Table row specifics */
+    .stock-table tr {
+      height: 48px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="w-full bg-white border-b border-custom px-8 h-16 flex items-center justify-between">
+    <div class="flex items-center space-x-8">
+      <div class="flex items-center space-x-3">
+        <div class="w-6 h-6 bg-[#202020] flex items-center justify-center text-white font-semibold text-sm rounded-[2px]">
+          M
+        </div>
+        <span class="font-semibold text-base text-[#202020] tracking-tight">Meridian</span>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-sm">
+        <a href="#" class="nav-item text-quiet hover:text-[#202020] py-5 border-b-2 border-transparent">Receipts</a>
+        <a href="#" class="nav-item text-[#202020] font-medium py-5 border-b-2 border-[#A94B1D]">Stock</a>
+        <a href="#" class="nav-item text-quiet hover:text-[#202020] py-5 border-b-2 border-transparent">Moves</a>
+        <a href="#" class="nav-item text-quiet hover:text-[#202020] py-5 border-b-2 border-transparent">Boxes</a>
+        <a href="#" class="nav-item text-quiet hover:text-[#202020] py-5 border-b-2 border-transparent">Cold rooms</a>
+      </nav>
+    </div>
+
+    <div class="flex items-center space-x-6 text-sm">
+      <div class="flex items-center space-x-3">
+        <div class="w-7 h-7 bg-[#F7F7F7] border border-custom flex items-center justify-center text-xs font-mono-num text-[#202020] rounded-[2px]">
+          LH
+        </div>
+        <span class="text-[#202020]">Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div class="h-4 w-px bg-[#D5D5D5]"></div>
+      <div class="text-sm text-quiet">
+        <span class="text-[#202020]">EN</span> / <span>العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-[1440px] mx-auto px-8 py-8 animate-entrance">
+    
+    <!-- Top Action / Context Row -->
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-[28px] font-[650] leading-none text-[#202020]">Stock</h1>
+      <div class="flex items-center space-x-3">
+        <button type="button" class="btn-secondary px-4 text-sm font-medium flex items-center">
+          Opening stock
+        </button>
+        <button type="button" class="btn-secondary px-4 text-sm font-medium flex items-center">
+          Handling unit
+        </button>
+      </div>
+    </div>
+
+    <!-- On Hand Figure & Status Breakdown Panel -->
+    <section class="bg-white border border-custom rounded-[2px] p-6 mb-8">
+      <div class="flex flex-col md:flex-row md:items-baseline justify-between gap-6 pb-6 border-b border-custom">
+        <div>
+          <div class="text-quiet text-sm mb-1">Total physical inventory on hand</div>
+          <div class="flex items-baseline space-x-3">
+            <span class="text-[44px] font-[650] font-mono-num text-[#202020] leading-none">124</span>
+            <span class="text-xl font-medium text-[#202020]">packs on hand</span>
+          </div>
+        </div>
+        <div class="text-sm text-right md:text-right">
+          <div class="text-quiet">Warehouse scope</div>
+          <div class="font-medium text-[#202020]">North Quay Warehouse</div>
+        </div>
+      </div>
+
+      <!-- Mutually Exclusive Totals Breakdown -->
+      <div class="pt-6">
+        <div class="text-xs font-medium text-quiet uppercase tracking-wider mb-3">Status balance</div>
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[#24704B] font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#24704B] inline-block mr-1.5"></span>Available
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">60</span>
+          </div>
+
+          <span class="text-custom text-quiet">·</span>
+
+          <div class="flex items-baseline space-x-2">
+            <span class="text-quiet font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#626262] inline-block mr-1.5"></span>Allocated
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">40</span>
+          </div>
+
+          <span class="text-custom text-quiet">·</span>
+
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[#805800] font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#805800] inline-block mr-1.5 waiting-pulse"></span>Quarantined
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">10</span>
+          </div>
+
+          <span class="text-custom text-quiet">·</span>
+
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[#805800] font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#805800] inline-block mr-1.5"></span>On Hold
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">5</span>
+          </div>
+
+          <span class="text-custom text-quiet">·</span>
+
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[#AE2C2C] font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#AE2C2C] inline-block mr-1.5"></span>Rejected
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">2</span>
+          </div>
+
+          <span class="text-custom text-quiet">·</span>
+
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[#AE2C2C] font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#AE2C2C] inline-block mr-1.5"></span>Recalled
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">4</span>
+          </div>
+
+          <span class="text-custom text-quiet">·</span>
+
+          <div class="flex items-baseline space-x-2">
+            <span class="text-[#AE2C2C] font-medium flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#AE2C2C] inline-block mr-1.5"></span>Expired
+            </span>
+            <span class="font-mono-num font-semibold text-[#202020]">3</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters & Table Panel -->
+    <section class="bg-white border border-custom rounded-[2px] overflow-hidden">
+      <!-- Search & Filter Controls -->
+      <div class="p-4 border-b border-custom bg-white">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div class="md:col-span-5">
+            <label class="block text-xs font-medium text-quiet mb-1">Search lot, handling unit, or location</label>
+            <input type="text" placeholder="Search lot, code, product..." value="North Quay" class="w-full px-3 text-sm" />
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="block text-xs font-medium text-quiet mb-1">Status filter</label>
+            <select class="w-full px-3 text-sm">
+              <option selected>All statuses</option>
+              <option>Available</option>
+              <option>Allocated</option>
+              <option>Quarantined</option>
+              <option>On Hold</option>
+              <option>Rejected</option>
+              <option>Recalled</option>
+              <option>Expired</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-quiet mb-1">Handling unit</label>
+            <select class="w-full px-3 text-sm">
+              <option selected>All units</option>
+              <option>HU-81</option>
+              <option>HU-82</option>
+              <option>Unassigned</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2 flex justify-end">
+            <button type="button" class="btn-secondary w-full px-4 text-sm font-medium flex items-center justify-center">
+              CSV export
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lot & Handling-unit Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm stock-table border-collapse">
+          <thead>
+            <tr class="border-b border-custom bg-[#F7F7F7] text-quiet text-xs font-semibold">
+              <th class="py-3 px-4 w-16">Photo</th>
+              <th class="py-3 px-4">Product</th>
+              <th class="py-3 px-4">Lot</th>
+              <th class="py-3 px-4">Handling unit</th>
+              <th class="py-3 px-4">Warehouse</th>
+              <th class="py-3 px-4">Location</th>
+              <th class="py-3 px-4">Receipt</th>
+              <th class="py-3 px-4">Expiry</th>
+              <th class="py-3 px-4 text-right">Packs</th>
+              <th class="py-3 px-4">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D5D5D5] text-[#202020]">
+            <!-- Row 1: IG-2511 HU-81 Available -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">pack of 10 pens · profile v3 (2–8°C)</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2511</td>
+              <td class="py-2 px-4 font-mono-num">HU-81</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">14 May 2026 08:00</td>
+              <td class="py-2 px-4 font-mono-num text-xs">31 Mar 2027</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">60</td>
+              <td class="py-2 px-4">
+                <span class="text-[#24704B] font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#24704B] inline-block mr-1.5"></span>Available
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 2: IG-2511 HU-81 Allocated -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">Order O-299 (20) &amp; O-301 (20)</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2511</td>
+              <td class="py-2 px-4 font-mono-num">HU-81</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">14 May 2026 08:00</td>
+              <td class="py-2 px-4 font-mono-num text-xs">31 Mar 2027</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">40</td>
+              <td class="py-2 px-4">
+                <span class="text-quiet font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#626262] inline-block mr-1.5"></span>Allocated
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 3: IG-2511 HU-82 Quarantined -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">pack of 10 pens · Case Q-88</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2511</td>
+              <td class="py-2 px-4 font-mono-num">HU-82</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">14 May 2026 08:00</td>
+              <td class="py-2 px-4 font-mono-num text-xs">31 Mar 2027</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">10</td>
+              <td class="py-2 px-4">
+                <span class="text-[#805800] font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#805800] inline-block mr-1.5 waiting-pulse"></span>Quarantined
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 4: IG-2511 HU-82 On Hold -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">pack of 10 pens · 9.1°C excursion review</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2511</td>
+              <td class="py-2 px-4 font-mono-num">HU-82</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">14 May 2026 08:00</td>
+              <td class="py-2 px-4 font-mono-num text-xs">31 Mar 2027</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">5</td>
+              <td class="py-2 px-4">
+                <span class="text-[#805800] font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#805800] inline-block mr-1.5"></span>On Hold
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 5: IG-2511 HU-82 Rejected -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">Awaiting destruction</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2511</td>
+              <td class="py-2 px-4 font-mono-num">HU-82</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">14 May 2026 08:00</td>
+              <td class="py-2 px-4 font-mono-num text-xs">31 Mar 2027</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">2</td>
+              <td class="py-2 px-4">
+                <span class="text-[#AE2C2C] font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#AE2C2C] inline-block mr-1.5"></span>Rejected
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 6: IG-2511 HU-82 Expired -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">pack of 10 pens</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2511</td>
+              <td class="py-2 px-4 font-mono-num">HU-82</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">14 May 2026 08:00</td>
+              <td class="py-2 px-4 font-mono-num text-xs">31 Mar 2027</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">3</td>
+              <td class="py-2 px-4">
+                <span class="text-[#AE2C2C] font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#AE2C2C] inline-block mr-1.5"></span>Expired
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 7: IG-2509 Recalled (4 on hand) -->
+            <tr class="hover:bg-[#F7F7F7] transition-colors">
+              <td class="py-2 px-4">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine" class="w-12 h-9 object-cover rounded-[2px] border border-custom" />
+              </td>
+              <td class="py-2 px-4">
+                <div class="font-medium text-[#202020]">Insulin Glargine 100 units/mL</div>
+                <div class="text-xs text-quiet">Active recall RC-12 (4/24 on hand)</div>
+              </td>
+              <td class="py-2 px-4 font-mono-num font-medium">IG-2509</td>
+              <td class="py-2 px-4 font-mono-num text-quiet">—</td>
+              <td class="py-2 px-4">North Quay</td>
+              <td class="py-2 px-4 font-mono-num text-xs">Cold Room C2, Rack 4</td>
+              <td class="py-2 px-4 font-mono-num text-xs">12 May 2026 09:10</td>
+              <td class="py-2 px-4 font-mono-num text-xs">30 Nov 2026</td>
+              <td class="py-2 px-4 font-mono-num font-semibold text-right">4</td>
+              <td class="py-2 px-4">
+                <span class="text-[#AE2C2C] font-medium flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-[#AE2C2C] inline-block mr-1.5"></span>Recalled
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer Summary -->
+      <div class="p-4 bg-[#F7F7F7] border-t border-custom flex flex-col sm:flex-row items-center justify-between text-xs text-quiet gap-2">
+        <div>
+          Showing <span class="font-mono-num text-[#202020] font-medium">7</span> inventory allocations across <span class="font-mono-num text-[#202020] font-medium">2</span> lots · North Quay scope only
+        </div>
+        <div class="font-mono-num">
+          Total on-hand: <span class="text-[#202020] font-semibold">124</span> packs
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

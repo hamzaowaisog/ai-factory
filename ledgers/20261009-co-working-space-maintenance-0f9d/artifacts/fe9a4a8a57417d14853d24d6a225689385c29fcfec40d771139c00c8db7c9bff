@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "NextResponse|route.ts|handler|/api/requests|requests/status",
+    "glob": "**/*.{ts,tsx,js}"
+   },
+   "ms": 11,
+   "resultChars": 1531,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;NextResponse|route.ts|handler|/api/requests|requests/status&quot;,&quot;glob&quot;:&quot;**/*.{ts,tsx,js}&quot;}\">\ncomponents/blocks/table.tsx:48: <button type=\"button\" className=\"inline-flex items-center gap-1\" onClick={h.column.getToggleSortingHandler()}>\nlib/api/client.msw.ts:14: RequestHandlerOptions\nlib/api/client.msw.ts:32: export const getListRequestsMockHandler = (overrideResponse?: RequestList | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<RequestList> | RequestList), options?: RequestHandlerOptio\nlib/api/client.msw.ts:44: export const getCreateRequestMockHandler = (overrideResponse?: MaintenanceRequest | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<MaintenanceRequest> | MaintenanceRequest), option\nlib/api/client.msw.ts:56: export const getGetRequestMockHandler = (overrideResponse?: MaintenanceRequest | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<MaintenanceRequest> | MaintenanceRequest), options?: \nlib/api/client.msw.ts:68: export const getChangeRequestStatusMockHandler = (overrideResponse?: MaintenanceRequest | ((info: Parameters<Parameters<typeof http.patch>[1]>[0]) => Promise<MaintenanceRequest> | MaintenanceRequest),\nlib/api/client.msw.ts:80: getListRequestsMockHandler(),\nlib/api/client.msw.ts:81: getCreateRequestMockHandler(),\nlib/api/client.msw.ts:82: getGetRequestMockHandler(),\nlib/api/client.msw.ts:83: getChangeRequestStatusMockHandler()\n</untrusted_document>"
+  }
+ ]
+}

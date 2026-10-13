@@ -1,0 +1,328 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Find parts",
+     "subtitle": "Search 5,000 parts by name or part number. Prices in GBP, sorted A–Z.",
+     "blocks": [
+      {
+       "type": "results",
+       "query": "bearing",
+       "count": "86 parts · page 1 of 5",
+       "visual": true,
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Seals & O-rings",
+          "Fasteners"
+         ],
+         "picked": [
+          "Bearings"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "FAG",
+          "NSK",
+          "INA",
+          "Timken"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angular contact bearing 7205 BEP",
+         "meta": "Part no. 7205-BEP · SKF · Stock 18",
+         "badge": "In stock",
+         "price": "£24.60"
+        },
+        {
+         "title": "Ball bearing 6204-2RS sealed",
+         "meta": "Part no. 6204-2RSH · SKF · Stock 42",
+         "badge": "In stock",
+         "price": "£6.85"
+        },
+        {
+         "title": "Ball bearing 6305-2Z shielded",
+         "meta": "Part no. 6305-2Z-C3 · FAG · Stock 3",
+         "badge": "Low stock (3 left)",
+         "price": "£9.40"
+        },
+        {
+         "title": "Cylindrical roller bearing NU 206",
+         "meta": "Part no. NU206-ECP · NSK · Stock 0",
+         "badge": "Out of stock",
+         "price": "£31.15"
+        },
+        {
+         "title": "Flanged bearing unit UCF205",
+         "meta": "Part no. UCF205-100 · Timken · Stock 11",
+         "badge": "In stock",
+         "price": "£18.75"
+        },
+        {
+         "title": "Needle roller bearing HK 1012",
+         "meta": "Part no. HK1012-B · INA · Stock 1",
+         "badge": "Low stock (1 left)",
+         "price": "£3.20"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Add to cart",
+         "icon": "plus",
+         "variant": "primary",
+         "hint": "Adds 1 of this part. Not available when out of stock."
+        },
+        {
+         "label": "Cart (3)",
+         "icon": "cart",
+         "variant": "secondary",
+         "hint": "Total quantity in your cart"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous",
+         "icon": "chevron-left",
+         "variant": "secondary",
+         "state": "disabled"
+        },
+        {
+         "label": "Next",
+         "icon": "chevron-right",
+         "variant": "secondary",
+         "hint": "Page 2 of 5"
+        },
+        {
+         "label": "Clear filters",
+         "icon": "x",
+         "variant": "ghost",
+         "hint": "Clears the search and sets Category and Brand to All"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Cart (3)",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Add to cart",
+       "text": "Ball bearing 6204-2RS added · Cart (4)",
+       "tone": "ok"
+      },
+      {
+       "after": "Clear filters",
+       "text": "Search cleared · showing all 5,000 parts",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or try fewer letters. Clear filters to see all 5,000 parts.",
+      "error": "Parts didn't load. Check your connection and press Try again.",
+      "success": "Added to cart. Your cart count is up to date.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    },
+    "mockFull": {
+     "title": "Find parts",
+     "subtitle": "Search 5,000 parts by name or part number. Prices in GBP, sorted A–Z.",
+     "blocks": [
+      {
+       "type": "results",
+       "query": "bearing",
+       "count": "86 parts · page 1 of 5",
+       "visual": true,
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Seals & O-rings",
+          "Fasteners"
+         ],
+         "picked": [
+          "Bearings"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "FAG",
+          "NSK",
+          "INA",
+          "Timken"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angular contact bearing 7205 BEP",
+         "meta": "Part no. 7205-BEP · SKF · Stock 18",
+         "badge": "In stock",
+         "price": "£24.60"
+        },
+        {
+         "title": "Ball bearing 6204-2RS sealed",
+         "meta": "Part no. 6204-2RSH · SKF · Stock 42",
+         "badge": "In stock",
+         "price": "£6.85"
+        },
+        {
+         "title": "Ball bearing 6305-2Z shielded",
+         "meta": "Part no. 6305-2Z-C3 · FAG · Stock 3",
+         "badge": "Low stock (3 left)",
+         "price": "£9.40"
+        },
+        {
+         "title": "Cylindrical roller bearing NU 206",
+         "meta": "Part no. NU206-ECP · NSK · Stock 0",
+         "badge": "Out of stock",
+         "price": "£31.15"
+        },
+        {
+         "title": "Flanged bearing unit UCF205",
+         "meta": "Part no. UCF205-100 · Timken · Stock 11",
+         "badge": "In stock",
+         "price": "£18.75"
+        },
+        {
+         "title": "Insert bearing UC205",
+         "meta": "Part no. UC205-16 · Timken · Stock 7",
+         "badge": "In stock",
+         "price": "£12.30"
+        },
+        {
+         "title": "Linear bearing LM20UU",
+         "meta": "Part no. LM20UU · NSK · Stock 26",
+         "badge": "In stock",
+         "price": "£4.95"
+        },
+        {
+         "title": "Needle roller bearing HK 1012",
+         "meta": "Part no. HK1012-B · INA · Stock 1",
+         "badge": "Low stock (1 left)",
+         "price": "£3.20"
+        },
+        {
+         "title": "Pillow block bearing UCP206",
+         "meta": "Part no. UCP206-18 · Timken · Stock 0",
+         "badge": "Out of stock",
+         "price": "£22.40"
+        },
+        {
+         "title": "Self-aligning bearing 1206 ETN9",
+         "meta": "Part no. 1206-ETN9 · SKF · Stock 4",
+         "badge": "Low stock (4 left)",
+         "price": "£27.90"
+        },
+        {
+         "title": "Spherical roller bearing 22210 E",
+         "meta": "Part no. 22210-E1-XL · FAG · Stock 9",
+         "badge": "In stock",
+         "price": "£68.50"
+        },
+        {
+         "title": "Tapered roller bearing 30205",
+         "meta": "Part no. 30205-XL · FAG · Stock 63",
+         "badge": "In stock",
+         "price": "£14.10"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Add to cart",
+         "icon": "plus",
+         "variant": "primary",
+         "hint": "Adds 1 of this part. Not available when out of stock."
+        },
+        {
+         "label": "Cart (3)",
+         "icon": "cart",
+         "variant": "secondary",
+         "hint": "Total quantity in your cart"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous",
+         "icon": "chevron-left",
+         "variant": "secondary",
+         "state": "disabled"
+        },
+        {
+         "label": "Next",
+         "icon": "chevron-right",
+         "variant": "secondary",
+         "hint": "Page 2 of 5"
+        },
+        {
+         "label": "Clear filters",
+         "icon": "x",
+         "variant": "ghost",
+         "hint": "Clears the search and sets Category and Brand to All"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or try fewer letters. Clear filters to see all 5,000 parts.",
+      "error": "Parts didn't load. Check your connection and press Try again.",
+      "success": "Added to cart. Your cart count is up to date.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

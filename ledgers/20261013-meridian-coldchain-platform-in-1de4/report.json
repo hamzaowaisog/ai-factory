@@ -1,0 +1,73 @@
+{
+  "runId": "20261013-meridian-coldchain-platform-in-1de4",
+  "status": "parked",
+  "parkedReason": "The intake briefing is too big (9322 tokens > 8000); biggest part: request",
+  "request": "Meridian ColdChain Platform\n\nIntroduction\n\nMeridian Healthcare Distribution supplies vaccines, insulin, biologics and other temperature-sensitive\nmedicines to around 400 hospitals, pharmacies and clin",
+  "costUsd": 0,
+  "activeMin": 0.8693833333333333,
+  "firstTimePassRate": 1,
+  "topCost": [],
+  "steps": [
+    {
+      "step": "discover",
+      "stage": "discover",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 52.152,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 0,
+        "labSec": 48
+      }
+    },
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.011,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    }
+  ],
+  "createdAt": "2026-10-13T12:08:00.094Z",
+  "humanCards": []
+}

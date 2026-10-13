@@ -1,0 +1,764 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Inventory — Range Ledger</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #262626;
+      --text-muted: #626262;
+      --border-color: #D8D8D8;
+      --primary-accent: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+
+      /* Design System Motion Tokens */
+      --motion-duration-fast: 150ms;
+      --motion-duration-base: 220ms;
+      --motion-duration-slow: 350ms;
+      --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+      --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .num-font {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Keyframes */
+    @keyframes feedlotFadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes feedlotSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .status-dot-pulse {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Staggered entrance animations */
+    .motion-stagger-0 {
+      animation: feedlotSlideUp var(--motion-duration-slow) var(--motion-ease-out) 0ms both;
+    }
+    .motion-stagger-1 {
+      animation: feedlotSlideUp var(--motion-duration-slow) var(--motion-ease-out) 60ms both;
+    }
+    .motion-stagger-2 {
+      animation: feedlotSlideUp var(--motion-duration-slow) var(--motion-ease-out) 120ms both;
+    }
+    .motion-stagger-3 {
+      animation: feedlotSlideUp var(--motion-duration-slow) var(--motion-ease-out) 180ms both;
+    }
+    .motion-stagger-4 {
+      animation: feedlotSlideUp var(--motion-duration-slow) var(--motion-ease-out) 240ms both;
+    }
+    .motion-stagger-5 {
+      animation: feedlotSlideUp var(--motion-duration-slow) var(--motion-ease-out) 300ms both;
+    }
+
+    /* Interactive states on every control */
+    button, input, select, a {
+      transition: all var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+
+    button:active, a:active {
+      transform: scale(0.98);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[#262626] bg-[#F5F5F5] pb-16">
+<!-- Shared Header -->
+<header class="bg-[#FFFFFF] border-b border-[#D8D8D8] w-full sticky top-0 z-50 motion-stagger-0">
+<div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center space-x-8">
+<!-- Brand -->
+<a class="flex items-center gap-3 no-underline" href="#">
+<div class="w-7 h-7 bg-[#262626] rounded-[4px] flex items-center justify-center font-bold text-white text-[15px] leading-none select-none">
+            R
+          </div>
+<span class="heading-font text-[19px] font-[650] text-[#262626] tracking-tight whitespace-nowrap">
+            Range Ledger
+          </span>
+</a>
+<!-- Shared Menu Navigation in exact order -->
+<nav class="hidden lg:flex items-center space-x-1 text-[15px] font-[500]">
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Yard</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Imports</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Allocations</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Lots</a>
+<a class="px-2.5 py-1 text-[#B3473D] border-b-2 border-[#B3473D] font-semibold" href="#">Inventory</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Feed outlook</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Rations</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Feed plans</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Feeding</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Reports</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Feed-to-gain</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Profitability</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Sample data</a>
+<a class="px-2.5 py-1 text-[#626262] hover:text-[#262626] rounded-[4px]" href="#">Delivery brief</a>
+</nav>
+</div>
+<!-- User Identity: Maya Chen, Yard manager -->
+<div class="flex items-center gap-3">
+<img alt="Maya Chen" class="w-8 h-8 rounded-[4px] object-cover border border-[#D8D8D8]" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG">
+<div class="flex flex-col text-right">
+<span class="text-[14px] font-[600] leading-tight text-[#262626]">Maya Chen</span>
+<span class="text-[12px] text-[#626262] leading-tight">Yard manager</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Container -->
+<main class="max-w-[1440px] mx-auto px-6 pt-8">
+<!-- Page Header & Title -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 motion-stagger-0">
+<div>
+<h1 class="text-[32px] font-[650] leading-[38px] text-[#262626] tracking-tight">Inventory</h1>
+<div class="text-[15px] text-[#626262] mt-1 flex flex-wrap items-center gap-2">
+<span>Red Mesa Yard</span>
+<span>•</span>
+<span>America/Denver (Mountain Time)</span>
+<span>•</span>
+<span>Commodity storage &amp; daily delivery balances</span>
+</div>
+</div>
+<!-- Action Panel: Wastage Setting & Record Movement -->
+<div class="flex items-center gap-4 self-start md:self-auto">
+<!-- Editable Wastage Setting -->
+<div class="flex items-center gap-2 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] px-3 h-[44px]">
+<span class="text-[14px] text-[#626262]">Configured wastage:</span>
+<div class="flex items-center gap-1">
+<input aria-label="Configured wastage percentage" class="w-9 num-font text-[14px] font-[600] text-[#262626] text-right bg-transparent border-b border-[#D8D8D8] focus:border-[#B3473D] focus:outline-none py-0.5" type="text" value="2.8">
+<span class="num-font text-[14px] text-[#262626]">%</span>
+</div>
+<span class="text-[12px] text-[#626262] ml-1 pl-2 border-l border-[#D8D8D8]">(Active)</span>
+</div>
+<!-- Authorized Primary Action -->
+<button class="bg-[#B3473D] hover:bg-[#9E3E35] active:bg-[#8B352E] text-white font-[500] text-[15px] px-4 h-[44px] rounded-[4px] flex items-center gap-2 shadow-none cursor-pointer">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+          Record stock movement
+        </button>
+</div>
+</div>
+<!-- Overview Hero Card: 137,400 lb on hand -->
+<div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-6 mb-8 motion-stagger-1">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between pb-5 border-b border-[#D8D8D8] gap-4">
+<div>
+<div class="text-[13px] font-[600] uppercase tracking-wider text-[#626262] mb-1">Total Yard Stock</div>
+<div class="flex items-baseline gap-3">
+<span class="heading-font num-font text-[40px] font-[650] text-[#262626] leading-none">137,400</span>
+<span class="text-[20px] font-[500] text-[#626262]">lb on hand</span>
+</div>
+<div class="text-[14px] text-[#626262] mt-2">
+            Red Mesa Yard on-site storage • Physical capacity 490 head across pens P-04, P-07, P-12
+          </div>
+</div>
+<div class="flex flex-wrap items-center gap-8 lg:border-l lg:border-[#D8D8D8] lg:pl-8">
+<div>
+<div class="text-[13px] text-[#626262]">Today's planned delivery</div>
+<div class="num-font text-[20px] font-[600] text-[#262626]">8,384 <span class="text-[14px] font-[400] text-[#626262]">lb/day</span></div>
+<div class="text-[12px] text-[#626262]">8,383.8 lb calculated across 3 pens</div>
+</div>
+<div>
+<div class="text-[13px] text-[#626262]">Configured wastage</div>
+<div class="num-font text-[20px] font-[600] text-[#262626]">2.8<span class="text-[14px] font-[400] text-[#626262]">%</span></div>
+<div class="text-[12px] text-[#626262]">Updated Jun 16 by Maya Chen</div>
+</div>
+<div>
+<div class="text-[13px] text-[#626262]">Known actual wastage (30d)</div>
+<div class="num-font text-[20px] font-[600] text-[#262626]">112 <span class="text-[14px] font-[400] text-[#626262]">lb</span></div>
+<div class="text-[12px] text-[#626262]">Kept separate from delivered feed</div>
+</div>
+<div>
+<div class="text-[13px] text-[#626262]">Operating status</div>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="w-2.5 h-2.5 rounded-full bg-[#286143] inline-block status-dot-pulse"></span>
+<span class="text-[14px] font-[500] text-[#286143]">Operational normal</span>
+</div>
+<div class="text-[12px] text-[#626262]">4 active commodity items</div>
+</div>
+</div>
+</div>
+<!-- Commodity Proportional Track -->
+<div class="pt-5">
+<div class="flex items-center justify-between text-[13px] text-[#626262] mb-2 font-[500]">
+<span>Storage distribution by commodity</span>
+<span class="num-font">100% accounted</span>
+</div>
+<div class="w-full h-3 bg-[#F5F5F5] rounded-[2px] flex overflow-hidden border border-[#D8D8D8]">
+<div class="h-full" style="width: 61.57%; background-color: #B3473D;" title="Steam-flaked corn: 84,600 lb (61.6%)"></div>
+<div class="h-full border-l border-white" style="width: 22.71%; background-color: #A36B42;" title="Distillers grains: 31,200 lb (22.7%)"></div>
+<div class="h-full border-l border-white" style="width: 13.39%; background-color: #557A57;" title="Alfalfa hay: 18,400 lb (13.4%)"></div>
+<div class="h-full border-l border-white" style="width: 2.33%; background-color: #626262;" title="Mineral premix: 3,200 lb (2.3%)"></div>
+</div>
+<div class="flex flex-wrap items-center gap-6 mt-3 text-[13px]">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-[2px] bg-[#B3473D] inline-block"></span>
+<span class="text-[#262626] font-[500]">Steam-flaked corn:</span>
+<span class="num-font text-[#626262]">84,600 lb (61.6%)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-[2px] bg-[#A36B42] inline-block"></span>
+<span class="text-[#262626] font-[500]">Distillers grains:</span>
+<span class="num-font text-[#626262]">31,200 lb (22.7%)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-[2px] bg-[#557A57] inline-block"></span>
+<span class="text-[#262626] font-[500]">Alfalfa hay:</span>
+<span class="num-font text-[#626262]">18,400 lb (13.4%)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-[2px] bg-[#626262] inline-block"></span>
+<span class="text-[#262626] font-[500]">Mineral premix:</span>
+<span class="num-font text-[#626262]">3,200 lb (2.3%)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Filter Bar for Inventory Table -->
+<div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 motion-stagger-2">
+<div class="flex flex-wrap items-center gap-4 w-full md:w-auto">
+<div class="flex items-center gap-2">
+<label class="text-[14px] font-[500] text-[#626262]" for="commodity-select">Commodity:</label>
+<select aria-label="Filter by commodity" class="min-w-[160px] h-[44px] px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626]" id="commodity-select" name="commodity_filter">
+<option>All commodities (4)</option>
+<option>Steam-flaked corn</option>
+<option>Distillers grains</option>
+<option>Alfalfa hay</option>
+<option>Mineral premix</option>
+</select>
+</div>
+<div class="flex items-center gap-2">
+<label class="text-[14px] font-[500] text-[#626262]" for="stock-status-select">Stock status:</label>
+<select aria-label="Filter by stock status" class="min-w-[150px] h-[44px] px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626]" id="stock-status-select" name="stock_status_filter">
+<option>All statuses</option>
+<option>Sufficient</option>
+<option>Review required</option>
+</select>
+</div>
+<div class="flex items-center gap-2">
+<label class="text-[14px] font-[500] text-[#626262]" for="ration-assignment-select">Ration assignment:</label>
+<select aria-label="Filter by ration assignment" class="min-w-[170px] h-[44px] px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626]" id="ration-assignment-select" name="ration_assignment_filter">
+<option>All rations</option>
+<option>Grower (64/24/10/2)</option>
+<option>Finisher</option>
+</select>
+</div>
+</div>
+<div class="text-[14px] text-[#626262] self-end md:self-auto num-font">
+        4 active commodities
+      </div>
+</div>
+<!-- Section 1: Inventory Items Formal Table -->
+<div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] overflow-hidden mb-10 motion-stagger-3">
+<div class="px-6 py-4 border-b border-[#D8D8D8] flex items-center justify-between">
+<div>
+<h2 class="text-[18px] font-[600] text-[#262626]">Actual Inventory Items</h2>
+<div class="text-[13px] text-[#626262]">Physical bulk quantities stored on-site at Red Mesa Yard</div>
+</div>
+<span class="text-[13px] text-[#626262]">Dense worklist view</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-[14px]">
+<thead>
+<tr class="bg-[#FAFAFA] border-b border-[#D8D8D8] text-[13px] font-[600] text-[#626262] uppercase tracking-wider">
+<th class="py-3 px-6">Commodity Item</th>
+<th class="py-3 px-6">Current On-Hand</th>
+<th class="py-3 px-6">Grower Ration Share</th>
+<th class="py-3 px-6">Daily Commitment</th>
+<th class="py-3 px-6">30d Known Wastage</th>
+<th class="py-3 px-6">Days of Supply</th>
+<th class="py-3 px-6">Status</th>
+<th class="py-3 px-6 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D8D8D8]">
+<!-- Row 1: Steam-flaked corn -->
+<tr class="h-[48px] hover:bg-[#F9F9F9]">
+<td class="py-3 px-6 font-[600] text-[#262626]">
+                Steam-flaked corn
+                <div class="text-[12px] text-[#626262] font-normal">Primary grain energy component</div>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[15px] font-[600] text-[#262626]">84,600</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font">64.0%</td>
+<td class="py-3 px-6">
+<span class="num-font font-[500] text-[#262626]">~4,874</span> <span class="text-[#626262]">lb/day</span>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[#262626]">68</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font font-[500] text-[#286143]">17.3 days</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Sufficient
+                </span>
+</td>
+<td class="py-3 px-6 text-right">
+<button class="text-[#B3473D] hover:underline font-[500] text-[13px]">Record receipt</button>
+</td>
+</tr>
+<!-- Row 2: Distillers grains -->
+<tr class="h-[48px] hover:bg-[#F9F9F9]">
+<td class="py-3 px-6 font-[600] text-[#262626]">
+                Distillers grains
+                <div class="text-[12px] text-[#626262] font-normal">Protein &amp; fiber supplement</div>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[15px] font-[600] text-[#262626]">31,200</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font">24.0%</td>
+<td class="py-3 px-6">
+<span class="num-font font-[500] text-[#262626]">~1,828</span> <span class="text-[#626262]">lb/day</span>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[#262626]">26</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font font-[500] text-[#286143]">17.0 days</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Sufficient
+                </span>
+</td>
+<td class="py-3 px-6 text-right">
+<button class="text-[#B3473D] hover:underline font-[500] text-[13px]">Record receipt</button>
+</td>
+</tr>
+<!-- Row 3: Alfalfa hay -->
+<tr class="h-[48px] hover:bg-[#F9F9F9]">
+<td class="py-3 px-6 font-[600] text-[#262626]">
+                Alfalfa hay
+                <div class="text-[12px] text-[#626262] font-normal">Roughage &amp; effective fiber</div>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[15px] font-[600] text-[#262626]">18,400</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font">10.0%</td>
+<td class="py-3 px-6">
+<span class="num-font font-[500] text-[#262626]">~761</span> <span class="text-[#626262]">lb/day</span>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[#262626]">14</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font font-[500] text-[#286143]">24.1 days</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Sufficient
+                </span>
+</td>
+<td class="py-3 px-6 text-right">
+<button class="text-[#B3473D] hover:underline font-[500] text-[13px]">Record receipt</button>
+</td>
+</tr>
+<!-- Row 4: Mineral premix -->
+<tr class="h-[48px] hover:bg-[#F9F9F9]">
+<td class="py-3 px-6 font-[600] text-[#262626]">
+                Mineral premix
+                <div class="text-[12px] text-[#626262] font-normal">Micro-nutrients &amp; mineral balancer</div>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[15px] font-[600] text-[#262626]">3,200</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font">2.0%</td>
+<td class="py-3 px-6">
+<span class="num-font font-[500] text-[#262626]">~152</span> <span class="text-[#626262]">lb/day</span>
+</td>
+<td class="py-3 px-6">
+<span class="num-font text-[#262626]">4</span> <span class="text-[#626262]">lb</span>
+</td>
+<td class="py-3 px-6 num-font font-[500] text-[#286143]">21.0 days</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Sufficient
+                </span>
+</td>
+<td class="py-3 px-6 text-right">
+<button class="text-[#B3473D] hover:underline font-[500] text-[13px]">Record receipt</button>
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr class="bg-[#FAFAFA] font-[600] border-t-2 border-[#D8D8D8] text-[#262626]">
+<td class="py-3 px-6">Operational Yard Total</td>
+<td class="py-3 px-6 num-font text-[16px] text-[#B3473D]">137,400 lb</td>
+<td class="py-3 px-6 num-font">100.0%</td>
+<td class="py-3 px-6 num-font">~7,615 lb/day</td>
+<td class="py-3 px-6 num-font">112 lb</td>
+<td class="py-3 px-6 num-font">18.0 days avg</td>
+<td class="py-3 px-6 text-[#286143] text-[13px]">Operational normal</td>
+<td class="py-3 px-6 text-right text-[12px] text-[#626262]">4 active lines</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+<!-- Full-width 2px rule separating major groups as specified in design system -->
+<div class="w-full h-0 border-t-2 border-[#D8D8D8] my-8"></div>
+<!-- Section 2: Returned Stock Movements (Sourced from Shared Event List) -->
+<div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] overflow-hidden mb-10 motion-stagger-4">
+<div class="px-6 py-4 border-b border-[#D8D8D8] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div>
+<h2 class="text-[18px] font-[600] text-[#262626]">Returned Stock Movements &amp; Activity Log</h2>
+<div class="text-[13px] text-[#626262]">Time-ordered shared ledger entries for Red Mesa Yard commodity movements</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center gap-1.5 text-[13px] text-[#626262]">
+<span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+            Live operational movements
+          </span>
+</div>
+</div>
+<!-- Separation callout note for clear distinction -->
+<div class="bg-[#FAFAFA] border-b border-[#D8D8D8] px-6 py-3 flex items-center justify-between text-[13px]">
+<div class="flex items-center gap-2 text-[#626262]">
+<svg class="w-4 h-4 text-[#B3473D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span><strong>Ledger separation policy:</strong> Delivered-feed consumption is strictly separated from known actual wastage. Neither is combined into unverified totals.</span>
+</div>
+<div class="text-[#626262] num-font">Local Yard Time (MT)</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-[14px]">
+<thead>
+<tr class="bg-[#FAFAFA] border-b border-[#D8D8D8] text-[13px] font-[600] text-[#626262] uppercase tracking-wider">
+<th class="py-3 px-6">Movement Time (MT)</th>
+<th class="py-3 px-6">Staff Member</th>
+<th class="py-3 px-6">Movement Type</th>
+<th class="py-3 px-6">What Changed</th>
+<th class="py-3 px-6">Net Stock Effect</th>
+<th class="py-3 px-6">Result &amp; Verification</th>
+<th class="py-3 px-6">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D8D8D8]">
+<!-- Event (7): Jun 17 feeding consumption of 2,772 lb ration -->
+<tr class="h-[48px] hover:bg-[#F9F9F9]">
+<td class="py-3 px-6 num-font whitespace-nowrap text-[#262626]">
+                2025-06-17 <span class="text-[#626262]">06:25</span>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<img alt="Eli Navarro" class="w-7 h-7 rounded-[4px] object-cover border border-[#D8D8D8]" src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH">
+<div>
+<div class="font-[600] text-[13px] text-[#262626] leading-tight">Eli Navarro</div>
+<div class="text-[12px] text-[#626262] leading-tight">Pen operator</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[12px] font-[600]">
+                  Delivered-Feed Consumption
+                </span>
+</td>
+<td class="py-3 px-6">
+                Fed L-2409 in P-07 with 2,772 lb Grower ration (Red Mesa Yard/P-07)
+              </td>
+<td class="py-3 px-6 num-font text-[#B3473D] font-[600] whitespace-nowrap">
+                -2,772 lb
+              </td>
+<td class="py-3 px-6">
+                Saved with -18 lb returned variance, $402 cost and 4,100 Mcal
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Delivered
+                </span>
+</td>
+</tr>
+<!-- Event (6): Jun 16 recorded actual wastage of 112 lb -->
+<tr class="h-[48px] hover:bg-[#F9F9F9] bg-[#FFFDFD]">
+<td class="py-3 px-6 num-font whitespace-nowrap text-[#262626]">
+                2025-06-16 <span class="text-[#626262]">13:10</span>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<img alt="Maya Chen" class="w-7 h-7 rounded-[4px] object-cover border border-[#D8D8D8]" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG">
+<div>
+<div class="font-[600] text-[13px] text-[#262626] leading-tight">Maya Chen</div>
+<div class="text-[12px] text-[#626262] leading-tight">Yard manager</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#FFF4E5] text-[#805600] text-[12px] font-[600]">
+                  Known Actual Wastage
+                </span>
+</td>
+<td class="py-3 px-6">
+                Recorded 112 lb actual wastage and changed configured wastage from 2.5% to 2.8%
+              </td>
+<td class="py-3 px-6 num-font text-[#805600] font-[600] whitespace-nowrap">
+                -112 lb (wastage)
+              </td>
+<td class="py-3 px-6">
+                Saved; separated from delivered feed consumption
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Saved
+                </span>
+</td>
+</tr>
+<!-- Event (4): Jun 14 feeding consumption of 3,337 lb ration -->
+<tr class="h-[48px] hover:bg-[#F9F9F9]">
+<td class="py-3 px-6 num-font whitespace-nowrap text-[#262626]">
+                2025-06-14 <span class="text-[#626262]">06:20</span>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<img alt="Eli Navarro" class="w-7 h-7 rounded-[4px] object-cover border border-[#D8D8D8]" src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH">
+<div>
+<div class="font-[600] text-[13px] text-[#262626] leading-tight">Eli Navarro</div>
+<div class="text-[12px] text-[#626262] leading-tight">Pen operator</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[12px] font-[600]">
+                  Delivered-Feed Consumption
+                </span>
+</td>
+<td class="py-3 px-6">
+                Fed P-04 lots L-2407 (1,927 lb) and L-2411 (1,410 lb) — 3,337 lb total Grower ration
+              </td>
+<td class="py-3 px-6 num-font text-[#B3473D] font-[600] whitespace-nowrap">
+                -3,337 lb
+              </td>
+<td class="py-3 px-6">
+                Saved with +44 lb returned variance, $484.87 cost and 4,941 Mcal
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Delivered
+                </span>
+</td>
+</tr>
+<!-- Event (2): Jun 12 receipt of 20,000 lb corn -->
+<tr class="h-[48px] hover:bg-[#F9F9F9] bg-[#F7FBF8]">
+<td class="py-3 px-6 num-font whitespace-nowrap text-[#262626]">
+                2025-06-12 <span class="text-[#626262]">08:10</span>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<img alt="Maya Chen" class="w-7 h-7 rounded-[4px] object-cover border border-[#D8D8D8]" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG">
+<div>
+<div class="font-[600] text-[13px] text-[#262626] leading-tight">Maya Chen</div>
+<div class="text-[12px] text-[#626262] leading-tight">Yard manager</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[12px] font-[600]">
+                  Commodity Receipt
+                </span>
+</td>
+<td class="py-3 px-6">
+                Received 20,000 lb steam-flaked corn into bulk bay 1 at Red Mesa Yard
+              </td>
+<td class="py-3 px-6 num-font text-[#286143] font-[600] whitespace-nowrap">
+                +20,000 lb
+              </td>
+<td class="py-3 px-6">
+                Scale receipt verified and posted into on-hand commodity inventory
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-[#286143] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Posted
+                </span>
+</td>
+</tr>
+<!-- Sample Record: Visibly distinct, excluded from operational totals -->
+<tr class="h-[48px] bg-[#FAF8F5] opacity-90 border-l-4 border-l-[#805600]">
+<td class="py-3 px-6 num-font whitespace-nowrap text-[#626262]">
+                2025-06-10 <span class="text-[#626262]">15:00</span>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-[4px] bg-[#D8D8D8] flex items-center justify-center text-[11px] font-[600] text-[#626262]">
+                    TST
+                  </div>
+<div>
+<div class="font-[600] text-[13px] text-[#626262] leading-tight">Simulation Adapter</div>
+<div class="text-[12px] text-[#626262] leading-tight">Synthetic probe</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#F0EBE1] text-[#805600] text-[11px] font-[600] uppercase tracking-wider">
+                  Sample Record
+                </span>
+</td>
+<td class="py-3 px-6 text-[#626262]">
+                Synthetic bench calibration: simulated 5,000 lb dry grain receipt for flow sensor testing
+              </td>
+<td class="py-3 px-6 num-font text-[#626262] italic whitespace-nowrap">
+                [Excluded from total]
+              </td>
+<td class="py-3 px-6 text-[#626262] text-[13px]">
+                Excluded from operational inventory totals and balance sheets
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-[#805600] text-[13px] font-[500]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#805600]"></span>
+                  Sample only
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Stepwise Receipt / Adjustment Form Modal Mock (Authorized Inventory Users) -->
+<div class="bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] p-6 mb-10 motion-stagger-5">
+<div class="border-b border-[#D8D8D8] pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div>
+<h3 class="text-[18px] font-[600] text-[#262626]">Stepwise Stock Movement Entry Form</h3>
+<div class="text-[13px] text-[#626262]">Authorized inventory action for scale receipts, batch deliveries, or physical count reconciliations</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-[4px] bg-[#EAF2ED] text-[#286143] text-[12px] font-[600]">Authorized: Maya Chen</span>
+<span class="text-[13px] text-[#626262]">Red Mesa Yard</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+<!-- Step 1 -->
+<div class="flex flex-col">
+<label class="text-[14px] font-[600] text-[#262626] mb-1" for="stepwise-type">1. Movement Type</label>
+<select class="h-[44px] px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626]" id="stepwise-type">
+<option>Receipt from supplier / scale</option>
+<option>Recorded actual wastage</option>
+<option>Manual count adjustment</option>
+<option>Pen feeding intake reconciliation</option>
+</select>
+<span class="text-[12px] text-[#626262] mt-1">Select transaction class</span>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col">
+<label class="text-[14px] font-[600] text-[#262626] mb-1" for="stepwise-commodity">2. Target Commodity</label>
+<select class="h-[44px] px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626]" id="stepwise-commodity">
+<option>Steam-flaked corn (84,600 lb on hand)</option>
+<option>Distillers grains (31,200 lb on hand)</option>
+<option>Alfalfa hay (18,400 lb on hand)</option>
+<option>Mineral premix (3,200 lb on hand)</option>
+</select>
+<span class="text-[12px] text-[#626262] mt-1">Bulk storage location</span>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col">
+<label class="text-[14px] font-[600] text-[#262626] mb-1" for="stepwise-weight">3. Net Weight (lb)</label>
+<div class="relative">
+<input class="num-font h-[44px] px-3 w-full bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626] focus:border-[#B3473D]" id="stepwise-weight" placeholder="e.g. 20000" type="text">
+<span class="absolute right-3 top-2.5 text-[#626262] text-[14px]">lb</span>
+</div>
+<span class="text-[12px] text-[#626262] mt-1">Scale readout or certified ticket</span>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col">
+<label class="text-[14px] font-[600] text-[#262626] mb-1" for="stepwise-staff">4. Staff Sign-off</label>
+<select class="h-[44px] px-3 bg-[#FFFFFF] border border-[#D8D8D8] rounded-[4px] text-[14px] text-[#262626]" id="stepwise-staff">
+<option>Maya Chen — Yard manager</option>
+<option>Tomas Reed — Receiving coordinator</option>
+<option>Eli Navarro — Pen operator</option>
+<option>Rosa Alvarez — Livestock technician</option>
+</select>
+<span class="text-[12px] text-[#626262] mt-1">Identity logged in ledger</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-[#D8D8D8]">
+<div class="text-[13px] text-[#626262]">
+          Note: Posted movements immediately update on-hand balance and downstream daily feed projections.
+        </div>
+<div class="flex items-center gap-3">
+<button class="px-4 h-[44px] border border-[#D8D8D8] rounded-[4px] text-[15px] font-[500] text-[#262626] bg-[#FFFFFF] hover:bg-[#F5F5F5] cursor-pointer" type="button">
+            Discard entry
+          </button>
+<button class="px-5 h-[44px] bg-[#B3473D] hover:bg-[#9E3E35] active:bg-[#8B352E] text-white font-[500] text-[15px] rounded-[4px] cursor-pointer" type="button">
+            Save &amp; post movement
+          </button>
+</div>
+</div>
+</div>
+</main>
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["yard"],"words":["yard"]},{"id":"S-3","names":["import"],"words":["import"]},{"id":"S-4","names":["allocation"],"words":["allocation"]},{"id":"S-5","names":["lot"],"words":["lot"]},{"id":"S-7","names":["inventory"],"words":["inventory"]},{"id":"S-8","names":["feed outlook"],"words":["feed","outlook"]},{"id":"S-9","names":["ration"],"words":["ration"]},{"id":"S-10","names":["feed plan"],"words":["feed","plan"]},{"id":"S-11","names":["feeding"],"words":["feeding"]},{"id":"S-12","names":["report"],"words":["report"]},{"id":"S-15","names":["sample data"],"words":["sample","data"]},{"id":"S-16","names":["delivery brief"],"words":["delivery","brief"]},{"id":"S-6","names":["lot l 2407","explainable operational suggestion","l 2407"],"words":["lot","2407"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["profitability","report profitability"],"words":["report","profitability"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-7";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Sign in — Folio3 Parking</title>
+<!-- Google Fonts: Hanken Grotesk, Public Sans & IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-surface": "#2d312f",
+            "surface-container-high": "#e6e9e6",
+            "surface-container": "#ecefeb",
+            "surface-variant": "#e0e3e0",
+            "surface-dim": "#d8dbd8",
+            "error-container": "#ffdad6",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed": "#3a0a05",
+            "primary-container": "#1f6f5c",
+            "on-background": "#181c1b",
+            "inverse-primary": "#8ad5be",
+            "tertiary": "#77392e",
+            "outline": "#6f7975",
+            "surface-tint": "#186a57",
+            "surface": "#f7faf7",
+            "tertiary-fixed": "#ffdad4",
+            "on-surface-variant": "#3f4945",
+            "on-secondary-container": "#4d685f",
+            "secondary-fixed-dim": "#afcdc2",
+            "background": "#f7faf7",
+            "surface-container-low": "#f1f4f1",
+            "on-primary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#bec9c4",
+            "on-tertiary-fixed-variant": "#72352a",
+            "secondary": "#49645b",
+            "on-surface": "#181c1b",
+            "tertiary-container": "#945044",
+            "surface-container-highest": "#e0e3e0",
+            "secondary-fixed": "#cbe9dd",
+            "surface-bright": "#f7faf7",
+            "on-secondary-fixed-variant": "#314c44",
+            "primary-fixed": "#a5f2d9",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "primary": "#005645",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#8ad5be",
+            "on-secondary-fixed": "#042019",
+            "inverse-on-surface": "#eef1ee",
+            "on-tertiary-container": "#ffd7d0",
+            "on-error-container": "#93000a",
+            "secondary-container": "#c8e6db",
+            "on-primary-fixed-variant": "#005141",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#002019",
+            "on-primary-container": "#a3efd7"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 4px 8px;
+      background: #FFFFFF;
+      color: #18181B;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 4px 8px;
+      background: #E6F0ED;
+      color: #005645;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body min-h-screen flex flex-col justify-between antialiased selection:bg-secondary-container selection:text-primary">
+<!-- ========================================== -->
+<!-- TopNavBar (Shared Component JSON Conformance) -->
+<!-- ========================================== -->
+<header class="w-full px-6 py-3.5 flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest">
+<div class="flex items-center gap-3">
+<!-- Minimalist geometric Parking P emblem -->
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary font-headline font-bold text-base shadow-sm">
+        P
+      </div>
+<div class="flex flex-col">
+<span class="text-lg font-headline font-bold text-on-surface tracking-tight leading-none">
+          Folio3 Parking
+        </span>
+<span class="text-[10px] font-mono tracking-wider text-outline uppercase mt-0.5">
+          Internal Console
+        </span>
+</div>
+</div>
+<!-- Trailing Action: Help link according to JSON trailing_icon_actions: ["help_outline"] -->
+<div class="flex items-center gap-4">
+<div class="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container text-xs font-mono text-outline">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+        SYSTEM LIVE · 08:00–18:00
+      </div>
+<a class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary transition-colors duration-160 font-medium" href="#help-desk">
+<span class="material-symbols-outlined text-[18px]" data-icon="help_outline">help_outline</span>
+<span>Help Desk</span>
+</a>
+</div>
+</header>
+<!-- ========================================== -->
+<!-- Main Viewport Canvas (Centered Auth Experience) -->
+<!-- ========================================== -->
+<main class="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 relative">
+<!-- State Switcher Bar for Review & Testing -->
+<div class="mb-6 flex items-center gap-1 p-1 bg-surface-container-low rounded-lg border border-outline-variant">
+<span class="text-[11px] font-semibold text-outline uppercase tracking-wider px-2.5 py-1">Mode Preview:</span>
+<button class="px-3 py-1 rounded text-xs font-medium bg-surface-container-lowest text-on-surface shadow-sm border border-outline-variant transition-all duration-160" id="tab-default">
+        Default View
+      </button>
+<button class="px-3 py-1 rounded text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all duration-160" id="tab-loading">
+        Loading Flow
+      </button>
+<button class="px-3 py-1 rounded text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all duration-160" id="tab-error">
+        Access Error
+      </button>
+</div>
+<!-- Centered Authentication Card -->
+<div class="w-full max-w-[440px] bg-surface-container-lowest rounded-lg border border-outline-variant p-8 sm:p-10 shadow-[0_1px_3px_rgba(24,24,27,0.05)] transition-all">
+<!-- Card Branding Header -->
+<div class="flex flex-col items-center text-center mb-8">
+<!-- Logo Emblem -->
+<div class="w-12 h-12 rounded-lg bg-[#1F6F5C] flex items-center justify-center text-white mb-4 shadow-sm ring-4 ring-[#E6F0ED]">
+<span class="font-headline font-bold text-2xl tracking-tighter">P</span>
+</div>
+<!-- Product Name & Headline -->
+<h1 class="text-2xl font-headline font-semibold text-[#18181B] tracking-tight">
+          Folio3 Parking System
+        </h1>
+<p class="text-sm text-[#52525B] mt-1.5 leading-relaxed max-w-[320px]">
+          Claim released parking spaces at the Folio3 office
+        </p>
+</div>
+<!-- ========================================== -->
+<!-- STATE 1: DEFAULT STATE -->
+<!-- ========================================== -->
+<div class="space-y-6" id="state-default">
+<button class="w-full h-11 px-4 flex items-center justify-center gap-3 rounded bg-surface-container-lowest border border-outline-variant text-[#18181B] font-body text-sm font-medium hover:bg-surface-container-low hover:border-outline focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:ring-offset-2 active:scale-[0.98] transition-all duration-160" type="button">
+<!-- Google 'G' official vector -->
+<svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"></path>
+</svg>
+<span>Sign in with Google</span>
+</button>
+<p class="text-xs text-center text-[#52525B]">
+          Use your <span class="font-mono font-medium text-[#18181B]">@folio3.com</span> Google Workspace account
+        </p>
+<!-- Informational Context Badges for user roles -->
+<div class="pt-2 border-t border-outline-variant/60 flex items-center justify-between text-[11px] text-outline font-mono">
+<span>EMPLOYEES</span>
+<span>·</span>
+<span>SECURITY GUARDS</span>
+<span>·</span>
+<span>ADMINS</span>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- STATE 2: LOADING STATE -->
+<!-- ========================================== -->
+<div class="hidden space-y-6" id="state-loading">
+<button class="w-full h-11 px-4 flex items-center justify-center gap-2.5 rounded bg-surface-container-low border border-outline-variant text-[#71717A] font-body text-sm font-medium cursor-not-allowed" disabled="" type="button">
+<!-- Calm Pine/Forest Spinner -->
+<svg class="animate-spin h-4 w-4 text-[#1F6F5C]" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor"></path>
+</svg>
+<span>Verifying your Folio3 account…</span>
+</button>
+<p class="text-xs text-center text-[#52525B]">
+          Communicating with Folio3 Identity Provider…
+        </p>
+<div class="py-2.5 px-3 rounded bg-surface-container-low border border-outline-variant/70 text-xs text-[#71717A] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#1F6F5C] animate-ping flex-shrink-0"></span>
+<span class="truncate">Validating Single Sign-On session tokens</span>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- STATE 3: ERROR STATE -->
+<!-- ========================================== -->
+<div class="hidden space-y-5" id="state-error">
+<!-- Stop Red Inline Alert Container -->
+<div class="p-3.5 rounded bg-[#FBEAE8] border border-[#ffdad6] text-[#ba1a1a] flex gap-3 text-left">
+<span class="material-symbols-outlined text-[20px] text-[#ba1a1a] flex-shrink-0 mt-0.5" data-icon="error">error</span>
+<div class="space-y-1">
+<div class="text-xs font-semibold uppercase tracking-wider text-[#93000a]">Domain Restriction</div>
+<p class="text-xs text-[#18181B] leading-relaxed">
+<span class="font-mono font-medium text-[#ba1a1a]">ahmed.raza@gmail.com</span> is not a Folio3 Workspace account. Personal Gmail and other providers are not accepted.
+            </p>
+</div>
+</div>
+<button class="w-full h-11 px-4 flex items-center justify-center gap-2 rounded bg-surface-container-lowest border border-outline-variant text-[#18181B] font-body text-sm font-medium hover:bg-surface-container-low hover:border-outline focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:ring-offset-2 active:scale-[0.98] transition-all duration-160" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#71717A]" data-icon="arrow_back">arrow_back</span>
+<span>Try another account</span>
+</button>
+<p class="text-xs text-center text-[#52525B]">
+          Need parking credentials? Contact <a class="text-primary hover:underline font-medium" href="#help-desk">IT Support Desk</a>
+</p>
+</div>
+<!-- Security & Access Card Note -->
+<div class="mt-8 pt-5 border-t border-outline-variant flex items-start gap-2.5 text-left text-xs text-[#71717A]">
+<span class="material-symbols-outlined text-[16px] text-[#71717A] mt-0.5 flex-shrink-0" data-icon="lock">lock</span>
+<p class="leading-relaxed">
+          Access is limited to authorized Folio3 accounts. Roles are assigned by your parking administrator.
+        </p>
+</div>
+</div>
+<!-- Live Bays Context Strip (Subtle Ambient Operational Info) -->
+<div class="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs text-[#71717A]">
+<span class="inline-flex items-center gap-1.5">
+<span class="space-chip text-[11px]">BAY B-14</span>
+<span>Claimed today</span>
+</span>
+<span class="text-outline-variant hidden sm:inline">|</span>
+<span class="inline-flex items-center gap-1.5">
+<span class="plate-chip text-[11px]">BC-4921</span>
+<span>Security verified</span>
+</span>
+<span class="text-outline-variant hidden sm:inline">|</span>
+<span class="inline-flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#1F6F5C]"></span>
+<span>Next release window: 09:30 AM</span>
+</span>
+</div>
+</main>
+<!-- ========================================== -->
+<!-- Footer (Shared Component JSON Conformance) -->
+<!-- ========================================== -->
+<footer class="w-full px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant border-t border-outline-variant bg-surface">
+<!-- Copyright exact label from JSON -->
+<div class="text-xs font-semibold text-on-surface-variant">
+      © 2025 Folio3 Software. Internal system for authorised personnel only.
+    </div>
+<!-- Links exact labels from JSON: ["Security Policy", "Terms of Access", "Help Desk"] -->
+<div class="flex items-center gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-160" href="#security">
+        Security Policy
+      </a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-160" href="#terms">
+        Terms of Access
+      </a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-160" href="#help-desk">
+        Help Desk
+      </a>
+</div>
+</footer>
+<!-- State Toggle Handler Script -->
+
+<script>(function(){var T=[{"id":"S-2","names":["we couldn t load your employee profile","access error"],"words":["access"]},{"id":"S-3","names":["register your vehicle to continue","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-4","names":["good morning bilal","dashboard"],"words":["dashboard"]},{"id":"S-5","names":["hello ayesha siddiqui","holder","dashboard holder"],"words":["dashboard","holder"]},{"id":"S-6","names":["schedule releases for space b1 03","releases successfully scheduled","schedule","releases schedule"],"words":["release","schedule"]},{"id":"S-7","names":["my profile vehicles","profile"],"words":["profile"]},{"id":"S-8","names":["critical hardware alert","verifications","guard verifications"],"words":["guard","verification"]},{"id":"S-9","names":["parking spaces","spaces","admin spaces"],"words":["space"]},{"id":"S-10","names":["employees","admin employees"],"words":["employee"]},{"id":"S-11","names":["employee parking vehicle maintenance","employees","admin employees"],"words":["employee"]},{"id":"S-12","names":["roles and access","roles","admin roles"],"words":["role"]},{"id":"S-13","names":["parking release settings","settings","admin settings"],"words":["setting"]},{"id":"S-14","names":["weekly report recipients","recipients","admin reports recipients"],"words":["report","recipient"]},{"id":"S-15","names":["weekly utilization report","reports","admin reports"],"words":["report"]},{"id":"S-16","names":["audit log","audit","admin audit"],"words":["audit"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"];
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
+var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,156 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "These requirements describe an API, so the only screen is a small staff view that shows its overdue list. A signed-in staff user opens Overdue invoices from the invoicing area. They narrow the list by customer or by days-overdue bucket (7–30, 31–60, 61–90, 90+) and scan each invoice's number, customer, amount, due date and days overdue.",
+    "screens": [
+     {
+      "id": "S-1",
+      "route": "/invoices/overdue",
+      "file": "src/pages/invoices/OverdueInvoices.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-4",
+       "REQ-5",
+       "REQ-6"
+      ],
+      "states": [
+       "loading",
+       "empty",
+       "error"
+      ],
+      "size": "new",
+      "mock": {
+       "title": "Overdue invoices",
+       "subtitle": "Open invoices 7+ days past due · as of 14 Mar 2025, Europe/London",
+       "blocks": [
+        {
+         "type": "stats",
+         "items": [
+          {
+           "label": "Overdue invoices",
+           "value": "38"
+          },
+          {
+           "label": "Amount overdue",
+           "value": "$142,870.50"
+          },
+          {
+           "label": "Oldest",
+           "value": "102 days"
+          }
+         ]
+        },
+        {
+         "type": "filters",
+         "search": "Filter by customer",
+         "chips": [
+          "All",
+          "7–30",
+          "31–60",
+          "61–90",
+          "90+"
+         ]
+        },
+        {
+         "type": "table",
+         "columns": [
+          "Invoice",
+          "Customer",
+          "Amount",
+          "Due date",
+          "Days overdue",
+          "Bucket"
+         ],
+         "rows": [
+          [
+           "INV-10482",
+           "Harbor Lane Dental",
+           "$1,240.00",
+           "05 Mar 2025",
+           "9",
+           "7–30"
+          ],
+          [
+           "INV-10466",
+           "Meridian Print Co.",
+           "$2,980.00",
+           "21 Feb 2025",
+           "21",
+           "7–30"
+          ],
+          [
+           "INV-10391",
+           "Northfield Logistics Ltd",
+           "$18,600.00",
+           "10 Feb 2025",
+           "32",
+           "31–60"
+          ],
+          [
+           "INV-10307",
+           "Okafor & Byrne Architects",
+           "$4,325.50",
+           "08 Jan 2025",
+           "65",
+           "61–90"
+          ],
+          [
+           "INV-10215",
+           "Pinecrest Veterinary",
+           "$790.00",
+           "02 Dec 2024",
+           "102",
+           "90+"
+          ]
+         ],
+         "statusColumn": 5
+        }
+       ]
+      },
+      "copy": {
+       "emptyTitle": "No overdue invoices",
+       "emptyHint": "No open invoices are 7 or more days past due for these filters.",
+       "error": "We couldn't load the overdue list. Sign in again or try again in a moment."
+      }
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-2",
+      "reason": "A server-side rule that leaves out invoices that are not open or have no due date; nobody sees or uses it directly."
+     },
+     {
+      "req": "REQ-3",
+      "reason": "An API rule: overdue status is calculated when the list is requested and nothing is written to invoice records."
+     },
+     {
+      "req": "REQ-7",
+      "reason": "An API rule: requests without valid staff authentication get HTTP 401 and no data. Signing in is handled by the existing authentication scheme."
+     }
+    ],
+    "theme": {
+     "mood": "precise collections desk (back-office staff tool, so sharp, compact, flat)",
+     "brand": "#0E6E55",
+     "mode": "light",
+     "neutral": "cool",
+     "chrome": "plain",
+     "font": "sans",
+     "radius": "sharp",
+     "density": "compact",
+     "surface": "flat",
+     "motion": "calm"
+    }
+   },
+   "ms": 9,
+   "resultChars": 135,
+   "isError": true,
+   "result": "The result doesn't match the schema: theme.mood: Too big: expected string to have <=40 characters. Fix it and call submit_result again."
+  }
+ ]
+}

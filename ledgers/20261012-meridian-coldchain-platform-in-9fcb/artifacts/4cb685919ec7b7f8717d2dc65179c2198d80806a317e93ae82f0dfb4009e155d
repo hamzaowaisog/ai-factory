@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handling unit</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Design System Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography assignments */
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+    }
+
+    .mono-val {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Global Header */
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 56px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+      font-weight: 650;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+    }
+
+    .brand-logo {
+      width: 24px;
+      height: 24px;
+      background: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 16px 0;
+      position: relative;
+      transition: color 140ms ease;
+    }
+
+    nav a:hover {
+      color: #202020;
+    }
+
+    nav a:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 4px;
+    }
+
+    nav a.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    nav a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #202020;
+    }
+
+    .initials-avatar {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+      background: #F7F7F7;
+    }
+
+    .divider-v {
+      width: 1px;
+      height: 16px;
+      background: #D5D5D5;
+    }
+
+    .lang-switcher {
+      color: #626262;
+      font-size: 14px;
+    }
+
+    /* Container */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    /* Page Heading & Actions bar */
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+    }
+
+    .title-area h1 {
+      font-size: 28px;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    .actions-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #923f17;
+      border-color: #923f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 32px;
+    }
+
+    .panel-flush {
+      padding: 0;
+    }
+
+    .panel-title {
+      font-size: 20px;
+      line-height: 1.3;
+      color: #202020;
+      margin-bottom: 16px;
+    }
+
+    .panel-header-padded {
+      padding: 16px 16px 0 16px;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    .status-neutral {
+      color: #626262;
+    }
+    .status-neutral .status-dot {
+      background-color: #626262;
+    }
+
+    /* Focal line panel */
+    .focal-panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .focal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #D5D5D5;
+      margin-bottom: 16px;
+    }
+
+    .focal-title {
+      font-size: 24px;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      color: #202020;
+    }
+
+    .focal-subtitle {
+      color: #626262;
+      font-size: 14px;
+    }
+
+    .status-breakdown-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .status-breakdown-label {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #626262;
+    }
+
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 15px;
+    }
+
+    /* Specs & Carton grid */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .carton-photo-wrapper {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      background: #F7F7F7;
+    }
+
+    .carton-photo-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .spec-details {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .spec-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .spec-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .spec-value {
+      font-size: 16px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Tier ledger & Alert summary */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+
+    .tier-meter-bar {
+      height: 10px;
+      background: #F0F0F0;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 12px 0 8px 0;
+      position: relative;
+    }
+
+    .tier-meter-fill {
+      height: 100%;
+      background: #805800;
+      width: 73.33%; /* 22 of 30 mins */
+    }
+
+    .ledger-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      height: 48px;
+      background: #FAFAFA;
+      border-bottom: 1px solid #D5D5D5;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+    }
+
+    .data-table td {
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      padding: 0 16px;
+      font-size: 15px;
+      color: #202020;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* SVG Temperature chart */
+    .chart-container {
+      padding: 16px;
+      border-bottom: 1px solid #D5D5D5;
+      background: #FFFFFF;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-line {
+      width: 18px;
+      height: 2px;
+    }
+
+    /* Links */
+    .text-link {
+      color: #202020;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-size: 14px;
+      transition: color 140ms ease;
+    }
+
+    .text-link:hover {
+      color: #A94B1D;
+    }
+
+    .text-link:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand">
+        <span class="brand-logo">M</span>
+        <span>Meridian</span>
+      </a>
+      <nav>
+        <a href="#">Receipts</a>
+        <a href="#" class="active">Stock</a>
+        <a href="#">Moves</a>
+        <a href="#">Boxes</a>
+        <a href="#">Cold rooms</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <span class="initials-avatar">LH</span>
+        <span>Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div class="divider-v"></div>
+      <span class="lang-switcher">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Title and Actions -->
+    <div class="title-row">
+      <div class="title-area">
+        <h1>Handling unit</h1>
+      </div>
+      <div class="actions-group">
+        <a href="#" class="btn btn-secondary">Receipt detail</a>
+        <button type="button" class="btn btn-primary">Move stock</button>
+      </div>
+    </div>
+
+    <!-- Focal Line: HU-82 · 20 packs and returned split statuses -->
+    <div class="focal-panel">
+      <div class="focal-header">
+        <div>
+          <div class="focal-title"><span class="mono-val">HU-82</span> · <span class="mono-val">20</span> packs</div>
+          <div class="focal-subtitle">Physical packaging handling unit · Warehouse scope North Quay</div>
+        </div>
+        <div>
+          <span class="status-badge status-waiting">
+            <span class="status-dot"></span>
+            <span>waiting quality review</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Returned Split Statuses -->
+      <div class="status-breakdown-row">
+        <span class="status-breakdown-label">Returned split statuses:</span>
+        <div class="status-group">
+          <div class="status-item">
+            <span class="status-badge status-waiting">
+              <span class="status-dot"></span>
+              <span>Quarantined</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">10</strong>
+          </div>
+          <span style="color: #D5D5D5;">·</span>
+          <div class="status-item">
+            <span class="status-badge status-waiting">
+              <span class="status-dot"></span>
+              <span>On Hold</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">5</strong>
+          </div>
+          <span style="color: #D5D5D5;">·</span>
+          <div class="status-item">
+            <span class="status-badge status-refused">
+              <span class="status-dot"></span>
+              <span>Rejected</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">2</strong>
+          </div>
+          <span style="color: #D5D5D5;">·</span>
+          <div class="status-item">
+            <span class="status-badge status-refused">
+              <span class="status-dot"></span>
+              <span>Expired</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">3</strong>
+          </div>
+          <span style="color: #D5D5D5;">·</span>
+          <div class="status-item">
+            <span class="status-badge status-good">
+              <span class="status-dot"></span>
+              <span>Available</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">0</strong>
+          </div>
+          <span style="color: #D5D5D5;">·</span>
+          <div class="status-item">
+            <span class="status-badge status-neutral">
+              <span class="status-dot"></span>
+              <span>Allocated</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">0</strong>
+          </div>
+          <span style="color: #D5D5D5;">·</span>
+          <div class="status-item">
+            <span class="status-badge status-refused">
+              <span class="status-dot"></span>
+              <span>Recalled</span>
+            </span>
+            <strong class="mono-val" style="margin-left: 4px;">0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product & Consignment Specification (Carton Photo, IG-2511, expiry, receipt, C2 Rack 4) -->
+    <div class="panel">
+      <h2 class="panel-title">Product & consignment specification</h2>
+      <div class="spec-grid">
+        <div class="carton-photo-wrapper">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine 100 units/mL carton packaging">
+        </div>
+        <div class="spec-details">
+          <div class="spec-field">
+            <span class="spec-label">Product</span>
+            <span class="spec-value">Insulin Glargine 100 units/mL</span>
+            <span style="font-size: 14px; color: #626262;">pack of 10 pens</span>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Lot number</span>
+            <span class="spec-value mono-val">IG-2511</span>
+            <a href="#" class="text-link" style="margin-top: 2px;">View lot history</a>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Expiry date</span>
+            <span class="spec-value mono-val">31 March 2027</span>
+            <span style="font-size: 14px; color: #626262;">Shelf life compliant</span>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Location</span>
+            <span class="spec-value">Cold Room C2, Rack 4</span>
+            <span style="font-size: 14px; color: #626262;">North Quay Warehouse</span>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Receipt</span>
+            <span class="spec-value mono-val">14 May 2026 08:00</span>
+            <a href="#" class="text-link" style="margin-top: 2px;">Receipt detail</a>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Assigned profile</span>
+            <span class="spec-value mono-val">profile v3</span>
+            <span style="font-size: 14px; color: #626262;">Permitted 2–8°C</span>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Parent consignment</span>
+            <span class="spec-value"><span class="mono-val">120</span> packs received</span>
+            <span style="font-size: 14px; color: #626262;">HU-81 (100) · HU-82 (20)</span>
+          </div>
+          <div class="spec-field">
+            <span class="spec-label">Receiver</span>
+            <span class="spec-value">Leila Haddad</span>
+            <span style="font-size: 14px; color: #626262;">Warehouse Operator</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier Ledger & Quality Case Q-88 Summary -->
+    <div class="two-col-grid">
+      <!-- Plain Tier Ledger -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h2 class="panel-title" style="margin-bottom: 8px;">Tier allowance ledger</h2>
+          <span class="mono-val" style="font-size: 14px; color: #805800; font-weight: 600;">Upper tier >8.0°C–10.0°C</span>
+        </div>
+        <p style="font-size: 14px; color: #626262; margin-bottom: 12px;">Allowance: 30 minutes total cumulative budget</p>
+        
+        <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; font-weight: 600;">
+          <div><span class="mono-val" style="color: #805800;">22</span> <span style="font-size: 16px; font-weight: 400; color: #626262;">minutes used above 8°C</span></div>
+          <div><span class="mono-val" style="color: #202020;">8</span> <span style="font-size: 16px; font-weight: 400; color: #626262;">left</span></div>
+        </div>
+
+        <div class="tier-meter-bar">
+          <div class="tier-meter-fill"></div>
+        </div>
+
+        <div class="ledger-stats">
+          <span>0m used</span>
+          <span>Budget: 30m</span>
+        </div>
+      </div>
+
+      <!-- Quality Case Alert Q-88 & Review Status -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <h2 class="panel-title" style="margin-bottom: 0;">Quality case alert</h2>
+          <span class="status-badge status-waiting">
+            <span class="status-dot"></span>
+            <span>waiting review</span>
+          </span>
+        </div>
+        <p style="font-size: 14px; color: #626262; margin-bottom: 16px;">Assigned officer: Omar Saleh · North Quay</p>
+        
+        <div style="padding: 12px; border: 1px solid #D5D5D5; border-radius: 2px; background: #FAFAFA;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong class="mono-val" style="font-size: 16px; color: #202020;">Case Q-88</strong>
+            <span class="mono-val" style="font-size: 14px; color: #626262;">Opened 14 May 2026 08:30</span>
+          </div>
+          <p style="font-size: 14px; color: #202020; margin-bottom: 8px;">
+            North Quay logger reported HU-82 at <span class="mono-val">9.1°C</span> for <span class="mono-val">22</span> minutes during intake processing. Returned review status: <span class="status-badge status-waiting"><span class="status-dot"></span><span>waiting</span></span>
+          </p>
+          <div style="font-size: 14px; color: #626262;">
+            Returned stock status kept separate: 10 Quarantined, 5 On Hold, 2 Rejected, 3 Expired.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-width Temperature Chart with Permitted 2–8°C Band -->
+    <div class="panel panel-flush" style="margin-bottom: 32px;">
+      <div class="panel-header-padded">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h2 class="panel-title" style="margin-bottom: 4px;">Inbound temperature profile</h2>
+          <span class="mono-val" style="font-size: 14px; color: #626262;">Permitted band: 2.0°C – 8.0°C</span>
+        </div>
+        <p style="font-size: 14px; color: #626262;">Continuous logger timeline · HU-82 package sensor</p>
+      </div>
+
+      <div class="chart-container">
+        <!-- High-fidelity SVG Temperature chart -->
+        <svg viewBox="0 0 1100 220" width="100%" height="220" style="overflow: visible;">
+          <!-- Grid lines -->
+          <line x1="50" y1="20" x2="1080" y2="20" stroke="#EDEDED" stroke-width="1" />
+          <line x1="50" y1="60" x2="1080" y2="60" stroke="#EDEDED" stroke-width="1" />
+          <line x1="50" y1="100" x2="1080" y2="100" stroke="#EDEDED" stroke-width="1" />
+          <line x1="50" y1="140" x2="1080" y2="140" stroke="#EDEDED" stroke-width="1" />
+          <line x1="50" y1="180" x2="1080" y2="180" stroke="#EDEDED" stroke-width="1" />
+
+          <!-- Permitted 2–8°C Band (y=100 is 8°C, y=160 is 2°C) -->
+          <rect x="50" y="80" width="1030" height="80" fill="#24704B" fill-opacity="0.08" />
+          <!-- First upper tier >8–10°C band (y=50 is 10°C, y=80 is 8°C) -->
+          <rect x="50" y="50" width="1030" height="30" fill="#805800" fill-opacity="0.08" />
+
+          <!-- Threshold dashed boundary lines -->
+          <line x1="50" y1="50" x2="1080" y2="50" stroke="#805800" stroke-width="1" stroke-dasharray="4 4" />
+          <line x1="50" y1="80" x2="1080" y2="80" stroke="#24704B" stroke-width="1.5" stroke-dasharray="4 4" />
+          <line x1="50" y1="160" x2="1080" y2="160" stroke="#24704B" stroke-width="1.5" stroke-dasharray="4 4" />
+
+          <!-- Y-axis labels -->
+          <text x="40" y="54" font-family="IBM Plex Mono" font-size="11" fill="#805800" text-anchor="end">10°C</text>
+          <text x="40" y="84" font-family="IBM Plex Mono" font-size="11" fill="#24704B" text-anchor="end">8°C</text>
+          <text x="40" y="124" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="end">5°C</text>
+          <text x="40" y="164" font-family="IBM Plex Mono" font-size="11" fill="#24704B" text-anchor="end">2°C</text>
+          <text x="40" y="184" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="end">0°C</text>
+
+          <!-- Reading Gap Zone: Between 06:30 (x=450) and 07:15 (x=570) -->
+          <rect x="450" y="20" width="120" height="170" fill="#000000" fill-opacity="0.03" />
+          <line x1="450" y1="20" x2="450" y2="190" stroke="#D5D5D5" stroke-width="1" stroke-dasharray="2 2" />
+          <line x1="570" y1="20" x2="570" y2="190" stroke="#D5D5D5" stroke-width="1" stroke-dasharray="2 2" />
+          <text x="510" y="38" font-family="Public Sans" font-size="11" fill="#626262" text-anchor="middle" font-weight="500">Unresolved reading gap</text>
+          <text x="510" y="52" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="middle">06:30 – 07:15 (45m)</text>
+
+          <!-- Temperature Curve (Before gap: 04:00 to 06:30 ~ 4.4°C -> y=136) -->
+          <path d="M 50 136 L 150 135 L 250 137 L 350 136 L 450 136" fill="none" stroke="#24704B" stroke-width="2.5" />
+          <!-- Gap in data line from x=450 to x=570 -->
+          <!-- After gap: 07:15 at 4.6°C -> y=134; rises to 9.1°C -> y=63 at 08:30; then back to 4.8°C at 09:00 -> y=132 -->
+          <path d="M 570 134 L 670 132 L 770 128 L 860 63 L 930 63 L 980 132 L 1080 132" fill="none" stroke="#805800" stroke-width="2.5" />
+
+          <!-- Excursion highlight dot and callout at 08:30 (9.1°C, 22 mins) -->
+          <circle cx="860" cy="63" r="5" fill="#805800" stroke="#FFFFFF" stroke-width="2" />
+          <circle cx="930" cy="63" r="5" fill="#805800" stroke="#FFFFFF" stroke-width="2" />
+          <line x1="860" y1="63" x2="930" y2="63" stroke="#805800" stroke-width="3" />
+          
+          <!-- Excursion badge callout -->
+          <rect x="850" y="32" width="180" height="22" rx="2" fill="#805800" />
+          <text x="940" y="47" font-family="IBM Plex Mono" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600">9.1°C · 22 min excursion</text>
+
+          <!-- X-axis timeline markers -->
+          <line x1="50" y1="190" x2="1080" y2="190" stroke="#D5D5D5" stroke-width="1" />
+          <text x="50" y="206" font-family="IBM Plex Mono" font-size="12" fill="#626262">04:00</text>
+          <text x="250" y="206" font-family="IBM Plex Mono" font-size="12" fill="#626262">05:00</text>
+          <text x="450" y="206" font-family="IBM Plex Mono" font-size="12" fill="#626262">06:00</text>
+          <text x="650" y="206" font-family="IBM Plex Mono" font-size="12" fill="#626262">07:00</text>
+          <text x="860" y="206" font-family="IBM Plex Mono" font-size="12" fill="#805800" font-weight="600">08:30</text>
+          <text x="1060" y="206" font-family="IBM Plex Mono" font-size="12" fill="#626262">09:00</text>
+        </svg>
+
+        <div class="chart-legend">
+          <div class="legend-item">
+            <span class="legend-line" style="background: #24704B;"></span>
+            <span>Permitted range (2.0°C – 8.0°C)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-line" style="background: #805800;"></span>
+            <span>Upper tier excursion (>8.0°C – 10.0°C)</span>
+          </div>
+          <div class="legend-item">
+            <span style="display:inline-block; width:12px; height:12px; background:#EDEDED; border: 1px dashed #D5D5D5; border-radius: 2px;"></span>
+            <span>Reading gap (unresolved, no estimated temp / tier charge)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Readings Table -->
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Recorded temperature</th>
+            <th>Profile band</th>
+            <th>Duration</th>
+            <th>Alert / Review status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono-val">14 May 2026 08:30</td>
+            <td><strong class="mono-val" style="color: #805800;">9.1°C</strong></td>
+            <td>First upper tier (&gt;8.0–10.0°C)</td>
+            <td class="mono-val">22 minutes</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>Excursion Q-88 (waiting review)</span>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="mono-val">14 May 2026 08:19</td>
+            <td class="mono-val">4.4°C</td>
+            <td>Permitted (2.0–8.0°C)</td>
+            <td class="mono-val">steady</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>Compliant</span>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="mono-val">14 May 2026 08:00</td>
+            <td class="mono-val">4.8°C</td>
+            <td>Permitted (2.0–8.0°C)</td>
+            <td class="mono-val">intake</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>Quarantined</span>
+              </span>
+            </td>
+          </tr>
+          <!-- Reading gap row: explicitly showing actual time span and review status, but NO guessed temperature or tier charge -->
+          <tr style="background: #FAFAFA;">
+            <td class="mono-val">14 May 2026 06:30 – 07:15</td>
+            <td style="color: #626262; font-style: italic;">No recorded reading</td>
+            <td style="color: #626262;">Unresolved reading gap</td>
+            <td class="mono-val">45 minutes actual span</td>
+            <td>
+              <span class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>under review</span>
+              </span>
+              <span style="font-size: 13px; color: #626262; margin-left: 8px;">(no guessed temp · no tier charge · no inferred On Hold)</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="mono-val">14 May 2026 06:00</td>
+            <td class="mono-val">4.5°C</td>
+            <td>Permitted (2.0–8.0°C)</td>
+            <td class="mono-val">steady</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>Compliant</span>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="mono-val">14 May 2026 04:00</td>
+            <td class="mono-val">4.2°C</td>
+            <td>Permitted (2.0–8.0°C)</td>
+            <td class="mono-val">steady</td>
+            <td>
+              <span class="status-badge status-good">
+                <span class="status-dot"></span>
+                <span>Compliant</span>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+</body>
+</html>

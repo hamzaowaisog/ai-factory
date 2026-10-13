@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Reports</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Typography */
+    h1, h2, h3, .heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #202020;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .text-quieter {
+      color: #626262;
+    }
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    
+    /* Layout */
+    .header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+    .brand-logo-sq {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+    .nav-item a {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 20px 0;
+      position: relative;
+      display: inline-block;
+      transition: color 150ms ease;
+    }
+    .nav-item a:hover {
+      color: #202020;
+    }
+    .nav-item a:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: 4px;
+    }
+    .nav-item.active a {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+    .nav-item.active a::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .user-avatar-initials {
+      width: 28px;
+      height: 28px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: #202020;
+    }
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+    }
+    
+    /* Main Content */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    
+    .page-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    /* Panels */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-controls {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+    }
+    .field-input, .field-select {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      min-width: 220px;
+      transition: border-color 150ms ease;
+    }
+    .field-input.mono, .field-select.mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+    }
+    .field-input:focus, .field-select:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: -1px;
+      border-color: #A94B1D;
+    }
+    
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+    .btn:focus {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+    
+    /* KPI Headline Block */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .kpi-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .kpi-title {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 500;
+    }
+    .kpi-headline {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 650;
+      color: #202020;
+    }
+    .kpi-sub {
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+    .status-refused, .status-failed {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot, .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+    
+    /* Dense Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-top: 1px solid #D5D5D5;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    thead th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+      white-space: nowrap;
+    }
+    tbody tr {
+      height: 48px;
+      border-bottom: 1px solid #D5D5D5;
+      transition: background-color 120ms ease;
+    }
+    tbody tr:hover {
+      background-color: #FAFAFA;
+    }
+    tbody td {
+      padding: 0 16px;
+      font-size: 15px;
+      color: #202020;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    
+    .panel-header-desc {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 4px;
+    }
+    
+    /* Responsive Grid for 2 panels */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    
+    /* Animations */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+    
+    .animated-entrance {
+      animation: entranceFade 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    /* Saved handoff signature motion */
+    .saved-handoff-sync {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="animated-entrance">
+<!-- Header -->
+<header class="header">
+<div class="header-left">
+<a class="brand-wrap" href="#">
+<div class="brand-logo-sq">M</div>
+<span class="brand-name">Meridian</span>
+</a>
+<nav>
+<ul class="nav-menu">
+<li class="nav-item"><a href="#">Products</a></li>
+<li class="nav-item"><a href="#">Organisations</a></li>
+<li class="nav-item"><a href="#">Accounts</a></li>
+<li class="nav-item"><a href="#">Audit trail</a></li>
+<li class="nav-item active"><a href="#">Reports</a></li>
+</ul>
+</nav>
+</div>
+<div class="header-right">
+<div class="user-profile">
+<div class="user-avatar-initials">MV</div>
+<span>Marcus Vale · System Administrator</span>
+</div>
+<div class="lang-switcher">
+        EN / العربية
+      </div>
+</div>
+</header>
+<!-- Main Content Container -->
+<main class="container">
+<!-- Page Title -->
+<div class="page-title-row">
+<h1>Reports</h1>
+</div>
+<!-- Filter & Export Panel -->
+<section class="panel">
+<div class="filter-bar">
+<div class="filter-controls">
+<div class="form-group">
+<label class="form-label" for="date-range-select">Reporting period</label>
+<select class="field-select mono" id="date-range-select">
+<option selected="">13–14 May 2026</option>
+<option>14 May 2026 (Today)</option>
+<option>12–14 May 2026</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label" for="warehouse-select">Warehouse facility</label>
+<select class="field-select" id="warehouse-select">
+<option selected="">North Quay Warehouse</option>
+<option>All facilities</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label" for="product-select">Product line</label>
+<select class="field-select" id="product-select">
+<option selected="">Insulin Glargine 100 units/mL</option>
+<option>All products</option>
+</select>
+</div>
+</div>
+<div>
+<button class="btn btn-secondary" type="button">
+<svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 10.5V12.5C2.5 13.0523 2.94772 13.5 3.5 13.5H12.5C13.0523 13.5 13.5 13.0523 13.5 12.5V10.5M8 2.5V10.5M8 10.5L5.5 8M8 10.5L10.5 8" stroke="#202020" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</svg>
+            Export displayed CSV
+          </button>
+</div>
+</div>
+</section>
+<!-- Key Performance Highlights -->
+<div class="kpi-row">
+<div class="kpi-card">
+<span class="kpi-title">Completed consignments</span>
+<div class="kpi-headline">1 completed delivery</div>
+<div class="kpi-sub">
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+            good on-time &amp; in-full
+          </span>
+</div>
+</div>
+<div class="kpi-card">
+<span class="kpi-title">Route adherence (R-201)</span>
+<div class="kpi-headline mono">1/1 on-time</div>
+<div class="kpi-sub text-quieter">
+          Handover within 60 mins (14 min elapsed)
+        </div>
+</div>
+<div class="kpi-card">
+<span class="kpi-title">Excursions logged</span>
+<div class="kpi-headline mono">1 excursion</div>
+<div class="kpi-sub">
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+            waiting evaluation (Q-88)
+          </span>
+</div>
+</div>
+<div class="kpi-card">
+<span class="kpi-title">Active recall tracking</span>
+<div class="kpi-headline mono">RC-12 open</div>
+<div class="kpi-sub">
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+            refused active · 24 traced
+          </span>
+</div>
+</div>
+</div>
+<!-- Delivery Fulfillment & Route Assurance Table -->
+<section class="panel">
+<div class="panel-header-desc">
+<h2>Delivery fulfillment &amp; route execution</h2>
+<span class="text-quieter mono">13–14 May 2026 · Europe/London (BST)</span>
+</div>
+<div aria-label="Delivery fulfillment &amp; route execution" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Assigned driver</th>
+<th>Vehicle</th>
+<th>Destination</th>
+<th>Consignment order</th>
+<th>Scheduled</th>
+<th>Handover time</th>
+<th>On-time (≤60m)</th>
+<th>In-full status</th>
+<th>Fulfillment status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="mono">R-201</td>
+<td>Tariq Mansour</td>
+<td class="mono">VAN-27 (MTR-482)</td>
+<td>Cedar Clinic, 42 River Road</td>
+<td class="mono">O-290 (20 packs)</td>
+<td class="mono">13 May 10:00</td>
+<td class="mono">13 May 10:14</td>
+<td class="mono">1/1 (100%)</td>
+<td class="mono">1/1 (20/20)</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                  good delivered
+                </span>
+</td>
+</tr>
+<tr>
+<td class="mono">R-204</td>
+<td>Tariq Mansour</td>
+<td class="mono">VAN-27 (MTR-482)</td>
+<td>Cedar Clinic, 42 River Road</td>
+<td class="mono">O-299 (20 packs)</td>
+<td class="mono">14 May 15:00</td>
+<td class="mono text-quieter">—</td>
+<td class="mono text-quieter">—</td>
+<td class="mono text-quieter">—</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                  good confirmed
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Excursion counts & rates by route, driver, vehicle, and box type -->
+<section class="panel">
+<div class="panel-header-desc">
+<h2>Excursion counts &amp; rates by route, driver, vehicle &amp; container</h2>
+<span class="text-quieter">Continuous datalogger monitoring threshold &gt;8.0°C</span>
+</div>
+<div aria-label="Excursions by route, driver, vehicle &amp; container" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<tr>
+<th>Transit route</th>
+<th>Driver</th>
+<th>Vehicle assignment</th>
+<th>Shipper box model</th>
+<th>Containers monitored</th>
+<th>Logged excursions</th>
+<th>Excursion rate</th>
+<th>Upper-tier time consumed</th>
+<th>Assurance condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="mono">R-204</td>
+<td>Tariq Mansour</td>
+<td class="mono">VAN-27 (MTR-482)</td>
+<td>BioTherm Insulated Shipper 12L (B-701)</td>
+<td class="mono">1 box (12 packs)</td>
+<td class="mono">0</td>
+<td class="mono">0.0%</td>
+<td class="mono">0m / 30m</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                  good eligible
+                </span>
+</td>
+</tr>
+<tr>
+<td class="mono">R-204</td>
+<td>Tariq Mansour</td>
+<td class="mono">VAN-27 (MTR-482)</td>
+<td>BioTherm Insulated Shipper 12L (B-702)</td>
+<td class="mono">1 box (8 packs)</td>
+<td class="mono">0</td>
+<td class="mono">0.0%</td>
+<td class="mono">0m / 30m</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                  good eligible
+                </span>
+</td>
+</tr>
+<tr>
+<td class="mono">R-201</td>
+<td>Tariq Mansour</td>
+<td class="mono">VAN-27 (MTR-482)</td>
+<td>BioTherm Insulated Shipper 12L (B-691, B-692)</td>
+<td class="mono">2 boxes (20 packs)</td>
+<td class="mono">0</td>
+<td class="mono">0.0%</td>
+<td class="mono">0m / 30m</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                  good delivered
+                </span>
+</td>
+</tr>
+<tr>
+<td class="mono">Warehouse Intake</td>
+<td class="text-quieter">Stationary (Cold Room C2)</td>
+<td class="mono text-quieter">Rack 4</td>
+<td class="mono">Handling Unit HU-82</td>
+<td class="mono">1 unit (20 packs)</td>
+<td class="mono">1</td>
+<td class="mono">100.0%</td>
+<td class="mono">22m / 30m</td>
+<td>
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+                  waiting review
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Two-column grid: Quality case metrics & Dispositions -->
+<div class="two-col-grid">
+<!-- Excursion-to-Decision Performance (Decided Cases Only) -->
+<section class="panel">
+<div class="panel-header-desc">
+<h2>Excursion-to-decision performance</h2>
+</div>
+<p class="text-quieter" style="font-size: 14px;">
+          Calculated strictly from returned signed rulings. Pending cases never acquire invented decision times.
+        </p>
+<div aria-label="Excursion-to-decision performance" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<th>Case</th>
+<th>Subject</th>
+<th>Incident opened</th>
+<th>Signed decision</th>
+<th>Resolution elapsed</th>
+<th>Outcome status</th>
+</thead>
+<tbody>
+<tr>
+<td class="mono">Q-88-PRE</td>
+<td>HU-82 (Dock intake)</td>
+<td class="mono">14 May 08:30</td>
+<td class="mono">14 May 08:45</td>
+<td class="mono">0h 15m</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                    good signed
+                  </span>
+</td>
+</tr>
+<tr>
+<td class="mono">RC-12-INT</td>
+<td>Lot IG-2509 (Cold Room C2)</td>
+<td class="mono">14 May 10:00</td>
+<td class="mono">14 May 10:00</td>
+<td class="mono">&lt;0h 01m</td>
+<td>
+<span class="status-badge status-good">
+<span class="status-dot"></span>
+                    good signed
+                  </span>
+</td>
+</tr>
+<tr>
+<td class="mono">Q-88</td>
+<td>HU-82 (Quarantined)</td>
+<td class="mono">14 May 08:30</td>
+<td class="text-quieter mono">Awaiting sign-off</td>
+<td class="text-quieter mono">—</td>
+<td>
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+                    waiting
+                  </span>
+</td>
+</tr>
+<tr>
+<td class="mono">Q-89</td>
+<td>O-290 (Post-delivery)</td>
+<td class="mono">14 May 10:20</td>
+<td class="text-quieter mono">Under review</td>
+<td class="text-quieter mono">—</td>
+<td>
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+                    waiting
+                  </span>
+</td>
+</tr>
+<tr>
+<td class="mono">Q-90</td>
+<td>RC-12 Customer scope</td>
+<td class="mono">14 May 10:00</td>
+<td class="text-quieter mono">Escalated (4h 19m)</td>
+<td class="text-quieter mono">—</td>
+<td>
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+                    refused escalated
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="padding-top: 8px; border-top: 1px solid #D5D5D5; display: flex; justify-content: space-between; align-items: center;">
+<span style="font-size: 14px; font-weight: 500;">Average elapsed for returned decided cases:</span>
+<span class="mono" style="font-size: 15px; font-weight: 600;">8 minutes</span>
+</div>
+</section>
+<!-- Rejections & Destruction Summary -->
+<section class="panel">
+<div class="panel-header-desc">
+<h2>Stock rejections &amp; destruction tally</h2>
+</div>
+<p class="text-quieter" style="font-size: 14px;">
+          Unviable physical inventory tracking by pharmaceutical line and underlying root cause.
+        </p>
+<div aria-label="Stock rejections &amp; destruction tally" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<th>Product line</th>
+<th>Handling unit</th>
+<th>Cause of rejection</th>
+<th>Rejected</th>
+<th>Destroyed</th>
+<th>Awaiting destruction</th>
+</thead>
+<tbody>
+<tr>
+<td>Insulin Glargine 100 units/mL</td>
+<td class="mono">HU-82</td>
+<td>Intake seal failure &amp; physical defect</td>
+<td class="mono">2 packs</td>
+<td class="mono">0 packs</td>
+<td>
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+                    refused 2 packs
+                  </span>
+</td>
+</tr>
+<tr>
+<td>Insulin Glargine 100 units/mL</td>
+<td class="mono">HU-82</td>
+<td>Intake expiry prior to intake standard</td>
+<td class="mono">3 packs</td>
+<td class="mono">0 packs</td>
+<td>
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+                    refused 3 expired
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="padding-top: 8px; border-top: 1px solid #D5D5D5; display: flex; justify-content: space-between; align-items: center;">
+<span style="font-size: 14px; font-weight: 500;">Total rejected / destroyed tally:</span>
+<span class="mono" style="font-size: 15px; font-weight: 600;">rejected 2 / destroyed 0</span>
+</div>
+</section>
+</div>
+<!-- Inventory Near-Expiry & Lot Balances -->
+<section class="panel">
+<div class="panel-header-desc">
+<h2>Near-expiry &amp; physical inventory balances by product &amp; warehouse</h2>
+<span class="text-quieter mono">Location: North Quay Warehouse · Cold Room C2, Rack 4</span>
+</div>
+<div aria-label="Near-expiry &amp; physical inventory balances" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<tr>
+<th>Product line</th>
+<th>Lot number</th>
+<th>Handling unit</th>
+<th>Expiry date</th>
+<th>Remaining shelf life</th>
+<th>Total packs</th>
+<th>Available</th>
+<th>Allocated</th>
+<th>Quarantined</th>
+<th>On Hold</th>
+<th>Rejected</th>
+<th>Recalled</th>
+<th>Expired</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Insulin Glargine 100 units/mL</td>
+<td class="mono">Lot IG-2511</td>
+<td class="mono">HU-81</td>
+<td class="mono">31 Mar 2027</td>
+<td class="mono">321 days</td>
+<td class="mono">100</td>
+<td class="mono">60</td>
+<td class="mono">40</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+</tr>
+<tr>
+<td>Insulin Glargine 100 units/mL</td>
+<td class="mono">Lot IG-2511</td>
+<td class="mono">HU-82</td>
+<td class="mono">31 Mar 2027</td>
+<td class="mono">321 days</td>
+<td class="mono">20</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">10</td>
+<td class="mono">5</td>
+<td class="mono">2</td>
+<td class="mono">0</td>
+<td class="mono">3</td>
+</tr>
+<tr>
+<td>Insulin Glargine 100 units/mL</td>
+<td class="mono">Lot IG-2509</td>
+<td class="mono">—</td>
+<td class="mono">30 Nov 2026</td>
+<td class="mono">200 days</td>
+<td class="mono">4</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">0</td>
+<td class="mono">4</td>
+<td class="mono">0</td>
+</tr>
+<tr style="background-color: #FAFAFA; font-weight: 600;">
+<td>Total North Quay on-hand</td>
+<td class="mono" colspan="4">2 active lots (IG-2511, IG-2509)</td>
+<td class="mono">124</td>
+<td class="mono">60</td>
+<td class="mono">40</td>
+<td class="mono">10</td>
+<td class="mono">5</td>
+<td class="mono">2</td>
+<td class="mono">4</td>
+<td class="mono">3</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="font-size: 14px; color: #626262;">
+        Minimum contractual remaining shelf life requirement: 90 days. All stored batches meet threshold.
+      </div>
+</section>
+<!-- Active Manufacturer Recall RC-12 Reconciliation Progress -->
+<section class="panel">
+<div class="panel-header-desc">
+<h2>Active recall reconciliation (RC-12)</h2>
+<span class="status-badge status-refused">
+<span class="status-dot"></span>
+          refused active
+        </span>
+</div>
+<div aria-label="Active recall reconciliation" class="table-container" role="region" tabindex="0">
+<table>
+<thead>
+<tr>
+<th>Notice reference</th>
+<th>Affected lot</th>
+<th>Product description</th>
+<th>Initiation date</th>
+<th>Traced quota</th>
+<th>Physical warehouse quarantine</th>
+<th>Consigned to Cedar Clinic</th>
+<th>Customer response state</th>
+<th>Reconciliation progress</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="mono">RC-12</td>
+<td class="mono">Lot IG-2509</td>
+<td>Insulin Glargine 100 units/mL (pack of 10)</td>
+<td class="mono">14 May 10:00 BST</td>
+<td class="mono">24 / 24 packs (100%)</td>
+<td class="mono">4 packs (Cold Room C2, Rack 4)</td>
+<td class="mono">20 packs (Order O-290)</td>
+<td>
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+                  waiting response
+                </span>
+</td>
+<td class="mono">4 / 24 accounted (16.7%)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding-top: 8px; border-top: 1px solid #D5D5D5;">
+<span class="text-quieter">Automated customer reminder scheduled for 14 May 14:00 BST to Hana Youssef (Cedar Health Buyer).</span>
+<span class="status-badge status-waiting">
+<span class="status-dot"></span>
+          waiting customer reconciliation
+        </span>
+</div>
+</section>
+</main>
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders — Empty State</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .main-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    .section-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .small-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    .text-supporting {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance-animate {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Focus & Controls */
+    a, button, input, select {
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms ease;
+    }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Header Component */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-square {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+      color: #202020;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 16px;
+      color: #626262;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 15px;
+      border-bottom: 2px solid transparent;
+      box-sizing: border-box;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link:active {
+      transform: translateY(1px);
+    }
+
+    .nav-link.active {
+      color: #202020;
+      border-bottom: 2px solid #A94B1D;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      border-radius: 2px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .user-info {
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 16px;
+      background-color: #D5D5D5;
+    }
+
+    .locale-switcher {
+      font-size: 14px;
+      color: #626262;
+      text-decoration: none;
+    }
+
+    /* Main Container */
+    .main-content {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    .page-title-row {
+      margin-bottom: 24px;
+    }
+
+    /* Filter Bar Panel */
+    .filter-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+    }
+
+    .form-field {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 14px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      width: 100%;
+    }
+
+    .form-field.mono-val {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+    }
+
+    .form-field:hover {
+      border-color: #B0B0B0;
+    }
+
+    .export-btn {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .export-btn:hover {
+      background-color: #F7F7F7;
+      border-color: #B0B0B0;
+    }
+
+    .export-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Table Container & Structure */
+    .table-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table thead tr {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+    }
+
+    .data-table th {
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      padding: 0 16px;
+      white-space: nowrap;
+    }
+
+    /* Empty State Viewport inside Panel */
+    .empty-state-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 24px;
+      text-align: center;
+    }
+
+    .empty-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background-color: #F7F7F7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: #626262;
+    }
+
+    .empty-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .empty-desc {
+      font-size: 15px;
+      color: #626262;
+      max-width: 440px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .primary-btn {
+      height: 48px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 2px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .primary-btn:hover {
+      background-color: #933E16;
+    }
+
+    .primary-btn:active {
+      transform: translateY(1px);
+    }
+
+    .panel-footer-meta {
+      border-top: 1px solid #D5D5D5;
+      padding: 12px 16px;
+      background-color: #FFFFFF;
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      .entrance-animate {
+        animation: none !important;
+      }
+      * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Persistent Standard Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-mark">
+        <div class="brand-square">M</div>
+        <span class="brand-name">Meridian</span>
+      </div>
+      <nav class="header-nav">
+        <span class="nav-link active">Orders</span>
+        <a href="#routes" class="nav-link">Routes</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials">PN</div>
+        <span class="user-info">Priya Nair · Dispatcher</span>
+      </div>
+      <div class="header-divider"></div>
+      <span class="locale-switcher">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Content Body -->
+  <main class="main-content entrance-animate">
+    <div class="page-title-row">
+      <h1 class="main-heading">Orders</h1>
+    </div>
+
+    <!-- Filters & Instant Status/Date Controls -->
+    <section class="filter-panel">
+      <div class="form-group" style="flex: 1.5;">
+        <label for="order-search">Search</label>
+        <input 
+          type="text" 
+          id="order-search" 
+          class="form-field" 
+          placeholder="Search order reference, customer, or lot" 
+          value=""
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="status-filter">Status</label>
+        <select id="status-filter" class="form-field">
+          <option value="all">All statuses</option>
+          <option value="packed">Packed</option>
+          <option value="not-packed">Not packed</option>
+          <option value="delivered">Delivered</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="order-date">Date</label>
+        <input 
+          type="text" 
+          id="order-date" 
+          class="form-field mono-val" 
+          value="14 May 2026"
+        >
+      </div>
+
+      <button type="button" class="export-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 2V10M8 10L5.5 7.5M8 10L10.5 7.5M3 12H13" stroke="#202020" stroke-width="1.5" stroke-linecap="square"/>
+        </svg>
+        <span>CSV export</span>
+      </button>
+    </section>
+
+    <!-- Table Panel & Empty State -->
+    <section class="table-panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 140px;">Order</th>
+            <th>Customer & Destination</th>
+            <th style="width: 160px;">Allocated / Order</th>
+            <th style="width: 140px;">Route</th>
+            <th style="width: 140px;">Planned dispatch</th>
+            <th style="width: 130px;">Status</th>
+            <th style="width: 120px; text-align: right;">Action</th>
+          </tr>
+        </thead>
+      </table>
+
+      <!-- Empty State Viewport -->
+      <div class="empty-state-container">
+        <div class="empty-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V7" stroke="#626262" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M2 7H22" stroke="#626262" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M9 11H15" stroke="#626262" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M7 4H17" stroke="#626262" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2 class="empty-heading">No orders recorded</h2>
+        <p class="empty-desc">
+          No dispatch orders have been registered for fulfillment yet. Create the first outbound order to begin allocation and packing.
+        </p>
+        <button type="button" class="primary-btn">Create order</button>
+      </div>
+
+      <div class="panel-footer-meta">
+        <span>Assigned warehouse: North Quay</span>
+        <span class="mono">0 records</span>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

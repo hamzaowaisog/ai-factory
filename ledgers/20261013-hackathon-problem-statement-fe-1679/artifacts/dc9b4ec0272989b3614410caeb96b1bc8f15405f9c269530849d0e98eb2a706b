@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 14,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetWeightHistoryResponseMock =",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 409,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetWeightHistoryResponseMock =&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:81: export const getGetWeightHistoryResponseMock = (): WeightHistoryResponse => ({\"permissions\":[\"weights.view\",\"weights.manage\"],\"measurements\":[{\"id\":401,\"lotId\":2407,\"measuredAt\":\"2026-08-15T09:30:00-0\n</untrusted_document>"
+  }
+ ]
+}

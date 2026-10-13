@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipts</title>
+  <!-- Google Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --brand: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-failed: #AE2C2C;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    .font-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Borders, corners, rhythm rules */
+    .panel-box {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+
+    .input-field {
+      height: 48px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 1px var(--brand);
+    }
+
+    .btn-primary {
+      height: 48px;
+      background-color: var(--brand);
+      color: #FFFFFF;
+      border: 1px solid var(--brand);
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 150ms ease, transform 100ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .sync-breathe {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header: exact specification -->
+  <header class="bg-[#FFFFFF] border-b border-[#D5D5D5] w-full sticky top-0 z-20">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      
+      <!-- Left: Logo + Menu -->
+      <div class="flex items-center space-x-8">
+        <!-- Logo -->
+        <div class="flex items-center space-x-2.5">
+          <div class="w-6 h-6 bg-[#202020] rounded-[2px] flex items-center justify-center text-[#FFFFFF] font-bold text-xs font-hanken">
+            M
+          </div>
+          <span class="font-hanken font-[650] text-lg text-[#202020] tracking-tight">Meridian</span>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="hidden md:flex items-center space-x-1" aria-label="Main Navigation">
+          <a href="#" class="px-3 py-2 text-base font-medium rounded-[2px] border-b-2 border-[#A94B1D] text-[#A94B1D]">Receipts</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Stock</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Moves</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Boxes</a>
+          <a href="#" class="px-3 py-2 text-base font-medium text-[#202020] hover:text-[#A94B1D] transition-colors rounded-[2px]">Cold rooms</a>
+        </nav>
+      </div>
+
+      <!-- Right: User info + Language -->
+      <div class="flex items-center space-x-6 text-sm">
+        <div class="flex items-center space-x-2">
+          <span class="w-7 h-7 bg-[#F7F7F7] border border-[#D5D5D5] rounded-[2px] flex items-center justify-center font-mono-num font-medium text-xs text-[#202020]">
+            LH
+          </span>
+          <span class="text-[#202020] font-medium hidden sm:inline">Leila Haddad · Warehouse Operator</span>
+        </div>
+        <div class="text-[#626262] font-medium text-sm border-l border-[#D5D5D5] pl-6 py-1">
+          <span class="text-[#202020]">EN</span> / <span>العربية</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Mobile Nav Bar (below main bar on small screens) -->
+    <div class="md:hidden border-t border-[#D5D5D5] px-4 py-2 flex items-center space-x-4 overflow-x-auto text-sm">
+      <a href="#" class="text-[#A94B1D] font-medium whitespace-nowrap border-b-2 border-[#A94B1D] pb-1">Receipts</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Stock</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Moves</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Boxes</a>
+      <a href="#" class="text-[#202020] font-medium whitespace-nowrap pb-1">Cold rooms</a>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-6 py-8 animate-entrance">
+    
+    <!-- Top Action Section: Heading + Breathing room on wide screens + Record receipt button -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-[#202020] m-0">Receipts</h1>
+      </div>
+      <div>
+        <button type="button" class="btn-primary w-full sm:w-auto">
+          Record receipt
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <section class="panel-box p-4 mb-8" aria-label="Filters">
+      <div class="flex flex-col md:flex-row md:items-end gap-4">
+        
+        <!-- Search field -->
+        <div class="flex-1 flex flex-col">
+          <label for="search-input" class="text-sm font-medium text-[#202020] mb-2">Search</label>
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Search lot, code, product or reference" 
+            class="input-field w-full"
+            disabled
+          >
+        </div>
+
+        <!-- Status Filter -->
+        <div class="w-full md:w-56 flex flex-col">
+          <label for="status-filter" class="text-sm font-medium text-[#202020] mb-2">Status</label>
+          <select id="status-filter" class="input-field w-full bg-[#FFFFFF]" disabled>
+            <option>All statuses</option>
+            <option>quarantine before release</option>
+            <option>available</option>
+            <option>On Hold</option>
+            <option>Rejected</option>
+            <option>Recalled</option>
+            <option>Expired</option>
+          </select>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="w-full md:w-56 flex flex-col">
+          <label for="date-filter" class="text-sm font-medium text-[#202020] mb-2">Receipt date</label>
+          <input 
+            type="date" 
+            id="date-filter" 
+            value="2026-05-14" 
+            class="input-field w-full font-mono-num" 
+            disabled
+          >
+        </div>
+
+        <!-- CSV Export Button -->
+        <div class="w-full md:w-auto">
+          <button type="button" class="btn-secondary w-full md:w-auto" disabled style="opacity: 0.6; cursor: not-allowed;">
+            CSV export
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Receipts Content: Empty State -->
+    <section class="panel-box overflow-hidden" aria-label="Receipts Table">
+      
+      <!-- Table Header (Compact receipt table columns) -->
+      <div class="hidden lg:grid grid-cols-12 px-4 py-3 bg-[#FFFFFF] border-b border-[#D5D5D5] text-sm font-medium text-[#626262]">
+        <div class="col-span-1">Photo</div>
+        <div class="col-span-2">Lot &amp; Code</div>
+        <div class="col-span-3">Product</div>
+        <div class="col-span-2">Packs</div>
+        <div class="col-span-2">Received</div>
+        <div class="col-span-2">Status</div>
+      </div>
+
+      <!-- Empty State View -->
+      <div class="py-20 px-6 flex flex-col items-center justify-center text-center">
+        <div class="w-12 h-12 rounded-[2px] bg-[#F7F7F7] border border-[#D5D5D5] flex items-center justify-center mb-4 text-[#626262]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8V21H3V8"></path>
+            <path d="M1 3H23V8H1z"></path>
+            <path d="M10 12H14"></path>
+          </svg>
+        </div>
+        
+        <h2 class="font-hanken font-[650] text-xl text-[#202020] mb-2">No receipts recorded</h2>
+        <p class="text-[#626262] text-base max-w-md mb-6 leading-relaxed">
+          No inbound shipments have been logged for North Quay yet. Record a receipt to begin intake and quarantine verification.
+        </p>
+
+        <div>
+          <button type="button" class="btn-primary">
+            Record receipt
+          </button>
+        </div>
+      </div>
+
+      <!-- Compact Table Reference Footer Note -->
+      <div class="px-4 py-3 bg-[#F7F7F7] border-t border-[#D5D5D5] flex flex-col sm:flex-row sm:items-center justify-between text-sm text-[#626262] gap-2">
+        <div>Assigned warehouse: <span class="text-[#202020] font-medium">North Quay</span></div>
+        <div class="font-mono-num text-xs">0 records</div>
+      </div>
+
+    </section>
+
+  </main>
+
+</body>
+</html>

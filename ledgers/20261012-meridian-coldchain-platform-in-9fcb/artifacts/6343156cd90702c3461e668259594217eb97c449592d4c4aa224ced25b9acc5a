@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moves — Empty State</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography tokens */
+    h1, .heading-main {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      color: #202020;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .page-entrance {
+      animation: entranceFade 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 56px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 16px;
+    }
+
+    .brand-square {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 650;
+      border-radius: 2px;
+      user-select: none;
+    }
+
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 56px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: #626262;
+      font-size: 14px;
+      font-weight: 500;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: #202020;
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-link.active {
+      color: #202020;
+      font-weight: 600;
+      border-bottom: 2px solid #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .operator-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #202020;
+    }
+
+    .avatar-initials {
+      width: 24px;
+      height: 24px;
+      background-color: #EFEFEF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 2px;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 16px;
+      background-color: #D5D5D5;
+    }
+
+    .lang-switcher {
+      color: #626262;
+      font-size: 14px;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      box-shadow: none;
+    }
+
+    /* Filters Bar */
+    .filter-panel {
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-field label {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 500;
+    }
+
+    .field-input {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-size: 16px;
+      color: #202020;
+      font-family: inherit;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .field-input:focus {
+      outline: none;
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    .field-input:disabled, .field-input[readonly] {
+      background-color: #FFFFFF;
+    }
+
+    .filter-date {
+      width: 180px;
+    }
+
+    .filter-unit {
+      width: 160px;
+    }
+
+    .filter-location {
+      flex: 1;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      border-radius: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 0 24px;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      white-space: nowrap;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      border: 1px solid #A94B1D;
+      color: #FFFFFF;
+    }
+
+    .btn-primary:hover {
+      background-color: #933E16;
+      border-color: #933E16;
+    }
+
+    /* Ledger Table Container */
+    .ledger-panel {
+      overflow: hidden;
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+      white-space: nowrap;
+    }
+
+    /* Empty state display */
+    .empty-state-container {
+      padding: 96px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .empty-icon-box {
+      width: 48px;
+      height: 48px;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      color: #626262;
+      background-color: #FFFFFF;
+    }
+
+    .empty-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      font-size: 14px;
+      color: #626262;
+      max-width: 440px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .ledger-footer {
+      border-top: 1px solid #D5D5D5;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #626262;
+      background-color: #FFFFFF;
+    }
+
+    /* Mobile stacked rows layout (responsive design) */
+    @media (max-width: 768px) {
+      header {
+        padding: 0 16px;
+        height: auto;
+        min-height: 56px;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+
+      .main-nav {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+        height: 44px;
+        gap: 16px;
+      }
+
+      .nav-link {
+        height: 44px;
+        white-space: nowrap;
+      }
+
+      main {
+        padding: 16px;
+      }
+
+      .page-title-row {
+        margin-bottom: 20px;
+      }
+
+      .filter-panel {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-date, .filter-unit, .filter-location {
+        width: 100%;
+      }
+
+      th {
+        display: none;
+      }
+
+      .empty-state-container {
+        padding: 64px 16px;
+      }
+    }
+  </style>
+</head>
+<body class="page-entrance">
+
+  <!-- Header identical across product -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <span class="brand-square">M</span>
+        <span>Meridian</span>
+      </a>
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="#" class="nav-link">Receipts</a>
+        <a href="#" class="nav-link">Stock</a>
+        <a href="#" class="nav-link active">Moves</a>
+        <a href="#" class="nav-link">Boxes</a>
+        <a href="#" class="nav-link">Cold rooms</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="operator-profile">
+        <span class="avatar-initials">LH</span>
+        <span>Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div class="header-divider"></div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="page-title-row">
+      <h1 class="heading-main">Moves</h1>
+    </div>
+
+    <!-- Filters matching the Moves ledger -->
+    <section class="panel filter-panel" aria-label="Filters">
+      <div class="filter-field filter-date">
+        <label for="date-input">Date</label>
+        <input type="text" id="date-input" class="field-input font-mono" value="14 May 2026" readonly>
+      </div>
+
+      <div class="filter-field filter-unit">
+        <label for="unit-input">Unit</label>
+        <input type="text" id="unit-input" class="field-input font-mono" value="HU-81" readonly>
+      </div>
+
+      <div class="filter-field filter-location">
+        <label for="location-input">Location</label>
+        <input type="text" id="location-input" class="field-input" value="North Quay Warehouse" readonly>
+      </div>
+
+      <button type="button" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2.5 10.5V12.5C2.5 13.0523 2.94772 13.5 3.5 13.5H12.5C13.0523 13.5 13.5 13.0523 13.5 12.5V10.5M8 2.5V10.5M8 10.5L5 7.5M8 10.5L11 7.5" stroke="#202020" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>CSV export</span>
+      </button>
+    </section>
+
+    <!-- Ledger panel in Empty State -->
+    <section class="panel ledger-panel" aria-label="Movement ledger">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 180px;">Returned time</th>
+              <th style="width: 140px;">Actor</th>
+              <th style="width: 100px;">Unit</th>
+              <th style="width: 120px;">Quantity</th>
+              <th>Source</th>
+              <th>Destination</th>
+              <th style="width: 90px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="7">
+                <div class="empty-state-container">
+                  <div class="empty-icon-box" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 6H20M4 12H20M4 18H20" stroke="#626262" stroke-width="1.5" stroke-linecap="round"/>
+                      <circle cx="9" cy="6" r="1.5" fill="#626262"/>
+                      <circle cx="15" cy="12" r="1.5" fill="#626262"/>
+                      <circle cx="8" cy="18" r="1.5" fill="#626262"/>
+                    </svg>
+                  </div>
+                  <h2 class="empty-heading">No moves recorded</h2>
+                  <p class="empty-description">
+                    No physical handling unit movements have been logged for North Quay Warehouse on this date.
+                  </p>
+                  <a href="#" class="btn btn-primary">Move stock</a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ledger-footer">
+        <span>Assigned warehouse: North Quay</span>
+        <span class="font-mono">0 records</span>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

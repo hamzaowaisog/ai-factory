@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load boxes — Error State</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    }
+
+    .main-heading {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    .section-heading {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    .sub-heading {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quiet-text {
+      color: #626262;
+    }
+
+    .supporting-text {
+      font-size: 14px;
+      line-height: 1.4;
+      color: #626262;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-failed {
+      color: #AE2C2C;
+    }
+    .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-breathe {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header Component */
+    .site-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-logo-box {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 650;
+      color: #202020;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 64px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 16px;
+      color: #626262;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #202020;
+      font-weight: 600;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .initials-avatar {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switch {
+      font-size: 14px;
+      color: #626262;
+      border-left: 1px solid #D5D5D5;
+      padding-left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lang-switch span.active-lang {
+      color: #202020;
+      font-weight: 500;
+    }
+
+    /* Layout Containers */
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    /* Panels */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .panel-body {
+      padding: 24px;
+    }
+
+    /* Error Banner Panel */
+    .error-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #AE2C2C;
+      border-radius: 2px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .error-content-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .error-bullet {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    .error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+      margin-bottom: 4px;
+    }
+
+    .error-desc {
+      font-size: 14px;
+      color: #626262;
+      line-height: 1.4;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 24px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #923f17;
+      border-color: #923f17;
+    }
+
+    .btn-primary:active:not(:disabled) {
+      background-color: #7b3412;
+      border-color: #7b3412;
+    }
+
+    .btn-primary:disabled {
+      background-color: #D5D5D5;
+      border-color: #D5D5D5;
+      color: #626262;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-secondary:active:not(:disabled) {
+      background-color: #ECECEC;
+    }
+
+    .btn-retry {
+      height: 40px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      color: #202020;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    .btn-retry:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    .btn-retry:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    /* Route Summary Card */
+    .route-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      border-bottom: 1px solid #D5D5D5;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-val {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    /* Scan Input Section */
+    .scan-input-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .scan-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #202020;
+      margin-bottom: 8px;
+    }
+
+    .scan-form-row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .scan-input {
+      flex: 1;
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 16px;
+      color: #202020;
+      transition: border-color 140ms ease;
+    }
+
+    .scan-input:focus {
+      outline: none;
+      border-color: #A94B1D;
+    }
+
+    .scan-input::placeholder {
+      color: #626262;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+    }
+
+    /* Box List Table */
+    .table-container {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      background-color: #FFFFFF;
+      color: #626262;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+    }
+
+    .data-table td {
+      padding: 14px 24px;
+      border-bottom: 1px solid #D5D5D5;
+      font-size: 15px;
+      color: #202020;
+      height: 48px;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Warning / Block Row inside table */
+    .row-blocked {
+      background-color: #FFFDFD;
+    }
+
+    .block-flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #AE2C2C;
+    }
+
+    .block-reason {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 4px;
+    }
+
+    /* Bottom Actions / Footer row */
+    .actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+    }
+
+    .offline-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .offline-bullet {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #626262;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="header-left">
+      <a href="#" class="brand-mark" aria-label="Meridian Home">
+        <div class="brand-logo-box">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="nav-menu" aria-label="Main Navigation">
+        <a href="#" class="nav-item">Today's routes</a>
+        <a href="#" class="nav-item">Pending work</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="initials-avatar">TM</div>
+        <span>Tariq Mansour · Driver</span>
+      </div>
+      <div class="lang-switch">
+        <span class="active-lang">EN</span>
+        <span>/</span>
+        <span>العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Main Content -->
+  <main class="page-container animate-entrance">
+
+    <!-- Page Title & Navigation Link -->
+    <div class="page-header-row">
+      <h1 class="main-heading">Load boxes</h1>
+      <div>
+        <a href="#" class="btn btn-secondary">Route stops</a>
+      </div>
+    </div>
+
+    <!-- Inline Error State Banner -->
+    <div class="error-panel" role="alert">
+      <div class="error-content-left">
+        <div class="error-bullet"></div>
+        <div>
+          <div class="error-title">Failed to load box dispatch telemetry and verification records</div>
+          <div class="error-desc">The data failed to load. The verification service could not establish secure telemetry synchronization for route R-204 consignment boxes. Durable local storage is unconfirmed, preventing offline loading queue.</div>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn-retry">Retry</button>
+      </div>
+    </div>
+
+    <!-- Consignment & Lead Information Card -->
+    <div class="panel">
+      <div class="panel-body">
+        <div class="route-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Route reference</span>
+            <span class="meta-val mono">R-204</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned vehicle</span>
+            <span class="meta-val">VAN-27 <span class="mono quiet-text font-normal">(MTR-482)</span></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Destination stop</span>
+            <span class="meta-val">Cedar Clinic, 42 River Road</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Consignment order</span>
+            <span class="meta-val mono">Order O-299</span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+          <div>
+            <div class="section-heading" style="margin-bottom: 4px;">0 of 2 expected boxes scanned for R-204</div>
+            <div class="supporting-text">All expected shipper boxes must be physically scanned and verified before vehicle loading authorization.</div>
+          </div>
+          <div class="status-badge status-failed">
+            <span class="status-dot"></span>
+            <span>failed (unverified)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Touch-sized Scan Input Section -->
+    <div class="scan-input-card">
+      <label for="box-barcode-input" class="scan-label">Scan box</label>
+      <div class="scan-form-row">
+        <input 
+          type="text" 
+          id="box-barcode-input" 
+          class="scan-input" 
+          placeholder="Scan or enter box barcode (e.g. B-701, B-702)"
+          autocomplete="off"
+          autofocus
+        />
+        <button type="button" class="btn btn-secondary">Scan box</button>
+      </div>
+      <div class="supporting-text" style="margin-top: 8px;">
+        Use handheld barcode scanner or manual identifier entry. Confirm departure is locked until all expected boxes are scanned.
+      </div>
+    </div>
+
+    <!-- Expected / Scanned Box Verification Table -->
+    <div class="table-container">
+      <div class="table-header">
+        <h2 class="section-heading" style="font-size: 18px;">Expected consignment boxes</h2>
+        <span class="status-badge status-waiting">
+          <span class="status-dot animate-breathe"></span>
+          <span>waiting scan</span>
+        </span>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Box identifier</th>
+            <th>Consigned cargo</th>
+            <th>Returned temperature</th>
+            <th>Gateway age</th>
+            <th>Verification status</th>
+            <th style="text-align: right;">Action / Instruction</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Box B-701 -->
+          <tr>
+            <td>
+              <span class="mono" style="font-weight: 600;">B-701</span>
+            </td>
+            <td>
+              <div>12 packs · Insulin Glargine</div>
+              <div class="supporting-text mono">Lot IG-2511</div>
+            </td>
+            <td>
+              <span class="mono">4.4°C</span>
+              <span class="supporting-text" style="margin-left: 4px;">(2–8°C band)</span>
+            </td>
+            <td>
+              <span class="mono">14:40 BST</span>
+              <span class="supporting-text" style="margin-left: 4px;">(20m ago)</span>
+            </td>
+            <td>
+              <div class="status-badge status-waiting">
+                <span class="status-dot"></span>
+                <span>waiting</span>
+              </div>
+              <div class="supporting-text">Unscanned</div>
+            </td>
+            <td style="text-align: right;">
+              <span class="quiet-text" style="font-size: 14px;">Awaiting scan</span>
+            </td>
+          </tr>
+
+          <!-- Box B-702: Returned On Hold / Recalled state with "Do not deliver" -->
+          <tr class="row-blocked">
+            <td>
+              <span class="mono" style="font-weight: 600;">B-702</span>
+            </td>
+            <td>
+              <div>8 packs · Insulin Glargine</div>
+              <div class="supporting-text mono">Lot IG-2511</div>
+            </td>
+            <td>
+              <span class="mono">4.8°C</span>
+              <span class="supporting-text" style="margin-left: 4px;">(cached stale)</span>
+            </td>
+            <td>
+              <span class="mono">11:45 BST</span>
+              <span class="supporting-text" style="margin-left: 4px;">(3h 15m ago)</span>
+            </td>
+            <td>
+              <div class="status-badge status-refused status-failed">
+                <span class="status-dot"></span>
+                <span>refused</span>
+              </div>
+              <div class="block-flag" style="margin-top: 4px;">
+                Do not deliver
+              </div>
+              <div class="block-reason">
+                Returned On Hold: Hub logger gateway disconnected >3h, unverified dock excursion.
+              </div>
+            </td>
+            <td style="text-align: right;">
+              <span class="status-badge status-failed" style="font-size: 13px;">
+                Blocked from loading
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Actions & Departure Lock Section -->
+    <div class="actions-bar">
+      <div class="offline-notice">
+        <span class="offline-bullet"></span>
+        <span>Offline loading queue disabled: Complete durable local storage could not be confirmed.</span>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <a href="#" class="btn btn-secondary">Route stops</a>
+        <!-- Primary Confirm departure button is disabled until both expected boxes scanned and wrong-route removed -->
+        <button type="button" class="btn btn-primary" disabled title="Confirm departure is disabled until both expected boxes are scanned and all wrong-route boxes removed">
+          Confirm departure
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

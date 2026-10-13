@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deliveries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base variables */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .motion-saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .waiting-pulse-dot {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    .font-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    /* Layout & Spacing */
+    .header-bar {
+      height: 64px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    /* Navigation */
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 650;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 650;
+      color: #202020;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 16px;
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px #A94B1D;
+    }
+
+    .nav-item.active {
+      color: #202020;
+      font-weight: 600;
+      border-bottom: 2px solid #A94B1D;
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #202020;
+    }
+
+    .user-initials {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 2px;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      font-size: 12px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 13px;
+      color: #626262;
+    }
+
+    /* Panels & Tables */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      margin-top: 32px;
+    }
+
+    .filter-panel {
+      padding: 16px;
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .field-label {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 500;
+    }
+
+    .input-field {
+      height: 48px;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: inherit;
+      font-size: 15px;
+      color: #202020;
+      outline: none;
+      width: 100%;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-field:focus {
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    select.input-field {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23626262' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Button Styles */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+
+    .btn-secondary {
+      background: #FFFFFF;
+      border-color: #D5D5D5;
+      color: #202020;
+    }
+
+    .btn-secondary:hover {
+      background: #F7F7F7;
+      border-color: #202020;
+    }
+
+    /* Deliveries Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background: #FFFFFF;
+    }
+
+    td {
+      height: 72px;
+      padding: 0 16px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      transition: background-color 150ms ease;
+    }
+
+    tbody tr:hover {
+      background-color: #FAFAFA;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status indicators */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+    }
+    .status-refused .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    .sub-info {
+      font-size: 14px;
+      color: #626262;
+      margin-top: 4px;
+    }
+
+    .row-action-link {
+      height: 40px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      color: #202020;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 150ms ease;
+    }
+
+    .row-action-link:hover {
+      border-color: #202020;
+      background: #F7F7F7;
+    }
+
+    .row-action-link:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+
+    .row-action-link:active {
+      transform: scale(0.97);
+    }
+
+    .table-footer {
+      padding: 16px;
+      font-size: 14px;
+      color: #626262;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header Bar -->
+  <header class="header-bar">
+    <div class="brand-group">
+      <a href="#" class="brand-logo">
+        <div class="brand-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item">Orders</a>
+        <a href="#" class="nav-item active">Deliveries</a>
+        <a href="#" class="nav-item">Recall notices</a>
+        <a href="#" class="nav-item">Account</a>
+      </nav>
+    </div>
+
+    <div class="header-user">
+      <div class="user-profile">
+        <span class="user-initials font-mono">HY</span>
+        <span>Hana Youssef · Cedar Health</span>
+      </div>
+      <span class="lang-switcher">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <h1>Deliveries</h1>
+    </div>
+
+    <!-- Filter & CSV Bar -->
+    <div class="panel filter-panel">
+      <div class="field-group">
+        <label class="field-label" for="filter-date">Date</label>
+        <select id="filter-date" class="input-field font-mono" onchange="filterDeliveries()">
+          <option value="all">All dates</option>
+          <option value="2026-05-14" selected>14 May 2026 (Today)</option>
+          <option value="2026-05-13">13 May 2026</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="filter-status">Status</label>
+        <select id="filter-status" class="input-field" onchange="filterDeliveries()">
+          <option value="all">All statuses</option>
+          <option value="waiting">waiting</option>
+          <option value="good">good</option>
+        </select>
+      </div>
+
+      <button type="button" class="btn btn-secondary" onclick="exportToCSV()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        CSV export
+      </button>
+    </div>
+
+    <!-- Deliveries Table Panel -->
+    <div class="panel" style="overflow: hidden;">
+      <div class="table-container">
+        <table id="deliveries-table">
+          <thead>
+            <tr>
+              <th style="width: 130px;">Order</th>
+              <th>Destination</th>
+              <th style="width: 220px;">Schedule &amp; time</th>
+              <th>Consigned items &amp; shipper boxes</th>
+              <th style="width: 230px;">Returned status</th>
+              <th style="width: 140px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="deliveries-tbody">
+            <!-- Delivery Row 1: O-299 -->
+            <tr data-date="2026-05-14" data-status="waiting">
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 16px;">O-299</span>
+              </td>
+              <td>
+                <div style="font-weight: 500;">Cedar Clinic</div>
+                <div class="sub-info">42 River Road, London</div>
+              </td>
+              <td>
+                <div class="font-mono">14 May 2026 15:00 BST</div>
+                <div class="sub-info">Planned departure &amp; arrival</div>
+              </td>
+              <td>
+                <div>Insulin Glargine 100 units/mL · <span class="font-mono">20 packs</span></div>
+                <div class="sub-info font-mono">Lot IG-2511 · B-701 (12 packs), B-702 (8 packs)</div>
+              </td>
+              <td>
+                <div>
+                  <span class="status-badge status-waiting">
+                    <span class="status-dot waiting-pulse-dot"></span>
+                    waiting
+                  </span>
+                </div>
+                <div class="sub-info font-mono">In transit · 4.4°C / 4.8°C compliant</div>
+              </td>
+              <td style="text-align: right;">
+                <a href="#" class="row-action-link">Delivery detail</a>
+              </td>
+            </tr>
+
+            <!-- Delivery Row 2: O-290 -->
+            <tr data-date="2026-05-13" data-status="good">
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 16px;">O-290</span>
+              </td>
+              <td>
+                <div style="font-weight: 500;">Cedar Clinic</div>
+                <div class="sub-info">42 River Road, London</div>
+              </td>
+              <td>
+                <div class="font-mono">13 May 2026 10:14 BST</div>
+                <div class="sub-info">Delivered to Rania Karim</div>
+              </td>
+              <td>
+                <div>Insulin Glargine 100 units/mL · <span class="font-mono">20 packs</span></div>
+                <div class="sub-info font-mono">Lot IG-2509 · Handover signed</div>
+              </td>
+              <td>
+                <div>
+                  <span class="status-badge status-good">
+                    <span class="status-dot"></span>
+                    good
+                  </span>
+                </div>
+                <div class="sub-info">Delivered on time and in full</div>
+              </td>
+              <td style="text-align: right;">
+                <a href="#" class="row-action-link">Delivery detail</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <span id="record-count-label">Showing 2 deliveries for Cedar Health</span>
+        <span class="font-mono">Prototype date: 14 May 2026 · Europe/London (BST)</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function filterDeliveries() {
+      var dateFilter = document.getElementById('filter-date').value;
+      var statusFilter = document.getElementById('filter-status').value;
+      var rows = document.querySelectorAll('#deliveries-tbody tr');
+      var visibleCount = 0;
+
+      rows.forEach(function(row) {
+        var rowDate = row.getAttribute('data-date');
+        var rowStatus = row.getAttribute('data-status');
+
+        var dateMatch = (dateFilter === 'all' || rowDate === dateFilter);
+        var statusMatch = (statusFilter === 'all' || rowStatus === statusFilter);
+
+        if (dateMatch && statusMatch) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      document.getElementById('record-count-label').textContent = 'Showing ' + visibleCount + ' ' + (visibleCount === 1 ? 'delivery' : 'deliveries') + ' for Cedar Health';
+    }
+
+    function exportToCSV() {
+      var rows = document.querySelectorAll('#deliveries-tbody tr');
+      var csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Order,Destination,Address,Scheduled/Delivered,Product,Lot,Quantity,Status,Status Detail\r\n";
+
+      rows.forEach(function(row) {
+        if (row.style.display !== 'none') {
+          var cells = row.querySelectorAll('td');
+          var order = cells[0].innerText.trim();
+          var destination = "Cedar Clinic";
+          var address = "42 River Road, London";
+          var time = cells[2].innerText.replace(/\n/g, " - ").trim();
+          var product = "Insulin Glargine 100 units/mL";
+          var lotInfo = cells[3].innerText.replace(/\n/g, " - ").trim();
+          var qty = "20 packs";
+          var status = cells[4].querySelector('.status-badge').innerText.trim();
+          var statusDetail = cells[4].querySelector('.sub-info').innerText.trim();
+
+          var line = [
+            '"' + order + '"',
+            '"' + destination + '"',
+            '"' + address + '"',
+            '"' + time + '"',
+            '"' + product + '"',
+            '"' + lotInfo + '"',
+            '"' + qty + '"',
+            '"' + status + '"',
+            '"' + statusDetail + '"'
+          ].join(',');
+
+          csvContent += line + "\r\n";
+        }
+      });
+
+      var encodedUri = encodeURI(csvContent);
+      var link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "cedar_health_deliveries_14_may_2026.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>

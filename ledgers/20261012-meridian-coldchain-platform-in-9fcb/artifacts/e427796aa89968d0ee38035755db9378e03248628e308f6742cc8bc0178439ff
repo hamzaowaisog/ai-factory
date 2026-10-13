@@ -1,0 +1,981 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Meridian responsive web app shall provide individual email-and-password sign-in and self-service password reset for driver, staff, and customer areas.",
+      "op": "ADDED",
+      "sources": [
+       "Q-1",
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "A user is on the sign-in page",
+        "when": "the user submits an email address and password",
+        "then": "the screen displays the returned sign-in result or error message",
+        "level": "ui"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "A user is on the password-reset page",
+        "when": "the user submits an account email address",
+        "then": "the screen displays the returned password-reset confirmation or error message",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The Meridian web app shall provide System Administrator screens to create and deactivate accounts and assign roles, staff warehouse access, and customer-organisation access.",
+      "op": "ADDED",
+      "sources": [
+       "Q-2",
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A System Administrator is viewing account management",
+        "when": "the administrator opens an account or submits account or access changes",
+        "then": "the screen displays account fields and the returned status or error message",
+        "level": "ui"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "A user without the System Administrator role opens account management",
+        "when": "the page loads",
+        "then": "the screen displays an access-denied message or the account-management page is not displayed",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When a driver opens today's routes, the Meridian web app shall show only that driver's assigned routes and each route's stops in route order.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-5",
+       "ASM-8",
+       "Q-2",
+       "I-1",
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "Route data contains routes assigned to multiple drivers",
+        "when": "a driver opens today's route list",
+        "then": "the screen lists only routes returned or assigned to that driver and displays each route's stops in order",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The Meridian web app shall compare scanned shipper boxes with expected boxes before route departure, report missing or wrong-route boxes, and keep departure blocked until all expected boxes are scanned and wrong boxes are removed or corrected.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-8",
+       "I-2",
+       "I-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "A route has an expected box that has not been scanned",
+        "when": "the driver attempts to complete loading or depart",
+        "then": "the screen shows the missing-box status and keeps the departure control unavailable",
+        "level": "ui"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "The driver scans a box assigned to another route",
+        "when": "the scan is processed",
+        "then": "the screen shows a wrong-route warning naming the box and keeps departure blocked",
+        "level": "ui"
+       },
+       {
+        "id": "AC-4.3",
+        "given": "Every expected box is scanned and no wrong-route box remains",
+        "when": "the driver completes loading",
+        "then": "the screen shows loading complete and displays an enabled departure control",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-5",
+      "ears": "The Meridian web app shall show dispatchers each route stop's status and last-updated time.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-5",
+       "ASM-9",
+       "I-9",
+       "I-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "The route service returns stop statuses and update-time fields",
+        "when": "a dispatcher opens route monitoring",
+        "then": "the screen displays each stop's returned status and last-updated time",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-6",
+      "ears": "The Meridian web app shall show each route box's latest available temperature, status, and alerts from the supplied gateway data and identify cached temperature data as stale while disconnected.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-12",
+       "I-3",
+       "I-21",
+       "I-42"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "The gateway feed returns temperature, status, and alert data for route boxes",
+        "when": "the driver opens route monitoring",
+        "then": "the screen displays each box's current temperature, status, and returned alerts",
+        "level": "ui"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "The browser is disconnected and cached temperature data is available",
+        "when": "the driver opens box monitoring",
+        "then": "the screen displays the cached temperature value and marks it stale",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When scanned stock is On Hold, the Meridian web app shall display “Do not deliver” and the returned hold reason and prevent handover of that box.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-1",
+       "ASM-10",
+       "I-4",
+       "I-11",
+       "I-14",
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "A stop includes a scanned box whose returned stock status is On Hold",
+        "when": "the driver opens that box's handover controls",
+        "then": "the screen displays “Do not deliver” and the hold reason and offers no enabled handover control for that box",
+        "level": "ui"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "A stop includes both On Hold and deliverable boxes",
+        "when": "the driver opens the handover screen",
+        "then": "the screen permits handover only for deliverable boxes",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When online, if a scanned box is reported as Recalled, the Meridian web app shall display “Do not deliver” and prevent handover of that box.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "A driver is online and the service reports a scanned box as Recalled",
+        "when": "the driver opens that box's handover controls",
+        "then": "the screen displays “Do not deliver” and no enabled handover control for that box",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The Meridian web app shall let drivers record an eligible handover with receiver name, signature, delivery photo, actual handover time, and available browser location.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-11",
+       "I-5",
+       "I-12",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A box is eligible for handover",
+        "when": "the driver enters the receiver name, captures a signature and photo, and completes handover",
+        "then": "the handover request contains the receiver, signature, photo, actual completion time, and available location fields",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-10",
+      "ears": "If browser location is denied or unavailable, then the Meridian web app shall allow an otherwise eligible handover and record location as unavailable.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-11",
+       "I-5",
+       "I-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "Browser location access is denied or unavailable",
+        "when": "the driver completes an otherwise eligible handover",
+        "then": "the screen displays the completed handover and a location-unavailable value, and the request records location as unavailable",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The Meridian web app shall let drivers record full or partial refusal only by whole box and require a reason for each refused box.",
+      "op": "ADDED",
+      "sources": [
+       "Q-7",
+       "I-6",
+       "I-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "A driver is recording a refusal",
+        "when": "the driver selects refused boxes and submits a reason for each",
+        "then": "the screen displays each refused whole box with its reason and offers no partial-box quantity control",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "The service returns a refusal and quarantine result",
+        "when": "the driver opens the completed refusal",
+        "then": "the screen displays the returned refusal status and quarantine status for each refused box",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-12",
+      "ears": "While offline, the Meridian web app shall retain loading, handover, and refusal work locally across session expiry or sign-out, automatically send queued work when connectivity returns after re-authentication if needed, preserve the handover's occurrence time, and reuse the same handover identifier on retries.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-5",
+       "ASM-11",
+       "I-7",
+       "I-8",
+       "I-9",
+       "I-14",
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "The browser is offline",
+        "when": "the driver records loading, handover, or refusal work",
+        "then": "the screen shows each action in the pending queue and retains its entered values",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "Queued work exists and connectivity returns",
+        "when": "the web app reconnects",
+        "then": "the screen shows queued work being sent without requiring resubmission, and displays the returned sync status",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.3",
+        "given": "A handover was recorded offline",
+        "when": "the web app sends it or retries an interrupted send",
+        "then": "the request contains the original handover time and the same handover identifier as the original request",
+        "level": "ui"
+       },
+       {
+        "id": "AC-12.4",
+        "given": "Loading, handover, or refusal work, including handover signature and photo values, is queued while offline and the driver session expires or the driver signs out",
+        "when": "the driver re-authenticates and the connection returns",
+        "then": "the screen lists the retained queued work and its entered values, and the request sends the work without requiring re-entry",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When an assigned route changes while a driver is offline, the Meridian web app shall show route differences, require review and resolution of affected unsent work before continuing, and preserve completed offline handovers.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-9",
+       "I-8",
+       "I-14",
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "The route returned after reconnection differs and unsent work exists",
+        "when": "the driver reconnects and the app reconciles the route",
+        "then": "the screen lists route differences and affected boxes requiring review",
+        "level": "ui"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "Route differences have unresolved affected boxes",
+        "when": "the driver attempts to continue route work",
+        "then": "the screen blocks continuing and shows the unresolved boxes",
+        "level": "ui"
+       },
+       {
+        "id": "AC-13.3",
+        "given": "A handover was completed offline before the route changed",
+        "when": "the new route is synchronized",
+        "then": "the screen still displays the completed handover and its original time",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When an offline handover conflicts with a hold or recall upon synchronization, the Meridian web app shall retain and flag the handover and display the returned quality-case result.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-10",
+       "I-14",
+       "I-16",
+       "I-41",
+       "I-46",
+       "I-47"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "An offline handover is synchronized and the service returns a hold or recall conflict and quality-case result",
+        "when": "the driver or quality user opens the synchronized record",
+        "then": "the screen displays the retained handover, conflict flag, and returned quality-case status",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-15",
+      "ears": "The Meridian web app shall show Quality reviewers the full excursion temperature history, allowance used and remaining for each tier, and the returned recommendation, using the configured tier rules.",
+      "op": "ADDED",
+      "sources": [
+       "Q-8",
+       "ASM-12",
+       "I-21",
+       "I-22",
+       "I-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "An excursion review receives temperature history, tier budgets, and a recommendation",
+        "when": "a Quality reviewer opens the affected handling unit",
+        "then": "the screen displays the full history, used and remaining allowance for each tier, and the recommendation",
+        "level": "ui"
+       },
+       {
+        "id": "AC-15.2",
+        "given": "Configured tier limits and allowances are returned for different products",
+        "when": "a user views settings or excursion reviews for those products",
+        "then": "the screen displays the same configured tier-limit and allowance values for each product",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-16",
+      "ears": "The Meridian web app shall present a single-person quality-decision flow only for an excursion within the first tier above or below the permitted band with allowance remaining, and otherwise present a Quality Officer proposal and separate approval by a different Quality Manager; written justification is required when a decision opposes the recommendation.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-13",
+       "I-24",
+       "I-25",
+       "I-26",
+       "I-27",
+       "I-28",
+       "I-29",
+       "I-30",
+       "I-31",
+       "I-32",
+       "I-33",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "An excursion is within the first tier above or below the band and has allowance remaining",
+        "when": "an eligible Quality Officer opens the decision form",
+        "then": "the screen displays the single-person decision controls",
+        "level": "ui"
+       },
+       {
+        "id": "AC-16.2",
+        "given": "An excursion is outside the single-person case or has no allowance remaining",
+        "when": "a Quality Officer opens the decision form",
+        "then": "the screen requires a proposal and separate Quality Manager approval",
+        "level": "ui"
+       },
+       {
+        "id": "AC-16.3",
+        "given": "The proposing Quality Officer also has the Quality Manager role",
+        "when": "that person attempts to approve the proposal",
+        "then": "the screen does not offer an approval action to that same person",
+        "level": "ui"
+       },
+       {
+        "id": "AC-16.4",
+        "given": "A proposed decision opposes the displayed recommendation",
+        "when": "a user prepares the decision",
+        "then": "the screen requires both decision participants and a written-justification field",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-17",
+      "ears": "The Meridian web app shall require identity confirmation using the account's sign-in method and a reason when a user signs a quality decision, and present signed decisions as read-only with a separate superseding-decision action.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-1",
+       "ASM-13",
+       "I-25",
+       "I-33",
+       "I-34",
+       "I-35"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "A user is ready to sign a quality decision",
+        "when": "the user submits the signing form",
+        "then": "the screen requires identity confirmation and a reason before showing the signed-decision status",
+        "level": "ui"
+       },
+       {
+        "id": "AC-17.2",
+        "given": "A decision is returned as signed",
+        "when": "a user opens that decision",
+        "then": "the screen shows signed values as read-only, provides a separate superseding-decision action, and offers no edit or delete control",
+        "level": "ui"
+       },
+       {
+        "id": "AC-17.3",
+        "given": "The service returns an earlier signed decision and a superseding decision",
+        "when": "a reviewer opens decision history",
+        "then": "the screen displays both signed decision records and identifies the superseding decision",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When the service returns a quality disposition, the Meridian web app shall show resulting stock, order, and route status and the earlier and current disposition when superseded.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-1",
+       "I-34",
+       "I-35",
+       "I-36"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-18.1",
+        "given": "The service returns a release, rejection, or superseding disposition",
+        "when": "a Quality user views the affected stock or handling unit",
+        "then": "the screen displays the returned stock, order, and route status and disposition history",
+        "level": "ui"
+       },
+       {
+        "id": "AC-18.2",
+        "given": "The service rejects a superseding disposition because its reversal cannot be applied after stock was delivered or destroyed",
+        "when": "a Quality user views the affected stock or handling unit",
+        "then": "the screen displays the returned error and unchanged returned stock, order, and route status, and does not present the superseding disposition as applied",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-19",
+      "ears": "The Meridian web app shall collect destruction date, quantity, and witness for rejected stock and prevent entry of quantity greater than the displayed rejected quantity.",
+      "op": "ADDED",
+      "sources": [
+       "I-36",
+       "I-37",
+       "I-38",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "A user opens destruction entry for rejected stock",
+        "when": "the user records destruction",
+        "then": "the request contains destruction date, quantity, and witness fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-19.2",
+        "given": "The entered destruction quantity exceeds the displayed rejected quantity",
+        "when": "the user submits the entry",
+        "then": "the screen shows a validation error and sends no destruction request",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-20",
+      "ears": "The Meridian web app shall identify quality decisions waiting more than four hours as escalated in the Quality Manager's waiting-decisions view.",
+      "op": "ADDED",
+      "sources": [
+       "I-37",
+       "I-38",
+       "ASM-3",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "The service returns a decision waiting more than four hours as escalated",
+        "when": "a Quality Manager opens waiting decisions",
+        "then": "the screen lists the decision and displays its escalated status",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.3333333333333333
+     },
+     {
+      "id": "REQ-21",
+      "ears": "The Meridian web app shall provide a Quality Manager flow to start and close recalls with signed actions, collecting product, one or more lots, reason, and severity for recall start, and display each returned action result.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "Q-6",
+       "I-39",
+       "I-40",
+       "I-41",
+       "ASM-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "A Quality Manager opens recall start",
+        "when": "the manager enters product, lot numbers, reason, severity, and signature",
+        "then": "the recall request contains those values and the screen displays the returned recall result",
+        "level": "ui"
+       },
+       {
+        "id": "AC-21.2",
+        "given": "A Quality Manager closes a recall",
+        "when": "the manager submits the signed close action",
+        "then": "the close request contains the signature and the screen displays the returned close status or error message",
+        "level": "ui"
+       },
+       {
+        "id": "AC-21.3",
+        "given": "A user who is not identified as eligible to manage recalls opens recall management",
+        "when": "recall actions load",
+        "then": "the screen does not display recall start or close actions",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-22",
+      "ears": "The Meridian web app shall display the returned recall trace, including warehouse locations, boxes, routes, customer deliveries, quantities, delivery dates, receivers, and the trace total alongside received quantity when supplied.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "ASM-7",
+       "ASM-12",
+       "I-41",
+       "I-42",
+       "I-43"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "A recall trace response contains affected locations and delivery records",
+        "when": "a Quality Manager opens the trace",
+        "then": "the screen displays each returned warehouse, box, route, customer delivery, quantity, delivery date, and receiver",
+        "level": "ui"
+       },
+       {
+        "id": "AC-22.2",
+        "given": "The service returns trace quantities and the lot's total received quantity",
+        "when": "the user views the trace summary",
+        "then": "the screen displays the returned trace total alongside the received quantity",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-23",
+      "ears": "The Meridian web app shall show customer recall notices in the portal, link notices to affected deliveries, and provide a response entry point.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-4",
+       "ASM-15",
+       "I-41",
+       "I-44"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "The service returns an active recall notice for the signed-in customer's organisation",
+        "when": "the customer opens the portal",
+        "then": "the screen displays the recall notice, its returned status, affected deliveries, and a response entry point",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-24",
+      "ears": "The Meridian web app shall let customers submit per-delivery on-hand, used or dispensed, and destroyed quantities, allow a total below the delivered amount as unaccounted, and reject a total above it.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "I-41",
+       "I-45",
+       "I-46"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "A customer opens a recall response for a delivery",
+        "when": "the customer enters on-hand, used or dispensed, and destroyed quantities",
+        "then": "the response request contains the entered quantity fields for that delivery",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.2",
+        "given": "The reported quantities total less than the delivered quantity",
+        "when": "the customer submits the response",
+        "then": "the screen accepts the values and displays the difference as unaccounted quantity",
+        "level": "ui"
+       },
+       {
+        "id": "AC-24.3",
+        "given": "The reported quantities exceed the delivered quantity",
+        "when": "the customer submits the response",
+        "then": "the screen displays a validation error or returned error message and sends no invalid response request",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The Meridian web app shall show recall progress as the returned percentage accounted for, identify outstanding customers and reminder status when supplied, and let a Quality Manager submit a signed write-off justification for unaccounted quantity.",
+      "op": "ADDED",
+      "sources": [
+       "Q-3",
+       "Q-6",
+       "ASM-15",
+       "I-41",
+       "I-46",
+       "I-47"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "The service returns recall progress and outstanding customers",
+        "when": "a Quality Manager opens recall progress",
+        "then": "the screen displays the accounted percentage and outstanding-customer list",
+        "level": "ui"
+       },
+       {
+        "id": "AC-25.2",
+        "given": "The service returns customer response and reminder statuses",
+        "when": "a user opens recall progress",
+        "then": "the screen displays the returned reminder status",
+        "level": "ui"
+       },
+       {
+        "id": "AC-25.3",
+        "given": "A Quality Manager selects unaccounted quantity for write-off",
+        "when": "the manager submits the write-off",
+        "then": "the request contains a signed justification and the screen displays the returned write-off status or refusal message",
+        "level": "ui"
+       },
+       {
+        "id": "AC-25.4",
+        "given": "A recall has unaccounted quantity without a signed write-off",
+        "when": "a Quality Manager attempts to close the recall",
+        "then": "the screen blocks submission and displays the outstanding quantity or returned close error",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-26",
+      "ears": "The Meridian web app shall show customers only their organisation's current and past orders, allocated lots and expiry dates, order status, and in-transit delivery arrival and temperature status, without exposing other route customers.",
+      "op": "ADDED",
+      "sources": [
+       "Q-2",
+       "ASM-16",
+       "ASM-17",
+       "I-48",
+       "I-49",
+       "I-50"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-26.1",
+        "given": "The service returns orders and delivery data for a customer's organisation and other organisations",
+        "when": "the customer opens the orders page",
+        "then": "the screen lists only that organisation's orders and displays returned status, lots, and expiry dates",
+        "level": "ui"
+       },
+       {
+        "id": "AC-26.2",
+        "given": "The service returns an in-transit delivery with arrival and temperature status",
+        "when": "the customer views the delivery",
+        "then": "the screen displays planned arrival and in-range or out-of-range status and no other customer's identity or delivery details",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-27",
+      "ears": "The Meridian web app shall provide a PDF certificate for each completed delivery with products, lots, expiry dates, quantities, receiver, handover time, each box's temperature chart from sealing to handover, excursions, and signed excursion decisions.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4",
+       "ASM-16",
+       "ASM-18",
+       "I-50"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-27.1",
+        "given": "A completed delivery has a certificate available",
+        "when": "the customer selects certificate download",
+        "then": "the downloaded file is a PDF containing the listed delivery, handover, temperature, excursion, and decision fields",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-28",
+      "ears": "When late readings produce a new certificate version, the Meridian web app shall list the new and earlier versions and keep each available for download.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4",
+       "ASM-18"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-28.1",
+        "given": "The service returns a new certificate version and retains the earlier version",
+        "when": "the customer opens certificate history",
+        "then": "the screen lists both versions and provides a file download link for each",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-29",
+      "ears": "The Meridian web app shall present the customer portal and certificates in the user's selected English or Arabic, render Arabic right to left including tables and charts, and show dates and times in the account's configured time zone.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-6",
+       "ASM-16",
+       "ASM-18",
+       "I-13",
+       "I-15",
+       "I-17",
+       "I-18",
+       "I-19",
+       "I-20",
+       "I-50"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-29.1",
+        "given": "The user selects Arabic",
+        "when": "the portal and a delivery certificate are displayed",
+        "then": "the screen and certificate display Arabic content with right-to-left direction for tables and charts",
+        "level": "ui"
+       },
+       {
+        "id": "AC-29.2",
+        "given": "The user's account has a configured time zone",
+        "when": "the portal displays order or delivery dates and times",
+        "then": "the screen displays the values in that configured time zone",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-30",
+      "ears": "The Meridian web app shall provide an audit-trail screen showing returned entries with actor, time, changed fields, old and new values, and supplied reason, with filters by record, user, date range, and action type and export of the filtered view.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4",
+       "I-13",
+       "I-15",
+       "I-17",
+       "I-18",
+       "I-19",
+       "I-20"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-30.1",
+        "given": "Audit entries are returned for multiple records, users, dates, and action types",
+        "when": "an Auditor opens the audit trail",
+        "then": "the screen displays each entry's actor, time, changed fields, old and new values, and supplied reason",
+        "level": "ui"
+       },
+       {
+        "id": "AC-30.2",
+        "given": "An Auditor selects audit filters",
+        "when": "the filters are applied and the Auditor exports the view",
+        "then": "the screen displays the matching returned list and provides a file containing the filtered view",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-31",
+      "ears": "The Meridian web app shall show the returned history of a lot from receipt through delivery or destruction in time order.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4",
+       "Q-5",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-31.1",
+        "given": "A lot-history response contains receipt, movement, delivery, or destruction events",
+        "when": "an Auditor opens lot history",
+        "then": "the screen displays the returned events in time order",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-32",
+      "ears": "The Meridian web app shall provide on-screen reports for selected date ranges and warehouses, with CSV export of displayed report figures, including the specified excursion, refusal/destruction, delivery, decision-time, expiry, and recall measures.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-2",
+       "ASM-15",
+       "I-50"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-32.1",
+        "given": "The service returns report figures for selected date range and warehouse",
+        "when": "staff open the reports screen",
+        "then": "the screen displays every specified report measure and its returned value",
+        "level": "ui"
+       },
+       {
+        "id": "AC-32.2",
+        "given": "A staff user has warehouse access scope",
+        "when": "the user filters reports and exports them",
+        "then": "the screen offers only in-scope warehouses and the downloaded CSV file contains the displayed filtered figures",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-33",
+      "ears": "The Meridian web app shall provide forms to enter opening lots and stock records and submit them to the service.",
+      "op": "ADDED",
+      "sources": [
+       "I-20",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-33.1",
+        "given": "An authorized staff user opens opening-inventory entry",
+        "when": "the user enters lot and stock details",
+        "then": "the request contains the entered opening lot and stock fields and the screen displays the returned result or error",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.6666666666666666
+     },
+     {
+      "id": "REQ-34",
+      "ears": "The Meridian web app shall make recorded handover signatures and delivery photos available from a delivery record within its seven-year evidence-retention period.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-34.1",
+        "given": "A delivery record within its retention period includes signature and photo evidence",
+        "when": "an authorized user opens the delivery record",
+        "then": "the screen displays the signature and photo fields or their available file links",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-2",
+      "text": "The Meridian web app shall support the latest two browser versions of Chrome, Edge, Safari, and Firefox.",
+      "metric": "100% of primary driver and customer flow acceptance tests pass on the latest 2 released versions of Chrome, Edge, Safari, and Firefox."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

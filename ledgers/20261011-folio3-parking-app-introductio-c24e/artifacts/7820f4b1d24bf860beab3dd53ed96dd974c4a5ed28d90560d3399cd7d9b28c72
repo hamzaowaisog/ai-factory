@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Guard Console — Gate 1 | Folio3 Parking</title>
+<!-- Fonts: Hanken Grotesk (Display/Headlines), Public Sans (Body/Labels), IBM Plex Mono (Codes/Plates/Numbers) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "error-container": "#ffdad6",
+            "tertiary-fixed": "#ffdad4",
+            "surface": "#f7faf7",
+            "error": "#ba1a1a",
+            "on-primary": "#ffffff",
+            "on-tertiary-container": "#ffd7d0",
+            "on-secondary-container": "#4d685f",
+            "on-error": "#ffffff",
+            "inverse-on-surface": "#eef1ee",
+            "primary": "#005645",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "primary-fixed": "#a5f2d9",
+            "background": "#f7faf7",
+            "on-secondary": "#ffffff",
+            "surface-tint": "#186a57",
+            "surface-container": "#ecefeb",
+            "secondary-container": "#c8e6db",
+            "tertiary": "#77392e",
+            "inverse-primary": "#8ad5be",
+            "surface-dim": "#d8dbd8",
+            "surface-container-highest": "#e0e3e0",
+            "secondary": "#49645b",
+            "on-tertiary-fixed": "#3a0a05",
+            "primary-container": "#1f6f5c",
+            "outline": "#6f7975",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-secondary-fixed-variant": "#314c44",
+            "surface-bright": "#f7faf7",
+            "outline-variant": "#bec9c4",
+            "on-error-container": "#93000a",
+            "surface-container-high": "#e6e9e6",
+            "on-surface-variant": "#3f4945",
+            "on-surface": "#181c1b",
+            "primary-fixed-dim": "#8ad5be",
+            "on-secondary-fixed": "#042019",
+            "tertiary-container": "#945044",
+            "on-primary-fixed-variant": "#005141",
+            "secondary-fixed-dim": "#afcdc2",
+            "on-tertiary": "#ffffff",
+            "on-background": "#181c1b",
+            "surface-container-low": "#f1f4f1",
+            "secondary-fixed": "#cbe9dd",
+            "on-primary-fixed": "#002019",
+            "on-primary-container": "#a3efd7",
+            "surface-variant": "#e0e3e0",
+            "surface-container-lowest": "#ffffff",
+            "inverse-surface": "#2d312f"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: linear(0,0.009,0.035 2.1%,0.141,0.281 6.7%,0.723 12.9%,0.938 16.7%,1.017,1.077 21.4%,1.121 24%,1.149 27%,1.159,1.154 33%,1.051 43.2%,1.013 49.5%,0.996 57%,1.001 72%,1);
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.92); }
+    }
+    .live-dot {
+      animation: live-breathe 4s ease-in-out infinite;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .btn-press:active {
+      transform: scale(0.97);
+      transition: transform var(--dur-instant) var(--ease-out);
+    }
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      background-color: #FFFFFF;
+      color: #18181B;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.04em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      background-color: #FFFFFF;
+      color: #1F6F5C;
+    }
+    .tabular {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- ==================== TOP NAVIGATION BAR ==================== -->
+<header class="bg-surface-container-lowest border-b border-outline-variant w-full sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-6 h-16 max-w-7xl mx-auto">
+<!-- Brand & Terminal Indicator -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container text-on-primary flex items-center justify-center font-headline font-bold text-base shadow-sm">
+            F3
+          </div>
+<div>
+<span class="font-headline font-bold text-lg text-on-surface tracking-tight block leading-tight">Folio3 Parking</span>
+<span class="text-xs text-on-surface-variant font-mono tracking-tight block">Terminal v2.4 · Guard Engine</span>
+</div>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant hidden sm:block"></div>
+<!-- Station Context Badge -->
+<div class="hidden lg:flex items-center gap-2 bg-surface-container-low px-2.5 py-1 rounded border border-outline-variant">
+<span class="material-symbols-outlined text-secondary">tune</span>
+<span class="text-xs font-medium text-on-surface">Gate 1 Console — Inbound Barrier</span>
+</div>
+</div>
+<!-- Navigation Links (Contextual Guard active) -->
+<nav class="hidden md:flex items-center gap-1 h-full">
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3.5 text-sm transition-colors duration-150" href="#">
+          Dashboard
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3.5 text-sm transition-colors duration-150" href="#">
+          Claim Space
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface font-medium h-full flex items-center px-3.5 text-sm transition-colors duration-150" href="#">
+          Release
+        </a>
+<!-- Active Guard Console Tab -->
+<a class="text-primary border-b-2 border-primary font-medium h-full flex items-center px-3.5 text-sm bg-surface-container-low/50" href="#">
+          Guard Console
+        </a>
+</nav>
+<!-- Trailing Controls & Guard Shift Badge -->
+<div class="flex items-center gap-3">
+<!-- Emergency Gate Controls -->
+<div class="flex items-center gap-1.5 mr-1">
+<button class="btn-press flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded border border-outline text-on-surface hover:bg-surface-container-high transition-colors" id="gateHoldBtn" onclick="toggleBarrierHold()" title="Lock barrier open or normal">
+<span class="material-symbols-outlined text-[16px] text-tertiary">lock_open</span>
+<span id="gateHoldText">Barrier Auto</span>
+</button>
+<button class="btn-press flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded border border-error/40 text-error hover:bg-error-container/30 transition-colors" onclick="triggerEmergencyFlash()" title="Emergency Protocol">
+<span class="material-symbols-outlined text-[16px]">emergency</span>
+<span>Manual Raise</span>
+</button>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant"></div>
+<!-- Security Guard Identification Badge -->
+<div class="flex items-center gap-2.5 pl-1">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center font-mono text-xs font-semibold text-on-surface">
+            TM
+          </div>
+<div class="text-left hidden sm:block">
+<p class="text-xs font-semibold text-on-surface leading-tight">Tariq Mehmood</p>
+<p class="text-[11px] text-on-surface-variant leading-none">Shift A · Gate 1</p>
+</div>
+</div>
+<!-- Quick actions from shared json -->
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface rounded hover:bg-surface-container" title="Notifications">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface rounded hover:bg-surface-container" title="Help &amp; Support">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</div>
+</header>
+<!-- ==================== MAIN CONTENT CANVAS ==================== -->
+<main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+<!-- 1) SYSTEM HEALTH BAR (Full-width operational status bar) -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant shadow-none overflow-hidden">
+<div class="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+<!-- Health Indicators -->
+<div class="flex flex-wrap items-center gap-4 text-on-surface">
+<div class="flex items-center gap-2 font-medium">
+<span class="w-2.5 h-2.5 rounded-full bg-[#2F7D4A] live-dot"></span>
+<span class="text-on-surface-variant">Camera:</span>
+<span class="font-semibold text-on-surface" id="cameraStatusText">Online</span>
+</div>
+<span class="text-outline-variant hidden sm:inline">·</span>
+<div class="flex items-center gap-2 font-medium">
+<span class="w-2.5 h-2.5 rounded-full bg-[#2F7D4A] live-dot"></span>
+<span class="text-on-surface-variant">Authorization service:</span>
+<span class="font-semibold text-on-surface">Online</span>
+</div>
+<span class="text-outline-variant hidden sm:inline">·</span>
+<div class="flex items-center gap-2 font-medium">
+<span class="w-2.5 h-2.5 rounded-full bg-[#2F7D4A] live-dot"></span>
+<span class="text-on-surface-variant">Gate indicator:</span>
+<span class="font-semibold text-on-surface" id="gateIndicatorStatus">Online</span>
+</div>
+</div>
+<!-- Date & Time + Hardware Latency / Sync Status -->
+<div class="flex items-center gap-4 text-on-surface-variant font-mono tabular ml-auto">
+<div class="flex items-center gap-1.5 bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant">
+<span class="material-symbols-outlined text-[15px] text-primary">schedule</span>
+<span class="font-medium text-on-surface" id="clockDisplay">Tue 10 Jun 2025, office time 08:21 PKT</span>
+</div>
+<div class="hidden md:flex items-center gap-2 text-[11px] text-on-surface-variant">
+<span>Barrier Controller: <strong class="text-on-surface font-mono font-normal">Ready</strong></span>
+<span>·</span>
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> ANPR LPR-01 Active</span>
+</div>
+<!-- Outage Toggle Trigger (Interactive Demonstration Switcher) -->
+<button class="btn-press ml-2 text-[11px] font-body font-medium px-2.5 py-1 rounded border border-outline text-on-surface bg-surface-container hover:bg-surface-container-high transition-colors" onclick="toggleCameraOutageDemo()" title="Toggle camera failure simulator">
+<span id="toggleDemoBtnText">Simulate Camera Outage</span>
+</button>
+</div>
+</div>
+<!-- Outage Banner (Toggled by guard or simulator) -->
+<div class="hidden bg-[#FBEAE8] border-t-2 border-[#B42318] px-5 py-3 transition-all duration-200" id="outageBanner">
+<div class="flex items-start sm:items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-[#ffdad6] text-[#B42318] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-semibold text-xs text-[#B42318] uppercase tracking-wider font-label">Outage event recorded</span>
+<span class="text-[11px] font-mono px-1.5 py-0.2 rounded bg-[#ffdad6] text-[#B42318] border border-[#B42318]/20">ERR-CAM-01</span>
+</div>
+<p class="text-xs text-[#18181B] mt-0.5">
+                Camera offline since 08:25 — no automated authorization, green indicator disabled. Outage event recorded.
+              </p>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="btn-press bg-[#B42318] text-on-error text-xs font-medium px-3 py-1.5 rounded hover:bg-[#921a11] transition-colors" onclick="openManualPlatePrompt()">
+              Manual Plate Bypass
+            </button>
+<button class="text-xs text-on-surface-variant hover:text-on-surface underline px-1" onclick="toggleCameraOutageDemo()">
+              Dismiss
+            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- 2) LATEST DETECTION CARD (High-visibility verification card for guard decision-making) -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<!-- Section Header with Meta -->
+<div class="px-6 py-3 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<h2 class="font-headline font-semibold text-sm tracking-tight text-on-surface">Latest Vehicle Detection (LPR Camera 01)</h2>
+<span class="text-xs font-mono text-on-surface-variant">Captured at 08:21:05 PKT</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[11px] font-mono text-on-surface-variant">Confidence: 99.4% ANPR</span>
+<button class="btn-press text-xs font-medium text-secondary hover:text-primary flex items-center gap-1" onclick="refreshDetectionFeed()">
+<span class="material-symbols-outlined text-[15px]">refresh</span>
+<span>Retake Scan</span>
+</button>
+</div>
+</div>
+<div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+<!-- Left: High Visibility License Plate & Vehicle Specs (Cols 1–5) -->
+<div class="lg:col-span-5 space-y-3">
+<div class="text-[11px] font-label font-semibold uppercase tracking-wider text-on-surface-variant">
+            Detected License Plate
+          </div>
+<!-- Large Plate Chip (Signature Element) -->
+<div class="flex items-center gap-3">
+<div class="plate-chip px-5 py-2.5 shadow-sm inline-flex items-center gap-4" id="latestPlateBox">
+<div class="flex flex-col text-left border-r border-[#18181B]/30 pr-3">
+<span class="text-[9px] font-mono font-semibold tracking-widest text-[#18181B]/70 leading-none">PAK</span>
+<span class="text-[10px] font-mono font-bold text-[#18181B] leading-tight">ICT</span>
+</div>
+<span class="text-3xl font-mono font-bold tracking-widest text-[#18181B]" id="plateNumberDisplay">BKX-482</span>
+</div>
+<!-- Barrier Signal Badge -->
+<div class="flex flex-col items-center justify-center bg-[#E6F0ED] border border-primary-container px-3 py-1.5 rounded" id="barrierReadyBadge">
+<span class="text-[10px] font-label font-semibold text-primary uppercase tracking-wider">Barrier Status</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="w-2.5 h-2.5 rounded-full bg-[#2F7D4A] live-dot"></span>
+<span class="text-xs font-mono font-bold text-[#2F7D4A]" id="barrierReadySignal">Ready</span>
+</div>
+</div>
+</div>
+<!-- Vehicle Attributes Tag -->
+<div class="flex items-center gap-2 text-xs text-on-surface-variant pt-1">
+<span class="material-symbols-outlined text-[17px] text-secondary">directions_car</span>
+<span class="font-medium text-on-surface">Toyota Corolla</span>
+<span class="text-outline-variant">·</span>
+<span class="inline-flex items-center gap-1">
+<span class="w-3 h-3 rounded-full bg-white border border-outline-variant inline-block"></span>
+<span>White</span>
+</span>
+<span class="text-outline-variant">·</span>
+<span class="font-mono text-[11px] bg-surface-container px-1.5 py-0.5 rounded text-on-surface">RFID: #RF-9940</span>
+</div>
+</div>
+<!-- Middle: Authorization Details & Bay Allocation (Cols 6–8) -->
+<div class="lg:col-span-4 border-t lg:border-t-0 lg:border-l border-outline-variant pt-4 lg:pt-0 lg:pl-6 space-y-2">
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-label font-semibold uppercase tracking-wider text-on-surface-variant">Authorization Clearance</span>
+<!-- Activated Status Indicator -->
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#E6F0ED] text-[#1F6F5C] border border-[#1F6F5C]/30" id="statusIndicatorChip">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2F7D4A]"></span>
+<span id="statusIndicatorText">Activated</span>
+</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-on-surface" id="authSummary">
+              Authorized — temporary claim for 10 Jun 2025
+            </p>
+<div class="mt-2 space-y-1 text-xs text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[15px] text-outline">badge</span>
+<span>Driver: <strong class="text-on-surface font-medium">Bilal Ahmed</strong></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[15px] text-outline">domain</span>
+<span>Department: <span class="text-on-surface">Software Engineering</span></span>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<span class="material-symbols-outlined text-[15px] text-primary">local_parking</span>
+<span>Designated Bay:</span>
+<!-- Space Chip (Signature Element) -->
+<span class="space-chip px-2 py-0.5 font-bold text-xs inline-block ml-1">
+                  B1-03
+                </span>
+<span class="text-[11px] text-on-surface-variant font-mono">(Basement 1, Zone B)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Primary Guard Actions & Override (Cols 9–12) -->
+<div class="lg:col-span-3 border-t lg:border-t-0 lg:border-l border-outline-variant pt-4 lg:pt-0 lg:pl-6 flex flex-col justify-center space-y-2.5">
+<div class="text-[11px] font-label font-semibold uppercase tracking-wider text-on-surface-variant mb-0.5">
+            Guard Verification Decision
+          </div>
+<!-- Vehicle Entered (Primary Action) -->
+<button class="btn-press w-full h-11 bg-primary-container text-on-primary hover:bg-[#195C4C] rounded font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition-colors duration-150" id="btnVehicleEntered" onclick="recordDecision('Entered')">
+<span class="material-symbols-outlined text-[19px]">check_circle</span>
+<span>Vehicle entered</span>
+</button>
+<!-- Did Not Enter (Secondary Outline) -->
+<button class="btn-press w-full h-10 bg-surface-container-lowest text-on-surface border border-outline hover:bg-surface-container rounded font-medium text-xs flex items-center justify-center gap-2 transition-colors duration-150" id="btnDidNotEnter" onclick="recordDecision('Did not enter')">
+<span class="material-symbols-outlined text-[17px] text-tertiary">cancel</span>
+<span>Did not enter</span>
+</button>
+<!-- Quick Secondary Options: Override / Flag -->
+<div class="flex items-center justify-between pt-1 text-[11px]">
+<button class="text-secondary hover:text-primary underline flex items-center gap-0.5" onclick="openManualOverrideModal()">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+<span>Manual Override</span>
+</button>
+<button class="text-error hover:underline flex items-center gap-0.5" onclick="flagVehicleForInspection()">
+<span class="material-symbols-outlined text-[14px]">flag</span>
+<span>Flag Vehicle</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Action Confirmation Toast Bar (Revealed when clicked) -->
+<div class="hidden bg-[#E6F0ED] border-t border-[#1F6F5C]/40 px-6 py-2.5 text-xs text-[#1F6F5C] flex items-center justify-between" id="decisionNotification">
+<div class="flex items-center gap-2 font-medium">
+<span class="material-symbols-outlined text-[17px]">task_alt</span>
+<span id="decisionNotificationText">Entry recorded for BKX-482. Inbound barrier opened automatically.</span>
+</div>
+<span class="text-[11px] font-mono text-on-surface-variant">Sync: 18ms to Folio3 Core</span>
+</div>
+</section>
+<!-- 3) ATTEMPT LOG TABLE -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<!-- Table Header & Filter Tabs -->
+<div class="px-6 py-3.5 bg-surface-container-lowest border-b border-outline-variant flex flex-wrap items-center justify-between gap-3">
+<div>
+<h3 class="font-headline font-semibold text-sm text-on-surface">Gate 1 Attempt Log</h3>
+<p class="text-xs text-on-surface-variant">Sequential ANPR scans, sticker recognitions, and guard validations</p>
+</div>
+<!-- Filter Segmented Tabs -->
+<div class="flex items-center border border-outline-variant rounded p-0.5 bg-surface-container-low text-xs">
+<button class="px-3 py-1 font-medium rounded bg-surface-container-lowest text-on-surface shadow-xs transition-colors" id="tab-all" onclick="filterLogs('all')">
+            All Attempts (4)
+          </button>
+<button class="px-3 py-1 font-medium text-on-surface-variant hover:text-on-surface transition-colors" id="tab-auth" onclick="filterLogs('authorized')">
+            Authorized
+          </button>
+<button class="px-3 py-1 font-medium text-on-surface-variant hover:text-on-surface transition-colors" id="tab-unverified" onclick="filterLogs('unverified')">
+            Unverified / Flagged
+          </button>
+<button class="px-3 py-1 font-medium text-on-surface-variant hover:text-on-surface transition-colors" id="tab-manual" onclick="filterLogs('manual')">
+            Manual Overrides
+          </button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant text-[12px] font-label font-semibold uppercase tracking-wider text-on-surface-variant">
+<th class="py-3 px-6">Time</th>
+<th class="py-3 px-6">Detected plate</th>
+<th class="py-3 px-6">Type</th>
+<th class="py-3 px-6">Result</th>
+<th class="py-3 px-6 text-right">Actual entry</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-sm font-body" id="attemptTableBody">
+<!-- Row 1: BKX-482 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors duration-150 log-row" data-cat="authorized">
+<td class="py-3 px-6 font-mono text-xs tabular text-on-surface-variant whitespace-nowrap">
+                08:21:05
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="plate-chip px-2.5 py-0.5 text-xs font-semibold inline-block">BKX-482</span>
+</td>
+<td class="py-3 px-6 text-xs text-on-surface whitespace-nowrap">
+                Temporary
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2F7D4A]"></span>
+                  Authorized
+                </span>
+</td>
+<td class="py-3 px-6 text-right whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#E6F0ED] text-[#2F7D4A] border border-[#2F7D4A]/20">
+                  Entered
+                </span>
+</td>
+</tr>
+<!-- Row 2: LEB-22-1904 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors duration-150 log-row" data-cat="manual">
+<td class="py-3 px-6 font-mono text-xs tabular text-on-surface-variant whitespace-nowrap">
+                08:18:40
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="plate-chip px-2.5 py-0.5 text-xs font-semibold inline-block">LEB-22-1904</span>
+</td>
+<td class="py-3 px-6 text-xs text-on-surface whitespace-nowrap">
+                Permanent sticker
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-[#9A6700]"></span>
+                  Bypassed — recorded as utilized
+                </span>
+</td>
+<td class="py-3 px-6 text-right font-mono text-on-surface-variant whitespace-nowrap">
+                —
+              </td>
+</tr>
+<!-- Row 3: Unreadable (Flagged Alert Styling) -->
+<tr class="bg-[#FBEAE8]/40 hover:bg-[#FBEAE8]/70 transition-colors duration-150 border-l-2 border-[#B42318] log-row" data-cat="unverified">
+<td class="py-3 px-6 font-mono text-xs tabular text-on-surface-variant whitespace-nowrap">
+                08:15:12
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold bg-[#ffdad6] text-[#B42318] border border-[#B42318]/30">
+<span class="material-symbols-outlined text-[14px]">help_center</span>
+                  Unreadable
+                </span>
+</td>
+<td class="py-3 px-6 text-xs text-on-surface whitespace-nowrap">
+                Temporary
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B42318]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#B42318]"></span>
+                  No automated authorization
+                </span>
+</td>
+<td class="py-3 px-6 text-right whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-[#B42318] bg-white border border-[#B42318]/30">
+                  Did not enter
+                </span>
+</td>
+</tr>
+<!-- Row 4: KHI-5531 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors duration-150 log-row" data-cat="unverified">
+<td class="py-3 px-6 font-mono text-xs tabular text-on-surface-variant whitespace-nowrap">
+                08:12:30
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="plate-chip px-2.5 py-0.5 text-xs font-semibold inline-block">KHI-5531</span>
+</td>
+<td class="py-3 px-6 text-xs text-on-surface whitespace-nowrap">
+                Temporary
+              </td>
+<td class="py-3 px-6 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-xs text-[#9A6700]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#9A6700]"></span>
+                  Not verified — no claim today
+                </span>
+</td>
+<td class="py-3 px-6 text-right whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-container text-on-surface-variant border border-outline-variant">
+                  Pending
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Summary -->
+<div class="px-6 py-2.5 bg-surface-container-low border-t border-outline-variant flex items-center justify-between text-xs text-on-surface-variant">
+<span>Showing latest 4 scans for Shift A</span>
+<div class="flex items-center gap-4">
+<span class="font-mono tabular">Barrier cycle counter: <strong class="text-on-surface">142 today</strong></span>
+<button class="text-secondary hover:text-primary hover:underline font-medium flex items-center gap-1" onclick="exportLogsCSV()">
+<span class="material-symbols-outlined text-[14px]">download</span>
+            Export log
+          </button>
+</div>
+</div>
+</section>
+<!-- 4) OPERATIONAL NOTE -->
+<section>
+<div class="bg-surface-container-low border-l-4 border-primary-container rounded-r-lg p-4 border-y border-r border-outline-variant">
+<div class="flex items-start gap-3">
+<div class="p-1 rounded bg-secondary-container text-on-secondary-container shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</div>
+<div class="text-xs space-y-1">
+<h4 class="font-semibold text-on-surface text-sm">Security Guard Operational Protocol Note</h4>
+<p class="text-on-surface leading-relaxed">
+<strong class="font-semibold">Motorcycles and pedestrians are ignored</strong> by ANPR cameras and inbound barriers at Gate 1. All two-wheelers must proceed via Dedicated Lane 3 with physical guard verification.
+            </p>
+<p class="text-on-surface-variant leading-relaxed">
+              In case of plate glare or obscured digits, use <span class="font-mono text-on-surface">Manual Override</span> rather than raising the gate blindly. Every manual gate activation is audited and tagged to badge Tariq Mehmood.
+            </p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- ==================== MANUAL PLATE BYPASS MODAL ==================== -->
+<div class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" id="manualBypassModal">
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant shadow-lg max-w-md w-full p-6 space-y-4">
+<div class="flex items-center justify-between border-b border-outline-variant pb-3">
+<h3 class="font-headline font-semibold text-base text-on-surface">Manual Plate Clearance</h3>
+<button class="text-on-surface-variant hover:text-on-surface" onclick="closeManualPlatePrompt()">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-3">
+<div>
+<label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Enter Vehicle Plate</label>
+<input class="w-full h-10 px-3 uppercase font-mono text-sm bg-surface-container-lowest border border-outline rounded focus:border-primary-container focus:ring-2 focus:ring-secondary-container outline-none" id="manualPlateInput" placeholder="e.g. ABC-1234" type="text"/>
+</div>
+<div>
+<label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Reason for Manual Clearance</label>
+<select class="w-full h-10 px-3 text-xs bg-surface-container-lowest border border-outline rounded focus:border-primary-container focus:ring-2 focus:ring-secondary-container outline-none" id="manualReasonSelect">
+<option>Camera lens obstructed / rainy glare</option>
+<option>Visitor with pre-cleared physical pass</option>
+<option>Temporary commercial vehicle / vendor</option>
+<option>Emergency supervisor override</option>
+</select>
+</div>
+</div>
+<div class="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant">
+<button class="btn-press px-4 py-2 text-xs font-medium border border-outline rounded text-on-surface hover:bg-surface-container" onclick="closeManualPlatePrompt()">
+          Cancel
+        </button>
+<button class="btn-press px-4 py-2 text-xs font-medium bg-primary-container text-on-primary rounded hover:bg-[#195C4C]" onclick="submitManualPlate()">
+          Verify &amp; Raise Barrier
+        </button>
+</div>
+</div>
+</div>
+<!-- Inline Micro-interactions & Functional Scripting -->
+<script>
+    let isCameraOutage = false;
+    let barrierHeldOpen = false;
+
+    // Toggle Camera Outage Simulation
+    function toggleCameraOutageDemo() {
+      isCameraOutage = !isCameraOutage;
+      const banner = document.getElementById('outageBanner');
+      const cameraStatus = document.getElementById('cameraStatusText');
+      const gateIndicator = document.getElementById('gateIndicatorStatus');
+      const statusIndicatorChip = document.getElementById('statusIndicatorChip');
+      const statusIndicatorText = document.getElementById('statusIndicatorText');
+      const barrierBadge = document.getElementById('barrierReadySignal');
+      const demoBtnText = document.getElementById('toggleDemoBtnText');
+
+      if (isCameraOutage) {
+        banner.classList.remove('hidden');
+        cameraStatus.textContent = 'Offline (Err 08:25)';
+        cameraStatus.className = 'font-semibold text-error';
+        gateIndicator.textContent = 'Standby (Manual)';
+        gateIndicator.className = 'font-semibold text-[#9A6700]';
+
+        statusIndicatorChip.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#FBEAE8] text-[#B42318] border border-[#B42318]/30';
+        statusIndicatorText.textContent = 'Disabled (Camera Down)';
+
+        barrierBadge.textContent = 'Manual Only';
+        barrierBadge.className = 'text-xs font-mono font-bold text-[#B42318]';
+
+        demoBtnText.textContent = 'Restore Camera Online';
+      } else {
+        banner.classList.add('hidden');
+        cameraStatus.textContent = 'Online';
+        cameraStatus.className = 'font-semibold text-on-surface';
+        gateIndicator.textContent = 'Online';
+        gateIndicator.className = 'font-semibold text-on-surface';
+
+        statusIndicatorChip.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#E6F0ED] text-[#1F6F5C] border border-[#1F6F5C]/30';
+        statusIndicatorText.textContent = 'Activated';
+
+        barrierBadge.textContent = 'Ready';
+        barrierBadge.className = 'text-xs font-mono font-bold text-[#2F7D4A]';
+
+        demoBtnText.textContent = 'Simulate Camera Outage';
+      }
+    }
+
+    // Barrier Hold Toggle
+    function toggleBarrierHold() {
+      barrierHeldOpen = !barrierHeldOpen;
+      const btn = document.getElementById('gateHoldBtn');
+      const text = document.getElementById('gateHoldText');
+      if (barrierHeldOpen) {
+        btn.classList.add('bg-secondary-container', 'text-on-secondary-container', 'border-primary-container');
+        text.textContent = 'Barrier Held Open';
+      } else {
+        btn.classList.remove('bg-secondary-container', 'text-on-secondary-container', 'border-primary-container');
+        text.textContent = 'Barrier Auto';
+      }
+    }
+
+    // Emergency Raise Flash
+    function triggerEmergencyFlash() {
+      const toast = document.getElementById('decisionNotification');
+      const toastText = document.getElementById('decisionNotificationText');
+      toast.classList.remove('hidden');
+      toastText.textContent = 'EMERGENCY OVERRIDE: Barrier Gate 1 raised manually by Tariq Mehmood.';
+      toast.className = 'bg-[#FBEAE8] border-t border-[#B42318] px-6 py-2.5 text-xs text-[#B42318] flex items-center justify-between';
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Record Entry or Did Not Enter decision
+    function recordDecision(action) {
+      const toast = document.getElementById('decisionNotification');
+      const toastText = document.getElementById('decisionNotificationText');
+      toast.classList.remove('hidden');
+      
+      if (action === 'Entered') {
+        toast.className = 'bg-[#E6F0ED] border-t border-[#1F6F5C]/40 px-6 py-2.5 text-xs text-[#1F6F5C] flex items-center justify-between';
+        toastText.textContent = 'Confirmed: Vehicle BKX-482 entered. Clearance logged to Basement 1, Zone B.';
+      } else {
+        toast.className = 'bg-surface-container-high border-t border-outline px-6 py-2.5 text-xs text-on-surface flex items-center justify-between';
+        toastText.textContent = 'Recorded: Vehicle BKX-482 did not enter. Gate barrier kept closed.';
+      }
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4500);
+    }
+
+    // Filter table logs
+    function filterLogs(category) {
+      const rows = document.querySelectorAll('.log-row');
+      const tabs = ['tab-all', 'tab-auth', 'tab-unverified', 'tab-manual'];
+      
+      tabs.forEach(id => {
+        const el = document.getElementById(id);
+        el.className = 'px-3 py-1 font-medium text-on-surface-variant hover:text-on-surface transition-colors';
+      });
+
+      if (category === 'all') {
+        document.getElementById('tab-all').className = 'px-3 py-1 font-medium rounded bg-surface-container-lowest text-on-surface shadow-xs transition-colors';
+        rows.forEach(r => r.style.display = '');
+      } else if (category === 'authorized') {
+        document.getElementById('tab-auth').className = 'px-3 py-1 font-medium rounded bg-surface-container-lowest text-on-surface shadow-xs transition-colors';
+        rows.forEach(r => {
+          r.style.display = (r.getAttribute('data-cat') === 'authorized') ? '' : 'none';
+        });
+      } else if (category === 'unverified') {
+        document.getElementById('tab-unverified').className = 'px-3 py-1 font-medium rounded bg-surface-container-lowest text-on-surface shadow-xs transition-colors';
+        rows.forEach(r => {
+          r.style.display = (r.getAttribute('data-cat') === 'unverified') ? '' : 'none';
+        });
+      } else if (category === 'manual') {
+        document.getElementById('tab-manual').className = 'px-3 py-1 font-medium rounded bg-surface-container-lowest text-on-surface shadow-xs transition-colors';
+        rows.forEach(r => {
+          r.style.display = (r.getAttribute('data-cat') === 'manual') ? '' : 'none';
+        });
+      }
+    }
+
+    // Modal helpers
+    function openManualPlatePrompt() {
+      document.getElementById('manualBypassModal').classList.remove('hidden');
+    }
+    function closeManualPlatePrompt() {
+      document.getElementById('manualBypassModal').classList.add('hidden');
+    }
+    function openManualOverrideModal() {
+      openManualPlatePrompt();
+    }
+    function submitManualPlate() {
+      const plate = document.getElementById('manualPlateInput').value.trim() || 'MANUAL-ENTRY';
+      closeManualPlatePrompt();
+      const toast = document.getElementById('decisionNotification');
+      const toastText = document.getElementById('decisionNotificationText');
+      toast.classList.remove('hidden');
+      toast.className = 'bg-[#E6F0ED] border-t border-[#1F6F5C]/40 px-6 py-2.5 text-xs text-[#1F6F5C] flex items-center justify-between';
+      toastText.textContent = `Manual override approved for plate ${plate}. Barrier actuated.`;
+      setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+    }
+    function flagVehicleForInspection() {
+      const toast = document.getElementById('decisionNotification');
+      const toastText = document.getElementById('decisionNotificationText');
+      toast.classList.remove('hidden');
+      toast.className = 'bg-[#FBEAE8] border-t border-[#B42318] px-6 py-2.5 text-xs text-[#B42318] flex items-center justify-between';
+      toastText.textContent = 'Vehicle BKX-482 flagged for inspection. Ground security notified.';
+      setTimeout(() => { toast.classList.add('hidden'); }, 4500);
+    }
+    function refreshDetectionFeed() {
+      const plateDisplay = document.getElementById('plateNumberDisplay');
+      plateDisplay.style.opacity = '0.3';
+      setTimeout(() => {
+        plateDisplay.style.opacity = '1';
+      }, 250);
+    }
+    function exportLogsCSV() {
+      alert('Exporting Gate 1 CSV Attempt Log for Tue 10 Jun 2025.');
+    }
+  </script>
+</body></html>

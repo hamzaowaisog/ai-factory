@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement the Meridian API operations and behavior defined in the OpenAPI contract, including its paths, methods, parameters, schemas, status codes, security, authorization, and filters, without adding uncontracted behavior."
+     },
+     {
+      "n": 2,
+      "text": "Persist business-data records created or changed by contract operations in the PostgreSQL database configured by `ConnectionStrings:App`."
+     },
+     {
+      "n": 3,
+      "text": "When `Seed:Demo` is true, seed each empty contract-backed table with two to five example-based rows, ensure related references resolve, and leave nonempty tables unchanged."
+     },
+     {
+      "n": 4,
+      "text": "Ensure `SeedData.Run` seeds at least two example-based rows in every database table, with related references resolving to existing rows."
+     },
+     {
+      "n": 5,
+      "text": "When `Seed:Demo` is false or unset, do not run the demo seeder or create demo rows."
+     },
+     {
+      "n": 6,
+      "text": "For collection operations with no matching persisted records, return a successful empty list without inserting or returning unpersisted sample records."
+     },
+     {
+      "n": 7,
+      "text": "Use the existing staff identity provider configured with deployment-provided authorization URL and token-validation settings; return the configured URL from the contracted authorization-URL operation and validate staff tokens using those settings."
+     },
+     {
+      "n": 8,
+      "text": "Fail application startup with an error identifying the affected setting if a required staff identity-provider authorization URL or token-validation setting is missing or invalid."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

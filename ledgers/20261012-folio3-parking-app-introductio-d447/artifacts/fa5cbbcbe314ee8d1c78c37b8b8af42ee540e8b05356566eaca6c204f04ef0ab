@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bay Control — Register First Vehicle</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Public+Sans:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#2b1700",
+            "on-secondary-fixed-variant": "#254b5c",
+            "on-primary": "#003547",
+            "secondary-fixed-dim": "#a6cce1",
+            "on-error-container": "#ffdad6",
+            "tertiary-fixed-dim": "#ffb963",
+            "primary-container": "#2ba8d6",
+            "outline-variant": "#3e484e",
+            "inverse-primary": "#006686",
+            "secondary": "#a6cce1",
+            "surface-container-lowest": "#0a0f12",
+            "surface-container-high": "#262b2e",
+            "surface-container-highest": "#303539",
+            "tertiary": "#ffb963",
+            "primary-fixed-dim": "#6ed2ff",
+            "on-secondary-fixed": "#001f2b",
+            "surface": "#0f1417",
+            "on-tertiary-fixed-variant": "#663e00",
+            "primary-fixed": "#bfe8ff",
+            "primary": "#6ed2ff",
+            "on-tertiary-container": "#4d2d00",
+            "on-primary-container": "#00394c",
+            "on-tertiary": "#472a00",
+            "tertiary-container": "#d68d29",
+            "outline": "#889299",
+            "inverse-surface": "#dfe3e7",
+            "tertiary-fixed": "#ffddb9",
+            "surface-container": "#1b2023",
+            "on-primary-fixed-variant": "#004d65",
+            "surface-variant": "#303539",
+            "on-surface": "#dfe3e7",
+            "surface-bright": "#353a3d",
+            "on-secondary-container": "#95bacf",
+            "secondary-container": "#254b5c",
+            "background": "#0f1417",
+            "error": "#ffb4ab",
+            "error-container": "#93000a",
+            "on-secondary": "#093545",
+            "secondary-fixed": "#c2e8fd",
+            "surface-tint": "#6ed2ff",
+            "on-primary-fixed": "#001f2b",
+            "on-surface-variant": "#bdc8cf",
+            "on-error": "#690005",
+            "on-background": "#dfe3e7",
+            "surface-container-low": "#171c1f",
+            "surface-dim": "#0f1417",
+            "inverse-on-surface": "#2c3134",
+            /* Design System precise tokens */
+            "deep-bay": "#0A1013",
+            "bay-panel": "#0F181C",
+            "bay-lift": "#152227",
+            "bay-cyan": "#2BA8D6",
+            "signal-ink": "#E3ECEF",
+            "instrument-grey": "#8B9CA3",
+            "dim-grey": "#56676E",
+            "status-clear": "#3FB57A"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "sm": "0.125rem",
+            "md": "0.25rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["IBM Plex Sans", "sans-serif"],
+            "display": ["IBM Plex Sans", "sans-serif"],
+            "body": ["IBM Plex Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: 8px;
+      --bay-cyan: #2BA8D6;
+      --deep-bay: #0A1013;
+      --bay-panel: #0F181C;
+      --bay-lift: #152227;
+      --hairline: rgba(196, 228, 240, 0.09);
+      --hairline-strong: rgba(196, 228, 240, 0.18);
+    }
+
+    /* Ambient breathing ring on live telemetry dot */
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.95;
+      }
+      50% {
+        transform: scale(1.25);
+        opacity: 0.4;
+      }
+    }
+
+    .live-dot-pulse {
+      position: relative;
+    }
+    .live-dot-pulse::after {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: 9999px;
+      border: 1px solid var(--bay-cyan);
+      animation: breathe 6s var(--ease-inout) infinite;
+      pointer-events: none;
+    }
+
+    /* Staggered entrance sequence */
+    @keyframes rise-in {
+      from {
+        opacity: 0;
+        transform: translateY(var(--travel));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .seq-0 {
+      animation: rise-in var(--dur-slow) var(--ease-out) 0ms both;
+    }
+    .seq-1 {
+      animation: rise-in var(--dur-slow) var(--ease-out) 70ms both;
+    }
+    .seq-2 {
+      animation: rise-in var(--dur-slow) var(--ease-out) 140ms both;
+    }
+    .seq-3 {
+      animation: rise-in var(--dur-slow) var(--ease-out) 210ms both;
+    }
+
+    /* Tabular mono inputs */
+    .mono-plate-input {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Subtle hair-rule border utility */
+    .hairline-border {
+      border: 1px solid var(--hairline);
+    }
+    .hairline-strong-border {
+      border: 1px solid var(--hairline-strong);
+    }
+
+    /* Bay stencil badge top border */
+    .stencil-indicator {
+      border-top: 3px solid var(--bay-cyan);
+    }
+
+    /* Focus and active transitions */
+    .instrument-input {
+      transition: border-color var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
+    }
+    .instrument-input:focus {
+      outline: none;
+      border-color: var(--bay-cyan);
+      box-shadow: 0 0 0 2px rgba(43, 168, 214, 0.25);
+    }
+
+    .btn-action {
+      transition: background-color var(--dur-quick) var(--ease-out), transform var(--dur-instant) var(--ease-out), opacity var(--dur-quick) var(--ease-out);
+    }
+    .btn-action:hover {
+      background-color: #3bb8e6;
+    }
+    .btn-action:active {
+      transform: scale(0.98);
+      background-color: #2497c2;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, .live-dot-pulse::after, .seq-0, .seq-1, .seq-2, .seq-3, .btn-action {
+        animation: none !important;
+        transition: opacity 120ms linear !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-deep-bay text-signal-ink font-body min-h-screen antialiased flex flex-col justify-between selection:bg-primary-container selection:text-deep-bay">
+<!-- TOP STRIP: Header utility bar (Full width container, max-w-[1400px], no generic nav links) -->
+<header class="w-full bg-deep-bay border-b border-[rgba(196,228,240,0.08)] seq-0">
+<div class="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+<!-- Left: Wordmark & Live Telemetry Badge -->
+<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-2">
+<span class="font-headline text-xs font-semibold tracking-wider text-signal-ink uppercase">FOLIO3 PARKING</span>
+<span class="text-dim-grey text-xs font-mono select-none">/</span>
+<span class="font-headline text-xs font-medium text-instrument-grey tracking-tight">Bay Control</span>
+</div>
+<!-- Telemetry Live Status Dot Indicator -->
+<div class="flex items-center space-x-2 pl-3 border-l border-[rgba(196,228,240,0.1)]">
+<div class="relative flex items-center justify-center w-2.5 h-2.5">
+<span class="live-dot-pulse w-1.5 h-1.5 rounded-full bg-bay-cyan block"></span>
+</div>
+<span class="font-mono text-[11px] uppercase tracking-widest text-instrument-grey select-none">LIVE</span>
+</div>
+</div>
+<!-- Right: Single Strict Navigation Link worded exactly "Sign out" -->
+<div>
+<a class="font-headline text-xs font-medium text-instrument-grey hover:text-signal-ink transition-colors duration-160 inline-flex items-center tracking-tight active:scale-[0.98]" href="#signout">
+          Sign out
+        </a>
+</div>
+</div>
+</header>
+<!-- MAIN VIEWPORT CANVAS: Centered single-column container (560px max width) -->
+<main class="flex-1 flex flex-col justify-center items-center px-4 py-8 sm:py-12 w-full">
+<div class="w-full max-w-[560px] flex flex-col">
+<!-- HERO SECTION -->
+<section class="mb-7 seq-1">
+<div class="inline-flex items-center space-x-2 mb-3">
+<span class="font-mono text-[10px] tracking-widest uppercase text-bay-cyan px-1.5 py-0.5 rounded-sm bg-[rgba(43,168,214,0.12)] border border-[rgba(43,168,214,0.25)]">
+            STEP 01 // FIRST REGISTRATION
+          </span>
+</div>
+<h1 class="font-headline text-2xl sm:text-[26px] font-semibold text-signal-ink tracking-tight leading-snug">
+          Add your car to start claiming spaces
+        </h1>
+<p class="font-body text-sm text-instrument-grey mt-2 leading-relaxed">
+          The entrance camera only opens for the plate you choose when you claim, so we need at least one car on file.
+        </p>
+</section>
+<!-- VEHICLE DETAILS FORM CARD -->
+<section class="bg-bay-panel rounded-md hairline-border p-6 sm:p-7 relative seq-2 stencil-indicator">
+<form action="#" class="space-y-6" method="POST" onsubmit="return false;">
+<!-- LICENSE PLATE FIELD -->
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<label class="font-headline text-[11px] font-medium uppercase tracking-[0.08em] text-instrument-grey" for="plate-input">
+                Licence plate <span class="text-bay-cyan font-mono text-[10px] lowercase tracking-normal">(required)</span>
+</label>
+<span class="font-mono text-[10px] text-dim-grey uppercase tracking-wider">ANPR READY</span>
+</div>
+<!-- License plate cockpit frame -->
+<div class="relative">
+<input autocomplete="off" class="instrument-input w-full bg-deep-bay text-signal-ink font-mono text-2xl sm:text-3xl font-semibold px-4 py-3 rounded-md hairline-strong-border mono-plate-input placeholder:text-dim-grey/50 placeholder:font-normal focus:bg-deep-bay" id="plate-input" name="plate" placeholder="BKR-417" required="" spellcheck="false" type="text"/>
+<div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-dim-grey text-xl select-none" data-icon="directions_car">directions_car</span>
+</div>
+</div>
+<p class="font-body text-xs text-instrument-grey leading-normal pt-0.5">
+              Letters and numbers as on the plate; spacing and case don't matter.
+            </p>
+</div>
+<!-- THREE OPTIONAL FIELDS: 3-Column Split -->
+<div class="pt-2 border-t border-[rgba(196,228,240,0.06)]">
+<div class="mb-3 flex items-center justify-between">
+<span class="font-headline text-[11px] font-medium uppercase tracking-[0.08em] text-dim-grey">
+                Vehicle Specifications <span class="text-dim-grey font-mono text-[10px] lowercase tracking-normal">(optional)</span>
+</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<!-- Field 1: Make -->
+<div class="space-y-1.5">
+<label class="block font-headline text-[11px] font-medium uppercase tracking-[0.08em] text-instrument-grey" for="make-input">
+                  Make
+                </label>
+<input class="instrument-input w-full bg-deep-bay text-signal-ink text-sm px-3 h-10 rounded-md hairline-strong-border placeholder:text-dim-grey focus:bg-deep-bay" id="make-input" name="make" placeholder="Toyota" type="text"/>
+</div>
+<!-- Field 2: Model -->
+<div class="space-y-1.5">
+<label class="block font-headline text-[11px] font-medium uppercase tracking-[0.08em] text-instrument-grey" for="model-input">
+                  Model
+                </label>
+<input class="instrument-input w-full bg-deep-bay text-signal-ink text-sm px-3 h-10 rounded-md hairline-strong-border placeholder:text-dim-grey focus:bg-deep-bay" id="model-input" name="model" placeholder="Corolla" type="text"/>
+</div>
+<!-- Field 3: Colour -->
+<div class="space-y-1.5">
+<label class="block font-headline text-[11px] font-medium uppercase tracking-[0.08em] text-instrument-grey" for="colour-input">
+                  Colour
+                </label>
+<input class="instrument-input w-full bg-deep-bay text-signal-ink text-sm px-3 h-10 rounded-md hairline-strong-border placeholder:text-dim-grey focus:bg-deep-bay" id="colour-input" name="colour" placeholder="White" type="text"/>
+</div>
+</div>
+</div>
+<!-- Quiet muted typography note -->
+<div class="pt-1">
+<p class="font-body text-xs text-instrument-grey/80">
+              You can add more cars later in <span class="text-signal-ink font-medium">My vehicles</span>.
+            </p>
+</div>
+<!-- Primary CTA Button -->
+<div class="pt-2">
+<button class="btn-action w-full h-11 bg-bay-cyan text-deep-bay font-headline text-sm font-semibold rounded-md flex items-center justify-center space-x-2 tracking-tight shadow-none border-none cursor-pointer" type="submit">
+<span>Save and continue</span>
+<span class="material-symbols-outlined text-lg leading-none select-none" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</form>
+</section>
+<!-- System Security Verification Micro-Footnote -->
+<div class="mt-5 flex items-center justify-center space-x-2 text-dim-grey seq-3">
+<span class="material-symbols-outlined text-xs leading-none" data-icon="verified_user">verified_user</span>
+<span class="font-mono text-[11px] tracking-wide">Synced with Folio3 Barrier Gate Subsystem v2.4</span>
+</div>
+</div>
+</main>
+<!-- QUIET BASE STRIP: No actionable navigation links -->
+<footer class="w-full py-4 px-6 border-t border-[rgba(196,228,240,0.06)] bg-deep-bay">
+<div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between text-dim-grey text-xs font-mono">
+<div>© 2025 Folio3 Bay Control — Corporate Facility Parking System</div>
+<div class="mt-1 sm:mt-0 text-[11px] tracking-wider text-dim-grey/70">TABULAR LIVE STREAM ACTIVE</div>
+</div>
+</footer>
+</body></html>

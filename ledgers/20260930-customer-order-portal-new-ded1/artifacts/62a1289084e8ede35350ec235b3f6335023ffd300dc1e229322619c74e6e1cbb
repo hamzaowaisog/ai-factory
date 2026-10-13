@@ -1,0 +1,88 @@
+# Customer order portal (new project)
+
+A web portal for a mid-size food distributor. Buyers place and track orders online instead of phoning them in. Office staff manage orders and customers. There is no existing code.
+
+## Who uses it
+
+- **Buyer**: a customer's purchasing contact. Orders for their own company only.
+- **Office staff**: the distributor's order desk. Sees every customer.
+- **Admin**: one or two people who manage staff accounts and the product catalogue.
+
+## Functional requirements
+
+### Accounts and access
+- A buyer signs in with email and password, and can reset a forgotten password by email.
+- An admin invites staff and buyers by email; an invited person sets their own password.
+- A buyer can only see their own company's orders, invoices and addresses.
+- After 5 failed sign-ins the account locks for 15 minutes and the person is told why.
+
+### Catalogue and ordering
+- A buyer browses the catalogue by category and searches by name or product code.
+- Each product shows unit, pack size, price for this customer (customer-specific price lists) and stock status: in stock, low, or out of stock.
+- A buyer adds products to a basket, changes quantities, and places the order with a delivery date and an optional note.
+- The earliest delivery date is the next working day if the order is placed before 14:00, otherwise the day after.
+- A buyer can repeat a previous order with one action; out-of-stock lines are flagged before placing.
+- A buyer can save a basket as a named template ("Weekly order") and reuse it.
+
+### Order tracking
+- A buyer sees their orders with status: received, confirmed, picking, out for delivery, delivered, cancelled.
+- A buyer can cancel an order until it is confirmed; after that they must contact the office.
+- The buyer gets an email when the order is confirmed and when it goes out for delivery.
+
+### Office back-end
+- Staff see a queue of new orders, filter by customer, date and status, and confirm, amend or reject each one.
+- Staff can edit quantities on an order before it is confirmed and the buyer is emailed the change.
+- Staff can create an order on behalf of a customer taken by phone.
+- Staff export the day's delivery list as a CSV for the drivers.
+
+### Invoices
+- An invoice is created automatically when an order is marked delivered.
+- A buyer views and downloads invoices as PDF and sees which are paid, unpaid or overdue.
+- Staff mark an invoice paid and record the payment date.
+
+### Admin
+- An admin manages the catalogue: add, edit and retire products, set categories, upload a product photo.
+- An admin manages customer price lists and assigns one to each customer.
+- An admin deactivates a user; their history stays.
+
+### Reporting
+- Staff see orders per day, top products and revenue per customer for a chosen date range.
+- Reports can be downloaded as CSV.
+
+## Screens
+
+- Sign in / reset password
+- Catalogue (list, search, category filter)
+- Product detail
+- Basket and checkout
+- My orders (list) and order detail with status timeline
+- Invoices list and invoice detail
+- Staff order queue and order editor
+- Admin: products, price lists, users
+- Reports
+
+## Non-functional
+
+- About 300 buyers and 15 staff; up to 150 orders a day.
+- All pages usable on a phone; the buyer side is used mostly on mobile.
+- Order and invoice data kept for 7 years.
+- Emails sent through the client's existing email provider.
+
+## Integrations
+
+- Stock levels come from the client's ERP as a nightly file (CSV); the portal only reads it.
+- No payment taking online in this phase.
+
+## Out of scope
+
+Online card payments, a native mobile app, multi-language, delivery route planning, returns and credit notes.
+
+## Open points (please treat as unanswered)
+
+- Which email provider, and whether invoice PDFs must follow an existing template.
+- Whether single sign-on is wanted for staff.
+- Hosting: the client's cloud, or ours.
+
+## Stack
+
+Not decided.

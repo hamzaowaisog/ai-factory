@@ -1,0 +1,777 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Meridian responsive web app shall provide Meridian staff sign-in through Meridian Microsoft accounts and customer sign-in through email and password followed by a one-time code, with an emailed password-reset link.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "I-7",
+       "ASM-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The sign-in page is open and the user selects staff sign-in",
+        "when": "The user continues to the staff sign-in flow",
+        "then": "The screen shows the Meridian Microsoft sign-in option and does not show a customer password form",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "The customer sign-in page is open and the API accepts the email and password but requires a second step",
+        "when": "The customer submits the credentials",
+        "then": "The screen shows a one-time-code entry field and a submit control",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "A customer requests a password reset",
+        "when": "The reset request is submitted",
+        "then": "The screen shows the reset-request confirmation returned by the API",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When an authenticated user opens a portal view, the Meridian responsive web app shall show only the records and actions returned for that user's role, assigned warehouses, and customer organisation, and shall present Auditor views as read-only.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "I-7",
+       "ASM-1",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "The API returns records scoped to a customer's organisation or a staff member's assigned warehouses",
+        "when": "The user opens the corresponding list screen",
+        "then": "The screen shows only the returned records and no edit controls are shown for an Auditor",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "An active session becomes invalid and the API returns an unauthorized response",
+        "when": "The user opens a protected page",
+        "then": "The screen shows the sign-in page and an access-expired message",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-3",
+      "ears": "The Meridian responsive web app shall let a Customer Administrator invite and remove users through controls scoped to the administrator's own customer organisation.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A Customer Administrator opens user management for their organisation",
+        "when": "The administrator enters an invitee and submits the invitation",
+        "then": "The screen shows the invitation status returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "The API refuses a user removal or invitation",
+        "when": "The administrator submits the action",
+        "then": "The screen shows the returned error message and does not show a success confirmation",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The Meridian responsive web app shall let System Administrators list products, search by name or code, view product details, and deactivate a product.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "I-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "The product list contains products with names and codes",
+        "when": "A System Administrator searches by a product name or code",
+        "then": "The screen shows the matching product list returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "A System Administrator submits a product deactivation",
+        "when": "The API returns the updated product status",
+        "then": "The screen shows the product as deactivated",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-5",
+      "ears": "Where a System Administrator edits a product temperature profile, the Meridian responsive web app shall capture its storage band, non-overlapping contiguous tiers and their allowance or not-permitted designation, plus a change reason and effective date, and show earlier versions as read-only.",
+      "op": "ADDED",
+      "sources": [
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A System Administrator opens the temperature-profile editor",
+        "when": "The administrator enters a band, tiers, reason, and effective date",
+        "then": "The screen shows the entered profile fields and any validation error returned for an overlapping or incomplete tier",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "A product has more than one profile version",
+        "when": "A user opens an earlier version",
+        "then": "The screen shows that version's values and no edit controls",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When an effective-dated temperature-profile version changes, the Meridian responsive web app shall show the new version and the recalculated budgets and decisions returned for stock still held from its effective date onward.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "I-9",
+       "I-11",
+       "I-17",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "The API returns a new effective profile version and recalculated values for held stock",
+        "when": "A user opens the profile and affected stock views",
+        "then": "The screen shows the new version's effective date and the returned budget and decision values",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.84
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When a Warehouse Operator records a receipt, the Meridian responsive web app shall capture product, lot number, expiry date, quantity, supplier, and storage location, accept the inbound logger file, and show the returned quarantine status and inbound budget before a release decision.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "ASM-9",
+       "ASM-21",
+       "ASM-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "A Warehouse Operator opens the receipt form",
+        "when": "The operator enters receipt details and uploads an accepted inbound logger file",
+        "then": "The screen shows the submitted receipt details, the returned Quarantined status, and the returned inbound budget",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "The API refuses a receipt with an expired lot date or an unsupported logger file",
+        "when": "The operator submits the receipt",
+        "then": "The screen shows the returned error message next to the relevant field",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-8",
+      "ears": "The Meridian responsive web app shall present on-hand stock with mutually exclusive quantities for available, allocated, quarantined, On Hold, Rejected, Recalled, and Expired statuses, and show the returned warehouse, lot, product, and receipt details.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-6",
+       "I-9",
+       "I-11",
+       "I-17",
+       "Q-7",
+       "ASM-3",
+       "ASM-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "The API returns on-hand quantities and status quantities for a product, lot, and warehouse",
+        "when": "A user opens the stock view",
+        "then": "The screen shows the on-hand total and each returned status quantity as a separate breakdown row",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-8.2",
+        "given": "The API returns stock rows for more than one lot or warehouse",
+        "when": "A user filters the stock list",
+        "then": "The screen shows only the rows matching the selected filter values",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When portions of received stock have different temperature histories, the Meridian responsive web app shall show them as separate handling units with their returned quantity, temperature history, and tier budget used and remaining.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "I-9",
+       "I-13",
+       "I-14",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "The API returns two handling units from one lot with different temperature histories",
+        "when": "A user opens the lot's handling-unit view",
+        "then": "The screen shows separate rows with each unit's quantity, history, and returned budget values",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-10",
+      "ears": "Where stock has been exposed to a not-permitted temperature range, the Meridian responsive web app shall present a Quality Officer proposal step and a separate Quality Manager approval step for a different person.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-14",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "A Quality Officer opens a decision for stock exposed to a not-permitted range",
+        "when": "The officer proposes a disposition",
+        "then": "The screen shows the proposal and its returned status without showing an approval confirmation",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "The API refuses approval by the proposing person or a user without the Quality Manager role",
+        "when": "That user attempts the approval",
+        "then": "The screen shows the returned error message and the decision remains shown as unapproved",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The Meridian responsive web app shall let customer users create orders with one or more product lines, pack quantities, an organisation-saved delivery address, an eligible delivery date, and a choice between delivery of available quantities and complete delivery only.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-10",
+       "ASM-5",
+       "ASM-6",
+       "ASM-27"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "A customer user opens the order form",
+        "when": "The user selects products, quantities, a saved address, an eligible date, and a fulfilment choice",
+        "then": "The screen shows the complete order summary before submission",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "The API returns eligible dates for the serving warehouse",
+        "when": "The customer opens the delivery-date selector",
+        "then": "The screen shows only the returned eligible dates and identifies the warehouse time zone",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When a customer views or changes an order, the Meridian responsive web app shall show its status and allocated and outstanding quantities for each line, and expose change or cancellation controls only while the order is not Packed.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-10",
+       "I-11"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "The API returns an order with line quantities and a status before Packed",
+        "when": "The customer opens the order",
+        "then": "The screen shows each line's allocated and outstanding quantities and the change and cancel controls",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "The API returns an order status of Packed or later",
+        "when": "The customer opens the order",
+        "then": "The screen shows the current status and no change or cancel controls",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-12.3",
+        "given": "A customer cancellation is accepted by the API",
+        "when": "The customer refreshes the order view",
+        "then": "The screen shows the returned Cancelled status and updated quantities",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-13",
+      "ears": "The Meridian responsive web app shall show order allocations by line and lot, expose dispatcher lot-override controls with a required reason, and show the allocation or override outcome returned by the API.",
+      "op": "ADDED",
+      "sources": [
+       "I-10",
+       "I-11",
+       "I-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "The API returns a line allocated across multiple lots",
+        "when": "A dispatcher or customer opens the order line",
+        "then": "The screen shows each lot and its allocated quantity separately",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-13.2",
+        "given": "A dispatcher submits a lot override that the API refuses for eligibility reasons",
+        "when": "The response is displayed",
+        "then": "The screen shows the returned error message and the unchanged allocation list",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-14",
+      "ears": "The Meridian responsive web app shall let Warehouse Operators pack stock into shipper boxes by type, associate one logger with each box, and show box contents and sealing details returned by the API.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-12",
+       "I-13"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "A Warehouse Operator opens the packing screen",
+        "when": "The operator selects stock, a box type, and a logger and submits the packing action",
+        "then": "The screen shows the returned box contents, logger, and sealing details",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-14.2",
+        "given": "The API refuses a box with an incompatible storage band or an already-associated logger",
+        "when": "The operator submits the packing action",
+        "then": "The screen shows the returned error message and no sealed status",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-15",
+      "ears": "The Meridian responsive web app shall let Dispatchers create and view routes with a date, vehicle, driver, ordered stops, and planned arrival times, and shall display route-confirmation errors and confirmed route changes returned by the API.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-12",
+       "I-15",
+       "ASM-6",
+       "ASM-27"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "A Dispatcher creates a route",
+        "when": "The Dispatcher enters a vehicle, driver, date, stops, and planned arrival times",
+        "then": "The screen shows the ordered route summary using the warehouse time zone",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-15.2",
+        "given": "The API refuses confirmation because a box exceeds its qualified duration less the safety margin",
+        "when": "The Dispatcher submits route confirmation",
+        "then": "The screen shows the affected box and the returned exceedance amount",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-15.3",
+        "given": "The API returns a change to a confirmed route",
+        "when": "The driver opens the route view",
+        "then": "The screen shows the changed stop or schedule details returned by the API",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-16",
+      "ears": "The Meridian responsive web app shall show temperature history for boxes, cold rooms, and lots as a chart and table with readings, applicable bands, excursions, gaps, and returned reading flags or silence status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-13",
+       "I-14",
+       "ASM-2",
+       "ASM-4",
+       "ASM-8",
+       "ASM-18"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "The API returns readings, a gap, and an out-of-order or otherwise flagged reading",
+        "when": "A user opens the temperature-history view",
+        "then": "The screen shows the readings in their returned event-time order, a visible gap, the applicable band, and the reading flag",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-16.2",
+        "given": "The API marks a device silent after the configured 15-minute interval",
+        "when": "A user opens its device or route view",
+        "then": "The screen shows the silent status returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-16.3",
+        "given": "The API returns the same history in chart and table data",
+        "when": "A user switches between the chart and table views",
+        "then": "The screen shows the corresponding returned history in each view",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.87
+     },
+     {
+      "id": "REQ-17",
+      "ears": "When the API returns an excursion or stability-budget alert, the Meridian responsive web app shall show its affected device or stock, excursion status, tier usage and remaining allowance, and returned hold status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-9",
+       "I-13",
+       "I-14",
+       "I-15",
+       "Q-2",
+       "ASM-2",
+       "ASM-4",
+       "ASM-10",
+       "ASM-18",
+       "ASM-22"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "The API returns an open excursion, its handling units, and their hold statuses",
+        "when": "A Quality Officer opens the excursion view",
+        "then": "The screen shows the excursion, affected handling units, tier budgets, and returned hold statuses",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "The API returns a remaining-budget warning or a not-permitted-range alert",
+        "when": "A Dispatcher or Quality Officer opens the alerts view",
+        "then": "The screen shows the alert type and affected stock or device",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When corrected temperature history identifies an excursion affecting stock already delivered, the Meridian responsive web app shall show the returned quality-review case to the relevant customer and staff users.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-13",
+       "I-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "The API returns a quality-review case linked to a delivered customer order",
+        "when": "The customer or authorized staff user opens the related order or case view",
+        "then": "The screen shows the case status and the affected delivered line returned by the API",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.84
+     },
+     {
+      "id": "REQ-19",
+      "ears": "The Meridian responsive web app shall provide an installable, responsive driver web experience that caches today's assigned route and records loading and delivery actions for synchronization when the browser reconnects.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-7",
+       "I-15",
+       "ASM-1",
+       "ASM-13",
+       "ASM-17",
+       "ASM-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-19.1",
+        "given": "A driver has opened today's assigned route while connected and then loses connectivity",
+        "when": "The driver opens the cached route",
+        "then": "The screen shows the route and its stops while offline",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-19.2",
+        "given": "A driver records an action while offline and connectivity returns",
+        "when": "The web app synchronizes the queued action",
+        "then": "The screen shows the synchronization result returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-19.3",
+        "given": "A queued action is submitted after the API reports the driver's account disabled",
+        "when": "Synchronization is attempted",
+        "then": "The screen shows the returned rejection message and does not show the action as synchronized",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.85
+     },
+     {
+      "id": "REQ-20",
+      "ears": "When a driver records a handover, the Meridian responsive web app shall capture the recipient's name, explicit electronic acknowledgment, handed-over quantities, and any refusal or partial-delivery reason, and show outstanding quantities and the returned delivery status.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "I-15",
+       "Q-3",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-20.1",
+        "given": "A driver opens a delivery handover on a phone browser",
+        "when": "The driver records a completed handover",
+        "then": "The screen shows fields for recipient name and explicit electronic acknowledgment and the returned handed-over quantities",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-20.2",
+        "given": "A driver records a refused or partial handover",
+        "when": "The driver submits the handover with a reason",
+        "then": "The screen shows the reason and the returned outstanding quantities",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-20.3",
+        "given": "The API has not returned warehouse receipt and any required quality-check completion for undelivered stock",
+        "when": "A user views that stock",
+        "then": "The screen shows it as outstanding and does not show it as available",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-21",
+      "ears": "The Meridian responsive web app shall let Quality Managers view and manage recalls and let customer users submit a response with quantity and stated disposition for each affected delivery.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-17",
+       "ASM-15",
+       "ASM-19"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-21.1",
+        "given": "The API returns recalled-lot locations and affected deliveries",
+        "when": "A Quality Manager or customer user opens the recall view",
+        "then": "The screen shows the returned lot, delivery, and quantity information",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-21.2",
+        "given": "A customer user responds to an affected delivery",
+        "when": "The user enters a quantity and disposition and submits",
+        "then": "The screen shows the returned response status and the recorded quantity and disposition",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-21.3",
+        "given": "The API returns quantity categories for a recall response",
+        "when": "A customer user opens the response form",
+        "then": "The screen shows the returned categories for locating, using, returning, disposing of, or otherwise accounting for quantities",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-22",
+      "ears": "The Meridian responsive web app shall let Customer Administrators maintain their organisation's saved delivery addresses and let System Administrators view and set the organisation's minimum remaining shelf-life requirement.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-10",
+       "I-11",
+       "Q-6",
+       "ASM-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-22.1",
+        "given": "A Customer Administrator opens address management",
+        "when": "The administrator adds or changes an address",
+        "then": "The screen shows the address status returned by the API",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-22.2",
+        "given": "A System Administrator opens customer-organisation settings",
+        "when": "The administrator views or changes minimum remaining shelf life",
+        "then": "The screen shows the organisation's returned shelf-life value and its update status",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.87
+     },
+     {
+      "id": "REQ-23",
+      "ears": "The Meridian responsive web app shall provide English and Arabic in staff, customer, and driver web views and display Arabic pages right to left.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "I-15",
+       "I-16",
+       "ASM-14",
+       "ASM-26"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-23.1",
+        "given": "A user selects Arabic",
+        "when": "The user opens a staff, customer, or driver page",
+        "then": "The screen shows Arabic text and a right-to-left page direction",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-23.2",
+        "given": "A user selects English",
+        "when": "The user opens a staff, customer, or driver page",
+        "then": "The screen shows English text and a left-to-right page direction",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-24",
+      "ears": "Where records expose creator and last-change metadata, the Meridian responsive web app shall show those values in read-only auditor views and provide filtered on-screen operational lists with CSV export.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "I-6",
+       "I-7",
+       "I-9",
+       "I-11",
+       "I-13",
+       "I-17",
+       "ASM-11",
+       "ASM-12",
+       "ASM-24"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-24.1",
+        "given": "The API returns creator and last-change metadata for a record",
+        "when": "An Auditor opens the record",
+        "then": "The screen shows the returned actor and timestamp values without edit controls",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-24.2",
+        "given": "A user opens an operational list with filter controls",
+        "when": "The user applies filters and requests CSV export",
+        "then": "The screen shows the filtered list and a CSV file containing the displayed records",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.86
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Every portal page reflows for phone, tablet, and desktop browser widths, and touch controls on narrow layouts have targets of at least 44 by 44 CSS pixels.",
+      "metric": "320–1920 CSS-pixel viewport widths; minimum 44 × 44 CSS-pixel touch targets at narrow widths"
+     },
+     {
+      "id": "NFR-2",
+      "text": "The main staff, customer, and driver web flows conform to WCAG 2.1 Level AA.",
+      "metric": "WCAG 2.1 AA conformance on 100% of the agreed main flows"
+     },
+     {
+      "id": "NFR-3",
+      "text": "The portals support the latest two browser versions of Chrome, Edge, Safari, and Firefox.",
+      "metric": "4 browser families × 2 latest versions"
+     }
+    ],
+    "outOfScope": [
+     "API-SIDE: durable shared-record persistence, server-side role and organisation enforcement, session revocation, server-side validation and status transitions, allocation concurrency and policy calculations, stock expiry processing, and database-level audit retention; the web requirements cover presentation of API responses.",
+     "API-SIDE: supplier-gateway batch ingestion, reading deduplication and reordering, sensor-scale ingestion at 5,000 concurrent devices, silence and excursion detection, stability-budget recalculation, hold placement, and the two-minute alert deadline; the web requirements cover the returned histories, statuses, and alerts.",
+     "API-SIDE: delivery of email alerts and password-reset or one-time-code messages. SMS and native push channels are excluded by ASM-10 and ASM-22; the driver experience is a responsive web app, not a native iOS or Android app.",
+     "Historical spreadsheet or paper-record import is excluded by ASM-7 and ASM-20; initial setup uses seed data.",
+     "A full immutable audit trail beyond the assumed creator and last-change identity and timestamps is excluded by ASM-11 and ASM-24.",
+     "A custom report builder is excluded by ASM-12."
+    ],
+    "assumptions": [
+     "The driver application requirement is delivered as a responsive, installable web app usable in a phone browser; no native application or app-store release is part of this web product.",
+     "The stated staff and customer identity flows use Meridian Microsoft sign-in for staff and customer email/password plus an emailed one-time code and emailed reset link, as assumed in ASM-23.",
+     "The web app presents access, persistence, account revocation, and workflow outcomes returned by the separate API; API authorization and data isolation are not asserted by UI requirements.",
+     "ASM-2 and ASM-18 conflict on whether a temperature-history gap alone places stock On Hold. The web app therefore shows the API-returned gap review and stock status without choosing that server policy.",
+     "Warehouse-local time governs cutoff, working-day, delivery-date, and route rules, with dates and times displayed in the user's local zone and the warehouse zone identified, per ASM-6 and ASM-27.",
+     "The numeric policy values are fixed as assumed in ASM-4, including the 15-minute silence interval, two-minute alert target, 25% budget warning, three consecutive in-band readings, and 30-day expiry restriction.",
+     "The logger gateway and inbound export use the supplier's documented interface and file format described by ASM-8 and ASM-21; gateway ingestion is API-side.",
+     "The web UI supports the assumed latest-two browser versions and WCAG 2.1 AA main flows in ASM-13, ASM-14, ASM-25, and ASM-26.",
+     "The source request ends during US-009; driver web behavior is limited to intent spans and explicit Q-3 and Q-4 decisions, and no unstated remainder of that user story is inferred.",
+     "Recall response quantities and dispositions follow ASM-15 and ASM-19; supporting documents are not required by the assumed response policy."
+    ],
+    "suggestions": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

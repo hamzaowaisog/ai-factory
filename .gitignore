@@ -5,11 +5,9 @@ coverage/
 .env.*
 !.env.example
 *.log
+!ledgers/**/*.log
 test-results/
 playwright-report/
 
 # local Claude Code settings (personal paths)
 .claude/
-
-# run ledgers (local run output, large)
-ledgers/

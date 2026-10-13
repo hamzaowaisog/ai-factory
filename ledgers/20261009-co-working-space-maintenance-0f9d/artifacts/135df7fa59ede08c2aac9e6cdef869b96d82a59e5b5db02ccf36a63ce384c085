@@ -1,0 +1,1 @@
+{"commit":"b79b334eb11c2ce21748e8e3be6dd88171ce42a1","design":{"designSha":"a8c32e2da1802f0a7a72e1c9d81fcca375c92365c3bdbb80807753afbccdaaaf","line":"20261009-co-working-space-maintenance-0f9d","version":1},"files":["lib/api/index.ts","contracts/openapi.yaml"]}

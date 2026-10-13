@@ -1,0 +1,1 @@
+[{"check":"plan-contract","frames":[],"message":"contracts/openapi.yaml is not an OpenAPI document: it does not parse: Excessive alias count indicates a resource exhaustion attack."}]

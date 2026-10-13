@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "AuthResult|authorizationUrl|authorizationUrl",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 576,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;AuthResult|authorizationUrl|authorizationUrl&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:11: operationId: getStaffAuthorizationUrl\ncontracts/openapi.yaml:15: $ref: \"#/components/responses/AuthResult\"\ncontracts/openapi.yaml:32: $ref: \"#/components/responses/AuthResult\"\ncontracts/openapi.yaml:53: $ref: \"#/components/responses/AuthResult\"\ncontracts/openapi.yaml:74: $ref: \"#/components/responses/AuthResult\"\ncontracts/openapi.yaml:2620: AuthResult:\n</untrusted_document>"
+  }
+ ]
+}

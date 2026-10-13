@@ -1,0 +1,1 @@
+{"changeClass":"config","header":{"createdAt":"2026-10-05T08:44:30.311Z","inputsHash":"","kind":"intent","producedBy":{"model":"claude-haiku-4-5","stage":"intake"},"runId":"20261005-automotive-parts-customer-orde-674c","schemaVersion":1},"rigor":"light","risk":"high","riskTags":["auth","payments","pii"],"source":"cli","spans":[],"touchesUi":true}

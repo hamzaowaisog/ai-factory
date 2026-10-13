@@ -1,0 +1,859 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The Folio3 parking system shall grant an employee session only when Google authentication identifies an account authorized for Folio3.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "A Google authentication callback identifies an authorized Folio3 employee account",
+        "when": "The callback is submitted to the sign-in endpoint",
+        "then": "The response status is 200 and the returned session identifies that employee",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A Google authentication callback identifies a personal Gmail account or an account from another provider",
+        "when": "The callback is submitted to the sign-in endpoint",
+        "then": "The response status is 401 and no employee session record exists",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When an employee signs in or an administrator updates employee or parking source records, the Folio3 parking system shall refresh the employee profile and current parking assignment from the corporate directory and current parking records.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "The corporate directory or current parking records contain updated values for an employee",
+        "when": "The employee signs in or an administrator saves the source-record update",
+        "then": "The employee profile row contains the refreshed values from those records",
+        "level": "api"
+       }
+      ],
+      "stability": 0.78
+     },
+     {
+      "id": "REQ-3",
+      "ears": "If the corporate employee profile cannot be found or retrieved, then the Folio3 parking system shall deny dashboard access and return a recoverable profile-retrieval error with retry or support-contact guidance.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-2",
+       "ASM-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "Google authentication succeeds but the corporate employee profile is missing or unavailable",
+        "when": "The employee requests the dashboard",
+        "then": "The response contains a profile-retrieval error, no dashboard data is returned, and the error field includes retry or support-contact guidance",
+        "level": "api"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When a dedicated employee profile is refreshed, the Folio3 parking system shall populate the employee ID, employee name, dedicated-parking status, assigned floor, and registered vehicle records with license plate and any stored make, model, and color.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "The directory and parking records contain a dedicated employee, an assigned floor, and registered vehicle details",
+        "when": "The employee profile is refreshed",
+        "then": "The employee row contains the ID, name, dedicated-parking status, and floor, and each returned vehicle record contains its plate and stored make, model, and color values",
+        "level": "api"
+       }
+      ],
+      "stability": 0.87
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When a non-dedicated employee signs in for the first time without a registered vehicle, the Folio3 parking system shall require registration of at least one license plate before granting access to vehicle-dependent parking actions.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A non-dedicated employee has no registered vehicle record",
+        "when": "The employee submits a vehicle-dependent parking action",
+        "then": "The response status is 422 and the error field identifies that at least one license plate must be registered",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "A non-dedicated first-time employee has no registered vehicle record",
+        "when": "The employee opens the first-login flow",
+        "then": "The screen shown is the vehicle-registration screen and its form requires a license plate value",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.91
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When a returning employee has no complete vehicle profile, the Folio3 parking system shall show the dashboard with a vehicle-registration prompt and block vehicle-dependent parking actions until at least one license plate is registered.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "A returning employee has no registered license plate",
+        "when": "The employee requests the dashboard",
+        "then": "The response contains dashboard data and a vehicle-registration prompt field",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "A returning employee has no registered license plate",
+        "when": "The employee submits a vehicle-dependent parking action",
+        "then": "The response status is 422 and the error field identifies the missing plate",
+        "level": "api"
+       }
+      ],
+      "stability": 0.85
+     },
+     {
+      "id": "REQ-7",
+      "ears": "The Folio3 parking system shall allow an employee to add, update, or deactivate only their own vehicle records and allow a Parking Administrator to manage employee vehicle records.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "An employee owns a vehicle record",
+        "when": "The employee adds, updates, or deactivates that record through the vehicle API",
+        "then": "The returned vehicle record reflects the requested change"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "An employee attempts to change another employee's vehicle record",
+        "when": "The employee submits the change through the vehicle API",
+        "then": "The response status is 403 and the other employee's vehicle row is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.3",
+        "given": "A Parking Administrator is authenticated",
+        "when": "The administrator adds, updates, or deactivates an employee vehicle record",
+        "then": "The returned vehicle record reflects the requested change",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-8",
+      "ears": "The Folio3 parking system shall provide the employee mobile application on both iOS and Android.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "An iOS device and an Android device are available",
+        "when": "A tester installs and opens the employee application on each device",
+        "then": "The sign-in screen is displayed on both platforms",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-9",
+      "ears": "While an assigned employee has dedicated parking on an operating day, the Folio3 parking system shall treat the assigned space as reserved for that employee unless a release is recorded for that date.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "An employee has a dedicated assignment and the date is marked as an operating day",
+        "when": "The parking status for that date is queried and no release exists",
+        "then": "The response status field is Reserved and the assignment row identifies the employee",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "An employee has a dedicated assignment and the date is not marked as an operating day",
+        "when": "The parking status for that date is queried",
+        "then": "The response operating-day field is false",
+        "level": "api"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-10",
+      "ears": "The Folio3 parking system shall let a dedicated parking holder release today's assigned space from the home screen with one release action and shall return the release status for that date.",
+      "op": "ADDED",
+      "sources": [
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "An employee has dedicated parking and has not released today's space",
+        "when": "The employee submits one release action",
+        "then": "The response status is 200 and the returned release record has today's date and Released status",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "A dedicated parking holder opens the home screen",
+        "when": "Today's space has not been released",
+        "then": "The screen displays a single action to release today's parking",
+        "level": "manual"
+       },
+       {
+        "id": "AC-REQ-10.3",
+        "given": "A dedicated parking holder has released or has had today's space claimed",
+        "when": "The holder views today's parking status",
+        "then": "The screen displays the current Reserved, Released, or Claimed status",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-11",
+      "ears": "When a dedicated parking holder schedules one or more future releases, the Folio3 parking system shall accept operating dates within the next 30 calendar dates in the office's local timezone and make each scheduled space claimable at the configured daily release time.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-10",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "A dedicated parking holder submits one or more operating dates within the next 30 calendar dates",
+        "when": "The schedule request is submitted",
+        "then": "The response status is 200 and a release row is returned for each selected date"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "A dedicated parking holder submits a date beyond the next 30 calendar dates or a date not marked as an operating day",
+        "when": "The schedule request is submitted",
+        "then": "The response status is 422 and no release row is created",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.3",
+        "given": "A scheduled release date has arrived",
+        "when": "The configured daily release-time job runs in the office's local timezone",
+        "then": "The release row is marked available for claiming",
+        "level": "job"
+       },
+       {
+        "id": "AC-REQ-11.4",
+        "given": "A holder schedules releases through the calendar",
+        "when": "The dates are saved",
+        "then": "The screen displays each selected date as scheduled",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When today's release is made before the configured daily release time, the Folio3 parking system shall make the space claimable at that release time, and when it is made at or after that time, the system shall make the space claimable at once.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "A holder releases today's space before the configured daily release time",
+        "when": "The daily release-time job runs",
+        "then": "The release row is marked available for claiming",
+        "level": "job"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "A holder releases today's space at or after the configured daily release time",
+        "when": "The release request is accepted",
+        "then": "The returned release record is marked available for claiming",
+        "level": "api"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When a released space has not been claimed, the Folio3 parking system shall allow its holder to cancel the release, and when a claimed release requires intervention, the system shall allow a Parking Administrator to reverse it and record the intervention.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "A holder's release has not been claimed",
+        "when": "The holder cancels the release",
+        "then": "The response status is 200 and the release row has Cancelled status",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-13.2",
+        "given": "A holder's release has already been claimed",
+        "when": "The holder attempts to cancel it",
+        "then": "The response status is 409 and the error field identifies that administrator intervention is required",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-13.3",
+        "given": "A released space has been claimed and a Parking Administrator is authenticated",
+        "when": "The administrator reverses the claimed release",
+        "then": "The response status is 200 and an intervention row identifies the administrator, affected release, action, and timestamp",
+        "level": "api"
+       }
+      ],
+      "stability": 0.78
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When one or more spaces become available, the Folio3 parking system shall send a push notification to every eligible employee without dedicated parking.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "A space becomes available and eligible non-dedicated employees have push notifications enabled",
+        "when": "The availability event is processed",
+        "then": "A call to the push-notification service is recorded for every eligible employee",
+        "level": "api"
+       }
+      ],
+      "stability": 0.91
+     },
+     {
+      "id": "REQ-15",
+      "ears": "If push notification delivery fails or an eligible employee has notifications disabled, then the Folio3 parking system shall keep the available space claimable in the application.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "A space is available and push delivery fails or is disabled for an eligible employee",
+        "when": "The employee requests available parking",
+        "then": "The response includes that space in the available list and the available count is at least 1",
+        "level": "api"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-16",
+      "ears": "The Folio3 parking system shall allocate each released space to the first successfully committed eligible claim, reject competing claims for an already allocated space, and allow at most one claim per employee per date.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-6",
+       "Q-4",
+       "ASM-18"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "Two eligible employees submit claims concurrently for the final available space",
+        "when": "Both claim requests are processed",
+        "then": "Exactly one response is successful, the other response contains a conflict error and refreshed availability, and only one claim row exists for the space",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-16.2",
+        "given": "An employee already has a temporary claim for a date",
+        "when": "The employee submits another claim for that date",
+        "then": "The response status is 409 and the count of that employee's claim rows for the date remains 1",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-17",
+      "ears": "The Folio3 parking system shall return the current available-space count to employees without dedicated parking and display that count in the application.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "Released spaces have known available and claimed statuses",
+        "when": "An eligible employee requests parking availability",
+        "then": "The response count equals the number of claimable spaces",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "An eligible employee opens the parking availability screen",
+        "when": "Available spaces exist",
+        "then": "The screen displays the current available-space count",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When an employee claims a temporary space, the Folio3 parking system shall require selection of one registered vehicle and authorize only that vehicle's plate for the claim.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "An employee has multiple registered vehicles and an available space exists",
+        "when": "The employee claims a space and selects one vehicle",
+        "then": "The returned claim record contains the selected vehicle ID and only that vehicle's plate is present in the claim authorization record",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-18.2",
+        "given": "An employee has registered vehicles but submits a claim without selecting one",
+        "when": "The claim request is submitted",
+        "then": "The response status is 422 and no claim row is created",
+        "level": "api"
+       }
+      ],
+      "stability": 0.97
+     },
+     {
+      "id": "REQ-19",
+      "ears": "The Folio3 parking system shall not allow an employee to cancel or relinquish a successful temporary parking claim.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-19.1",
+        "given": "An employee has a successful temporary claim",
+        "when": "The employee submits a cancellation or relinquishment request",
+        "then": "The response status is 403 or 409 and the claim row remains active",
+        "level": "api"
+       }
+      ],
+      "stability": 0.97
+     },
+     {
+      "id": "REQ-20",
+      "ears": "When allocating a temporary claim, the Folio3 parking system shall assign a floor with the fewest current temporary allocations among configured floors and return that floor to the claimant.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-23"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-20.1",
+        "given": "Configured floors have different current temporary-allocation counts and available capacity",
+        "when": "An eligible employee successfully claims a space",
+        "then": "The returned claim record contains a floor with the lowest current allocation count"
+       },
+       {
+        "id": "AC-REQ-20.2",
+        "given": "An eligible employee successfully claims a space",
+        "when": "The claim response is displayed",
+        "then": "The screen shows the assigned floor",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.8
+     },
+     {
+      "id": "REQ-21",
+      "ears": "The Folio3 parking system shall allow Parking Administrators to manage employee and parking records, operating-day calendars, release-time settings, floor capacities, report settings, and stakeholder email addresses.",
+      "op": "ADDED",
+      "sources": [
+       "Q-2",
+       "ASM-17",
+       "ASM-23",
+       "ASM-25",
+       "ASM-26"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-21.1",
+        "given": "A Parking Administrator is authenticated",
+        "when": "The administrator creates or updates an employee record, parking record, calendar, release time, floor capacity, report setting, or stakeholder address",
+        "then": "The response status is 200 and the corresponding record contains the submitted value",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-21.2",
+        "given": "An employee without the Parking Administrator role is authenticated",
+        "when": "The employee submits an administrative configuration update",
+        "then": "The response status is 403 and the configuration row is unchanged",
+        "level": "api"
+       }
+      ],
+      "stability": 0.79
+     },
+     {
+      "id": "REQ-22",
+      "ears": "The Folio3 parking system shall ignore pedestrians, motorcycles, and other non-car objects reported by the entrance LPR system for vehicle authorization.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-22.1",
+        "given": "The entrance LPR system reports a pedestrian, motorcycle, or other non-car object",
+        "when": "The detection event is processed",
+        "then": "No authorization request is sent to the indicator system and no vehicle-verification row is created",
+        "level": "api"
+       }
+      ],
+      "stability": 0.85
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When the entrance LPR system reports a vehicle with a permanent Folio3 parking sticker, the Folio3 parking system shall record its plate-entry event without requiring authorization verification.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-23.1",
+        "given": "The entrance LPR system reports a vehicle identified as having a permanent Folio3 parking sticker",
+        "when": "The plate-entry event is processed",
+        "then": "A plate-entry row is recorded and no temporary-authorization verification call is made",
+        "level": "api"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-24",
+      "ears": "When the entrance LPR system reports a non-stickered vehicle, the Folio3 parking system shall normalize plate case and permitted spacing, require an exact match to a current-day temporary authorization, and activate the green indicator only for a match.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-7",
+       "ASM-9",
+       "ASM-19"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-24.1",
+        "given": "A detected plate exactly matches a current-day authorization after case and permitted-spacing normalization",
+        "when": "The entrance verification request is processed",
+        "then": "The verification response is authorized and a call activating the green indicator is recorded",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-24.2",
+        "given": "A detected plate is partial, uncertain, unmatched, or has no current-day authorization",
+        "when": "The entrance verification request is processed",
+        "then": "The verification response is unauthorized and no call activating the green indicator is recorded",
+        "level": "api"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-25",
+      "ears": "If a plate is unreadable or the camera, indicator, connection, or authorization service is unavailable, then the Folio3 parking system shall fail closed, keep the green indicator inactive, alert security for a service failure, and record the failure when service is restored.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-8",
+       "ASM-9",
+       "ASM-19",
+       "ASM-21"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-25.1",
+        "given": "The entrance LPR system cannot read a plate",
+        "when": "The detection is processed",
+        "then": "The verification response is unauthorized, the indicator remains off, and an attempt row contains an unreadable result and available timestamp",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-25.2",
+        "given": "The camera, indicator, connection, or authorization service is unavailable",
+        "when": "The entrance verification flow detects the failure",
+        "then": "No green-indicator activation call is recorded and a security-alert call is recorded",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-25.3",
+        "given": "A service failure was detected while the authorization service was unavailable",
+        "when": "The service is restored and failure records are flushed",
+        "then": "A failure row with the available timestamp and failure result is returned by the attempt-record query",
+        "level": "api"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-26",
+      "ears": "The Folio3 parking system shall record each entrance verification attempt with its timestamp, plate when available, verification result, and entry status.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-3",
+       "ASM-8",
+       "ASM-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-26.1",
+        "given": "A successful or unsuccessful verification attempt has been processed",
+        "when": "The attempt-record query is made",
+        "then": "The returned row contains a timestamp, plate when available, verification result, and entry-status field",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     },
+     {
+      "id": "REQ-27",
+      "ears": "The Folio3 parking system shall provide Security Guards a view of verification results and a way to record whether each vehicle entered.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-27.1",
+        "given": "A verification attempt has been recorded",
+        "when": "A Security Guard opens the guard-facing view",
+        "then": "The screen displays the plate when available, verification result, and entry status",
+        "level": "manual"
+       },
+       {
+        "id": "AC-REQ-27.2",
+        "given": "A Security Guard is authenticated and an attempt has no entry status",
+        "when": "The guard records whether the vehicle entered",
+        "then": "The response status is 200 and the attempt row contains the submitted entry status",
+        "level": "api"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-28",
+      "ears": "When a reporting period closes, the Folio3 parking system shall record unused dedicated parking when the holder did not release or use the space and record unused temporary parking when the claimant's registered vehicle did not enter.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-28.1",
+        "given": "A dedicated holder did not release the space and no registered vehicle entry exists for the date",
+        "when": "The utilization job processes that date",
+        "then": "An unused-dedicated utilization row is created with the employee, vehicle, and date",
+        "level": "job"
+       },
+       {
+        "id": "AC-REQ-28.2",
+        "given": "A temporary claim exists and the claimant's registered vehicle has no entry event for the date",
+        "when": "The utilization job processes that date",
+        "then": "An unused-temporary utilization row is created with the employee, vehicle, and date",
+        "level": "job"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-29",
+      "ears": "The Folio3 parking system shall calculate utilization for each reporting period as occupied spaces divided by total available spaces, report released and claimed totals separately, and exclude released-but-unclaimed spaces from occupied counts.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-5",
+       "ASM-27"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-29.1",
+        "given": "A reporting period has known total available capacity, occupied spaces, releases, claims, and released-but-unclaimed spaces",
+        "when": "The utilization report is requested",
+        "then": "The returned value equals occupied spaces divided by total available spaces, released and claimed counts are separate fields, and released-but-unclaimed spaces are not included in the occupied count",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-29.2",
+        "given": "Daily and weekly parking records exist",
+        "when": "An administrator requests the utilization report",
+        "then": "The response contains daily and weekly utilization values and the total available-space denominator",
+        "level": "api"
+       }
+      ],
+      "stability": 0.91
+     },
+     {
+      "id": "REQ-30",
+      "ears": "When the configured Monday report time arrives in the Folio3 office's local timezone, the Folio3 parking system shall generate and email the weekly utilization report to the configured stakeholder addresses.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-25",
+       "ASM-26"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-30.1",
+        "given": "The Monday report time is configured and stakeholder email addresses exist",
+        "when": "The weekly-report job runs at that time in the office's local timezone",
+        "then": "An email call is recorded for each configured stakeholder address and the sent report contains unused-parking records, daily and weekly utilization, released totals, temporary-claim totals, and utilization percentage",
+        "level": "job"
+       }
+      ],
+      "stability": 0.84
+     },
+     {
+      "id": "REQ-31",
+      "ears": "The Folio3 parking system shall provide Parking Administrators on-screen parking reports with filters and CSV export.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-11",
+       "ASM-25"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-31.1",
+        "given": "Parking utilization records exist",
+        "when": "A Parking Administrator applies a report filter and exports the result",
+        "then": "The screen displays the filtered list and a CSV file containing the filtered records is downloaded",
+        "level": "manual"
+       }
+      ],
+      "stability": 0.78
+     },
+     {
+      "id": "REQ-32",
+      "ears": "The Folio3 parking system shall not apply automated warnings, suspensions, or penalties based on utilization records.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-32.1",
+        "given": "A utilization record identifies unused dedicated or temporary parking",
+        "when": "The utilization job processes the record",
+        "then": "No warning, suspension, or penalty event or record is created",
+        "level": "job"
+       }
+      ],
+      "stability": 0.95
+     },
+     {
+      "id": "REQ-33",
+      "ears": "The Folio3 parking system shall restrict employee, parking, configuration, and report-management actions to authenticated Parking Administrators.",
+      "op": "ADDED",
+      "sources": [
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-33.1",
+        "given": "An authenticated user does not have the Parking Administrator role",
+        "when": "The user requests an administrative employee, parking, configuration, or report-management action",
+        "then": "The response status is 403 and the targeted record is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-33.2",
+        "given": "An authenticated Parking Administrator opens the administration area",
+        "when": "The administrator requests employee, parking, configuration, or report management",
+        "then": "The response status is 200 and the returned list or record is available",
+        "level": "api"
+       }
+      ],
+      "stability": 0.94
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "The employee mobile application and guard-facing view shall conform to WCAG 2.1 AA for the main flows.",
+      "metric": "100% of applicable WCAG 2.1 AA success criteria pass a documented conformance audit for the main employee and guard-facing flows."
+     }
+    ],
+    "outOfScope": [
+     "Full audit-trail history beyond the expressly recorded release, claim, intervention, verification, and utilization records (ASM-12, ASM-28).",
+     "Custom report builder beyond filtered lists and CSV export (ASM-11, ASM-25).",
+     "Application and notification languages other than English (ASM-13, ASM-29)."
+    ],
+    "assumptions": [
+     "Use Google authentication for authorized Folio3 accounts as stated in I-1; the email/password-only default in ASM-1 conflicts with that explicit requirement and is not applied.",
+     "A missing corporate employee profile blocks dashboard access; a recoverable error allows retry or support contact (ASM-2, ASM-15).",
+     "For a returning employee whose vehicle profile is incomplete, show the dashboard prompt and block vehicle-dependent actions until a plate is registered, following ASM-16 rather than the conflicting routing default in ASM-3.",
+     "The 30-day scheduling horizon counts calendar dates in the office timezone; dates are eligible for parking operation only when present in the administrator-maintained operating-day calendar (ASM-10, ASM-17).",
+     "The office-local fixed Monday report time is configurable; exact stakeholder addresses and time are configured by a Parking Administrator (ASM-25, ASM-26).",
+     "The LPR and indicator are the designated entrance systems using their selected vendor-supported interfaces; their specific vendor protocols are not defined here (ASM-9, ASM-20, ASM-21).",
+     "Q-2 requires administrators to reverse a claimed release and record the intervention but does not define whether that reversal revokes the claimant's entrance authorization."
+    ],
+    "suggestions": [
+     "Confirm whether administrator reversal of a claimed release also revokes the temporary claimant's entrance authorization, and define the claimant-facing result.",
+     "Define the exact allowed plate-spacing normalization rules and the tie-break behavior when multiple floors have the same lowest temporary-allocation count."
+    ]
+   },
+   "ms": 4,
+   "resultChars": 378,
+   "isError": true,
+   "result": "The result doesn't match the schema: requirements.6.acceptance.0.level: Invalid option: expected one of \"unit\"|\"api\"|\"job\"|\"ui\"|\"manual\"; requirements.10.acceptance.0.level: Invalid option: expected one of \"unit\"|\"api\"|\"job\"|\"ui\"|\"manual\"; requirements.19.acceptance.0.level: Invalid option: expected one of \"unit\"|\"api\"|\"job\"|\"ui\"|\"manual\". Fix it and call submit_result again."
+  }
+ ]
+}

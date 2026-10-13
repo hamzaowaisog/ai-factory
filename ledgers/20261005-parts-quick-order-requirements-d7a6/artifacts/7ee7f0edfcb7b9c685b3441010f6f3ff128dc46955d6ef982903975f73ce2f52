@@ -1,0 +1,268 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Find parts",
+     "subtitle": "Search by name or part number. Prices in GBP, 20 parts per page.",
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Name or part number"
+      },
+      {
+       "type": "results",
+       "count": "1,248 parts · page 1 of 63",
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Electrical",
+          "Hydraulics",
+          "Sensors",
+          "Belts and drives"
+         ],
+         "picked": [
+          "All"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "Schneider",
+          "Parker",
+          "Gates",
+          "Sick"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Angle grinder disc 115mm",
+         "meta": "AGD-115-22 · Norton · Abrasives",
+         "price": "£2.85",
+         "badge": "In stock"
+        },
+        {
+         "title": "Ball bearing 6205-2RS",
+         "meta": "6205-2RSH · SKF · Bearings",
+         "price": "£8.40",
+         "badge": "Low stock (3 left)"
+        },
+        {
+         "title": "Contactor 3-pole 18A 24V DC",
+         "meta": "LC1D18BD · Schneider · Electrical",
+         "price": "£46.20",
+         "badge": "In stock"
+        },
+        {
+         "title": "Drive belt SPZ 1250",
+         "meta": "SPZ1250 · Gates · Belts and drives",
+         "price": "£11.95",
+         "badge": "Out of stock"
+        },
+        {
+         "title": "Hydraulic hose 1/2in x 1m",
+         "meta": "2SN-08-1000 · Parker · Hydraulics",
+         "price": "£24.60",
+         "badge": "Low stock (1 left)"
+        },
+        {
+         "title": "Inductive sensor M18",
+         "meta": "IME18-08BPSZC0S · Sick · Sensors",
+         "price": "£58.75",
+         "badge": "In stock"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "filter"
+        },
+        {
+         "label": "Cart (3)",
+         "variant": "primary",
+         "icon": "cart"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Cart (3)",
+       "to": "S-2"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or clear the search and filters to see all parts.",
+      "error": "Parts couldn't load. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is updated."
+     }
+    },
+    "mockFull": {
+     "title": "Find parts",
+     "subtitle": "Search by name or part number. Prices in GBP, 20 parts per page.",
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Name or part number"
+      },
+      {
+       "type": "results",
+       "count": "1,248 parts · page 1 of 63",
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "All",
+          "Bearings",
+          "Electrical",
+          "Hydraulics",
+          "Sensors",
+          "Belts and drives"
+         ],
+         "picked": [
+          "All"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "All",
+          "SKF",
+          "Schneider",
+          "Parker",
+          "Gates",
+          "Sick"
+         ],
+         "picked": [
+          "All"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Air filter element 40 micron",
+         "meta": "AF-40-125 · Parker · Pneumatics",
+         "price": "£17.30",
+         "badge": "In stock"
+        },
+        {
+         "title": "Angle grinder disc 115mm",
+         "meta": "AGD-115-22 · Norton · Abrasives",
+         "price": "£2.85",
+         "badge": "In stock"
+        },
+        {
+         "title": "Ball bearing 6205-2RS",
+         "meta": "6205-2RSH · SKF · Bearings",
+         "price": "£8.40",
+         "badge": "Low stock (3 left)"
+        },
+        {
+         "title": "Ball bearing 6308-2Z",
+         "meta": "6308-2Z · SKF · Bearings",
+         "price": "£21.15",
+         "badge": "In stock"
+        },
+        {
+         "title": "Circuit breaker C16 1-pole",
+         "meta": "A9F04116 · Schneider · Electrical",
+         "price": "£9.80",
+         "badge": "In stock"
+        },
+        {
+         "title": "Contactor 3-pole 18A 24V DC",
+         "meta": "LC1D18BD · Schneider · Electrical",
+         "price": "£46.20",
+         "badge": "In stock"
+        },
+        {
+         "title": "Drive belt SPZ 1250",
+         "meta": "SPZ1250 · Gates · Belts and drives",
+         "price": "£11.95",
+         "badge": "Out of stock"
+        },
+        {
+         "title": "Emergency stop button 40mm",
+         "meta": "XB5AS8442 · Schneider · Electrical",
+         "price": "£32.50",
+         "badge": "Low stock (4 left)"
+        },
+        {
+         "title": "Hydraulic hose 1/2in x 1m",
+         "meta": "2SN-08-1000 · Parker · Hydraulics",
+         "price": "£24.60",
+         "badge": "Low stock (1 left)"
+        },
+        {
+         "title": "Inductive sensor M18",
+         "meta": "IME18-08BPSZC0S · Sick · Sensors",
+         "price": "£58.75",
+         "badge": "In stock"
+        },
+        {
+         "title": "Photoelectric sensor 5m",
+         "meta": "WL12-3P2431 · Sick · Sensors",
+         "price": "£112.00",
+         "badge": "Out of stock"
+        },
+        {
+         "title": "Timing belt HTD 8M-1200",
+         "meta": "8MGT-1200-30 · Gates · Belts and drives",
+         "price": "£38.40",
+         "badge": "In stock"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "filter"
+        },
+        {
+         "label": "Cart (3)",
+         "variant": "primary",
+         "icon": "cart"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or clear the search and filters to see all parts.",
+      "error": "Parts couldn't load. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is updated."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

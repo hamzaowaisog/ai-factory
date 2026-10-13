@@ -1,0 +1,56 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "source": "cli",
+    "spans": [
+     {
+      "id": "I-1",
+      "text": "A web front end with a small API and a database behind it."
+     },
+     {
+      "id": "I-2",
+      "text": "The app ships with exactly 8 requests."
+     },
+     {
+      "id": "I-3",
+      "text": "Requests are stored in the database and survive a reload and a restart."
+     },
+     {
+      "id": "I-4",
+      "text": "The API needs these four operations and no others: list, create, get by ID, and change status."
+     },
+     {
+      "id": "I-5",
+      "text": "Requests screen with status filters, create dialog, and loading, empty, and error states."
+     },
+     {
+      "id": "I-6",
+      "text": "Request detail screen with status-appropriate action, update failure state, and not-found state."
+     },
+     {
+      "id": "I-7",
+      "text": "Clean light theme, responsive layout, accessible controls, and specified badge colors."
+     },
+     {
+      "id": "I-8",
+      "text": "Automated tests for the business rules and one end-to-end workflow."
+     }
+    ],
+    "changeClass": "feature",
+    "risk": "medium",
+    "riskTags": [],
+    "rigor": "full",
+    "touchesUi": true
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

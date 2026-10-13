@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "gateway|logger",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 3,
+   "resultChars": 570,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;gateway|logger&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:201: /warehouse/receipts/{receiptId}/logger:\ncontracts/openapi.yaml:203: operationId: uploadReceiptLogger\ncontracts/openapi.yaml:204: summary: \"Upload an inbound logger export for supplier-format processing.\"\ncontracts/openapi.yaml:371: summary: \"Pack stock into a shipper box and associate one logger.\"\ncontracts/openapi.yaml:2134: - loggerId\ncontracts/openapi.yaml:2141: loggerId:\n</untrusted_document>"
+  }
+ ]
+}

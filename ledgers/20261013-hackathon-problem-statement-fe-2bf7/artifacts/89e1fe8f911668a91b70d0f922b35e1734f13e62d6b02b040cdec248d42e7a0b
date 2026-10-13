@@ -1,0 +1,70 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement the Feedlot API to conform to every operation, schema, status, and security rule in the OpenAPI contract, expose no undocumented operations, and provide no product-screen routes or rendered screens."
+     },
+     {
+      "n": 2,
+      "text": "Return contract-defined authentication, session, dashboard, and filtered lot data."
+     },
+     {
+      "n": 3,
+      "text": "Support procurement imports and allocations with persisted PO-line-to-lot and lot-to-pen traceability, matching, and conflict results."
+     },
+     {
+      "n": 4,
+      "text": "Support forecast, forecast-setting, metric, insight, planner-action, and weight-history operations with contract-defined calculations, explainable results, validation, and persisted updates."
+     },
+     {
+      "n": 5,
+      "text": "Support inventory reads, writes, movements, projections, and CSV exports using contract-defined values, and persist valid inventory changes in PostgreSQL."
+     },
+     {
+      "n": 6,
+      "text": "Support ration reads, creation, revision, optimization, and approval with contract-defined data, calculations, and persisted changes."
+     },
+     {
+      "n": 7,
+      "text": "Support feed-plan reads, creation, review, and status changes with contract-defined pen-level details, calculated quantities, audit state, and persistence."
+     },
+     {
+      "n": 8,
+      "text": "Support feeding-event reads, creation, correction, and voiding with contract-defined variance, cost, energy, inventory movements, and updated lot feed totals."
+     },
+     {
+      "n": 9,
+      "text": "Support operational, feed-to-gain, and profitability reports and exports with contract-defined calculations, summaries, filters, permissions, and artifacts."
+     },
+     {
+      "n": 10,
+      "text": "Support sample-data reads, loads, resets, and replacements with contract-defined status, no duplicate loading, and explicit confirmation for resets or replacements."
+     },
+     {
+      "n": 11,
+      "text": "Store contract domain data in the configured App PostgreSQL database, preserve successful writes across API restarts, and upgrade the schema without losing existing data."
+     },
+     {
+      "n": 12,
+      "text": "When Seed:Demo is true, run SeedData.Run at startup to add 3 to 5 believable contract-example-derived rows to each empty application table, leave nonempty tables unchanged, and fail startup with a surfaced error if seeding fails."
+     },
+     {
+      "n": 13,
+      "text": "When Seed:Demo is false, serve collection operations from persisted records, including empty collections when no records exist."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

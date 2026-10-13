@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Migration|EnsureCreated|UseNpgsql|AddDbContext|SeedData.Run",
+    "glob": "**/*.cs"
+   },
+   "ms": 1,
+   "resultChars": 463,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Migration|EnsureCreated|UseNpgsql|AddDbContext|SeedData.Run&quot;,&quot;glob&quot;:&quot;**/*.cs&quot;}\">\nApp.Api/Program.cs:8: builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\nApp.Api/Program.cs:22: db.Database.EnsureCreated();\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "GetDocument|migration|data-model",
+    "glob": "**/*"
+   },
+   "ms": 1,
+   "resultChars": 279,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;GetDocument|migration|data-model&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/Program.cs:15: if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != \"GetDocument.Insider\")\n</untrusted_document>"
+  }
+ ]
+}

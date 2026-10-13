@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lot L-2407 — Range Ledger</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    :root {
+      --bg-page: #F5F5F5;
+      --bg-panel: #FFFFFF;
+      --text-main: #262626;
+      --text-muted: #626262;
+      --border-rule: #D8D8D8;
+      --primary-cta: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Typography rules */
+    h1 {
+      font-size: 32px;
+      line-height: 40px;
+      font-weight: 650;
+    }
+
+    h2 {
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 600;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 0.86;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .dot-live-breathe {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Controls styling */
+    .btn-primary {
+      background-color: #B3473D;
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 4px;
+      border: 1px solid #B3473D;
+      padding: 0 16px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #9c3c33;
+      border-color: #9c3c33;
+    }
+    .btn-primary:active {
+      background-color: #833129;
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #262626;
+      height: 44px;
+      border-radius: 4px;
+      border: 1px solid #D8D8D8;
+      padding: 0 16px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #F5F5F5;
+      border-color: #BFBFBF;
+    }
+    .btn-secondary:active {
+      background-color: #EBEBEB;
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid #B3473D;
+      outline-offset: 2px;
+    }
+
+    .input-field {
+      height: 44px;
+      border-radius: 4px;
+      border: 1px solid #D8D8D8;
+      background-color: #FFFFFF;
+      color: #262626;
+      padding: 0 12px;
+    }
+    .input-field:focus {
+      outline: 2px solid #B3473D;
+      outline-offset: 0;
+      border-color: #B3473D;
+    }
+
+    @media (max-width: 640px) {
+      .btn-primary, .btn-secondary, .input-field {
+        height: 48px;
+      }
+    }
+
+    .panel-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D8D8D8;
+      border-radius: 4px;
+    }
+
+    .nav-item-active {
+      color: #B3473D;
+      border-bottom: 2px solid #B3473D;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<!-- Plain Header -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D8D8D8]">
+<div class="max-w-[1440px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+<!-- Left: Brand mark + Brand name + Shared menu -->
+<div class="flex items-center space-x-6 overflow-x-auto py-2">
+<a class="flex items-center space-x-2.5 flex-shrink-0" href="#">
+<div class="w-7 h-7 bg-[#262626] rounded-[4px] flex items-center justify-center text-white font-bold text-sm">
+            R
+          </div>
+<span class="heading-font text-lg font-bold text-[#262626] tracking-tight">Range Ledger</span>
+</a>
+<!-- Shared Menu (exact order, Lots active) -->
+<nav class="flex items-center space-x-5 text-sm flex-shrink-0">
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Yard</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Imports</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Allocations</a>
+<a class="nav-item-active font-medium py-5" href="#">Lots</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Inventory</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Feed outlook</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Rations</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Feed plans</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Feeding</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Reports</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Feed-to-gain</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Profitability</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Sample data</a>
+<a class="text-[#626262] hover:text-[#262626] py-5 transition-colors" href="#">Delivery brief</a>
+</nav>
+</div>
+<!-- Right: Signed-in user Maya Chen -->
+<div class="flex items-center space-x-3 flex-shrink-0 pl-4 border-l border-[#D8D8D8]">
+<img alt="Maya Chen" class="w-8 h-8 rounded-[4px] object-cover aspect-square" src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG"/>
+<div class="text-left hidden sm:block">
+<div class="text-sm font-semibold text-[#262626] leading-none">Maya Chen</div>
+<div class="text-xs text-[#626262] mt-1 leading-none">Yard manager</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Worklist / Detail Workspace -->
+<main class="flex-1 max-w-[1440px] w-full mx-auto p-4 md:p-6 space-y-6 animate-entrance">
+<!-- One Page Heading -->
+<div>
+<h1 class="text-[#262626]">Lot L-2407</h1>
+</div>
+<!-- Primary Overview Banner (Compact Worklist/Detail Layout) -->
+<div class="panel-card p-4 md:p-6">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-[#D8D8D8]">
+<!-- Meet eye first with L-2407 and returned 80 active head -->
+<div class="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+<div class="text-3xl md:text-4xl font-mono-num font-semibold text-[#262626]">
+            L-2407
+          </div>
+<div class="text-3xl md:text-4xl font-mono-num font-semibold text-[#262626]">
+            80 <span class="text-lg md:text-xl font-normal text-[#626262] font-sans">active head</span>
+</div>
+<div class="text-sm text-[#626262] border-l border-[#D8D8D8] pl-3 py-1">
+            Angus steers • Pen <span class="font-mono-num font-medium text-[#262626]">P-04</span> • Red Mesa Yard (America/Denver)
+          </div>
+</div>
+<!-- Secondary action for managers -->
+<div class="flex items-center gap-3">
+<button class="btn-secondary text-sm" type="button">
+            Edit forecast assumptions
+          </button>
+<a class="btn-primary text-sm" href="#add-weight-form">
+            Add weight measurement
+          </a>
+</div>
+</div>
+<!-- Allocation Conflict Traceability Notice -->
+<div class="mt-4 p-3.5 bg-[#FFF] border border-[#D8D8D8] rounded-[4px] flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="flex items-start md:items-center gap-2.5">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-xs font-semibold uppercase tracking-wider text-[#805600] bg-[#FFF8E6] border border-[#E6D4A8] flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#805600] dot-live-breathe"></span>
+            Allocation conflict
+          </span>
+<div class="text-sm text-[#262626]">
+<strong class="font-semibold font-mono-num">PO-8841</strong> traceability: source count <span class="font-mono-num font-semibold">80</span> on repeat import versus <span class="font-mono-num font-semibold">82</span> still mapped in <span class="font-mono-num">P-04</span>. Retained mapped allocation; supervisor review required before adjusting physical yard count.
+          </div>
+</div>
+<div class="text-xs font-mono-num text-[#626262] flex-shrink-0">
+          2025-06-18 10:10 MT
+        </div>
+</div>
+<!-- Returned Performance Values Table (Compact layout, IBM Plex Mono for numbers/codes) -->
+<div class="mt-6">
+<div class="text-xs font-semibold uppercase tracking-wider text-[#626262] mb-3">
+          Returned Lot Performance Values
+        </div>
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 py-3 px-4 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]">
+<div>
+<div class="text-xs text-[#626262]">Days on feed</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">84 <span class="text-xs font-sans text-[#626262]">days</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Total gain</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">20,960 <span class="text-xs font-sans text-[#626262]">lb</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Returned ADG</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">3.12 <span class="text-xs font-sans text-[#626262]">lb/day</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Total feed</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">154,000 <span class="text-xs font-sans text-[#626262]">lb</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Feed conversion (FCR)</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">7.35</div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Cost of gain</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">$1.07<span class="text-xs font-sans text-[#626262]">/lb</span></div>
+</div>
+<div>
+<div class="text-xs text-[#626262]">Projected ship date</div>
+<div class="text-lg font-mono-num font-semibold text-[#262626] mt-0.5">2025-07-16</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Full-width 2px rule separating major groups -->
+<div class="w-full h-0.5 bg-[#D8D8D8]"></div>
+<!-- Two Column Operational Detail Section: Forecast & Explainable Suggestions -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Target-Weight Forecast & Assumptions -->
+<div class="panel-card p-4 md:p-6 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-[#262626]">Weight Projections &amp; Forecast Assumptions</h2>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-xs font-semibold text-[#286143] bg-[#E8F5E9] border border-[#C8E6C9]">
+<span class="w-2 h-2 rounded-full bg-[#286143]"></span>
+            Active projection
+          </span>
+</div>
+<div class="space-y-3 pt-2">
+<!-- Forecast Comparison Rows -->
+<div class="p-3 border border-[#D8D8D8] rounded-[4px] bg-[#FFFFFF]">
+<div class="flex items-center justify-between text-sm">
+<span class="font-medium text-[#262626]">Target-weight milestone</span>
+<span class="font-mono-num font-semibold text-[#262626]">1,200 lb</span>
+</div>
+<div class="text-sm text-[#626262] mt-1">
+              Projected around <span class="font-mono-num text-[#262626] font-medium">July 5, 2025</span> at approximately <span class="font-mono-num text-[#262626] font-medium">1,199 lb</span>.
+            </div>
+</div>
+<div class="p-3 border border-[#D8D8D8] rounded-[4px] bg-[#FFFFFF]">
+<div class="flex items-center justify-between text-sm">
+<span class="font-medium text-[#262626]">Market-date projection</span>
+<span class="font-mono-num font-semibold text-[#262626]">July 16, 2025</span>
+</div>
+<div class="text-sm text-[#626262] mt-1">
+              Estimated terminal average weight of about <span class="font-mono-num text-[#262626] font-medium">1,233 lb</span> upon shipping.
+            </div>
+</div>
+<!-- Rate details -->
+<div class="pt-2 text-sm text-[#626262] border-t border-[#D8D8D8] space-y-1.5">
+<div class="flex items-center justify-between">
+<span>Gain calculation model:</span>
+<span class="font-mono-num font-medium text-[#262626]">Lot override applied</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Active lot rate override:</span>
+<span class="font-mono-num font-semibold text-[#262626]">3.12 lb/day</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Standard Red Mesa yard baseline:</span>
+<span class="font-mono-num text-[#626262]">2.85 lb/day</span>
+</div>
+<div class="text-xs text-[#626262] pt-1">
+              * Yard forecast default gain rate is 2.85 lb/day; lot override is 3.12 lb/day. Only managers can edit forecast assumptions.
+            </div>
+</div>
+</div>
+</div>
+<!-- Explainable Operational Suggestions -->
+<div class="panel-card p-4 md:p-6 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-[#262626]">Explainable Operational Suggestions</h2>
+<span class="text-xs text-[#626262] font-mono-num">Auto-evaluated</span>
+</div>
+<div class="space-y-3 pt-2">
+<!-- Suggestion 1 -->
+<div class="p-3.5 border border-[#D8D8D8] rounded-[4px] bg-[#FFFFFF] border-l-4 border-l-[#805600]">
+<div class="flex items-center justify-between">
+<div class="text-sm font-semibold text-[#262626]">Review feed adjustment for Pen P-04</div>
+<span class="inline-flex items-center gap-1.5 text-xs text-[#805600] font-medium">
+<span class="w-2 h-2 rounded-full bg-[#805600]"></span>
+                Waiting review
+              </span>
+</div>
+<div class="text-sm text-[#626262] mt-1.5 leading-relaxed">
+<strong>Reason:</strong> The recent returned interval gain for L-2407 is <span class="font-mono-num font-semibold text-[#262626]">2.33 lb/head/day</span> (7 lb over 3 days) against the historical <span class="font-mono-num font-semibold text-[#262626]">3.12 lb/day</span> lot trend.
+            </div>
+<div class="mt-2 pt-2 border-t border-[#D8D8D8] text-xs text-[#626262] flex items-center justify-between">
+<span>Authorized scope: Yard operations</span>
+<span class="italic">Leave plan or sale changes to the feed planner (Omar Diaz).</span>
+</div>
+</div>
+<!-- Suggestion 2 -->
+<div class="p-3.5 border border-[#D8D8D8] rounded-[4px] bg-[#FFFFFF] border-l-4 border-l-[#805600]">
+<div class="flex items-center justify-between">
+<div class="text-sm font-semibold text-[#262626]">Reconcile PO-8841 mapped headcount</div>
+<span class="inline-flex items-center gap-1.5 text-xs text-[#805600] font-medium">
+<span class="w-2 h-2 rounded-full bg-[#805600]"></span>
+                Conflict flagged
+              </span>
+</div>
+<div class="text-sm text-[#626262] mt-1.5 leading-relaxed">
+<strong>Reason:</strong> Physical receiving was recorded as 82 head, but procurement adapter updated the line source count to 80 head without reallocating pen assignments.
+            </div>
+<div class="mt-2 pt-2 border-t border-[#D8D8D8] text-xs text-[#626262] flex items-center justify-between">
+<span>Authorized scope: Procurement / Yard</span>
+<span class="italic">Verify pen count before updating saved ration deliveries.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Full-width 2px rule separating major groups -->
+<div class="w-full h-0.5 bg-[#D8D8D8]"></div>
+<!-- Weight History & Inline Measurement Entry -->
+<div class="panel-card p-4 md:p-6 space-y-6">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<h2 class="text-[#262626]">Recorded Weight History</h2>
+<p class="text-sm text-[#626262] mt-0.5">Time-ordered official scale weights with interval gain information and recorded staff.</p>
+</div>
+<a class="btn-primary text-sm self-start sm:self-auto" href="#add-weight-form">
+          Add weight measurement
+        </a>
+</div>
+<!-- Time-Ordered Weight History Table -->
+<div class="overflow-x-auto border border-[#D8D8D8] rounded-[4px]">
+<table class="w-full text-left border-collapse bg-[#FFFFFF]">
+<thead>
+<tr class="bg-[#F5F5F5] border-b border-[#D8D8D8] text-xs font-semibold uppercase tracking-wider text-[#626262]">
+<th class="py-3 px-4">Date &amp; Time (MT)</th>
+<th class="py-3 px-4">Average Weight</th>
+<th class="py-3 px-4">Interval Gain Information</th>
+<th class="py-3 px-4">Days on Feed</th>
+<th class="py-3 px-4">Recorded By</th>
+<th class="py-3 px-4 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D8D8D8] text-sm">
+<!-- Row 1: Jun 18, 2025 -->
+<tr class="h-12 sm:h-14 hover:bg-[#FAFAFA] transition-colors">
+<td class="py-3 px-4 font-mono-num font-medium text-[#262626]">
+                2025-06-18 <span class="text-xs text-[#626262]">07:55</span>
+</td>
+<td class="py-3 px-4 font-mono-num font-semibold text-[#262626]">
+                1,146 lb
+              </td>
+<td class="py-3 px-4 text-[#262626]">
+<span class="font-mono-num font-medium">+7 lb</span> over 3 days (<span class="font-mono-num font-medium text-[#805600]">2.33 lb/head/day</span>)
+              </td>
+<td class="py-3 px-4 font-mono-num text-[#262626]">
+                84
+              </td>
+<td class="py-3 px-4">
+<div class="flex items-center space-x-2.5">
+<img alt="Rosa Alvarez" class="w-7 h-7 rounded-[4px] object-cover aspect-square flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1UxmBLWzQYZG8D4esUDiSC3Lxx3O1obRDZuFhZvCtVf7Uhy68O6JsTXwSFdj86XGFcitWORXy37q9lL4n5I-R80-N0GZgk5XV3aek1qrOPMURBM3Q57bjItBmwaJCri0InpclljpZL8WWIEvbuns-mS2G1pPBw5hKVkRPOVuTbmD1gPo3iewCORaVQWa-akrIjaINhq70gogfYAAw69cn8_AAVt4g4qJPNhro2Tb4suO8pmm8PqY9hdI3s"/>
+<div>
+<span class="font-medium text-[#262626]">Rosa Alvarez</span>
+<span class="text-xs text-[#626262] block leading-none">Livestock technician</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-xs font-semibold text-[#286143] bg-[#E8F5E9] border border-[#C8E6C9]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Measurement saved
+                </span>
+</td>
+</tr>
+<!-- Row 2: Jun 15, 2025 -->
+<tr class="h-12 sm:h-14 hover:bg-[#FAFAFA] transition-colors">
+<td class="py-3 px-4 font-mono-num font-medium text-[#262626]">
+                2025-06-15 <span class="text-xs text-[#626262]">11:40</span>
+</td>
+<td class="py-3 px-4 font-mono-num font-semibold text-[#262626]">
+                1,139 lb
+              </td>
+<td class="py-3 px-4 text-[#262626]">
+<span class="font-mono-num font-medium">+255 lb</span> gain from receipt baseline
+              </td>
+<td class="py-3 px-4 font-mono-num text-[#262626]">
+                81
+              </td>
+<td class="py-3 px-4">
+<div class="flex items-center space-x-2.5">
+<img alt="Rosa Alvarez" class="w-7 h-7 rounded-[4px] object-cover aspect-square flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1UxmBLWzQYZG8D4esUDiSC3Lxx3O1obRDZuFhZvCtVf7Uhy68O6JsTXwSFdj86XGFcitWORXy37q9lL4n5I-R80-N0GZgk5XV3aek1qrOPMURBM3Q57bjItBmwaJCri0InpclljpZL8WWIEvbuns-mS2G1pPBw5hKVkRPOVuTbmD1gPo3iewCORaVQWa-akrIjaINhq70gogfYAAw69cn8_AAVt4g4qJPNhro2Tb4suO8pmm8PqY9hdI3s"/>
+<div>
+<span class="font-medium text-[#262626]">Rosa Alvarez</span>
+<span class="text-xs text-[#626262] block leading-none">Livestock technician</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-xs font-semibold text-[#286143] bg-[#E8F5E9] border border-[#C8E6C9]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Measurement saved
+                </span>
+</td>
+</tr>
+<!-- Row 3: Mar 26, 2025 (Receipt) -->
+<tr class="h-12 sm:h-14 hover:bg-[#FAFAFA] transition-colors">
+<td class="py-3 px-4 font-mono-num font-medium text-[#262626]">
+                2025-03-26 <span class="text-xs text-[#626262]">07:30</span>
+</td>
+<td class="py-3 px-4 font-mono-num font-semibold text-[#262626]">
+                884 lb
+              </td>
+<td class="py-3 px-4 text-[#626262]">
+                Initial receipt weight baseline (82 head intake)
+              </td>
+<td class="py-3 px-4 font-mono-num text-[#262626]">
+                0
+              </td>
+<td class="py-3 px-4">
+<div class="flex items-center space-x-2.5">
+<img alt="Tomas Reed" class="w-7 h-7 rounded-[4px] object-cover aspect-square flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1XP8gXfk1n-6mEAvB7hmXPFaqX_gPgMH54cSWMSTxyGB-OCZwvCeuj3hkhFR-Aufp16OvFyXrd7pTEUCf7DiLGrHqka4-9DZ9xdN1FRzPsgz3PygCpkCjsSMNhqvnDiyKq9JOfDD4rnUul2q2e8Xj1DtgF7EJlZZMMwXeNhuL-zs4_0F1elvqrLoPHUer1wkk4APnnKTWbVR-m1pPEOlm2Eu5W4mykWgOW3kMtWBcIvsYl9ftsZJ-nFLqhF"/>
+<div>
+<span class="font-medium text-[#262626]">Tomas Reed</span>
+<span class="text-xs text-[#626262] block leading-none">Receiving coordinator</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-xs font-semibold text-[#286143] bg-[#E8F5E9] border border-[#C8E6C9]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#286143]"></span>
+                  Receipt recorded
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Inline Weight Measurement Form -->
+<div class="p-4 md:p-6 bg-[#F5F5F5] border border-[#D8D8D8] rounded-[4px]" id="add-weight-form">
+<div class="flex items-center justify-between pb-3 border-b border-[#D8D8D8] mb-4">
+<div>
+<h3 class="text-[#262626]">Add Weight Measurement</h3>
+<p class="text-xs text-[#626262] mt-0.5">Submits scale observation directly to the yard weight telemetry service.</p>
+</div>
+<span class="text-xs font-mono-num text-[#626262]">Lot L-2407 • Pen P-04</span>
+</div>
+<form class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end" onsubmit="return false;">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#626262] mb-1.5" for="measurement-date-time">
+              Measurement Date &amp; Time
+            </label>
+<input class="input-field w-full font-mono-num text-sm" id="measurement-date-time" type="text" value="2025-06-19 08:00 MT"/>
+</div>
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#626262] mb-1.5" for="average-head-weight">
+              Average Head Weight (lb)
+            </label>
+<input class="input-field w-full font-mono-num text-sm" id="average-head-weight" placeholder="e.g. 1150" type="number" value="1149"/>
+</div>
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#626262] mb-1.5" for="recorded-by-staff">
+              Recorded By
+            </label>
+<select aria-label="Recorded by staff" class="input-field w-full text-sm" id="recorded-by-staff" name="recorded_by">
+<option selected="">Rosa Alvarez — Livestock technician</option>
+<option>Eli Navarro — Pen operator</option>
+<option>Maya Chen — Yard manager</option>
+</select>
+</div>
+<div class="flex items-center gap-2">
+<button class="btn-primary flex-1 text-sm" type="submit">
+              Save measurement
+            </button>
+<button class="btn-secondary text-sm" type="reset">
+              Cancel
+            </button>
+</div>
+</form>
+</div>
+</div>
+</main>
+</body>
+</html>

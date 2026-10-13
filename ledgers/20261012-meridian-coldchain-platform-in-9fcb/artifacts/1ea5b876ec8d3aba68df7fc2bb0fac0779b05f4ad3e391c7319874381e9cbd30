@@ -1,0 +1,168 @@
+diff --git a/components/screens/s-4/container.tsx b/components/screens/s-4/container.tsx
+index bc358a3..5d9ade7 100644
+--- a/components/screens/s-4/container.tsx
++++ b/components/screens/s-4/container.tsx
+@@ -1,13 +1,157 @@
+ "use client";
+ 
+-// S-4 Set new password (/reset/:token): the approved Stitch page, built by the coding task in this file.
+-// Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;
+-// match its layout, sections and words. Fixture mode (?fixture=S-4:<state>) must show the approved sample content in
+-// that state with no backend; the states the design drew: default, saved, invalid or expired link, password validation.
++import { useEffect, useRef, useState, type FormEvent } from "react";
++import { completePasswordReset, inspectPasswordResetToken, requestPasswordReset } from "@/lib/api/client";
++import { Link, useNav } from "@/lib/nav";
++import { Button } from "@/components/ui/button";
++import { Card, CardContent, CardHeader } from "@/components/ui/card";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import { Notice, NoticeDescription, NoticeTitle } from "@/components/ui/notice";
++
++type LinkState = "checking" | "valid" | "invalid-or-expired-link" | "error" | "saved";
++type Feedback = { state: string; tone: "bad" | "info" | "ok"; title: string; message: string };
++
++const fixtureFeedback: Record<string, Feedback> = {
++  saved: { state: "saved", tone: "ok", title: "Password saved", message: "Your password has been updated. You can now sign in." },
++  "invalid-or-expired-link": { state: "invalid-or-expired-link", tone: "bad", title: "Link cannot be used", message: "This reset link is invalid or has expired. Request another reset email." },
++  "password-validation": { state: "password-validation", tone: "bad", title: "Check your password", message: "Enter a new password and make sure both passwords match." },
++};
++
+ export function SetNewPasswordContainer({ fixture }: { fixture?: string }) {
++  const { path } = useNav();
++  const token = path.split("/")[2] ?? "";
++  const [linkState, setLinkState] = useState<LinkState>("checking");
++  const [password, setPassword] = useState("");
++  const [confirmation, setConfirmation] = useState("");
++  const [email, setEmail] = useState("");
++  const [busy, setBusy] = useState(false);
++  const [result, setResult] = useState<Feedback | null>(null);
++  const completed = useRef(false);
++  const feedback = fixture ? fixtureFeedback[fixture] ?? null : result;
++  const displayState = fixture ?? feedback?.state ?? (linkState === "checking" || linkState === "valid" ? "default" : linkState);
++  const invalidLink = fixture === "invalid-or-expired-link" || (!fixture && linkState === "invalid-or-expired-link");
++  const saved = fixture === "saved" || (!fixture && linkState === "saved");
++
++  useEffect(() => {
++    if (fixture) return;
++    if (!token) {
++      setLinkState("invalid-or-expired-link");
++      setResult(fixtureFeedback["invalid-or-expired-link"]);
++      return;
++    }
++    inspectPasswordResetToken(token).then((response) => {
++      if (completed.current) return;
++      if (response.status === 200) {
++        setLinkState("valid");
++        return;
++      }
++      const status: number = response.status;
++      if (status === 400 || status === 404 || status === 422) {
++        setLinkState("invalid-or-expired-link");
++        setResult({ state: "invalid-or-expired-link", tone: "bad", title: "Link cannot be used", message: response.data.message });
++      } else {
++        setLinkState("error");
++        setResult({ state: "error", tone: "bad", title: "Link check failed", message: response.data.message });
++      }
++    }).catch(() => {
++      if (completed.current) return;
++      setLinkState("error");
++      setResult({ state: "error", tone: "bad", title: "Link check failed", message: "Please try again in a moment." });
++    });
++  }, [fixture, token]);
++
++  async function savePassword(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (fixture || busy) return;
++    if (!password || password !== confirmation) {
++      setResult(fixtureFeedback["password-validation"]);
++      return;
++    }
++    if (linkState === "invalid-or-expired-link" || linkState === "error") return;
++    setBusy(true);
++    setResult({ state: "saving", tone: "info", title: "Saving password", message: "Waiting for confirmation." });
++    try {
++      const response = await completePasswordReset(token, { password });
++      if (response.status === 200) {
++        completed.current = true;
++        setLinkState("saved");
++        setResult({ state: "saved", tone: "ok", title: response.data.status, message: response.data.message });
++        setPassword("");
++        setConfirmation("");
++      } else {
++        const status: number = response.status;
++        if (status === 404 || status === 422) setLinkState("invalid-or-expired-link");
++        setResult({ state: status === 404 || status === 422 ? "invalid-or-expired-link" : "password-validation", tone: "bad", title: "Password not saved", message: response.data.message });
++      }
++    } catch {
++      setResult({ state: "error", tone: "bad", title: "Password not saved", message: "Please try again in a moment." });
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  async function sendResetEmail(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (fixture || busy) return;
++    const address = email.trim();
++    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
++      setResult({ state: "invalid-email", tone: "bad", title: "Invalid email", message: "Enter a valid email address." });
++      return;
++    }
++    setBusy(true);
++    setResult(null);
++    try {
++      const response = await requestPasswordReset({ email: address });
++      setResult({ state: response.status === 200 ? "email-sent" : "error", tone: response.status === 200 ? "ok" : "bad", title: response.status === 200 ? response.data.status : "Reset request failed", message: response.data.message });
++    } catch {
++      setResult({ state: "error", tone: "bad", title: "Reset request failed", message: "Please try again in a moment." });
++    } finally {
++      setBusy(false);
++    }
++  }
++
+   return (
+-    <main data-screen="S-4" data-state={fixture ?? "default"}>
+-      <h1>Set new password</h1>
++    <main data-screen="S-4" data-state={displayState} className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
++      <header className="mb-6 font-heading text-xl font-semibold text-brand-text">Meridian</header>
++      <Card className="rounded-lg border-border bg-card shadow-card">
++        <CardHeader className="gap-2 pb-0">
++          <h1 className="font-heading text-3xl leading-tight">Set new password</h1>
++          <p className="text-sm leading-relaxed text-text-secondary">Create a new password to secure your account access.</p>
++        </CardHeader>
++        <CardContent className="grid gap-5 pt-6">
++          {feedback && (
++            <Notice tone={feedback.tone} className="grid-cols-1" aria-live="polite">
++              <NoticeTitle className="col-start-1">{feedback.title}</NoticeTitle>
++              <NoticeDescription className="col-start-1">{feedback.message}</NoticeDescription>
++            </Notice>
++          )}
++          {invalidLink ? (
++            <form onSubmit={sendResetEmail} noValidate className="grid gap-4">
++              <div className="grid gap-2">
++                <Label htmlFor="reset-again-email">Email</Label>
++                <Input id="reset-again-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="h-11" />
++              </div>
++              <Button type="submit" disabled={busy} className="h-11 w-full">Send reset link</Button>
++            </form>
++          ) : !saved && linkState !== "error" ? (
++            <form onSubmit={savePassword} noValidate className="grid gap-4">
++              <div className="grid gap-2">
++                <Label htmlFor="new-password">New password</Label>
++                <Input id="new-password" type="password" autoComplete="new-password" required value={password} aria-invalid={feedback?.state === "password-validation"} onChange={(event) => setPassword(event.target.value)} className="h-11" />
++              </div>
++              <div className="grid gap-2">
++                <Label htmlFor="confirm-password">Confirm password</Label>
++                <Input id="confirm-password" type="password" autoComplete="new-password" required value={confirmation} aria-invalid={feedback?.state === "password-validation"} onChange={(event) => setConfirmation(event.target.value)} className="h-11" />
++              </div>
++              <Button type="submit" disabled={busy} className="mt-1 h-11 w-full">Save password</Button>
++            </form>
++          ) : null}
++          <nav className="text-center text-sm">
++            <Link to="/sign-in" className="font-medium text-brand-text underline-offset-4 hover:underline">Back to sign in</Link>
++          </nav>
++        </CardContent>
++      </Card>
+     </main>
+   );
+ }

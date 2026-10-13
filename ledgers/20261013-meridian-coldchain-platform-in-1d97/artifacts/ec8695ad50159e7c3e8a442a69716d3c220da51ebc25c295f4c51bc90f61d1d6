@@ -1,0 +1,61 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Seed__Demo|Seed:Demo|WebApplicationFactory|ConnectionStrings__App|Cors:Origin|Cors__Origin",
+    "glob": "**/*"
+   },
+   "ms": 1,
+   "resultChars": 1606,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Seed__Demo|Seed:Demo|WebApplicationFactory|ConnectionStrings__App|Cors:Origin|Cors__Origin&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/Program.cs:6: // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is\nApp.Api/Program.cs:9: ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_1»")));\nApp.Api/Program.cs:10: // the web app's address: 3000 unless the setting Cors:Origin names another (the factory sets it when it starts the web app on another port)\nApp.Api/Program.cs:11: builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration[\"Cors:Origin\"] ?? \"http://localhost:3000\").AllowAnyHeader().AllowAnyMethod()));\nApp.Api/Program.cs:23: // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\nApp.Tests/HealthTests.cs:7: public class HealthTests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/HealthTests.cs:9: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/HealthTests.cs:10: public HealthTests(WebApplicationFactory<Program> factory) => _factory = factory;\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1,
+    "end": 25
+   },
+   "ms": 0,
+   "resultChars": 1060,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1,&quot;end&quot;:25}\">\ncontracts/openapi.yaml lines 1-25\n1\topenapi: 3.0.3\n2\tinfo:\n3\t  title: Meridian Cold Chain API\n4\t  version: 1.0.0\n5\t  description: \"Shared contract for the Meridian responsive web portal.\"\n6\tservers:\n7\t  - url: /api\n8\tpaths:\n9\t  /auth/staff/authorization-url:\n10\t    get:\n11\t      operationId: getStaffAuthorizationUrl\n12\t      summary: \"Get the configured staff identity-provider authorization URL.\"\n13\t      responses:\n14\t        \"200\":\n15\t          $ref: \"#/components/responses/AuthResult\"\n16\t        \"401\":\n17\t          $ref: \"#/components/responses/Unauthorized\"\n18\t        \"500\":\n19\t          $ref: \"#/components/responses/ServerError\"\n20\t  /auth/customer/sign-in:\n21\t    post:\n22\t      operationId: signInCustomer\n23\t      summary: \"Submit customer email and password and begin one-time-code verification.\"\n24\t      requestBody:\n25\t        required: true\n… (2684 lines total; ask for start=26)\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 140,
+    "end": 175
+   },
+   "ms": 0,
+   "resultChars": 1573,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:140,&quot;end&quot;:175}\">\ncontracts/openapi.yaml lines 140-175\n140\t        \"404\":\n141\t          $ref: \"#/components/responses/NotFound\"\n142\t        \"500\":\n143\t          $ref: \"#/components/responses/ServerError\"\n144\t  /warehouse/receipts:\n145\t    get:\n146\t      operationId: listReceipts\n147\t      summary: \"List warehouse-scoped receipts using supplied filters.\"\n148\t      parameters:\n149\t        - $ref: \"#/components/parameters/Search\"\n150\t        - $ref: \"#/components/parameters/Status\"\n151\t        - $ref: \"#/components/parameters/DateFrom\"\n152\t        - $ref: \"#/components/parameters/DateTo\"\n153\t      responses:\n154\t        \"200\":\n155\t          $ref: \"#/components/responses/Collection\"\n156\t        \"401\":\n157\t          $ref: \"#/components/responses/Unauthorized\"\n158\t        \"403\":\n159\t          $ref: \"#/components/responses/Forbidden\"\n160\t        \"500\":\n161\t          $ref: \"#/components/responses/ServerError\"\n162\t    post:\n163\t      operationId: createReceipt\n164\t      summary: \"Record and quarantine an inbound receipt.\"\n165\t      requestBody:\n166\t        required: true\n167\t        content:\n168\t          application/json:\n169\t            schema:\n170\t              $ref: \"#/components/schemas/ReceiptInput\"\n171\t      responses:\n172\t        \"200\":\n173\t          $ref: \"#/components/responses/RecordResult\"\n174\t        \"400\":\n175\t          $ref: \"#/components/responses/BadRequest\"\n… (2684 lines total; ask for start=176)\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 780,
+    "end": 845
+   },
+   "ms": 1,
+   "resultChars": 2679,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:780,&quot;end&quot;:845}\">\ncontracts/openapi.yaml lines 780-845\n780\t          $ref: \"#/components/responses/NotFound\"\n781\t        \"500\":\n782\t          $ref: \"#/components/responses/ServerError\"\n783\t  /quality/cases:\n784\t    get:\n785\t      operationId: listQualityCases\n786\t      summary: \"List authorized quality cases and alerts.\"\n787\t      parameters:\n788\t        - $ref: \"#/components/parameters/Search\"\n789\t        - $ref: \"#/components/parameters/Status\"\n790\t      responses:\n791\t        \"200\":\n792\t          $ref: \"#/components/responses/Collection\"\n793\t        \"401\":\n794\t          $ref: \"#/components/responses/Unauthorized\"\n795\t        \"403\":\n796\t          $ref: \"#/components/responses/Forbidden\"\n797\t        \"500\":\n798\t          $ref: \"#/components/responses/ServerError\"\n799\t  /quality/cases/{caseId}:\n800\t    get:\n801\t      operationId: getQualityCase\n802\t      summary: \"Get quality case telemetry, budget, recommendation and decisions.\"\n803\t      parameters:\n804\t        - $ref: \"#/components/parameters/CaseId\"\n805\t      responses:\n806\t        \"200\":\n807\t          $ref: \"#/components/responses/RecordResult\"\n808\t        \"401\":\n809\t          $ref: \"#/components/responses/Unauthorized\"\n810\t        \"403\":\n811\t          $ref: \"#/components/responses/Forbidden\"\n812\t        \"404\":\n813\t          $ref: \"#/components/responses/NotFound\"\n814\t        \"500\":\n815\t          $ref: \"#/components/responses/ServerError\"\n816\t  /quality/cases/{caseId}/dispositions:\n817\t    post:\n818\t      operationId: proposeDisposition\n819\t      summary: \"Submit a quality disposition or proposal.\"\n820\t      parameters:\n821\t        - $ref: \"#/components/parameters/CaseId\"\n822\t      requestBody:\n823\t        required: true\n824\t        content:\n825\t          application/json:\n826\t            schema:\n827\t              $ref: \"#/components/schemas/DispositionInput\"\n828\t      responses:\n829\t        \"200\":\n830\t          $ref: \"#/components/responses/RecordResult\"\n831\t        \"400\":\n832\t          $ref: \"#/components/responses/BadRequest\"\n833\t        \"401\":\n834\t          $ref: \"#/components/responses/Unauthorized\"\n835\t        \"403\":\n836\t          $ref: \"#/components/responses/Forbidden\"\n837\t        \"404\":\n838\t          $ref: \"#/components/responses/NotFound\"\n839\t        \"409\":\n840\t          $ref: \"#/components/responses/Conflict\"\n841\t        \"500\":\n842\t          $ref: \"#/components/responses/ServerError\"\n843\t  /quality/decisions/{decisionId}/supersede:\n844\t    post:\n845\t      operationId: supersedeDecision\n… (2684 lines total; ask for start=846)\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  /",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 0,
+   "resultChars": 3055,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  /&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:9: /auth/staff/authorization-url:\ncontracts/openapi.yaml:20: /auth/customer/sign-in:\ncontracts/openapi.yaml:41: /auth/customer/code/verify:\ncontracts/openapi.yaml:62: /auth/customer/code/resend:\ncontracts/openapi.yaml:83: /auth/password-reset:\ncontracts/openapi.yaml:100: /auth/password-reset/{token}:\ncontracts/openapi.yaml:119: /auth/password-reset/{token}/complete:\ncontracts/openapi.yaml:144: /warehouse/receipts:\ncontracts/openapi.yaml:184: /warehouse/receipts/{receiptId}:\ncontracts/openapi.yaml:201: /warehouse/receipts/{receiptId}/logger:\ncontracts/openapi.yaml:226: /warehouse/receipts/{receiptId}/evidence:\ncontracts/openapi.yaml:251: /warehouse/stock:\ncontracts/openapi.yaml:268: /warehouse/stock/{unitId}:\ncontracts/openapi.yaml:285: /warehouse/stock/{unitId}/moves:\ncontracts/openapi.yaml:312: /warehouse/moves:\ncontracts/openapi.yaml:329: /warehouse/opening-stock:\ncontracts/openapi.yaml:352: /warehouse/boxes:\ncontracts/openapi.yaml:368: /warehouse/boxes/{boxId}/pack:\ncontracts/openapi.yaml:395: /warehouse/cold-rooms:\ncontracts/openapi.yaml:408: /warehouse/cold-rooms/{roomId}:\ncontracts/openapi.yaml:425: /temperature-history:\ncontracts/openapi.yaml:453: /dispatch/orders:\ncontracts/openapi.yaml:471: /dispatch/orders/{orderId}:\ncontracts/openapi.yaml:488: /dispatch/orders/{orderId}/allocation-override:\ncontracts/openapi.yaml:515: /dispatch/orders/{orderId}/cancel:\ncontracts/openapi.yaml:534: /dispatch/routes:\ncontracts/openapi.yaml:573: /dispatch/routes/{routeId}:\ncontracts/openapi.yaml:616: /dispatch/routes/{routeId}/confirm:\ncontracts/openapi.yaml:635: /driver/routes:\ncontracts/openapi.yaml:655: /driver/routes/{routeId}:\ncontracts/openapi.yaml:672: /driver/routes/{routeId}/scans:\ncontracts/openapi.yaml:699: /driver/routes/{routeId}/departure:\ncontracts/openapi.yaml:718: /driver/actions/sync:\ncontracts/openapi.yaml:741: /driver/handovers:\ncontracts/openapi.yaml:766: /dispatch/deliveries/{deliveryId}/evidence:\ncontracts/openapi.yaml:783: /quality/cases:\ncontracts/openapi.yaml:799: /quality/cases/{caseId}:\ncontracts/openapi.yaml:816: /quality/cases/{caseId}/dispositions:\ncontracts/openapi.yaml:843: /quality/decisions/{decisionId}/supersede:\ncontracts/openapi.yaml:870: /quality/decisions/waiting:\ncontracts/openapi.yaml:883: /quality/proposals/{proposalId}/decision:\ncontracts/openapi.yaml:910: /quality/stock/{unitId}/destruction:\ncontracts/openapi.yaml:937: /quality/recalls:\ncontracts/openapi.yaml:975: /quality/recalls/{recallId}:\ncontracts/openapi.yaml:992: /quality/recalls/{recallId}/trace:\ncontracts/openapi.yaml:1009: /quality/recalls/{recallId}/close:\ncontracts/openapi.yaml:1036: /quality/recalls/{recallId}/write-offs:\ncontracts/openapi.yaml:1063: /customer/orders:\ncontracts/openapi.yaml:1107: /customer/orders/{orderId}:\ncontracts/openapi.yaml:1150: /customer/orders/{orderId}/cancel:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,325 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q1",
+      "category": "errors",
+      "text": "If Google authentication succeeds but the employee cannot be found in, or retrieved from, the corporate profile source, what should happen?",
+      "options": [
+       "Deny application access and show a retryable error with a contact path.",
+       "Allow limited access so the employee can complete a profile pending verification.",
+       "Create a temporary profile and let an administrator reconcile it later."
+      ],
+      "recommended": "Deny application access and show a retryable error with a contact path.",
+      "reason": "This avoids creating an unverified employee account while giving the user a clear recovery path.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "This determines who can access the application and whether an employee record is created.",
+      "difference": "D-1"
+     },
+     {
+      "id": "Q2",
+      "category": "scope",
+      "text": "If a returning employee's required vehicle profile is still incomplete, should they go to the dashboard or resume registration?",
+      "options": [
+       "Resume vehicle registration until at least one license plate is saved, then continue to the dashboard.",
+       "Open the dashboard, but block parking actions until a license plate is saved.",
+       "Open the dashboard without requiring completion."
+      ],
+      "recommended": "Resume vehicle registration until at least one license plate is saved, then continue to the dashboard.",
+      "reason": "This enforces the stated required vehicle-registration step without adding other restrictions.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "This changes the sign-in destination and whether the user can proceed through the app.",
+      "difference": "D-2"
+     },
+     {
+      "id": "Q3",
+      "category": "external",
+      "text": "Which source is authoritative for ongoing employee identity, dedicated parking assignments, assigned floors, and registered vehicle details?",
+      "options": [
+       "Use the corporate directory for employee identity and an existing Folio3 parking system for parking and vehicle records.",
+       "Use the corporate directory for employee identity; let parking administrators maintain assignments, floors, and vehicles in the app.",
+       "Use administrator-entered records in the app for all of this information."
+      ],
+      "recommended": "Use the corporate directory for employee identity; let parking administrators maintain assignments, floors, and vehicles in the app.",
+      "reason": "This uses the specified corporate identity source and avoids assuming an unspecified parking-system integration.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "The source determines which employee, vehicle, and parking data the system trusts and updates."
+     },
+     {
+      "id": "Q4",
+      "category": "existing-data",
+      "text": "How should existing employee, dedicated-space, floor, and registered-vehicle records be loaded for launch?",
+      "options": [
+       "Parking administrators enter the initial records in the app.",
+       "Import an existing roster file and have administrators reconcile it.",
+       "Integrate with an existing system and synchronize the records."
+      ],
+      "recommended": "Parking administrators enter the initial records in the app.",
+      "reason": "This is the smallest launch approach that does not assume an existing import format or integration.",
+      "spans": [
+       "I-1",
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "Initial records determine who has parking and which spaces can be released and claimed.",
+      "topic": "data-migration"
+     },
+     {
+      "id": "Q5",
+      "category": "data-model",
+      "text": "If a temporary claimant has multiple registered vehicles, which plate or plates should the entrance check accept for that employee's claim?",
+      "options": [
+       "Accept any vehicle plate registered to the claimant for the claimed date.",
+       "Bind the claim to one vehicle selected by the claimant, and accept only that plate.",
+       "Have an administrator assign a specific vehicle to each claim."
+      ],
+      "recommended": "Accept any vehicle plate registered to the claimant for the claimed date.",
+      "reason": "This permits use of the employee's registered vehicles without adding a vehicle-selection step to claiming.",
+      "spans": [
+       "I-1",
+       "I-3",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "This controls which vehicles are authorized to enter and which entries count toward utilization."
+     },
+     {
+      "id": "Q6",
+      "category": "data-model",
+      "text": "When claim requests arrive at nearly the same time for the last available space, how should the system determine which request is first?",
+      "options": [
+       "The first request accepted by the service gets the space; later requests fail and see refreshed availability.",
+       "The request with the earliest device-reported timestamp gets the space.",
+       "If requests are effectively simultaneous, choose one arbitrarily and report the result to each user."
+      ],
+      "recommended": "The first request accepted by the service gets the space; later requests fail and see refreshed availability.",
+      "reason": "This gives first-come, first-served a clear user-visible meaning and prevents a space from being assigned twice.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "This determines who receives the final available parking space.",
+      "difference": "D-4"
+     },
+     {
+      "id": "Q7",
+      "category": "errors",
+      "text": "What should happen when a car is detected but its plate is unreadable or cannot be verified?",
+      "options": [
+       "Keep the indicator off, do not authorize entry from the automated check, and record the attempt as unreadable or unverifiable.",
+       "Let the security guard decide whether to allow entry without recording a verification outcome.",
+       "Allow entry if the guard can identify the vehicle by another means."
+      ],
+      "recommended": "Keep the indicator off, do not authorize entry from the automated check, and record the attempt as unreadable or unverifiable.",
+      "reason": "This keeps the automated authorization rule fail-closed while preserving an audit record of the failed check.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "This affects whether a vehicle is authorized to enter and what verification event is recorded.",
+      "difference": "D-5"
+     },
+     {
+      "id": "Q8",
+      "category": "errors",
+      "text": "If the camera, authorization service, or indicator is unavailable, what is the entry procedure for vehicles without permanent stickers?",
+      "options": [
+       "Fail closed: leave the indicator off, do not authorize entry through the system, and record or report the outage.",
+       "Allow a security guard to use a documented manual authorization process and record the override.",
+       "Continue entry using the existing sticker process for all vehicles until service is restored."
+      ],
+      "recommended": "Fail closed: leave the indicator off, do not authorize entry through the system, and record or report the outage.",
+      "reason": "This does not treat an unavailable verification system as proof of authorization.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "This determines entry permissions during a system or hardware failure."
+     },
+     {
+      "id": "Q9",
+      "category": "data-model",
+      "text": "What evidence should count as an actual vehicle entry for utilization reporting, rather than merely a camera detection or authorization attempt?",
+      "options": [
+       "Treat a plate detected at the entrance as an entry.",
+       "Have security record whether the vehicle actually entered after the check.",
+       "Use an existing gate or access-control event as the entry confirmation."
+      ],
+      "recommended": "Have security record whether the vehicle actually entered after the check.",
+      "reason": "An authorization or approach detection alone does not establish that the vehicle entered, which the utilization rules measure.",
+      "spans": [
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "The chosen evidence changes which employees and allocations are classified as used or unused."
+     },
+     {
+      "id": "Q10",
+      "category": "roles",
+      "text": "What should each role be able to view and do, especially security guards handling verification and administrators handling employee-level reports?",
+      "options": [
+       "Employees see their own records; guards see the information needed to verify entry; administrators manage records and see configured reports.",
+       "Guards and administrators can both view all employee, vehicle, allocation, and utilization records.",
+       "Administrators manage records and reports; guards only see the indicator and receive no verification details."
+      ],
+      "recommended": "Employees see their own records; guards see the information needed to verify entry; administrators manage records and see configured reports.",
+      "reason": "This grants each role the access needed for its stated job without making all employee data broadly visible.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "This determines who can view employee and vehicle data and who can administer parking.",
+      "topic": "roles"
+     },
+     {
+      "id": "Q11",
+      "category": "scope",
+      "text": "Where will parking administrators perform record management, configuration, and report access?",
+      "options": [
+       "Provide these administrator functions in the iOS and Android app.",
+       "Provide a separate web-based administrator interface in addition to the mobile app.",
+       "Use existing Folio3 administration tools and build no new administrator interface."
+      ],
+      "recommended": "Provide these administrator functions in the iOS and Android app.",
+      "reason": "This keeps the first release within the explicitly named mobile application scope.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "This changes the interface and platform work required for administrator flows.",
+      "topic": "admin"
+     },
+     {
+      "id": "Q12",
+      "category": "terminology",
+      "text": "Which timezone and day boundary determine 'today,' the 30-day scheduling window, and the Daily Parking Release Time?",
+      "options": [
+       "Use the office location's local timezone and calendar day.",
+       "Use each employee's device timezone and calendar day.",
+       "Use UTC for dates and release-time calculations."
+      ],
+      "recommended": "Use the office location's local timezone and calendar day.",
+      "reason": "Parking availability and entry are tied to one office location, so a shared local day avoids user-device differences.",
+      "spans": [
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "The choice changes when releases become claimable and which day's authorization and utilization records apply."
+     },
+     {
+      "id": "Q13",
+      "category": "reporting",
+      "text": "What date range should the Monday report cover, and what time counts as 'Monday morning'?",
+      "options": [
+       "Report on the preceding Monday–Sunday calendar week and send at a configured Monday-morning time.",
+       "Report on the preceding seven rolling days and send at a configured Monday-morning time.",
+       "Report on the current week to date and send at a configured Monday-morning time."
+      ],
+      "recommended": "Report on the preceding Monday–Sunday calendar week and send at a configured Monday-morning time.",
+      "reason": "This provides a complete, closed reporting period while leaving the unspecified send hour configurable.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "This changes which events and totals recipients see in each weekly report.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q14",
+      "category": "data-model",
+      "text": "How should the report's 'overall parking utilization percentage' be calculated?",
+      "options": [
+       "Used parking allocations divided by all dedicated and temporary allocations for the reporting period.",
+       "Used parking allocations divided by all available parking capacity for the reporting period.",
+       "Report separate dedicated and temporary utilization percentages without a combined percentage."
+      ],
+      "recommended": "Used parking allocations divided by all dedicated and temporary allocations for the reporting period.",
+      "reason": "This supplies a direct denominator based on the allocations being tracked, while avoiding a new capacity-based metric.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Different denominators produce materially different reported utilization figures.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q15",
+      "category": "terminology",
+      "text": "Which user-facing languages must the initial mobile app support?",
+      "options": [
+       "English only.",
+       "English and Urdu.",
+       "English plus other languages selected by Folio3."
+      ],
+      "recommended": "English only.",
+      "reason": "This is the smallest language scope in the absence of a stated localization requirement.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Language support changes the content and visible experience throughout the app.",
+      "topic": "languages"
+     },
+     {
+      "id": "Q16",
+      "category": "scope",
+      "text": "What accessibility conformance target should the mobile app meet?",
+      "options": [
+       "Use platform-native accessibility practices without a formal conformance target.",
+       "Meet WCAG 2.2 AA for the app's user-facing flows.",
+       "Meet WCAG 2.2 A for the app's user-facing flows."
+      ],
+      "recommended": "Use platform-native accessibility practices without a formal conformance target.",
+      "reason": "This establishes a minimal accessibility expectation without adding an unstated formal certification target.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "The target affects interaction design and implementation across the user-facing flows.",
+      "topic": "accessibility"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 5,
+   "resultChars": 237,
+   "isError": true,
+   "result": "The result doesn't match the schema: questions.12.category: Invalid option: expected one of \"scope\"|\"data-model\"|\"roles\"|\"existing-data\"|\"errors\"|\"external\"|\"identifiers\"|\"blast-radius\"|\"terminology\". Fix it and call submit_result again."
+  }
+ ]
+}

@@ -1,0 +1,426 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Review and submit order",
+     "subtitle": "Hallam Road Motors · Trade Band B prices · 13 Apr 2026, 15:20",
+     "crumbs": [
+      "Basket"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "2 lines changed since you added them",
+       "text": "We re-checked prices and stock. Castrol Edge 5W-30 is now £31.95 (was £29.80). Bosch Aerotwin 600 mm has only 1 in stock. Update these lines before you submit."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Description",
+        "Qty",
+        "Unit price",
+        "Line total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-PD-2291",
+         "Front brake pads, VW Golf Mk7",
+         "4",
+         "£28.40",
+         "£113.60",
+         "OK"
+        ],
+        [
+         "OIL-5W30-5L",
+         "Castrol Edge 5W-30, 5 L",
+         "6",
+         "£31.95 (was £29.80)",
+         "£191.70",
+         "Re-priced"
+        ],
+        [
+         "FLT-OF-1187",
+         "Oil filter, Ford 1.0 EcoBoost",
+         "10",
+         "£5.62",
+         "£56.20",
+         "OK"
+        ],
+        [
+         "WPR-600-B",
+         "Bosch Aerotwin wiper, 600 mm",
+         "2 (1 in stock)",
+         "£14.75",
+         "£29.50",
+         "Short"
+        ],
+        [
+         "BAT-096-EFB",
+         "Varta EFB 096 battery",
+         "1",
+         "£89.00",
+         "£89.00",
+         "OK"
+        ],
+        [
+         "SPK-NGK-7090",
+         "NGK iridium spark plug",
+         "8",
+         "£9.18",
+         "£73.44",
+         "OK"
+        ]
+       ],
+       "statusColumn": 5
+      },
+      {
+       "type": "detail",
+       "title": "Order summary",
+       "lead": {
+        "label": "Subtotal (ex VAT)",
+        "value": "£553.44"
+       },
+       "rows": [
+        {
+         "label": "Lines",
+         "value": "6 lines · 31 items"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "Cutoff",
+         "value": "14:00 — passed at 15:20"
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Wed 15 Apr 2026"
+        },
+        {
+         "label": "VAT",
+         "value": "Added on invoice at 20%"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "required": true,
+         "value": "Unit 4, Hallam Road, Sheffield S9 3HQ",
+         "options": [
+          "Unit 4, Hallam Road, Sheffield S9 3HQ",
+          "Bay 2, Attercliffe Works, S9 2RL",
+          "12 Mill Lane, Rotherham S60 1QA"
+         ],
+         "help": "Only your company's addresses are listed",
+         "error": "Choose a delivery address that belongs to Hallam Road Motors"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "required": true,
+         "value": "Wed 15 Apr 2026",
+         "help": "Working days 15 Apr – 29 Apr. Ordered after 14:00, so earliest is Wed 15 Apr.",
+         "error": "Delivery date must be a working day from 15 Apr to 29 Apr 2026"
+        },
+        {
+         "label": "Note for the driver",
+         "kind": "textarea",
+         "value": "Rear goods door, ask for Dave in parts",
+         "help": "Up to 500 characters"
+        }
+       ],
+       "submit": "Submit order"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Back to basket",
+         "variant": "ghost",
+         "icon": "edit"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Submit order",
+       "to": "S-11"
+      },
+      {
+       "from": "Back to basket",
+       "to": "S-7"
+      },
+      {
+       "from": "BRK-PD-2291",
+       "to": "S-6"
+      },
+      {
+       "from": "OIL-5W30-5L",
+       "to": "S-6"
+      },
+      {
+       "from": "WPR-600-B",
+       "to": "S-6"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Submit order",
+       "title": "Submit order for Wed 15 Apr?",
+       "text": "6 lines, £553.44 ex VAT, to Unit 4, Hallam Road, Sheffield. Prices are fixed at today's Trade Band B rates.",
+       "actions": [
+        {
+         "label": "Submit order",
+         "variant": "primary"
+        },
+        {
+         "label": "Keep reviewing",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Submit order",
+       "text": "Order ORD-104382 received — your basket is now empty",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "error": "We couldn't submit your order. Your basket is unchanged — try again in a moment.",
+      "success": "Order ORD-104382 received. Delivery booked for Wed 15 Apr 2026.",
+      "validation": "Fix the lines marked Re-priced or Short and pick a working delivery date before you submit."
+     }
+    },
+    "mockFull": {
+     "title": "Review and submit order",
+     "subtitle": "Hallam Road Motors · Trade Band B prices · 13 Apr 2026, 15:20",
+     "crumbs": [
+      "Basket"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "4 lines changed since you added them",
+       "text": "2 lines re-priced, 1 short on stock and Dexron VI ATF 1 L is no longer available. Update these lines in the basket before you submit."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Description",
+        "Qty",
+        "Unit price",
+        "Line total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-PD-2291",
+         "Front brake pads, VW Golf Mk7",
+         "4",
+         "£28.40",
+         "£113.60",
+         "OK"
+        ],
+        [
+         "OIL-5W30-5L",
+         "Castrol Edge 5W-30, 5 L",
+         "6",
+         "£31.95 (was £29.80)",
+         "£191.70",
+         "Re-priced"
+        ],
+        [
+         "FLT-OF-1187",
+         "Oil filter, Ford 1.0 EcoBoost",
+         "10",
+         "£5.62",
+         "£56.20",
+         "OK"
+        ],
+        [
+         "WPR-600-B",
+         "Bosch Aerotwin wiper, 600 mm",
+         "2 (1 in stock)",
+         "£14.75",
+         "£29.50",
+         "Short"
+        ],
+        [
+         "BAT-096-EFB",
+         "Varta EFB 096 battery",
+         "1",
+         "£89.00",
+         "£89.00",
+         "OK"
+        ],
+        [
+         "SPK-NGK-7090",
+         "NGK iridium spark plug",
+         "8",
+         "£9.18",
+         "£73.44",
+         "OK"
+        ],
+        [
+         "BRK-DS-0418",
+         "Front brake discs, Ford Focus Mk3 (pair)",
+         "2",
+         "£46.30",
+         "£92.60",
+         "OK"
+        ],
+        [
+         "AF-MN-C2774",
+         "Air filter, Mann C 27 74",
+         "3",
+         "£11.85 (was £10.90)",
+         "£35.55",
+         "Re-priced"
+        ],
+        [
+         "CLT-KIT-LUK",
+         "LuK clutch kit, Vauxhall Astra J",
+         "1",
+         "£172.40",
+         "£172.40",
+         "OK"
+        ],
+        [
+         "BLB-H7-OSR",
+         "Osram H7 bulb, twin pack",
+         "12",
+         "£6.45",
+         "£77.40",
+         "OK"
+        ],
+        [
+         "ATF-DEX6-1L",
+         "Dexron VI ATF, 1 L",
+         "6 (0 in stock)",
+         "£8.20",
+         "£49.20",
+         "Unavailable"
+        ],
+        [
+         "WTP-GT-4417",
+         "Gates water pump, PSA 1.6 HDi",
+         "1",
+         "£58.90",
+         "£58.90",
+         "OK"
+        ]
+       ],
+       "statusColumn": 5
+      },
+      {
+       "type": "detail",
+       "title": "Order summary",
+       "lead": {
+        "label": "Subtotal (ex VAT)",
+        "value": "£1,039.49"
+       },
+       "rows": [
+        {
+         "label": "Lines",
+         "value": "12 lines · 56 items"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "Cutoff",
+         "value": "14:00 — passed at 15:20"
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Wed 15 Apr 2026"
+        },
+        {
+         "label": "Latest delivery",
+         "value": "Wed 29 Apr 2026"
+        },
+        {
+         "label": "VAT",
+         "value": "Added on invoice at 20%"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "required": true,
+         "value": "Unit 4, Hallam Road, Sheffield S9 3HQ",
+         "options": [
+          "Unit 4, Hallam Road, Sheffield S9 3HQ",
+          "Bay 2, Attercliffe Works, S9 2RL",
+          "12 Mill Lane, Rotherham S60 1QA",
+          "Yard 7, Parkway Trade Park, S9 4WG"
+         ],
+         "help": "Only your company's addresses are listed",
+         "error": "Choose a delivery address that belongs to Hallam Road Motors"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "required": true,
+         "value": "Wed 15 Apr 2026",
+         "help": "Working days 15 Apr – 29 Apr. Ordered after 14:00, so earliest is Wed 15 Apr.",
+         "error": "Delivery date must be a working day from 15 Apr to 29 Apr 2026"
+        },
+        {
+         "label": "Note for the driver",
+         "kind": "textarea",
+         "value": "Rear goods door, ask for Dave in parts. Closed 12:30–13:15 for lunch.",
+         "help": "Up to 500 characters"
+        }
+       ],
+       "submit": "Submit order"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Back to basket",
+         "variant": "ghost",
+         "icon": "edit"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "We couldn't submit your order. Your basket is unchanged — try again in a moment.",
+      "success": "Order ORD-104382 received. Delivery booked for Wed 15 Apr 2026.",
+      "validation": "Fix the lines marked Re-priced, Short or Unavailable and pick a working delivery date before you submit."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

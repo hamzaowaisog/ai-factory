@@ -1,0 +1,915 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The API shall answer each of the 13 operations in contracts/openapi.yaml at its contract path both with the /api prefix (for example GET /api/me) and without it (for example GET /me).",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-1"
+      ],
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 9,
+        "lineEnd": 13,
+        "quote": "var app = builder.Build();\napp.UseCors();\napp.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n\napp.Run();"
+       }
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "The API is running with seeded data",
+        "when": "A client sends GET /api/me",
+        "then": "The response status is 200 and the body is a Member object",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "The API is running with seeded data",
+        "when": "A client sends GET /me",
+        "then": "The response status is 200 and the body equals the body returned by GET /api/me",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.3",
+        "given": "The API is running",
+        "when": "A client calls each of the 13 contract paths under /api with valid inputs (getMember, getSchedule, getSession, createBooking, undoBooking, cancelBooking, joinWaitlist, leaveWaitlist, getMyBookings, getStats, listPromotionNotices, acknowledgePromotionNotices, simulateOtherMemberCancellation)",
+        "then": "No response status is 404 or 405 because of a missing route, and each response status is one the contract declares for that operation",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When the build generates the API's OpenAPI document, the API shall write App.Api/openapi/built.json with the same paths, operationIds, parameters, request bodies, response status codes, component schemas and server url /api as contracts/openapi.yaml, and without the GET / route.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-1",
+       "ASM-2",
+       "ASM-10",
+       "ASM-12"
+      ],
+      "anchors": [
+       {
+        "path": "App.Api/App.Api.csproj",
+        "lineStart": 6,
+        "lineEnd": 8,
+        "quote": "    <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\n    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\n    <OpenApiGenerateDocumentsOptions>--file-name built</OpenApiGenerateDocumentsOptions>"
+       }
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A clean checkout",
+        "when": "dotnet build runs on App.Api",
+        "then": "The file App.Api/openapi/built.json exists, lists exactly the 13 operationIds of the contract under the same path and method, and its servers list has url /api",
+        "level": "job"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "The built document from AC-2.1",
+        "when": "Its component schemas (Error, Session, ActionState, Booking, BookingChange, UndoResult, MyBookings, Stats, PromotionNotices, SimulationResult and the enums) and response status codes are compared with contracts/openapi.yaml",
+        "then": "The comparison reports zero differences in required fields, property types, nullability, enum values and status codes",
+        "level": "job"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "The API is running",
+        "when": "A client sends GET /",
+        "then": "The response status is 200, the body is \"API is up\", and the path \"/\" does not appear in built.json",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.4",
+        "given": "The build has run",
+        "when": "contracts/openapi.yaml is compared with its committed version",
+        "then": "The file content is unchanged",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When a client requests GET /me, the API shall return status 200 with the demo member id 1, name \"Alex Rivera\", initials \"AR\" and membership \"Unlimited Monthly\".",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-6",
+       "ASM-13"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "The API is running",
+        "when": "A client sends GET /api/me",
+        "then": "The response status is 200 and the body fields are id=1, name=\"Alex Rivera\", initials=\"AR\", membership=\"Unlimited Monthly\"",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When a client requests GET /schedule, the API shall return the Monday-to-Sunday Europe/London week that contains the selected date (default today), with 7 day summaries labelled like \"Mon 12\", the isToday and hasSessions flags, canGoPreviousWeek and canGoNextWeek, and the selected day's sessions ordered by start time.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "ASM-7",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "The clock is set to 2026-10-14T09:00:00Z (Wed 10:00 London) and sessions exist on 2026-10-14 at 07:00Z and 11:15Z and none on 2026-10-18",
+        "when": "A client sends GET /api/schedule with no query",
+        "then": "The response status is 200 with today=\"2026-10-14\", date=\"2026-10-14\", weekStart=\"2026-10-12\", canGoPreviousWeek=false, canGoNextWeek=true, a days list of 7 entries where days[0].label=\"Mon 12\", only the 2026-10-14 entry has isToday=true, the 2026-10-18 entry has hasSessions=false, and the sessions list is ordered by startsAt ascending",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "The clock is set to 2026-10-14T09:00:00Z",
+        "when": "A client sends GET /api/schedule?date=2026-10-21",
+        "then": "The response status is 200 with weekStart=\"2026-10-19\", canGoPreviousWeek=true and canGoNextWeek=false",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.3",
+        "given": "The clock is set to 2026-10-14T09:00:00Z",
+        "when": "A client sends GET /api/schedule?date=2026-10-05 or GET /api/schedule?date=2026-10-26",
+        "then": "The response status is 400 and the error code field is invalid_request",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When GET /schedule includes type, intensity or timeOfDay values, the API shall return only the selected day's sessions that match any listed value of each given filter and all given filters together, where Morning is a London start before 12:00, Afternoon is 12:00–16:59 and Evening is 17:00 or later.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "On 2026-10-14 there are a Yoga Low session at 07:00 London, a Pilates Medium session at 12:00 London, and a Boxing Medium session at 17:00 London",
+        "when": "A client sends GET /api/schedule?date=2026-10-14&type=Yoga&type=Boxing",
+        "then": "The returned sessions list contains only the Yoga and Boxing sessions",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "The same three sessions",
+        "when": "A client sends GET /api/schedule?date=2026-10-14&timeOfDay=Afternoon",
+        "then": "The returned sessions list contains only the session starting at 12:00 London",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.3",
+        "given": "The same three sessions",
+        "when": "A client sends GET /api/schedule?date=2026-10-14&timeOfDay=Evening&intensity=Medium",
+        "then": "The returned sessions list contains only the Boxing session starting at 17:00 London",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.4",
+        "given": "The same three sessions",
+        "when": "A client sends GET /api/schedule?date=2026-10-14&type=Zumba",
+        "then": "The response status is 400 and the error code field is invalid_request",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "The API shall return each Session with bookedCount and waitlistCount covering both the demo member and the other members, capacityLabel \"{spotsLeft} of {capacity} spots left\", and availabilityLabel \"Cancelled\" for studio-cancelled sessions, \"Full · {waitlistCount} on waitlist\" when full, \"1 spot left\" for 1 spot, \"Only {n} left\" for 2–3 spots and \"{n} spots left\" for more than 3 spots.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "A Scheduled session has capacity 20 and 14 booked",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response fields are availabilityLabel=\"6 spots left\" and capacityLabel=\"6 of 20 spots left\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "Scheduled sessions with capacity 12 and 10 booked, and with capacity 12 and 11 booked",
+        "when": "A client sends GET /api/sessions/{id} for each",
+        "then": "The availabilityLabel values returned are \"Only 2 left\" and \"1 spot left\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.3",
+        "given": "A Scheduled session has capacity 16, 16 booked by other members and 3 others on the waitlist",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response fields are bookedCount=16, waitlistCount=3, availabilityLabel=\"Full · 3 on waitlist\", capacityLabel=\"0 of 16 spots left\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.4",
+        "given": "A session has status Cancelled by studio",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response fields are status=\"Cancelled by studio\" and availabilityLabel=\"Cancelled\"",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "The API shall return each Session with an actionState and myBookingId for the demo member: disabled with reason \"Cancelled by studio\" for studio-cancelled sessions; booked or waitlisted (with bookingId, position, canChange false once started, and lateCancellation true when under 2 hours to start) when the member holds such a record; otherwise disabled with reason \"Class has started\", \"Booking opens 7 days before class\" or \"Booking closes 15 minutes before class\"; otherwise join_waitlist with position waitlistCount+1 when full, or book with spotsLeft.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "ASM-7",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "The clock is 2026-10-14T09:00:00Z and a Scheduled session starting 2026-10-14T10:30:00Z has capacity 20 and the demo member holds Booked booking 501 on it",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response actionState is kind=booked, canChange=true, bookingId=501, lateCancellation=true, and myBookingId=501",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "The clock is 2026-10-14T09:00:00Z and a full session starting tomorrow has 3 others on the waitlist and no demo record",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response actionState is kind=join_waitlist with position=4 and myBookingId is null",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.3",
+        "given": "The clock is 2026-10-14T09:00:00Z and the demo member holds no record on three Scheduled sessions starting 2026-10-14T08:30:00Z, 2026-10-21T09:01:00Z and 2026-10-14T09:10:00Z",
+        "when": "A client sends GET /api/sessions/{id} for each",
+        "then": "Each response actionState is kind=disabled, canChange=false, with reason values \"Class has started\", \"Booking opens 7 days before class\" and \"Booking closes 15 minutes before class\" respectively",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.4",
+        "given": "The clock is 2026-10-14T09:00:00Z and a Scheduled session starting tomorrow has capacity 12 and 10 booked with no demo record",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response actionState is kind=book with spotsLeft=2",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.5",
+        "given": "The demo member holds Waitlisted booking 502 at position 2 on a session starting tomorrow",
+        "when": "A client sends GET /api/sessions/{id}",
+        "then": "The response actionState is kind=waitlisted, position=2, bookingId=502, canChange=true",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "If a request names a session id or booking id that does not exist, then the API shall return status 404 with error code not_found.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "No session with id 99999 exists",
+        "when": "A client sends GET /api/sessions/99999, POST /api/bookings {\"sessionId\":99999}, POST /api/waitlist {\"sessionId\":99999} or POST /api/test/sessions/99999/simulate-other-member-cancellation",
+        "then": "Each response status is 404 and the error code field is not_found",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "No booking with id 99999 exists",
+        "when": "A client sends POST /api/bookings/99999/undo, /cancel or /leave-waitlist",
+        "then": "Each response status is 404 and the error code field is not_found",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When a client posts a bookable session to POST /bookings, the API shall store a new Booked booking row for the demo member and return status 201 with the booking, the refreshed session and the message \"You're booked for {name} · {ddd HH:mm London}\".",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "The clock is 2026-10-14T09:00:00Z and \"Reformer Core\" starts 2026-10-15T08:30:00Z with capacity 12 and 10 booked",
+        "when": "A client sends POST /api/bookings {\"sessionId\":<id>}",
+        "then": "The response status is 201, booking.status=\"Booked\", booking.lateCancel=false, session.bookedCount=11, session.availabilityLabel=\"1 spot left\", session.actionState.kind=\"booked\", and message=\"You're booked for Reformer Core · Thu 09:30\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "The booking from AC-9.1 was created",
+        "when": "The test reads the bookings table in SQLite",
+        "then": "Exactly one row for that session has status Booked with the returned booking id",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "If POST /bookings targets a session that is cancelled by the studio, has started, is more than 7 days or less than 15 minutes from start, already has a Booked or Waitlisted record for the demo member, or is at capacity, then the API shall return status 409 with error code cancelled_by_studio, class_has_started, outside_booking_window, already_booked or class_full respectively and store no new booking row, including the refreshed session in the error only for class_full.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-6",
+       "ASM-8",
+       "ASM-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "The clock is 2026-10-14T09:00:00Z and a session starting tomorrow has capacity 16 and 16 booked",
+        "when": "A client sends POST /api/bookings for it",
+        "then": "The response status is 409, the error code is class_full, the error session field has actionState.kind=\"join_waitlist\", and the booking row count is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "The clock is 2026-10-14T09:00:00Z",
+        "when": "A client books sessions starting at 2026-10-21T09:00:00Z, 2026-10-21T09:01:00Z, 2026-10-14T09:15:00Z and 2026-10-14T09:14:00Z",
+        "then": "The response statuses are 201, 409 outside_booking_window, 201 and 409 outside_booking_window respectively",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.3",
+        "given": "The clock is 2026-10-14T09:00:00Z and one session started at 08:30Z and another is Cancelled by studio",
+        "when": "A client sends POST /api/bookings for each",
+        "then": "The response statuses are 409 with error code class_has_started and cancelled_by_studio respectively",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.4",
+        "given": "The demo member already holds a Booked record on a session",
+        "when": "A client sends POST /api/bookings for the same session",
+        "then": "The response status is 409 with error code already_booked and the count of non-cancelled rows for that session stays 1",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.5",
+        "given": "The demo member cancelled their booking on a session that is still bookable",
+        "when": "A client sends POST /api/bookings for the same session",
+        "then": "The response status is 201 and the bookings table holds two rows for that session: the old Cancelled row and a new Booked row with a different id",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "If POST /bookings targets a session whose time range overlaps a session where the demo member holds a Booked record, then the API shall return status 409 with error code overlap and the message \"You're already booked for {name} at {HH:mm}–{HH:mm}.\" in London time.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "The demo member is Booked on \"Power HIIT\" from 2026-10-15T17:00:00Z to 17:45:00Z (18:00–18:45 London)",
+        "when": "A client books a Spin session starting 2026-10-15T17:30:00Z",
+        "then": "The response status is 409, the error code is overlap and the message is \"You're already booked for Power HIIT at 18:00–18:45.\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "The same Power HIIT booking",
+        "when": "A client books a session starting exactly 2026-10-15T17:45:00Z",
+        "then": "The response status is 201",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "The demo member is only Waitlisted on a session from 17:00Z to 17:45Z",
+        "when": "A client books a session starting 17:30Z the same day",
+        "then": "The response status is 201",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "If the demo member already holds 10 Booked records on sessions that have not started, then the API shall reject POST /bookings with status 409, error code limit_reached and the message \"You've reached the limit of 10 upcoming classes.\"",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-6",
+       "ASM-13"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "The demo member holds 10 Booked records on non-overlapping sessions that have not started",
+        "when": "A client books an 11th non-overlapping bookable session",
+        "then": "The response status is 409, the error code is limit_reached and the message is \"You've reached the limit of 10 upcoming classes.\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "The demo member holds 9 upcoming Booked records, 2 Waitlisted records and 3 past Attended bookings",
+        "when": "A client books another non-overlapping bookable session",
+        "then": "The response status is 201",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When a client posts POST /bookings/{bookingId}/undo for a Booked record created 5 seconds ago or less, the API shall delete that booking row and return status 200 with the refreshed session and the message \"Booking undone — {name}\".",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "Booking 503 on \"Reformer Core\" was created at T and the clock is T+4s",
+        "when": "A client sends POST /api/bookings/503/undo",
+        "then": "The response status is 200, message=\"Booking undone — Reformer Core\", session.bookedCount is back to its value before booking, session.myBookingId is null, and no row with id 503 remains in the bookings table",
+        "level": "api"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "Booking 503 was created at T and the clock is T+6s",
+        "when": "A client sends POST /api/bookings/503/undo",
+        "then": "The response status is 409 with error code undo_expired and row 503 still has status Booked",
+        "level": "api"
+       },
+       {
+        "id": "AC-13.3",
+        "given": "Booking 507 is Waitlisted or Cancelled and was created 1 second ago",
+        "when": "A client sends POST /api/bookings/507/undo",
+        "then": "The response status is 409 with error code invalid_booking_state",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When a client posts POST /bookings/{bookingId}/cancel for a Booked record whose session has not started, the API shall set the row to Cancelled with cancelledAt now and lateCancel true only when the session starts in less than 2 hours, and return status 200 with the booking, the refreshed session and a confirmation message.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "The clock is 2026-10-14T16:30:00Z and the demo member's Booked record 506 is on \"Power Spin\" starting 2026-10-14T18:00:00Z (90 minutes away)",
+        "when": "A client sends POST /api/bookings/506/cancel",
+        "then": "The response status is 200, booking.status=\"Cancelled\", booking.lateCancel=true, booking.cancelledAt=\"2026-10-14T16:30:00Z\", and message=\"Booking cancelled — Power Spin, today 19:00\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-14.2",
+        "given": "The demo member's Booked record is on a session starting exactly 2 hours from now",
+        "when": "A client cancels it",
+        "then": "The response field booking.lateCancel is false",
+        "level": "api"
+       },
+       {
+        "id": "AC-14.3",
+        "given": "The demo member's Booked record is on a session that started 5 minutes ago",
+        "when": "A client cancels it",
+        "then": "The response status is 409 with error code class_has_started and the row status is still Booked",
+        "level": "api"
+       },
+       {
+        "id": "AC-14.4",
+        "given": "Booking 504 is Waitlisted",
+        "when": "A client sends POST /api/bookings/504/cancel",
+        "then": "The response status is 409 with error code invalid_booking_state",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When the demo member cancels a Booked record on a session with members on the waitlist, the API shall promote the first other member in line, so the returned session keeps the same bookedCount and its waitlistCount drops by 1.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "A session has capacity 10, bookedCount 10 including the demo member's Booked record, and waitlistCount 2 (other members)",
+        "when": "A client cancels the demo member's booking",
+        "then": "The response session fields are bookedCount=10 and waitlistCount=1",
+        "level": "api"
+       },
+       {
+        "id": "AC-15.2",
+        "given": "A session has capacity 10, bookedCount 10 including the demo member's Booked record, and waitlistCount 0",
+        "when": "A client cancels the demo member's booking",
+        "then": "The response session fields are bookedCount=9 and waitlistCount=0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "When a client posts a full, bookable session to POST /waitlist, the API shall store a new Waitlisted row with waitlistPosition equal to the previous waitlistCount plus 1, and return status 201 with the booking, the refreshed session and the message \"You're on the waitlist for {name} · {ddd HH:mm London} — you're #{position}\"; otherwise it shall return 409 with already_booked, not_full, outside_booking_window, class_has_started or cancelled_by_studio.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "The clock is 2026-10-14T09:00:00Z and \"HIIT Blast\" starts 2026-10-15T11:15:00Z with capacity 16, 16 booked and 3 others waitlisted",
+        "when": "A client sends POST /api/waitlist {\"sessionId\":<id>}",
+        "then": "The response status is 201, booking.status=\"Waitlisted\", booking.waitlistPosition=4, session.waitlistCount=4, session.actionState.kind=\"waitlisted\" and message=\"You're on the waitlist for HIIT Blast · Thu 12:15 — you're #4\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.2",
+        "given": "A bookable session has 2 spots left",
+        "when": "A client sends POST /api/waitlist for it",
+        "then": "The response status is 409 with error code not_full",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.3",
+        "given": "The demo member already holds a Waitlisted record on a full session",
+        "when": "A client sends POST /api/waitlist for it again",
+        "then": "The response status is 409 with error code already_booked",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.4",
+        "given": "Full sessions that have started, are Cancelled by studio, and start more than 7 days from now",
+        "when": "A client sends POST /api/waitlist for each",
+        "then": "The response error codes are class_has_started, cancelled_by_studio and outside_booking_window respectively, each with status 409",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "ears": "When a client posts POST /bookings/{bookingId}/leave-waitlist for a Waitlisted record whose session has not started, the API shall set the row to Cancelled with lateCancel false and waitlistPosition null, lower the session's waitlistCount by 1, and return status 200 with the message \"You've left the waitlist for {name}\".",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "The demo member holds Waitlisted record 504 at position 2 on \"Vinyasa Flow\" (waitlistCount 3) starting 30 minutes from now",
+        "when": "A client sends POST /api/bookings/504/leave-waitlist",
+        "then": "The response status is 200, booking.status=\"Cancelled\", booking.lateCancel=false, booking.waitlistPosition=null, session.waitlistCount=2, and message=\"You've left the waitlist for Vinyasa Flow\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-17.2",
+        "given": "Booking 506 is Booked",
+        "when": "A client sends POST /api/bookings/506/leave-waitlist",
+        "then": "The response status is 409 with error code invalid_booking_state",
+        "level": "api"
+       },
+       {
+        "id": "AC-17.3",
+        "given": "The demo member's Waitlisted record is on a session that started 1 minute ago",
+        "when": "A client leaves the waitlist",
+        "then": "The response status is 409 with error code class_has_started",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When a client requests GET /me/bookings, the API shall return Booked and Waitlisted records whose sessions have not ended as upcoming groups by London day (labelled \"Today\", \"Tomorrow\" or \"ddd d MMM\") ordered by start time, and Cancelled and ended Booked records as the past list most recent first, reporting an ended Booked record as status and badge \"Attended\" without changing the stored row.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-2",
+       "ASM-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-18.1",
+        "given": "The clock is 2026-10-14T09:00:00Z and the demo member holds Booked on a session today at 18:00Z, Waitlisted at position 2 tomorrow, and Booked on 2026-10-16",
+        "when": "A client sends GET /api/me/bookings",
+        "then": "The response upcoming list has 3 groups labelled \"Today\", \"Tomorrow\" and \"Fri 16 Oct\", and the Waitlisted row has badge \"Waitlisted #2\" and waitlistPosition=2",
+        "level": "api"
+       },
+       {
+        "id": "AC-18.2",
+        "given": "The demo member holds a Booked record on a session that ended yesterday and a late-cancelled record from last week",
+        "when": "A client sends GET /api/me/bookings",
+        "then": "The past list shows the ended booking first with status=\"Attended\", badge=\"Attended\", canChange=false, then the cancelled booking with badge=\"Late cancel\"; the stored row for the ended booking still has status Booked",
+        "level": "api"
+       },
+       {
+        "id": "AC-18.3",
+        "given": "The clock is 2026-10-14T16:30:00Z and the demo member is Booked on a session starting 18:00Z",
+        "when": "A client sends GET /api/me/bookings",
+        "then": "That row has isLateIfCancelledNow=true and canChange=true",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "When a client requests GET /me/stats, the API shall return upcoming as the count of the demo member's Booked records on sessions that have not started, classesThisMonth as the count of Attended bookings in the current London calendar month, and currentStreakWeeks as the number of consecutive Monday-to-Sunday weeks with at least one Attended booking.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-2",
+       "ASM-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "The clock is 2026-10-22T12:00:00Z; the demo member has 2 upcoming Booked records, 1 Waitlisted record, ended Booked records on 2026-10-06, 2026-10-13 and 2026-10-20, and one late-cancelled record on 2026-10-15",
+        "when": "A client sends GET /api/me/stats",
+        "then": "The response fields are upcoming=2, classesThisMonth=3, currentStreakWeeks=3",
+        "level": "api"
+       },
+       {
+        "id": "AC-19.2",
+        "given": "The demo member has no Attended bookings",
+        "when": "A client sends GET /api/me/stats",
+        "then": "The response fields classesThisMonth and currentStreakWeeks are both 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "ears": "While a demo member booking has a promoted-at time and no acknowledgement, the API shall list it in GET /me/promotion-notices with bookingId, sessionId, sessionName, startsAt and the message \"Good news! You're off the waitlist and booked for {name} · {ddd HH:mm London}\".",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "The demo member was promoted from the waitlist on \"Power Ride\" starting 2026-10-15T06:15:00Z",
+        "when": "A client sends GET /api/me/promotion-notices",
+        "then": "The response notices list holds 1 entry with that bookingId and message=\"Good news! You're off the waitlist and booked for Power Ride · Thu 07:15\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-20.2",
+        "given": "The notice from AC-20.1 is listed",
+        "when": "A client sends POST /api/me/promotion-notices/acknowledge and then GET /api/me/promotion-notices",
+        "then": "The acknowledge response status is 204 with an empty body and the notices list returned afterwards is empty",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "When a client posts POST /test/sessions/{sessionId}/simulate-other-member-cancellation, the API shall remove one other member's booked place and promote the first in line: the demo member to Booked with a promotion notice if they are first, otherwise one other waitlisted member (lowering waitlistCount and moving the demo member up one place), and return status 200 with the refreshed session and the demo member's booking on that session or null.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-3",
+       "Q-3",
+       "Q-4",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "A session has capacity 14, bookedCount 14 (all other members), and waitlistCount 1 which is the demo member's Waitlisted record 502 at position 1",
+        "when": "A client sends POST /api/test/sessions/{id}/simulate-other-member-cancellation",
+        "then": "The response status is 200, booking.id=502, booking.status=\"Booked\", booking.waitlistPosition=null, session.bookedCount=14, session.waitlistCount=0, and GET /api/me/promotion-notices then lists booking 502",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.2",
+        "given": "A full session has waitlistCount 2: one other member first and the demo member at position 2",
+        "when": "A client calls the simulate endpoint for it",
+        "then": "The response booking.status is \"Waitlisted\" with waitlistPosition=1, session.waitlistCount=1, session.bookedCount unchanged, and no promotion notice is listed",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.3",
+        "given": "A session has bookedCount 8 (other members), waitlistCount 0 and no demo record",
+        "when": "A client calls the simulate endpoint for it",
+        "then": "The response status is 200, booking is null and session.bookedCount=7",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.4",
+        "given": "The API runs in the Production environment",
+        "when": "A client calls the simulate endpoint for an existing session",
+        "then": "The response status is 200, not 404",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "ears": "When the demo member is promoted from a waitlist, the API shall make the record Booked even if it overlaps another Booked session or takes the member above 10 upcoming Booked records.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-5",
+       "ASM-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "The demo member holds 10 upcoming Booked records, one of which overlaps a full session where they are Waitlisted at position 1",
+        "when": "A client calls the simulate endpoint for the full session",
+        "then": "The response booking.status is \"Booked\" and booking.skipReason is null, and GET /api/me/stats then returns upcoming=11",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When the API starts with a SQLite database that has no tables or no rows, the API shall create the schema with EnsureCreated and seed sample sessions dated relative to the seeding day in Europe/London plus demo member bookings, but it shall skip this when the process runs only to generate the OpenAPI document.",
+      "op": "MODIFIED",
+      "sources": [
+       "I-2",
+       "Q-5",
+       "Q-8",
+       "ASM-3",
+       "ASM-4"
+      ],
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 5,
+        "lineEnd": 6,
+        "quote": "builder.Services.AddOpenApi();\n// a local file database; nothing touches it at startup (the build runs this file to write the API's OpenAPI document)"
+       }
+      ],
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "No database file exists at the configured connection string",
+        "when": "The API starts and a client sends GET /api/schedule, GET /api/me/bookings and GET /api/me/stats",
+        "then": "The schedule response for the seeding day or a later day this week has at least 1 session, the my-bookings response has at least 1 upcoming Booked row, at least 1 upcoming Waitlisted row on a full session, and at least 1 past Attended row, and the sessions table count is 15 or fewer",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.2",
+        "given": "A seeded database where at least 1 session has status Cancelled by studio",
+        "when": "The test reads the sessions table",
+        "then": "At least 1 row has status Cancelled by studio and at least 1 row has booked count equal to capacity",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.3",
+        "given": "A database already holding sessions and a booking made through the API",
+        "when": "The API is restarted against the same file",
+        "then": "The sessions row count is unchanged and GET /api/me/bookings still returns the booking made before the restart",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.4",
+        "given": "A clean checkout with no database file",
+        "when": "dotnet build runs and generates App.Api/openapi/built.json",
+        "then": "No database file is created at the configured path",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-24",
+      "ears": "If reading or writing the database fails or another exception is not handled, then the API shall return status 500 with error code storage_failure and a plain-language message, with no stack trace or exception details in the response.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "The API runs with the App connection string pointing at a path it cannot open",
+        "when": "A client sends GET /api/me/bookings or POST /api/bookings",
+        "then": "The response status is 500, the error code field is storage_failure, and the response body contains neither \"Exception\" nor a line starting with \"   at \"",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "If a request body is malformed or misses sessionId, then the API shall return status 400 with error code invalid_request.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "The API is running",
+        "when": "A client sends POST /api/bookings with body {} and POST /api/waitlist with body \"not json\"",
+        "then": "Each response status is 400 and the error code field is invalid_request",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-26",
+      "ears": "The API shall read the current time for all time rules, labels and \"today\" from the TimeProvider registered in dependency injection, defaulting to the system clock.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-9",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-26.1",
+        "given": "A WebApplicationFactory replaces TimeProvider with a fake clock set to 2026-10-14T23:30:00Z (00:30 on 15 Oct in London)",
+        "when": "A client sends GET /api/schedule",
+        "then": "The response field today is \"2026-10-15\"",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Error responses never expose raw server errors or stack traces.",
+      "metric": "0 of all 4xx/5xx responses produced by the rule test suite contain the text \"Exception\" or a line starting with \"   at \""
+     },
+     {
+      "id": "NFR-2",
+      "text": "Repeated Book taps do not create duplicate bookings.",
+      "metric": "10 back-to-back POST /api/bookings calls for the same session leave exactly 1 non-cancelled booking row for that session (1 response 201, 9 responses 409 already_booked)"
+     },
+     {
+      "id": "NFR-3",
+      "text": "The schedule endpoint answers quickly on seed data.",
+      "metric": "p95 latency of GET /api/schedule is 200 ms or less over 50 sequential calls against the seeded SQLite database on the test machine"
+     }
+    ],
+    "outOfScope": [
+     "Screens, styling and the web app (built in its own repo, per the request)",
+     "The end-to-end UI test (schedule → filter → book → My Bookings → cancel), which belongs to the web repo (ASM-9)",
+     "The §4.3 seed of 40+ sessions, 5 instructors and the two-week coverage; only a few rows are seeded (Q-8, ASM-3)",
+     "Changing the contract's description text about local storage, or any other edit to contracts/openapi.yaml (ASM-10)",
+     "Sign in, sign up, authentication and multiple members",
+     "Payments, credits, class packs and membership purchase",
+     "Email, SMS or push notifications",
+     "Staff, instructor or admin endpoints and schedule editing",
+     "Making rule numbers configurable; they are code constants (ASM-6, ASM-13)"
+    ],
+    "assumptions": [
+     "ASM-1 and ASM-11 conflict. This spec follows ASM-1: paths are mapped as written (/me, …), UsePathBase(\"/api\") makes /api/… work too, and the generated document declares server /api. Mapping under an /api route group (ASM-11) would put /api/me in the document and break conformance.",
+     "Boundaries are inclusive for allowed actions. Booking is allowed when start − now is 7 days or less and 15 minutes or more. Undo is allowed when now − createdAt is 5 seconds or less. A cancellation is late only when start − now is under 2 hours.",
+     "createBooking checks in this order: not_found, cancelled_by_studio, class_has_started, outside_booking_window, already_booked, class_full, overlap, limit_reached. joinWaitlist checks: not_found, cancelled_by_studio, class_has_started, outside_booking_window, already_booked, not_full.",
+     "already_booked counts only Booked or Waitlisted rows the demo member holds on that session. Cancelled rows are ignored (Q-6).",
+     "Two sessions overlap when one starts before the other ends and ends after the other starts. Back-to-back sessions do not overlap. Only Booked records count for overlap and for the limit of 10.",
+     "actionState is evaluated in this order: studio-cancelled → disabled; demo member holds a Booked/Waitlisted record → booked/waitlisted; started → disabled; outside booking window → disabled; full → join_waitlist; otherwise book. skipReason is always null because promotion never skips (ASM-5, ASM-15).",
+     "The cancel confirmation message uses \"today HH:mm\" when the class is on the current London day and \"ddd HH:mm\" otherwise. All times in messages are 24-hour Europe/London. startsAt/endsAt are serialised as UTC ISO-8601.",
+     "DaySummary.hasSessions ignores the type/intensity/timeOfDay filters.",
+     "currentStreakWeeks counts back from the current London week. If the current week has no Attended booking yet, counting starts from the previous week instead of returning 0.",
+     "A Booked record counts as upcoming until its session ends. Once the session ends it is reported as Attended in the past list (Q-2). While the session is in progress the record is still upcoming, with canChange=false.",
+     "Other members' booked places and waitlist places are stored as counts on the session (Q-4). The demo member's waitlist position is stored on their booking row. Promotion notices are stored as promoted-at and notice-acknowledged fields on the booking (Q-7).",
+     "Rule tests run against a temporary SQLite file through WebApplicationFactory, and the fake TimeProvider is injected (ASM-9, ASM-14). Tests may insert session and booking rows directly to set up a state."
+    ],
+    "suggestions": [
+     "The contract has skipReason (overlap, limit_reached, outside_booking_window) on Booking and ActionState, which suggests promotion could be skipped. ASM-5/ASM-15 say promote anyway. Confirm with the product owner whether skipReason should ever be filled.",
+     "The contract's description still says it is served over local storage in the browser. Consider updating it in a future contract version, since this run uses SQLite.",
+     "Decide what availabilityLabel should say for a full session with an empty waitlist (\"Full\" vs \"Full · 0 on waitlist\"). The contract does not show this case.",
+     "Decide whether a Waitlisted record on a session that has ended should appear in the past list, be hidden, or be shown as Cancelled.",
+     "Consider limiting the /test simulate hook to non-production environments in a later release. Q-3 asked for it to be mapped in every environment for now.",
+     "For stronger protection against concurrent duplicate bookings, consider a unique partial index on (member, session) for non-cancelled rows."
+    ]
+   },
+   "ms": 7,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

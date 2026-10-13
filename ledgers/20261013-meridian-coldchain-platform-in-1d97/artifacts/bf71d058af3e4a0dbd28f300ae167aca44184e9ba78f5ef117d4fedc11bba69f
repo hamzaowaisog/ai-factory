@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "authorization|token|AuthResult:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 990,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;authorization|token|AuthResult:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:9: /auth/staff/authorization-url:\ncontracts/openapi.yaml:11: operationId: getStaffAuthorizationUrl\ncontracts/openapi.yaml:12: summary: \"Get the configured staff identity-provider authorization URL.\"\ncontracts/openapi.yaml:100: /auth/password-reset/{token}:\ncontracts/openapi.yaml:102: operationId: inspectPasswordResetToken\ncontracts/openapi.yaml:103: summary: \"Check whether a reset token can be used.\"\ncontracts/openapi.yaml:105: - name: token\ncontracts/openapi.yaml:119: /auth/password-reset/{token}/complete:\ncontracts/openapi.yaml:122: summary: \"Set a new password using a reset token.\"\ncontracts/openapi.yaml:124: - name: token\ncontracts/openapi.yaml:2620: AuthResult:\ncontracts/openapi.yaml:2621: description: \"Authentication challenge or configured staff authorization result.\"\n</untrusted_document>"
+  }
+ ]
+}

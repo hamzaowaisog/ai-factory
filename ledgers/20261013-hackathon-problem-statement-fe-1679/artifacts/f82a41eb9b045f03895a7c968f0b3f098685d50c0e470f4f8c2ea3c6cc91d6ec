@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 9,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getReviewFeedPlanResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 1,
+   "resultChars": 469,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getReviewFeedPlanResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:111: export const getReviewFeedPlanResponseMock = (): FeedPlanResponse => ({\"permissions\":[\"plans.manage\"],\"plan\":{\"id\":3301,\"date\":\"2026-08-21\",\"penId\":12,\"pen\":\"P-12\",\"lotIds\":[2407],\"animalCount\":140,\"r\nlib/api/client.msw.ts:497: : getReviewFeedPlanResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

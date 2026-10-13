@@ -1,0 +1,314 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "errors",
+      "topic": "sign-in",
+      "difference": "D-1.52",
+      "text": "When sign-in fails, what message is shown?",
+      "options": [
+       "One general 'incorrect email or password' message that doesn't say which field was wrong",
+       "A message that says whether the email or the password was wrong"
+      ],
+      "recommended": "One general 'incorrect email or password' message that doesn't say which field was wrong",
+      "reason": "Section 49 asks for standard security, and this message doesn't reveal which accounts exist.",
+      "spans": [
+       "52-error-handling",
+       "49-security"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what people see when sign-in fails, and whether outsiders can find out which accounts exist."
+     },
+     {
+      "id": "Q-7",
+      "category": "errors",
+      "difference": "D-2.54",
+      "text": "How do we stop the same order being submitted twice?",
+      "options": [
+       "Disable the submit button while the submission is in progress",
+       "Disable the button and also have the server reject a repeat submission of the same basket",
+       "Only show a loading indicator"
+      ],
+      "recommended": "Disable the submit button while the submission is in progress",
+      "reason": "This is the smallest change that covers the 'duplicate submission prevention' test case in section 71.",
+      "spans": [
+       "54-loading-states",
+       "71-testing-requirements"
+      ],
+      "impact": 3,
+      "impactReason": "Duplicate submissions create duplicate orders, which lead to duplicate invoices."
+     },
+     {
+      "id": "Q-8",
+      "category": "scope",
+      "topic": "sign-in",
+      "difference": "D-3.56",
+      "text": "Is staff sign-in separate from customer sign-in?",
+      "options": [
+       "A separate staff sign-in page that uses the same accounts and authentication",
+       "One shared sign-in page that sends each user to the right area based on their role",
+       "A separate staff sign-in with its own way of authenticating (for example, SSO)"
+      ],
+      "recommended": "A separate staff sign-in page that uses the same accounts and authentication",
+      "reason": "Sections 55 and 56 list separate sign-in screens, and this approach needs no second sign-in system.",
+      "spans": [
+       "56-main-staff-screens",
+       "55-main-customer-screens"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the sign-in pages and routes that staff and customers use."
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "difference": "D-6.64",
+      "text": "Q-3 says the invoice is created in the same transaction as the Delivered status. When is the invoice PDF produced?",
+      "options": [
+       "The PDF is rendered on each download from the stored invoice record",
+       "The PDF is generated once when the invoice is created, stored, and reused for every download",
+       "The PDF is generated on the first download, then stored and reused"
+      ],
+      "recommended": "The PDF is rendered on each download from the stored invoice record",
+      "reason": "Invoice data doesn't change, so every render gives the same PDF. It also means a PDF failure can't roll back the Delivered status, and no file storage is needed.",
+      "spans": [
+       "64-pdf-generation",
+       "63-file-storage",
+       "62-background-jobs"
+      ],
+      "impact": 2,
+      "impactReason": "Affects whether marking an order Delivered can fail, and whether file storage is needed."
+     },
+     {
+      "id": "Q-10",
+      "category": "identifiers",
+      "text": "Q-2 says the payment term is configurable. Where is it set?",
+      "options": [
+       "One system-wide setting (default 30 days) in application configuration",
+       "One system-wide setting that admins can edit in the portal",
+       "A separate payment term for each customer, editable by admins"
+      ],
+      "recommended": "One system-wide setting (default 30 days) in application configuration",
+      "reason": "This is the smallest way to make the term configurable, as Q-2 requires, without adding fields or screens.",
+      "spans": [
+       "59-invoice-lifecycle",
+       "62-background-jobs"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which invoices become Overdue, which affects what customers and staff see about money owed."
+     },
+     {
+      "id": "Q-11",
+      "category": "existing-data",
+      "text": "Which invoice statuses can be marked Paid, and can a Paid invoice be reversed?",
+      "options": [
+       "Unpaid and Overdue invoices can be marked Paid, and Paid is final",
+       "Unpaid and Overdue invoices can be marked Paid, and staff can undo it",
+       "Only Unpaid invoices can be marked Paid"
+      ],
+      "recommended": "Unpaid and Overdue invoices can be marked Paid, and Paid is final",
+      "reason": "Overdue invoices still need to be paid, and the request doesn't ask for an undo.",
+      "spans": [
+       "59-invoice-lifecycle",
+       "67-business-rules-summary"
+      ],
+      "impact": 3,
+      "impactReason": "Controls changes to an invoice's payment status."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "topic": "reporting",
+      "text": "What counts as 'order value' and 'revenue' in the reports?",
+      "options": [
+       "Sum of order line prices (at the price saved on the order), excluding tax, for all orders that are not cancelled",
+       "Only orders that have been delivered and invoiced",
+       "Only invoices that have been paid"
+      ],
+      "recommended": "Sum of order line prices (at the price saved on the order), excluding tax, for all orders that are not cancelled",
+      "reason": "This uses data already on each order and answers the open point in section 69 by leaving cancelled orders out.",
+      "spans": [
+       "39-reporting",
+       "69-open-questions"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the money totals shown in reports and CSV exports."
+     },
+     {
+      "id": "Q-13",
+      "category": "data-model",
+      "topic": "reporting",
+      "text": "Which date does the report date range filter on?",
+      "options": [
+       "The date the order was submitted",
+       "The date the order was delivered or invoiced"
+      ],
+      "recommended": "The date the order was submitted",
+      "reason": "'Orders per Day' is naturally grouped by order date, and every order has one.",
+      "spans": [
+       "40-report-filters",
+       "39-reporting"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which orders appear in each report."
+     },
+     {
+      "id": "Q-14",
+      "category": "roles",
+      "topic": "audit",
+      "text": "Who can see the audit history, and how long is it kept?",
+      "options": [
+       "Admins only, kept for 7 years like orders and invoices",
+       "Admins and staff, kept for 7 years",
+       "Admins only, kept forever"
+      ],
+      "recommended": "Admins only, kept for 7 years like orders and invoices",
+      "reason": "Section 57 lists Audit history only under admin screens, and this matches the existing 7-year retention rule.",
+      "spans": [
+       "42-audit-history",
+       "57-main-admin-screens",
+       "46-data-retention"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can see sensitive history and when records are deleted."
+     },
+     {
+      "id": "Q-15",
+      "category": "external",
+      "text": "If the ERP stock file has some invalid rows, what happens to the rest?",
+      "options": [
+       "Import the valid rows and report the rejected rows",
+       "Reject the whole file and keep the previous stock levels"
+      ],
+      "recommended": "Import the valid rows and report the rejected rows",
+      "reason": "Section 65 says import results should show counts of rows processed and rows rejected.",
+      "spans": [
+       "45-erp-stock-integration",
+       "65-csv-import-requirements"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the stock levels customers see."
+     },
+     {
+      "id": "Q-16",
+      "category": "external",
+      "topic": "notifications",
+      "text": "How is a failed stock import reported?",
+      "options": [
+       "Shown on the admin System/import status screen only",
+       "Shown on the status screen and also emailed to admins"
+      ],
+      "recommended": "Shown on the admin System/import status screen only",
+      "reason": "The status screen is already required, and this doesn't depend on the email integration, which is still unknown.",
+      "spans": [
+       "45-erp-stock-integration",
+       "57-main-admin-screens"
+      ],
+      "impact": 2,
+      "impactReason": "Changes whether and how admins learn about import failures."
+     },
+     {
+      "id": "Q-17",
+      "category": "errors",
+      "topic": "notifications",
+      "text": "If a notification email can't be sent, what happens to the action that triggered it?",
+      "options": [
+       "The action (for example, submitting or confirming an order) still succeeds, and the email failure is logged",
+       "The action fails and the user is shown an error"
+      ],
+      "recommended": "The action (for example, submitting or confirming an order) still succeeds, and the email failure is logged",
+      "reason": "An email provider outage shouldn't stop orders being placed.",
+      "spans": [
+       "43-notifications",
+       "52-error-handling"
+      ],
+      "impact": 2,
+      "impactReason": "Decides whether orders can be submitted when email is down."
+     },
+     {
+      "id": "Q-18",
+      "category": "roles",
+      "topic": "roles",
+      "text": "Can users from the same customer company see each other's orders and invoices?",
+      "options": [
+       "Yes, all users of a customer see all of that company's orders and invoices",
+       "No, each user sees only the orders they placed, plus all company invoices"
+      ],
+      "recommended": "Yes, all users of a customer see all of that company's orders and invoices",
+      "reason": "Business rule 1 says customers see their own company's data.",
+      "spans": [
+       "50-data-isolation",
+       "67-business-rules-summary"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can see which orders and invoices."
+     },
+     {
+      "id": "Q-19",
+      "category": "scope",
+      "text": "Can customers order more than the imported stock quantity?",
+      "options": [
+       "Yes; the order is accepted and staff resolve any shortfall at confirmation",
+       "No; checkout blocks quantities above the imported stock"
+      ],
+      "recommended": "Yes; the order is accepted and staff resolve any shortfall at confirmation",
+      "reason": "Stock is only refreshed nightly, and staff already review every order before confirming it.",
+      "spans": [
+       "69-open-questions",
+       "45-erp-stock-integration"
+      ],
+      "impact": 3,
+      "impactReason": "Controls which orders can be placed."
+     },
+     {
+      "id": "Q-20",
+      "category": "identifiers",
+      "text": "How are working days and the 14:00 cut-off defined?",
+      "options": [
+       "Monday to Friday excluding a list of public holidays in configuration, with the 14:00 cut-off also in configuration",
+       "Monday to Friday only, with no holidays and 14:00 fixed in code",
+       "Holidays and cut-off editable by admins in the portal"
+      ],
+      "recommended": "Monday to Friday excluding a list of public holidays in configuration, with the 14:00 cut-off also in configuration",
+      "reason": "The delivery-date rule needs a definition of working days, and configuration avoids a new admin screen.",
+      "spans": [
+       "72-acceptance-criteria-examples",
+       "67-business-rules-summary"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the earliest delivery date customers are offered."
+     },
+     {
+      "id": "Q-21",
+      "category": "data-model",
+      "text": "Are prices stored and shown including or excluding tax, and do invoices show tax?",
+      "options": [
+       "Prices exclude tax and invoices show no tax lines",
+       "Prices exclude tax and invoices add VAT at one configured rate",
+       "Prices include tax"
+      ],
+      "recommended": "Prices exclude tax and invoices show no tax lines",
+      "reason": "This is the smallest option until the tax rules are confirmed (open point in section 69).",
+      "spans": [
+       "64-pdf-generation",
+       "69-open-questions"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the money amounts on orders and invoices."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 5,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

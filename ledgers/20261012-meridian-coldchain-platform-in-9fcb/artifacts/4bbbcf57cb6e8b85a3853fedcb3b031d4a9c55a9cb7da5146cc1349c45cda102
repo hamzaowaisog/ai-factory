@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boxes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset and Design System Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Interactive controls styling */
+    a, button, input, select {
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+
+    /* Navigation link hover/focus */
+    .nav-item {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      padding: 16px 2px;
+      position: relative;
+      display: inline-block;
+    }
+    .nav-item:hover {
+      color: #202020;
+    }
+    .nav-item.active {
+      color: #202020;
+      font-weight: 500;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    /* Primary & Secondary buttons (48px tall, 2px corners) */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 24px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+    .btn-primary:active {
+      background-color: #7e3613;
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+    .btn-secondary:active {
+      background-color: #EEEEEE;
+      transform: translateY(1px);
+    }
+
+    /* Form Fields (48px tall, labelled above, 2px corners) */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 400;
+    }
+    .input-field {
+      height: 48px;
+      padding: 0 14px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      width: 100%;
+    }
+    .input-field:hover {
+      border-color: #999999;
+    }
+
+    /* Table styling (48px rows, 1px rules, vertical alignment) */
+    .boxes-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .boxes-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+    }
+    .boxes-table td {
+      height: 64px;
+      padding: 8px 16px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+      background-color: #FFFFFF;
+    }
+    .boxes-table tr:last-child td {
+      border-bottom: none;
+    }
+    .boxes-table tbody tr {
+      transition: background-color 120ms ease;
+    }
+    .boxes-table tbody tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Semantic Statuses */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+    .status-failed {
+      color: #AE2C2C;
+    }
+    .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header: The page's header, the same on every page -->
+  <header style="background-color: #FFFFFF; border-bottom: 1px solid #D5D5D5; height: 56px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 32px; height: 100%;">
+      <!-- Brand mark: A small square with a white M sits beside Meridian -->
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 24px; height: 24px; background-color: #202020; display: flex; align-items: center; justify-content: center; border-radius: 2px;">
+          <span style="color: #FFFFFF; font-weight: 700; font-size: 13px; font-family: 'Hanken Grotesk', sans-serif; line-height: 1;">M</span>
+        </div>
+        <span class="font-heading" style="font-size: 17px; font-weight: 650; color: #202020; letter-spacing: -0.01em;">Meridian</span>
+      </div>
+
+      <!-- Navigation menu: Receipts, Stock, Moves, Boxes, Cold rooms -->
+      <nav style="display: flex; align-items: center; gap: 24px; height: 100%;">
+        <a href="#" class="nav-item">Receipts</a>
+        <a href="#" class="nav-item">Stock</a>
+        <a href="#" class="nav-item">Moves</a>
+        <a href="#" class="nav-item active">Boxes</a>
+        <a href="#" class="nav-item">Cold rooms</a>
+      </nav>
+    </div>
+
+    <!-- Right utility: Leila Haddad · Warehouse Operator with initials LH, plus EN / العربية -->
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 28px; height: 28px; background-color: #EFEFEF; border: 1px solid #D5D5D5; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #202020;">
+          LH
+        </div>
+        <span style="font-size: 14px; color: #202020;">Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div style="width: 1px; height: 16px; background-color: #D5D5D5;"></div>
+      <span style="font-size: 13px; color: #626262;">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main style="max-width: 1360px; margin: 0 auto; padding: 32px;">
+
+    <!-- Page Title & Primary Action -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+      <h1 class="font-heading" style="font-size: 28px; font-weight: 650; color: #202020; line-height: 1.2;">Boxes</h1>
+      <button class="btn-primary" type="button">Pack box</button>
+    </div>
+
+    <!-- Filter Bar Panel -->
+    <section style="background-color: #FFFFFF; border: 1px solid #D5D5D5; border-radius: 2px; padding: 16px; margin-bottom: 32px;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+        <div class="field-group">
+          <label class="field-label" for="filter-order">Order or route</label>
+          <input class="input-field font-mono" id="filter-order" type="text" value="O-299 / R-204" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-type">Box type</label>
+          <select class="input-field" id="filter-type">
+            <option>All shipper types</option>
+            <option selected>Insulated shipper (Credo ProEnthalp)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-status">Status</label>
+          <select class="input-field" id="filter-status">
+            <option selected>All statuses</option>
+            <option>eligible</option>
+            <option>waiting</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-location">Location scope</label>
+          <input class="input-field" id="filter-location" type="text" value="North Quay · Cold Room C2, Rack 4" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Table Section Panel -->
+    <section style="background-color: #FFFFFF; border: 1px solid #D5D5D5; border-radius: 2px; overflow: hidden;">
+      <div style="overflow-x: auto;">
+        <table class="boxes-table">
+          <thead>
+            <tr>
+              <th style="width: 104px;">Shipper photo</th>
+              <th style="width: 100px;">Box</th>
+              <th>Contents</th>
+              <th style="width: 100px;">Order</th>
+              <th style="width: 100px;">Route</th>
+              <th style="width: 180px;">Returned type</th>
+              <th style="width: 140px;">Logger</th>
+              <th style="width: 140px;">Compatibility</th>
+              <th style="width: 140px;">Sealing</th>
+              <th style="width: 130px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1: B-701 -->
+            <tr>
+              <td>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxsLYZzsTPKsiC2Rwd_tSdO9aX6b_fVpPAVz_SFLEd3sOiO9jg-6Oi-u94VdCfXi8wVPAOZMuFG85_85LATv8Aol1JQupRKhRUOlCZio546U4EBPoDiz9iVjH390-EbkbBkj8P_vtSvsmsbCwu0XrgsQSslyf9PVFxq5djLfOO8Z5fEl1GBHwrv8MI67XXWwVPnx0h6H_SRELIhPWW0_jZFHbsSmGH5eekVN3dxk-mPQIt-vbWInKM1QGSzOlyChF6DXuEJDmox7Q" alt="Sealed insulated shipper box B-701" style="width: 72px; height: 54px; object-fit: cover; border-radius: 2px; border: 1px solid #D5D5D5; display: block;" />
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px; color: #202020;">B-701</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 500; color: #202020;">
+                    <span class="font-mono">12</span> packs · Insulin Glargine 100 units/mL
+                  </span>
+                  <span style="font-size: 14px; color: #626262;">
+                    Lot <span class="font-mono">IG-2511</span> · Exp. <span class="font-mono">31 March 2027</span>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">O-299</span>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">R-204</span>
+              </td>
+              <td>
+                <span style="font-size: 14px; color: #202020;">Credo ProEnthalp 4L</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span class="font-mono" style="font-size: 14px; color: #202020;">LOG-8814</span>
+                  <span style="font-size: 13px; color: #626262;">1 logger assigned</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>good</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>sealed</span>
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <button class="btn-secondary" type="button" style="height: 38px; padding: 0 14px;">Pack box</button>
+              </td>
+            </tr>
+
+            <!-- Row 2: B-702 -->
+            <tr>
+              <td>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxsLYZzsTPKsiC2Rwd_tSdO9aX6b_fVpPAVz_SFLEd3sOiO9jg-6Oi-u94VdCfXi8wVPAOZMuFG85_85LATv8Aol1JQupRKhRUOlCZio546U4EBPoDiz9iVjH390-EbkbBkj8P_vtSvsmsbCwu0XrgsQSslyf9PVFxq5djLfOO8Z5fEl1GBHwrv8MI67XXWwVPnx0h6H_SRELIhPWW0_jZFHbsSmGH5eekVN3dxk-mPQIt-vbWInKM1QGSzOlyChF6DXuEJDmox7Q" alt="Sealed insulated shipper box B-702" style="width: 72px; height: 54px; object-fit: cover; border-radius: 2px; border: 1px solid #D5D5D5; display: block;" />
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px; color: #202020;">B-702</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 500; color: #202020;">
+                    <span class="font-mono">8</span> packs · Insulin Glargine 100 units/mL
+                  </span>
+                  <span style="font-size: 14px; color: #626262;">
+                    Lot <span class="font-mono">IG-2511</span> · Exp. <span class="font-mono">31 March 2027</span>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">O-299</span>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">R-204</span>
+              </td>
+              <td>
+                <span style="font-size: 14px; color: #202020;">Credo ProEnthalp 4L</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span class="font-mono" style="font-size: 14px; color: #202020;">LOG-8819</span>
+                  <span style="font-size: 13px; color: #626262;">1 logger assigned</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>good</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>sealed</span>
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <button class="btn-secondary" type="button" style="height: 38px; padding: 0 14px;">Pack box</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footnote & Contextual Information Flush with Panel Boundary -->
+      <div style="border-top: 1px solid #D5D5D5; padding: 12px 16px; background-color: #FAFAFA; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #626262;">
+        <div>
+          Showing <span class="font-mono" style="font-weight: 500; color: #202020;">2</span> boxes for order <span class="font-mono" style="font-weight: 500; color: #202020;">O-299</span> · Route <span class="font-mono" style="font-weight: 500; color: #202020;">R-204</span> (Cedar Clinic, planned <span class="font-mono">14 May 2026 15:00</span>)
+        </div>
+        <div>
+          Assigned warehouse: North Quay · Cold Room C2, Rack 4
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

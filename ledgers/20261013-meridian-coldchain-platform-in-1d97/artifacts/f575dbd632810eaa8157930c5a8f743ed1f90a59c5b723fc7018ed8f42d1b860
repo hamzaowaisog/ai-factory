@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "operationId",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 3110,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;operationId&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:11: operationId: getStaffAuthorizationUrl\ncontracts/openapi.yaml:22: operationId: signInCustomer\ncontracts/openapi.yaml:43: operationId: verifyCustomerCode\ncontracts/openapi.yaml:64: operationId: resendCustomerCode\ncontracts/openapi.yaml:85: operationId: requestPasswordReset\ncontracts/openapi.yaml:102: operationId: inspectPasswordResetToken\ncontracts/openapi.yaml:121: operationId: completePasswordReset\ncontracts/openapi.yaml:146: operationId: listReceipts\ncontracts/openapi.yaml:163: operationId: createReceipt\ncontracts/openapi.yaml:186: operationId: getReceipt\ncontracts/openapi.yaml:203: operationId: uploadReceiptLogger\ncontracts/openapi.yaml:228: operationId: uploadReceiptEvidence\ncontracts/openapi.yaml:253: operationId: listStock\ncontracts/openapi.yaml:270: operationId: getHandlingUnit\ncontracts/openapi.yaml:287: operationId: moveStock\ncontracts/openapi.yaml:314: operationId: listMoves\ncontracts/openapi.yaml:331: operationId: createOpeningStock\ncontracts/openapi.yaml:354: operationId: listBoxes\ncontracts/openapi.yaml:370: operationId: packBox\ncontracts/openapi.yaml:397: operationId: listColdRooms\ncontracts/openapi.yaml:410: operationId: getColdRoom\ncontracts/openapi.yaml:427: operationId: getTemperatureHistory\ncontracts/openapi.yaml:455: operationId: listDispatchOrders\ncontracts/openapi.yaml:473: operationId: getDispatchOrder\ncontracts/openapi.yaml:490: operationId: overrideOrderAllocation\ncontracts/openapi.yaml:517: operationId: cancelDispatchOrder\ncontracts/openapi.yaml:536: operationId: listDispatchRoutes\ncontracts/openapi.yaml:552: operationId: createDispatchRoute\ncontracts/openapi.yaml:575: operationId: getDispatchRoute\ncontracts/openapi.yaml:591: operationId: updateDispatchRoute\ncontracts/openapi.yaml:618: operationId: confirmDispatchRoute\ncontracts/openapi.yaml:637: operationId: listDriverRoutes\ncontracts/openapi.yaml:657: operationId: getDriverRoute\ncontracts/openapi.yaml:674: operationId: scanRouteBox\ncontracts/openapi.yaml:701: operationId: confirmDriverDeparture\ncontracts/openapi.yaml:720: operationId: synchronizeDriverActions\ncontracts/openapi.yaml:743: operationId: recordDriverHandover\ncontracts/openapi.yaml:768: operationId: getDeliveryEvidence\ncontracts/openapi.yaml:785: operationId: listQualityCases\ncontracts/openapi.yaml:801: operationId: getQualityCase\ncontracts/openapi.yaml:818: operationId: proposeDisposition\ncontracts/openapi.yaml:845: operationId: supersedeDecision\ncontracts/openapi.yaml:872: operationId: listWaitingDecisions\ncontracts/openapi.yaml:885: operationId: decideQualityProposal\ncontracts/openapi.yaml:912: operationId: recordDestruction\ncontracts/openapi.yaml:939: operationId: listRecalls\ncontracts/openapi.yaml:954: operationId: startRecall\ncontracts/openapi.yaml:977: operationId: getRecall\ncontracts/openapi.yaml:994: operationId: getRecallTrace\ncontracts/openapi.yaml:1011: operationId: closeRecall\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

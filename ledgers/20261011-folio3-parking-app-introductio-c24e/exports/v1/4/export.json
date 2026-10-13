@@ -1,0 +1,260 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261011-folio3-parking-app-introductio-c24e",
+  "version": 1,
+  "designSha": "eb69f957c48abecd39d1332eafccde7af2f66f8efb4aed1c0d598bc023f2f77c",
+  "at": "2026-10-11T23:07:30.985Z",
+  "options": {
+    "formats": [
+      "png",
+      "pdf",
+      "html",
+      "tokens",
+      "json",
+      "figma"
+    ]
+  },
+  "files": [
+    {
+      "format": "png",
+      "path": "png/S-1_default_desktop.png",
+      "sha256": "5cc7dd2f3b1b4913a9c758934f12198550bf7d59d0146ed0f5678250ec81bed5",
+      "bytes": 121232
+    },
+    {
+      "format": "png",
+      "path": "png/S-1_error_desktop.png",
+      "sha256": "e538660dbd9978735bff9aafe1c29f3e7859e9d71ca4a669e6c5c32bccfe9aee",
+      "bytes": 448822
+    },
+    {
+      "format": "png",
+      "path": "png/S-2_default_desktop.png",
+      "sha256": "d253268d68db0b746d96d8c1bb0851cb7f027dcde0b70d5e5f56fd4150130dba",
+      "bytes": 165729
+    },
+    {
+      "format": "png",
+      "path": "png/S-3_default_desktop.png",
+      "sha256": "a02722e792f30bbe3b2032497ef2520c8d650f55b64c1886fc54275b0a9bf305",
+      "bytes": 227151
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_default_desktop.png",
+      "sha256": "a209215b093a2f6fb993802862d1492a36af50b4e35fa4f91cd63840d53d6965",
+      "bytes": 271240
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_empty_desktop.png",
+      "sha256": "773e7a05fcb8db235dd35183ea669cd4e6e34f25512a85d61e36b10cfb749970",
+      "bytes": 229667
+    },
+    {
+      "format": "png",
+      "path": "png/S-4_error_desktop.png",
+      "sha256": "f4dc63e1ff15f647f150ee54ce281149c3268e577aaf9dd493210b8ab82817d2",
+      "bytes": 267137
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_default_desktop.png",
+      "sha256": "4617d7880666d434732d1862367c28abb6c6f9a561aacc777e8c92b46f20bade",
+      "bytes": 394661
+    },
+    {
+      "format": "png",
+      "path": "png/S-5_error_desktop.png",
+      "sha256": "5eb518730573b050529400cdc9c2b1e61b05316a5a62830a5f9c65bdc876aa03",
+      "bytes": 370021
+    },
+    {
+      "format": "png",
+      "path": "png/S-6_default_desktop.png",
+      "sha256": "ddf3aaf6c903c59a691378f07f59cb6cdabfa7c39d03bac0be666189f9ba296a",
+      "bytes": 306445
+    },
+    {
+      "format": "png",
+      "path": "png/S-7_default_desktop.png",
+      "sha256": "ee12b66b205f16e075f3449293a582166ebbccf4f944823439a7d06e8fc417e6",
+      "bytes": 379477
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_default_desktop.png",
+      "sha256": "f4ae7a28a67ed4ba5160cf9552dd278e1ac5bc4a5af521a29d2157730e1700d5",
+      "bytes": 253423
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_empty_desktop.png",
+      "sha256": "bde1b7fcb48997b1a0ee36429afdce5bf68a8a593e2b46dcb0a50dfca33de25a",
+      "bytes": 313663
+    },
+    {
+      "format": "png",
+      "path": "png/S-8_error_desktop.png",
+      "sha256": "89351e9833ca7f37c66329825dd9d6eeab82c1a50f4d83a54c0888985e509ae6",
+      "bytes": 235781
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_default_desktop.png",
+      "sha256": "c5bd9d50912207a3f443bce99ae6fd1c518b99404309385f0fb86a75550db051",
+      "bytes": 223672
+    },
+    {
+      "format": "png",
+      "path": "png/S-9_empty_desktop.png",
+      "sha256": "bafd49890d8bb72c131680f75ecb731b9c68ecb42f60965420e343109bbe4cb4",
+      "bytes": 302621
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_default_desktop.png",
+      "sha256": "5c3adf553a464fba3895da479ba15d9418ae2c8ec225c240a9fe66a7ee78e769",
+      "bytes": 201143
+    },
+    {
+      "format": "png",
+      "path": "png/S-10_empty_desktop.png",
+      "sha256": "41ad8ff99c1a74484fc3f7c297a332c757251f1fe9d3cbcc38978a5091abf1c3",
+      "bytes": 269259
+    },
+    {
+      "format": "png",
+      "path": "png/S-11_default_desktop.png",
+      "sha256": "f3022281346621caad5f4916ff19ce2a0a8ecaf6d64e0a5db7ac32f8b027b296",
+      "bytes": 394539
+    },
+    {
+      "format": "png",
+      "path": "png/S-12_default_desktop.png",
+      "sha256": "5251c2e192dc71d77a1b71bc60334d87c84db820614bd32725a7c0b5674b11ff",
+      "bytes": 348378
+    },
+    {
+      "format": "png",
+      "path": "png/S-13_default_desktop.png",
+      "sha256": "ea77c851813e1078b38ca198e01e1db453df22b135c771b0a1f5f10d470a5e75",
+      "bytes": 303136
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_default_desktop.png",
+      "sha256": "6a2e676678cd0731c75562c4ff8baf9d498962a8aec676897dacf84c03c434c2",
+      "bytes": 310116
+    },
+    {
+      "format": "png",
+      "path": "png/S-14_empty_desktop.png",
+      "sha256": "6ab1ebd17fcb682e2778d5bc0db2e6933cda00aaaac94b2454699901969c7ff0",
+      "bytes": 269101
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_default_desktop.png",
+      "sha256": "742d96340ef0b68babdb1f64eabb49c0087ca96406e38db0516539469d9fdc32",
+      "bytes": 351202
+    },
+    {
+      "format": "png",
+      "path": "png/S-15_empty_desktop.png",
+      "sha256": "3bed7c11ad67fd300f88bf300a5dcc3709ed3ad498c677604d88f354a572c7ea",
+      "bytes": 280790
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_default_desktop.png",
+      "sha256": "c7c035989b164a20373898fd0ede78f16d2dbbdf8ec6488b3862f8ce368a34fc",
+      "bytes": 264740
+    },
+    {
+      "format": "png",
+      "path": "png/S-16_empty_desktop.png",
+      "sha256": "e5a5da604b93b7aabc27bb46128927fce4e1c2fb2a7cd96793519299c019f008",
+      "bytes": 322559
+    },
+    {
+      "format": "pdf",
+      "path": "design-book.pdf",
+      "sha256": "34a166873e58e904896fb39585ab7877a8ce4f864b78c6bad3b2582948682824",
+      "bytes": 7437931
+    },
+    {
+      "format": "html",
+      "path": "demo.zip",
+      "sha256": "e4da33b69f4d7355d85a478e8035076413b20b54f68e197395b9628fe3c6fde3",
+      "bytes": 7970053
+    },
+    {
+      "format": "tokens",
+      "path": "tokens/tokens.json",
+      "sha256": "56db87a7fb4521b7f3541404a3ed524ab7e211e1700d087a27078e4d73a744c2",
+      "bytes": 9277
+    },
+    {
+      "format": "tokens",
+      "path": "tokens/tokens.css",
+      "sha256": "728c3ac949f7d7adf45db78378072d8342cfc354f89c4dff398073a7f684c804",
+      "bytes": 1252
+    },
+    {
+      "format": "tokens",
+      "path": "tokens/tailwind.css",
+      "sha256": "7bf5d031df44ecfd900b7c954f6ceb54a1c3aa9be67e32104efdefb3f0c5edba",
+      "bytes": 1351
+    },
+    {
+      "format": "json",
+      "path": "json/design.json",
+      "sha256": "6fc8ae6d1435582925643fcef0f417e236ed533b8b3e0f919029d7370b83b60d",
+      "bytes": 41740
+    },
+    {
+      "format": "json",
+      "path": "json/manifest.json",
+      "sha256": "f24c99081a6a55697243be5c534c539f2db90c57eec34a8972d04781f10aa0e7",
+      "bytes": 19241
+    },
+    {
+      "format": "figma",
+      "path": "figma.json",
+      "sha256": "aa99b8bba82d8e89ee79d8e87463cb64d897358966bc4955bb1435b96a5630af",
+      "bytes": 10442381
+    }
+  ],
+  "notes": [
+    "pictures: the pictures are the design's own, as drawn at desktop width; not drawn, so not pictured: S-1 loading, S-2 loading, S-3 validation, S-3 loading, S-4 success, S-4 loading, S-5 success, S-5 loading, S-6 success, S-6 validation, S-6 loading, S-7 validation, S-9 validation, S-11 success, S-11 validation, S-12 success, S-12 validation, S-13 success, S-13 validation, S-14 success, S-14 validation",
+    "figma: 27 frame(s) hold the design's own picture of the page, not layers: the demo shows these pages as pictures"
+  ],
+  "checks": [
+    {
+      "check": "pdf.screens",
+      "status": "PASS",
+      "detail": "every screen is in the book"
+    },
+    {
+      "check": "pdf.fonts",
+      "status": "PASS",
+      "detail": "every font is embedded"
+    },
+    {
+      "check": "pdf.pages",
+      "status": "PASS",
+      "detail": "design-book.pdf 45 page(s), 16 screen(s), 37 font(s)"
+    },
+    {
+      "check": "png.count",
+      "status": "PASS",
+      "detail": "27 PNG(s) cover all 27 screen states (screens × states)"
+    },
+    {
+      "check": "figma.frames",
+      "status": "PASS",
+      "detail": "27 frame(s) with 54 layer(s) cover all 27 screen states"
+    }
+  ]
+}

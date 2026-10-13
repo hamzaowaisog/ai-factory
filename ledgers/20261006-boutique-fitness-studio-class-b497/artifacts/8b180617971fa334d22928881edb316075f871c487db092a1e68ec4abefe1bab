@@ -1,0 +1,256 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Class detail",
+     "subtitle": "Sprints, kettlebell swings and bodyweight intervals in 40/20 rounds, finishing with a 5-minute core burner.",
+     "crumbs": [
+      "Schedule",
+      "Thu 12 Mar"
+     ],
+     "badge": "Only 2 left",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "HIIT Express",
+       "lead": {
+        "label": "Thu 12 Mar 2026",
+        "value": "18:30–19:15"
+       },
+       "rows": [
+        {
+         "label": "Type",
+         "value": "HIIT"
+        },
+        {
+         "label": "Intensity",
+         "value": "High · 3 of 3"
+        },
+        {
+         "label": "Duration",
+         "value": "45 min"
+        },
+        {
+         "label": "Room",
+         "value": "Studio B"
+        },
+        {
+         "label": "Status",
+         "value": "Scheduled",
+         "badge": true
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Maya Okafor",
+         "meta": "Ex-sprinter and Level 3 PT. Coaching HIIT and Boxing at Pulse since 2019.",
+         "badge": "Instructor",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Water bottle",
+         "meta": "Refill station outside Studio B"
+        },
+        {
+         "title": "Small towel",
+         "meta": "Sweat towels also at reception"
+        },
+        {
+         "title": "Training shoes",
+         "meta": "Indoor trainers with flat soles"
+        }
+       ]
+      },
+      {
+       "type": "progress",
+       "title": "Availability",
+       "items": [
+        {
+         "label": "2 of 16 spots left",
+         "value": 88,
+         "meta": "Only 2 left · 0 on waitlist"
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "body": "Free cancellation until 2 hours before class."
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book this class",
+         "variant": "primary",
+         "hint": "2 spots left"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Book this class",
+       "text": "You're booked · HIIT Express, Thu 12 Mar 18:30",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "This class isn't on the schedule",
+      "emptyHint": "It may have moved. Head back to the schedule to pick another session.",
+      "error": "We couldn't load this class. Check your connection and try again.",
+      "success": "You're booked for HIIT Express on Thu 12 Mar at 18:30.",
+      "validation": "You're already booked for Spin Climb at 18:00–18:45."
+     }
+    },
+    "mockFull": {
+     "title": "Class detail",
+     "subtitle": "Sprints, kettlebell swings and bodyweight intervals in 40/20 rounds, finishing with a 5-minute core burner.",
+     "crumbs": [
+      "Schedule",
+      "Thu 12 Mar"
+     ],
+     "badge": "Only 2 left",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "HIIT Express",
+       "lead": {
+        "label": "Thu 12 Mar 2026",
+        "value": "18:30–19:15"
+       },
+       "rows": [
+        {
+         "label": "Type",
+         "value": "HIIT"
+        },
+        {
+         "label": "Intensity",
+         "value": "High · 3 of 3"
+        },
+        {
+         "label": "Duration",
+         "value": "45 min"
+        },
+        {
+         "label": "Room",
+         "value": "Studio B"
+        },
+        {
+         "label": "Capacity",
+         "value": "16 spots"
+        },
+        {
+         "label": "Booked",
+         "value": "14 members"
+        },
+        {
+         "label": "Waitlist",
+         "value": "0 waiting"
+        },
+        {
+         "label": "Status",
+         "value": "Scheduled",
+         "badge": true
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Maya Okafor",
+         "meta": "Ex-sprinter and Level 3 PT. Coaching HIIT and Boxing at Pulse since 2019.",
+         "badge": "Instructor",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Water bottle",
+         "meta": "Refill station outside Studio B"
+        },
+        {
+         "title": "Small towel",
+         "meta": "Sweat towels also at reception"
+        },
+        {
+         "title": "Training shoes",
+         "meta": "Indoor trainers with flat soles"
+        },
+        {
+         "title": "Kettlebell",
+         "meta": "Provided · 8, 12 or 16 kg"
+        },
+        {
+         "title": "Lock for your locker",
+         "meta": "Lockers by the changing rooms"
+        },
+        {
+         "title": "Arrive 10 minutes early",
+         "meta": "Doors to Studio B open at 18:20"
+        }
+       ]
+      },
+      {
+       "type": "progress",
+       "title": "Availability",
+       "items": [
+        {
+         "label": "2 of 16 spots left",
+         "value": 88,
+         "meta": "Only 2 left · 0 on waitlist"
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "body": "Free cancellation until 2 hours before class."
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book this class",
+         "variant": "primary",
+         "hint": "2 spots left"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "This class isn't on the schedule",
+      "emptyHint": "It may have moved. Head back to the schedule to pick another session.",
+      "error": "We couldn't load this class. Check your connection and try again.",
+      "success": "You're booked for HIIT Express on Thu 12 Mar at 18:30.",
+      "validation": "You're already booked for Spin Climb at 18:00–18:45."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

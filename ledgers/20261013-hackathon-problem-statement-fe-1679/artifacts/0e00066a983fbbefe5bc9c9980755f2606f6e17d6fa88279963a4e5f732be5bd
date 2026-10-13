@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 19,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 174,
+    "end": 189
+   },
+   "ms": 1,
+   "resultChars": 1052,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:174,&quot;end&quot;:189}\">\nlib/api/client.msw.ts lines 174-189\n174\t      { status: 200,\n175\t        headers: { 'Content-Type': 'application/json' }\n176\t      })\n177\t  }, options)\n178\t}\n179\t\n180\texport const getPreviewSourceRecordsMockHandler = (overrideResponse?: ImportPreviewResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<ImportPreviewResponse> | ImportPreviewResponse), options?: RequestHandlerOptions) => {\n181\t  return http.get('*/imports/source-records', async (info) => {await delay(1000);\n182\t  \n183\t    return new HttpResponse(JSON.stringify(overrideResponse !== undefined\n184\t    ? (typeof overrideResponse === \"function\" ? await overrideResponse(info) : overrideResponse)\n185\t    : getPreviewSourceRecordsResponseMock()),\n186\t      { status: 200,\n187\t        headers: { 'Content-Type': 'application/json' }\n188\t      })\n189\t  }, options)\n… (730 lines total; ask for start=190)\n</untrusted_document>"
+  }
+ ]
+}

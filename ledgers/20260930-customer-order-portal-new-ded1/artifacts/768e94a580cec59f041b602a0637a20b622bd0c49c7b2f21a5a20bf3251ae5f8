@@ -1,0 +1,486 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Portal is the primary channel replacing phone orders; buyers and staff both have accounts",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer can log in, browse catalogue, place an order, and view its status online without phoning"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can log in to a separate back-end area to manage orders across all customers"
+       },
+       {
+        "kind": "data",
+        "text": "Order and related data persisted and retrievable per buyer/company"
+       },
+       {
+        "kind": "permission",
+        "text": "Only authenticated users (buyer/staff/admin) can access portal functionality"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "Standard email+password auth with self-service reset",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer submits email+password and is signed in on match"
+       },
+       {
+        "kind": "error",
+        "text": "Incorrect email or password returns a generic sign-in error (no account enumeration)"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer requests password reset by entering email; system sends reset link/email"
+       },
+       {
+        "kind": "data",
+        "text": "Reset token generated, single-use, time-limited"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer sets a new password via reset link and can then sign in with it"
+       },
+       {
+        "kind": "error",
+        "text": "Expired or already-used reset link is rejected with an explanatory message"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Admin-driven invite flow for both staff and buyer accounts; invitee self-sets password",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only admin can send invitations to new staff or buyer users"
+       },
+       {
+        "kind": "happy",
+        "text": "Admin enters an email and role (staff/buyer) and triggers an invite email"
+       },
+       {
+        "kind": "data",
+        "text": "Invite record created with pending status, unique token"
+       },
+       {
+        "kind": "happy",
+        "text": "Invited person clicks link, sets their own password, and account becomes active"
+       },
+       {
+        "kind": "error",
+        "text": "Expired or reused invite link is rejected"
+       },
+       {
+        "kind": "error",
+        "text": "Inviting an email already registered is rejected/flagged to admin"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "readingChosen": "Row-level access scoping by buyer's company",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Buyer's order list only shows orders belonging to their own company"
+       },
+       {
+        "kind": "permission",
+        "text": "Buyer's invoice list only shows invoices for their own company"
+       },
+       {
+        "kind": "permission",
+        "text": "Buyer's address list/selection only shows their own company's addresses"
+       },
+       {
+        "kind": "error",
+        "text": "Direct URL/API access to another company's order/invoice/address returns forbidden/not-found"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "readingChosen": "Account lockout after repeated failed logins, with explanation shown to user",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "System counts consecutive failed sign-in attempts per account"
+       },
+       {
+        "kind": "error",
+        "text": "On 5th consecutive failure, account is locked for 15 minutes"
+       },
+       {
+        "kind": "error",
+        "text": "During lockout, sign-in attempts (even correct password) are rejected with message stating reason and remaining time"
+       },
+       {
+        "kind": "happy",
+        "text": "After 15 minutes, account automatically unlocks and normal sign-in resumes"
+       },
+       {
+        "kind": "happy",
+        "text": "A successful sign-in before threshold resets the failed-attempt counter"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "readingChosen": "Catalogue browsing via category navigation plus free-text search by name/code",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer selects a category and sees matching products listed"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer enters a search term matching product name or product code and sees matching results"
+       },
+       {
+        "kind": "data",
+        "text": "Search results scoped to active (non-retired) products only"
+       },
+       {
+        "kind": "error",
+        "text": "No matches found shows an empty-state message rather than an error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "readingChosen": "Product listing/detail displays customer-specific pricing and stock status derived from ERP feed",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Each product entry shows unit, pack size, price (resolved from the price list assigned to the signed-in buyer's company), and stock status"
+       },
+       {
+        "kind": "data",
+        "text": "Stock status displayed as one of: in stock, low, out of stock, based on latest nightly ERP file"
+       },
+       {
+        "kind": "error",
+        "text": "If no price list assigned to customer, a fallback/error state is shown rather than blank/incorrect price"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "readingChosen": "Basket management and checkout with delivery date selection and optional note",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer adds a product (with quantity) to basket from catalogue/product detail"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer changes quantity of a basket line or removes a line"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer selects a delivery date (earliest = next working day if placed before 14:00, else day after) and optionally adds a note"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer submits basket to place order; order record created with status 'received'"
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to select a delivery date earlier than the allowed earliest date is rejected"
+       },
+       {
+        "kind": "error",
+        "text": "Placing an order with an empty basket is rejected"
+       }
+      ]
+     },
+     {
+      "id": "I-9",
+      "readingChosen": "One-click reorder of a past order, with stock checked before final placement",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer selects 'repeat order' on a previous order and a new basket is populated with the same lines"
+       },
+       {
+        "kind": "data",
+        "text": "Each repeated line checked against current stock status"
+       },
+       {
+        "kind": "happy",
+        "text": "Lines that are out of stock are visibly flagged in the basket before the buyer places the order"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer can remove or adjust flagged lines and still place the order with remaining lines"
+       }
+      ]
+     },
+     {
+      "id": "I-10",
+      "readingChosen": "Named, reusable basket templates per buyer",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer saves current basket contents under a chosen name (e.g. 'Weekly order')"
+       },
+       {
+        "kind": "data",
+        "text": "Template stored and associated with the buyer/company for future reuse"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer selects a saved template to load its lines into a new basket"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer can rename or delete a saved template"
+       },
+       {
+        "kind": "error",
+        "text": "Saving a template with a duplicate/blank name is handled (rejected or auto-renamed)"
+       }
+      ]
+     },
+     {
+      "id": "I-11",
+      "readingChosen": "Order list shows status; cancellation allowed only pre-confirmation",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer views list of own orders with current status (received, confirmed, picking, out for delivery, delivered, cancelled)"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer cancels an order while status is 'received'; status becomes 'cancelled'"
+       },
+       {
+        "kind": "error",
+        "text": "Attempt to cancel an order already 'confirmed' or later is rejected, with message to contact the office"
+       },
+       {
+        "kind": "permission",
+        "text": "Only the order's owning buyer (or staff) can view/cancel it"
+       }
+      ]
+     },
+     {
+      "id": "I-12",
+      "readingChosen": "Transactional emails triggered on two specific status transitions",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "When staff confirm an order, buyer automatically receives a confirmation email"
+       },
+       {
+        "kind": "happy",
+        "text": "When order status changes to 'out for delivery', buyer automatically receives a notification email"
+       },
+       {
+        "kind": "error",
+        "text": "Email send failure is logged and does not block the status update"
+       }
+      ]
+     },
+     {
+      "id": "I-13",
+      "readingChosen": "Staff order queue with filters and per-order actions (confirm/amend/reject)",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff view a queue of orders with status 'received' (new orders)"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff filter queue by customer, date, and status"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff confirm an order, changing status to 'confirmed' and triggering buyer email"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff amend an order (e.g. quantities) before confirming"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff reject an order, setting an appropriate status and reason"
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff/admin roles can access the order queue and perform these actions"
+       }
+      ]
+     },
+     {
+      "id": "I-14",
+      "readingChosen": "Staff-created orders on behalf of a customer for phone orders",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff select a customer and build an order (products, quantities, delivery date, note) on their behalf"
+       },
+       {
+        "kind": "data",
+        "text": "Order created is attributed to the chosen customer and appears in that buyer's order list"
+       },
+       {
+        "kind": "error",
+        "text": "Staff cannot place phone order without selecting a valid existing customer"
+       }
+      ]
+     },
+     {
+      "id": "I-15",
+      "readingChosen": "CSV export of a chosen day's deliveries for drivers",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff select/export the current day's delivery list and receive a downloadable CSV file"
+       },
+       {
+        "kind": "data",
+        "text": "CSV includes relevant delivery details (customer, address, order lines) for orders scheduled that day"
+       },
+       {
+        "kind": "error",
+        "text": "Exporting a day with no deliveries produces an empty/handled CSV rather than an error"
+       }
+      ]
+     },
+     {
+      "id": "I-16",
+      "readingChosen": "Automatic invoice generation triggered by delivered status",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "When staff mark an order 'delivered', an invoice record is automatically created linked to that order"
+       },
+       {
+        "kind": "data",
+        "text": "Invoice stores amount, customer, order reference, and initial status 'unpaid'"
+       },
+       {
+        "kind": "error",
+        "text": "Marking an already-delivered order delivered again does not create a duplicate invoice"
+       }
+      ]
+     },
+     {
+      "id": "I-17",
+      "readingChosen": "Buyer invoice access with PDF download and payment-status visibility",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer views list of own invoices with status: paid, unpaid, overdue"
+       },
+       {
+        "kind": "happy",
+        "text": "Buyer downloads a given invoice as a PDF"
+       },
+       {
+        "kind": "data",
+        "text": "Overdue status computed automatically once due date passes without payment"
+       },
+       {
+        "kind": "permission",
+        "text": "Buyer can only view/download invoices for their own company"
+       }
+      ]
+     },
+     {
+      "id": "I-18",
+      "readingChosen": "Admin CRUD on catalogue including retire (soft-delete) and categorisation/photo upload",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only admin can add, edit, or retire products"
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates a product with name, code, unit, pack size, category, and photo"
+       },
+       {
+        "kind": "happy",
+        "text": "Admin edits existing product details"
+       },
+       {
+        "kind": "happy",
+        "text": "Admin retires a product; it no longer appears in buyer catalogue/search but remains in historical order records"
+       },
+       {
+        "kind": "error",
+        "text": "Required fields missing (e.g. name/code) rejected on save"
+       }
+      ]
+     },
+     {
+      "id": "I-19",
+      "readingChosen": "Admin manages price lists and assigns one per customer, determining buyer-visible pricing",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only admin can create/edit price lists and assign them to customers"
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates/edits a price list with per-product prices"
+       },
+       {
+        "kind": "happy",
+        "text": "Admin assigns a specific price list to a customer/company"
+       },
+       {
+        "kind": "data",
+        "text": "Assigned price list determines the prices shown to that customer's buyers"
+       },
+       {
+        "kind": "error",
+        "text": "Customer with no assigned price list is flagged (cannot see valid pricing) rather than silently defaulting"
+       }
+      ]
+     },
+     {
+      "id": "I-20",
+      "readingChosen": "Staff-only reporting dashboard with date-range filter and CSV export",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only staff/admin can access reports"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff choose a date range and see orders per day, top products, and revenue per customer for that range"
+       },
+       {
+        "kind": "happy",
+        "text": "Staff download the report data as CSV"
+       },
+       {
+        "kind": "error",
+        "text": "Selecting an invalid date range (e.g. end before start) is rejected"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

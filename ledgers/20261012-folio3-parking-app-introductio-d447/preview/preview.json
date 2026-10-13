@@ -1,0 +1,118 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "Sign in",
+        "req": "REQ-1",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "We couldn't load your employee profile",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "Add the car you'll park with",
+        "req": "REQ-5"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "Good morning, Ahmed Raza",
+        "req": "REQ-9"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "Available spaces",
+        "req": "REQ-17",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "Releases",
+        "req": "REQ-11",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "Claim a space",
+        "req": "REQ-16",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "Claim confirmed",
+        "req": "REQ-20",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "My profile — dedicated holder",
+        "req": "REQ-4",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "My vehicles",
+        "req": "REQ-7",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "Live entrance",
+        "req": "REQ-23",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-12",
+        "title": "Entry log",
+        "req": "REQ-26",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-13",
+        "title": "Employees",
+        "req": "REQ-21",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-14",
+        "title": "Employee detail",
+        "req": "REQ-7",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-15",
+        "title": "Parking spaces",
+        "req": "REQ-21",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-16",
+        "title": "Releases & claims",
+        "req": "REQ-13",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-17",
+        "title": "Calendar & settings",
+        "req": "REQ-21",
+        "pending": true
+      },
+      {
+        "path": "index.html#S-18",
+        "title": "Reports",
+        "req": "REQ-28",
+        "pending": true
+      }
+    ]
+  },
+  "images": [],
+  "draft": {
+    "drawn": 3,
+    "total": 23,
+    "failed": 0
+  }
+}

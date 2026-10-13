@@ -1,0 +1,472 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boxes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset and Design System Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Interactive controls styling */
+    a, button, input, select {
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+
+    /* Navigation link hover/focus */
+    .nav-item {
+      text-decoration: none;
+      color: #626262;
+      font-size: 15px;
+      padding: 16px 2px;
+      position: relative;
+      display: inline-block;
+    }
+    .nav-item:hover {
+      color: #202020;
+    }
+    .nav-item.active {
+      color: #202020;
+      font-weight: 500;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #A94B1D;
+    }
+
+    /* Primary & Secondary buttons (48px tall, 2px corners) */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 24px;
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid #A94B1D;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+    .btn-primary:active {
+      background-color: #7e3613;
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      background-color: #FFFFFF;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+    .btn-secondary:active {
+      background-color: #EEEEEE;
+      transform: translateY(1px);
+    }
+
+    /* Form Fields (48px tall, labelled above, 2px corners) */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 400;
+    }
+    .input-field {
+      height: 48px;
+      padding: 0 14px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      width: 100%;
+    }
+    .input-field:hover {
+      border-color: #999999;
+    }
+
+    /* Table styling (48px rows, 1px rules, vertical alignment) */
+    .boxes-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .boxes-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+    }
+    .boxes-table td {
+      height: 64px;
+      padding: 8px 16px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+      background-color: #FFFFFF;
+    }
+    .boxes-table tr:last-child td {
+      border-bottom: none;
+    }
+    .boxes-table tbody tr {
+      transition: background-color 120ms ease;
+    }
+    .boxes-table tbody tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Semantic Statuses */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .status-good {
+      color: #24704B;
+    }
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+    .status-waiting {
+      color: #805800;
+    }
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+    .status-failed {
+      color: #AE2C2C;
+    }
+    .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header: The page's header, the same on every page -->
+  <header style="background-color: #FFFFFF; border-bottom: 1px solid #D5D5D5; height: 56px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 32px; height: 100%;">
+      <!-- Brand mark: A small square with a white M sits beside Meridian -->
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 24px; height: 24px; background-color: #202020; display: flex; align-items: center; justify-content: center; border-radius: 2px;">
+          <span style="color: #FFFFFF; font-weight: 700; font-size: 13px; font-family: 'Hanken Grotesk', sans-serif; line-height: 1;">M</span>
+        </div>
+        <span class="font-heading" style="font-size: 17px; font-weight: 650; color: #202020; letter-spacing: -0.01em;">Meridian</span>
+      </div>
+
+      <!-- Navigation menu: Receipts, Stock, Moves, Boxes, Cold rooms -->
+      <nav style="display: flex; align-items: center; gap: 24px; height: 100%;">
+        <a href="#" class="nav-item">Receipts</a>
+        <a href="#" class="nav-item">Stock</a>
+        <a href="#" class="nav-item">Moves</a>
+        <a href="#" class="nav-item active">Boxes</a>
+        <a href="#" class="nav-item">Cold rooms</a>
+      </nav>
+    </div>
+
+    <!-- Right utility: Leila Haddad · Warehouse Operator with initials LH, plus EN / العربية -->
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 28px; height: 28px; background-color: #EFEFEF; border: 1px solid #D5D5D5; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #202020;">
+          LH
+        </div>
+        <span style="font-size: 14px; color: #202020;">Leila Haddad · Warehouse Operator</span>
+      </div>
+      <div style="width: 1px; height: 16px; background-color: #D5D5D5;"></div>
+      <span style="font-size: 13px; color: #626262;">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main style="max-width: 1360px; margin: 0 auto; padding: 32px;">
+
+    <!-- Page Title & Primary Action -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+      <h1 class="font-heading" style="font-size: 28px; font-weight: 650; color: #202020; line-height: 1.2;">Boxes</h1>
+      <button class="btn-primary" type="button">Pack box</button>
+    </div>
+
+    <!-- Filter Bar Panel -->
+    <section style="background-color: #FFFFFF; border: 1px solid #D5D5D5; border-radius: 2px; padding: 16px; margin-bottom: 32px;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+        <div class="field-group">
+          <label class="field-label" for="filter-order">Order or route</label>
+          <input class="input-field font-mono" id="filter-order" type="text" value="O-299 / R-204">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-type">Box type</label>
+          <select class="input-field" id="filter-type">
+            <option>All shipper types</option>
+            <option selected="">Insulated shipper (Credo ProEnthalp)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-status">Status</label>
+          <select class="input-field" id="filter-status">
+            <option selected="">All statuses</option>
+            <option>eligible</option>
+            <option>waiting</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-location">Location scope</label>
+          <input class="input-field" id="filter-location" type="text" value="North Quay · Cold Room C2, Rack 4">
+        </div>
+      </div>
+    </section>
+
+    <!-- Table Section Panel -->
+    <section style="background-color: #FFFFFF; border: 1px solid #D5D5D5; border-radius: 2px; overflow: hidden;">
+      <div style="overflow-x: auto;">
+        <table class="boxes-table">
+          <thead>
+            <tr>
+              <th style="width: 104px;">Shipper photo</th>
+              <th style="width: 100px;">Box</th>
+              <th>Contents</th>
+              <th style="width: 100px;">Order</th>
+              <th style="width: 100px;">Route</th>
+              <th style="width: 180px;">Returned type</th>
+              <th style="width: 140px;">Logger</th>
+              <th style="width: 140px;">Compatibility</th>
+              <th style="width: 140px;">Sealing</th>
+              <th style="width: 130px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1: B-701 -->
+            <tr>
+              <td>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxsLYZzsTPKsiC2Rwd_tSdO9aX6b_fVpPAVz_SFLEd3sOiO9jg-6Oi-u94VdCfXi8wVPAOZMuFG85_85LATv8Aol1JQupRKhRUOlCZio546U4EBPoDiz9iVjH390-EbkbBkj8P_vtSvsmsbCwu0XrgsQSslyf9PVFxq5djLfOO8Z5fEl1GBHwrv8MI67XXWwVPnx0h6H_SRELIhPWW0_jZFHbsSmGH5eekVN3dxk-mPQIt-vbWInKM1QGSzOlyChF6DXuEJDmox7Q" alt="Sealed insulated shipper box B-701" style="width: 72px; height: 54px; object-fit: cover; border-radius: 2px; border: 1px solid #D5D5D5; display: block;">
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px; color: #202020;">B-701</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 500; color: #202020;">
+                    <span class="font-mono">12</span> packs · Insulin Glargine 100 units/mL
+                  </span>
+                  <span style="font-size: 14px; color: #626262;">
+                    Lot <span class="font-mono">IG-2511</span> · Exp. <span class="font-mono">31 March 2027</span>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">O-299</span>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">R-204</span>
+              </td>
+              <td>
+                <span style="font-size: 14px; color: #202020;">Credo ProEnthalp 4L</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span class="font-mono" style="font-size: 14px; color: #202020;">LOG-8814</span>
+                  <span style="font-size: 13px; color: #626262;">1 logger assigned</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>good</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>sealed</span>
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <button class="btn-secondary" type="button" style="height: 38px; padding: 0 14px;">Pack box</button>
+              </td>
+            </tr>
+
+            <!-- Row 2: B-702 -->
+            <tr>
+              <td>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxsLYZzsTPKsiC2Rwd_tSdO9aX6b_fVpPAVz_SFLEd3sOiO9jg-6Oi-u94VdCfXi8wVPAOZMuFG85_85LATv8Aol1JQupRKhRUOlCZio546U4EBPoDiz9iVjH390-EbkbBkj8P_vtSvsmsbCwu0XrgsQSslyf9PVFxq5djLfOO8Z5fEl1GBHwrv8MI67XXWwVPnx0h6H_SRELIhPWW0_jZFHbsSmGH5eekVN3dxk-mPQIt-vbWInKM1QGSzOlyChF6DXuEJDmox7Q" alt="Sealed insulated shipper box B-702" style="width: 72px; height: 54px; object-fit: cover; border-radius: 2px; border: 1px solid #D5D5D5; display: block;">
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px; color: #202020;">B-702</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 500; color: #202020;">
+                    <span class="font-mono">8</span> packs · Insulin Glargine 100 units/mL
+                  </span>
+                  <span style="font-size: 14px; color: #626262;">
+                    Lot <span class="font-mono">IG-2511</span> · Exp. <span class="font-mono">31 March 2027</span>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">O-299</span>
+              </td>
+              <td>
+                <span class="font-mono" style="color: #202020;">R-204</span>
+              </td>
+              <td>
+                <span style="font-size: 14px; color: #202020;">Credo ProEnthalp 4L</span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span class="font-mono" style="font-size: 14px; color: #202020;">LOG-8819</span>
+                  <span style="font-size: 13px; color: #626262;">1 logger assigned</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>good</span>
+                </div>
+              </td>
+              <td>
+                <div class="status-indicator status-good">
+                  <span class="status-dot"></span>
+                  <span>sealed</span>
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <button class="btn-secondary" type="button" style="height: 38px; padding: 0 14px;">Pack box</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footnote & Contextual Information Flush with Panel Boundary -->
+      <div style="border-top: 1px solid #D5D5D5; padding: 12px 16px; background-color: #FAFAFA; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #626262;">
+        <div>
+          Showing <span class="font-mono" style="font-weight: 500; color: #202020;">2</span> boxes for order <span class="font-mono" style="font-weight: 500; color: #202020;">O-299</span> · Route <span class="font-mono" style="font-weight: 500; color: #202020;">R-204</span> (Cedar Clinic, planned <span class="font-mono">14 May 2026 15:00</span>)
+        </div>
+        <div>
+          Assigned warehouse: North Quay · Cold Room C2, Rack 4
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"receipts":"S-6","stock":"S-9","moves":"S-12","cold rooms":"S-16","pack box":"S-14"},A={"request password reset":"S-3","back to sign in":"S-1","record receipt":"S-7","receipt detail":"S-8","handling unit":"S-10","opening stock":"S-15","move stock":"S-11","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-13";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

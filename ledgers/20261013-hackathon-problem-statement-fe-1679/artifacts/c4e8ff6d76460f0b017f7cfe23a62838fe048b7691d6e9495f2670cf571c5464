@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 16,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 50,
+    "end": 56
+   },
+   "ms": 1,
+   "resultChars": 810,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:50,&quot;end&quot;:56}\">\nlib/api/client.msw.ts lines 50-56\n50\t} from './client.schemas';\n51\t\n52\t\n53\texport const getSignInResponseMock = (): SignInResponse => ({\"accessToken\":\"demo-token-01\",\"user\":{\"id\":1,\"name\":\"Riley Morgan\",\"email\":\"riley@example.test\",\"landingPage\":\"/yard\",\"permissions\":[\"yard.view\",\"inventory.view\"],\"authorizedYards\":[{\"id\":1,\"name\":\"North Yard\"}]}})\n54\t\n55\texport const getGetSessionResponseMock = (): SessionResponse => ({\"user\":{\"id\":1,\"name\":\"Riley Morgan\",\"email\":\"riley@example.test\",\"landingPage\":\"/yard\",\"permissions\":[\"yard.view\",\"inventory.view\"],\"authorizedYards\":[{\"id\":1,\"name\":\"North Yard\"}]}})\n56\t\n… (730 lines total; ask for start=57)\n</untrusted_document>"
+  }
+ ]
+}

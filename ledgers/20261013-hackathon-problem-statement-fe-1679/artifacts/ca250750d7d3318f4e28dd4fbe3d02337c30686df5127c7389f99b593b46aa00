@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 10,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 107,
+    "end": 116
+   },
+   "ms": 1,
+   "resultChars": 2805,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:107,&quot;end&quot;:116}\">\nlib/api/client.msw.ts lines 107-116\n107\texport const getGetFeedPlansResponseMock = (): FeedPlansResponse => ({\"permissions\":[\"plans.view\",\"plans.manage\"],\"plans\":[{\"id\":3301,\"date\":\"2026-08-21\",\"penId\":12,\"pen\":\"P-12\",\"lotIds\":[2407],\"animalCount\":140,\"rationId\":1201,\"ration\":\"Grower 90\",\"plannedQuantity\":1680,\"plannedTime\":\"06:00\",\"quantityPerAnimal\":12,\"totalFeedCost\":319.2,\"expectedEnergyIntake\":20.64,\"status\":\"Planned\",\"reviewRequired\":true,\"actualIntake\":1700,\"variance\":20,\"assignedOperator\":\"Jordan Lee\"}]})\n108\t\n109\texport const getCreateFeedPlanResponseMock = (): FeedPlanResponse => ({\"permissions\":[\"plans.manage\"],\"plan\":{\"id\":3302,\"date\":\"2026-08-22\",\"penId\":12,\"pen\":\"P-12\",\"lotIds\":[2407],\"animalCount\":140,\"rationId\":1201,\"ration\":\"Grower 90\",\"plannedQuantity\":1680,\"plannedTime\":\"06:00\",\"quantityPerAnimal\":12,\"totalFeedCost\":319.2,\"expectedEnergyIntake\":20.64,\"status\":\"Planned\",\"reviewRequired\":false,\"actualIntake\":0,\"variance\":0,\"assignedOperator\":\"Jordan Lee\"}})\n110\t\n111\texport const getReviewFeedPlanResponseMock = (): FeedPlanResponse => ({\"permissions\":[\"plans.manage\"],\"plan\":{\"id\":3301,\"date\":\"2026-08-21\",\"penId\":12,\"pen\":\"P-12\",\"lotIds\":[2407],\"animalCount\":140,\"rationId\":1201,\"ration\":\"Grower 90\",\"plannedQuantity\":1680,\"plannedTime\":\"06:00\",\"quantityPerAnimal\":12,\"totalFeedCost\":319.2,\"expectedEnergyIntake\":20.64,\"status\":\"Planned\",\"reviewRequired\":false,\"actualIntake\":1700,\"variance\":20,\"assignedOperator\":\"Jordan Lee\"}})\n112\t\n113\texport const getUpdateFeedPlanStatusResponseMock = (): FeedPlanResponse => ({\"permissions\":[\"plans.status.update\"],\"plan\":{\"id\":3301,\"date\":\"2026-08-21\",\"penId\":12,\"pen\":\"P-12\",\"lotIds\":[2407],\"animalCount\":140,\"rationId\":1201,\"ration\":\"Grower 90\",\"plannedQuantity\":1680,\"plannedTime\":\"06:00\",\"quantityPerAnimal\":12,\"totalFeedCost\":319.2,\"expectedEnergyIntake\":20.64,\"status\":\"Completed\",\"reviewRequired\":false,\"actualIntake\":1700,\"variance\":20,\"assignedOperator\":\"Jordan Lee\"}})\n114\t\n115\texport const getGetFeedingEventsResponseMock = (): FeedingEventsResponse => ({\"permissions\":[\"feeding.view\",\"feeding.manage\"],\"events\":[{\"id\":4501,\"dateTime\":\"2026-08-20T06:10:00-06:00\",\"penId\":12,\"pen\":\"P-12\",\"rationId\":1201,\"ration\":\"Grower 90\",\"operator\":\"Jordan Lee\",\"plannedQuantity\":1680,\"deliveredQuantity\":1700,\"variance\":20,\"grossCost\":323,\"energy\":2924,\"status\":\"Completed\",\"lotAllocations\":[{\"lotId\":2407,\"lotCode\":\"L-2407\",\"head\":140,\"deliveredQuantity\":1700,\"lotCost\":323,\"netEnergy\":2924}],\"inventoryMovements\":[{\"id\":7101,\"itemId\":501,\"movementType\":\"Delivered-feed consumption\",\"quantity\":1700,\"netStockEffect\":-1700}]}]})\n116\t\n… (730 lines total; ask for start=117)\n</untrusted_document>"
+  }
+ ]
+}

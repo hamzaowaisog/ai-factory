@@ -1,0 +1,356 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "driver-route-loading-handover",
+      "readingChosen": "Treat the route, loading, delivery, refusal, offline-sync and dispatcher-status requirements as one driver workflow in the responsive web app; offline completed handovers are durable records, not provisional actions that a later route change can erase.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "A driver sees only routes assigned to them for today, with the route's stops in order; other drivers' routes are not visible to them."
+       },
+       {
+        "kind": "happy",
+        "text": "Before departure, the driver scans the shipper boxes being loaded. Loading completes only after every box on that route has been scanned."
+       },
+       {
+        "kind": "error",
+        "text": "A scan for a box assigned to a different route is reported as a wrong-route box and does not satisfy the expected box scan."
+       },
+       {
+        "kind": "error",
+        "text": "When the driver attempts to finish loading with a route box unscanned, the application identifies the missing box or boxes and does not mark loading complete."
+       },
+       {
+        "kind": "happy",
+        "text": "During the route, the driver can see each box's current temperature, status and alerts."
+       },
+       {
+        "kind": "happy",
+        "text": "At a stop, the driver scans boxes for that stop. A box with On Hold stock is marked “Do not deliver,” its hold reason is shown, and the driver cannot hand it over."
+       },
+       {
+        "kind": "happy",
+        "text": "For deliverable boxes, the driver records the receiver's name, captures a signature and a photo of the delivered boxes, then completes the handover. The application records the actual handover time and location automatically."
+       },
+       {
+        "kind": "happy",
+        "text": "The driver can record a partial or full refusal by identifying each refused box and entering a reason for each; refused boxes are marked to return to the warehouse and are Quarantined when returned."
+       },
+       {
+        "kind": "error",
+        "text": "A refusal without a reason for each refused box cannot be submitted; the driver is shown which reason is missing."
+       },
+       {
+        "kind": "data",
+        "text": "Loading scans, handovers and refusals made without a connection are retained locally with their event times and are sent automatically when a connection returns."
+       },
+       {
+        "kind": "data",
+        "text": "An offline handover retains the time it actually occurred, rather than the later synchronization time. Sending the same handover more than once records it only once."
+       },
+       {
+        "kind": "happy",
+        "text": "When a route was changed while the driver was offline, the driver is shown the differences before continuing with the route."
+       },
+       {
+        "kind": "data",
+        "text": "A route change or synchronization conflict does not remove or undo a handover already completed offline."
+       },
+       {
+        "kind": "data",
+        "text": "If a hold was applied while the driver was offline after they handed over the box, the handover remains recorded, the conflicting hold is flagged, and a quality case is opened."
+       },
+       {
+        "kind": "happy",
+        "text": "When online, a driver sees “Do not deliver” for a recalled box."
+       },
+       {
+        "kind": "data",
+        "text": "The dispatcher can see each stop's status and the time that status was last updated."
+       },
+       {
+        "kind": "error",
+        "text": "A scan that does not identify a route box is reported as unrecognized and does not count toward loading or stop completion."
+       }
+      ]
+     },
+     {
+      "id": "US-010",
+      "readingChosen": "Treat the tier exception as permitting a Quality Officer to make and sign the sole decision only when the excursion remained within the first tier above or below the permitted band, allowance remains, and the decision follows the recommendation; a contrary decision always requires a proposal and approval by different people.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "For every affected handling unit, the reviewer sees the complete temperature history, budget used and remaining for each tier, and the system's Release or Reject recommendation."
+       },
+       {
+        "kind": "happy",
+        "text": "A Quality Officer can make and sign a sole decision when the excursion stayed within the first tier above or below the band, allowance remains, and the decision agrees with the recommendation."
+       },
+       {
+        "kind": "permission",
+        "text": "In all other cases, a Quality Officer proposes a decision and a Quality Manager approves it; the proposer cannot approve their own proposal, even if they hold both roles."
+       },
+       {
+        "kind": "permission",
+        "text": "A decision that differs from the system recommendation requires both a Quality Officer proposal and a different Quality Manager's approval, and a written justification."
+       },
+       {
+        "kind": "happy",
+        "text": "Before signing, each decision-maker confirms their identity again and enters a reason."
+       },
+       {
+        "kind": "error",
+        "text": "A decision cannot be signed when the required role, separate approver, re-confirmed identity, reason, or contrary-decision justification is missing."
+       },
+       {
+        "kind": "data",
+        "text": "After signing, a decision cannot be edited or deleted by any user, including a System Administrator. A replacement decision is recorded as a new signed decision while the original remains available."
+       },
+       {
+        "kind": "permission",
+        "text": "Stock On Hold cannot be allocated, packed, loaded or handed over."
+       },
+       {
+        "kind": "data",
+        "text": "Releasing stock removes the hold and returns it to its prior availability or, if previously assigned, to its order and route."
+       },
+       {
+        "kind": "data",
+        "text": "Rejecting stock removes it from available stock and its order, lists it for destruction, and triggers order reallocation under US-005."
+       },
+       {
+        "kind": "happy",
+        "text": "The destruction record includes a date, quantity and witness."
+       },
+       {
+        "kind": "error",
+        "text": "The system rejects a destruction entry whose cumulative quantity would exceed the rejected quantity."
+       },
+       {
+        "kind": "data",
+        "text": "A decision still waiting after four hours is escalated to the Quality Manager."
+       }
+      ]
+     },
+     {
+      "id": "US-011",
+      "readingChosen": "Treat customer accounting as per delivery and lot: customer-reported quantities are checked against that delivery, and packs reported on hand are tracked for collection and quarantine on return.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Only a Quality Manager can start or close a recall; both starting and closing require an electronic signature."
+       },
+       {
+        "kind": "happy",
+        "text": "A Quality Manager starts a recall by selecting a product and one or more lot numbers and entering a reason and severity."
+       },
+       {
+        "kind": "data",
+        "text": "Starting a recall marks all matching stock held by Meridian as Recalled across every warehouse, removes it from orders, and blocks handover, including stock already packed or on a route."
+       },
+       {
+        "kind": "happy",
+        "text": "Within one minute of the request, the recall trace shows every affected warehouse location, box, route and customer delivery with quantities, and the quantities reconcile exactly to the total quantity received for the lot."
+       },
+       {
+        "kind": "happy",
+        "text": "The Quality Manager can see every customer who received the lot, including quantities, delivery dates and receivers."
+       },
+       {
+        "kind": "data",
+        "text": "Affected customers are notified by email and in the customer portal."
+       },
+       {
+        "kind": "happy",
+        "text": "A customer can respond in the portal for each delivery with packs still on hand, used or dispensed, and destroyed on site."
+       },
+       {
+        "kind": "error",
+        "text": "A customer cannot report combined quantities greater than the quantity delivered to that customer for that delivery; the overage is rejected and the customer is shown the issue."
+       },
+       {
+        "kind": "data",
+        "text": "Packs reported on hand are collected on a return route and marked Quarantined when they arrive back."
+       },
+       {
+        "kind": "data",
+        "text": "After 24 hours without a customer response, the customer is reminded and the Quality Manager can see that customer as outstanding."
+       },
+       {
+        "kind": "happy",
+        "text": "Recall progress shows the percentage of packs accounted for."
+       },
+       {
+        "kind": "happy",
+        "text": "A recall can be closed only after every pack is accounted for as held by Meridian, returned, reported used, reported destroyed, or written off as unaccounted with a signed justification."
+       },
+       {
+        "kind": "error",
+        "text": "The system prevents recall closure while any pack remains unaccounted for without a signed write-off."
+       },
+       {
+        "kind": "permission",
+        "text": "A driver online sees “Do not deliver” for a recalled box."
+       }
+      ]
+     },
+     {
+      "id": "US-012",
+      "readingChosen": "Treat customer access and localization as organization-scoped: the user's preference controls English or Arabic, and the displayed time uses the customer's time zone.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "A customer user sees current and past orders belonging to their own organization only; they cannot view another organization's orders or deliveries."
+       },
+       {
+        "kind": "happy",
+        "text": "For each order, the portal shows status, allocated lots and expiry dates."
+       },
+       {
+        "kind": "happy",
+        "text": "For a delivery on the road, the portal shows its planned arrival time and whether its temperature is in range or out of range, without showing other customers on the route."
+       },
+       {
+        "kind": "happy",
+        "text": "For every completed delivery, the customer can download a PDF delivery certificate showing products, lots, expiry dates, quantities, receiver and handover time, each box's temperature chart from sealing to handover, excursions, and signed decisions."
+       },
+       {
+        "kind": "data",
+        "text": "An issued certificate remains unchanged. If late readings change the history, the system issues a new certificate version and keeps the previous version available."
+       },
+       {
+        "kind": "happy",
+        "text": "The portal and certificates are available in English or Arabic according to the user's preference; choosing Arabic renders the entire portal and certificate right-to-left, including tables and charts."
+       },
+       {
+        "kind": "data",
+        "text": "Dates and times in the portal and certificate are shown in the customer's own time zone."
+       },
+       {
+        "kind": "error",
+        "text": "A certificate is not offered as a completed-delivery certificate until the delivery is complete."
+       }
+      ]
+     },
+     {
+      "id": "US-013",
+      "readingChosen": "Treat regulated-data history as append-only: corrections or reversals appear as further audit entries, while the original entry remains unchanged; all displayed times are converted from one reference time to the viewer's time zone.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Creation, change and deletion of regulated data produces an audit entry covering products and profiles, stock, orders and allocations, boxes and routes, handovers, excursions, decisions, recalls, users and roles, and configuration."
+       },
+       {
+        "kind": "data",
+        "text": "Each audit entry records who acted, when, the affected record, what changed, old and new values, and the reason when one was given."
+       },
+       {
+        "kind": "data",
+        "text": "Automatic system actions, including automatic holds and allocations, are recorded and attributed to the system."
+       },
+       {
+        "kind": "permission",
+        "text": "No user, including a System Administrator, can edit or delete an audit entry."
+       },
+       {
+        "kind": "data",
+        "text": "The system can demonstrate and detect alteration of the audit trail made outside the application."
+       },
+       {
+        "kind": "happy",
+        "text": "An Auditor can filter the audit trail by record, user, date range and action type, and export the filtered view."
+       },
+       {
+        "kind": "happy",
+        "text": "A user can view a lot's full history from receipt through delivery or destruction in time order."
+       },
+       {
+        "kind": "data",
+        "text": "Audit times are stored against one reference time and displayed in the viewer's time zone, with Karachi and Lahore sharing a zone and Dubai using its separate zone."
+       },
+       {
+        "kind": "data",
+        "text": "Audit records are retained for seven years."
+       }
+      ]
+     },
+     {
+      "id": "US-014",
+      "readingChosen": "Treat daily delivery time as 07:00 in each warehouse's local time zone, monthly reporting as an automatic first-of-month report, and staff visibility as limited to their own warehouses.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "At 07:00 warehouse local time each day, Quality Officers for that warehouse receive an email summary of excursions in the last 24 hours, decisions still waiting, silent devices and stock On Hold."
+       },
+       {
+        "kind": "data",
+        "text": "On the first day of each month, the system generates and emails the monthly report to configured stakeholders."
+       },
+       {
+        "kind": "happy",
+        "text": "The monthly report includes excursion counts and rates by route, driver, vehicle and shipper-box type; packs rejected and destroyed by product and cause; on-time and in-full delivery percentages; average time from excursion to decision; stock within 60 days of expiry by product and warehouse; and open recalls with progress."
+       },
+       {
+        "kind": "happy",
+        "text": "A user can view report figures on screen for any date range, filter them by warehouse and export them."
+       },
+       {
+        "kind": "permission",
+        "text": "A staff member sees report figures only for warehouses they are permitted to access."
+       },
+       {
+        "kind": "data",
+        "text": "For the same reporting period, figures match the underlying records."
+       },
+       {
+        "kind": "data",
+        "text": "A delivery counts as on time when handover occurs within 60 minutes of planned arrival, and counts as in full only when every ordered pack is handed over."
+       }
+      ]
+     },
+     {
+      "id": "phase-1-out-of-scope",
+      "readingChosen": "Treat the explicitly named Phase 1 out-of-scope items as exclusions from the product behaviours requested here, rather than as features to build.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Phase 1 does not handle pricing, invoicing or payments; these remain in Meridian's accounting system."
+       },
+       {
+        "kind": "data",
+        "text": "Phase 1 does not determine an optimized stop order for a route."
+       },
+       {
+        "kind": "data",
+        "text": "Phase 1 does not support manufacturer purchasing or demand forecasting."
+       },
+       {
+        "kind": "data",
+        "text": "Phase 1 does not apply automatic penalties to drivers or customers."
+       },
+       {
+        "kind": "data",
+        "text": "Phase 1 does not support transfers of stock between warehouses."
+       },
+       {
+        "kind": "data",
+        "text": "Phase 1 does not provide logger hardware or the supplier's gateway."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

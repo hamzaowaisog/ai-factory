@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2130,
+    "end": 2190
+   },
+   "ms": 0,
+   "resultChars": 2490,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2130,&quot;end&quot;:2190}\">\ncontracts/openapi.yaml lines 2130-2190\n2130\t                    status: \"Loaded\"\n2131\t                    isolationScope: \"Sample records excluded from operational reports.\"\n2132\t                    sampleData: true\n2133\t        '401':\n2134\t          $ref: '#/components/responses/Unauthorized'\n2135\t        '403':\n2136\t          $ref: '#/components/responses/Forbidden'\n2137\t        '409':\n2138\t          $ref: '#/components/responses/Conflict'\n2139\t        '422':\n2140\t          $ref: '#/components/responses/ValidationError'\n2141\t        '500':\n2142\t          $ref: '#/components/responses/ServerError'\n2143\tcomponents:\n2144\t  securitySchemes:\n2145\t    bearerAuth:\n2146\t      type: http\n2147\t      scheme: bearer\n2148\t      bearerFormat: JWT\n2149\t  responses:\n2150\t    BadRequest:\n2151\t      description: \"The request could not be parsed.\"\n2152\t      content:\n2153\t        application/json:\n2154\t          schema:\n2155\t            $ref: '#/components/schemas/ApiError'\n2156\t          example:\n2157\t            code: \"BAD_REQUEST\"\n2158\t            message: \"The request is invalid.\"\n2159\t    Unauthorized:\n2160\t      description: \"Authentication is missing or expired.\"\n2161\t      content:\n2162\t        application/json:\n2163\t          schema:\n2164\t            $ref: '#/components/schemas/ApiError'\n2165\t          example:\n2166\t            code: \"UNAUTHENTICATED\"\n2167\t            message: \"Please sign in again.\"\n2168\t    Forbidden:\n2169\t      description: \"The user does not have permission for this action.\"\n2170\t      content:\n2171\t        application/json:\n2172\t          schema:\n2173\t            $ref: '#/components/schemas/ApiError'\n2174\t          example:\n2175\t            code: \"FORBIDDEN\"\n2176\t            message: \"You do not have permission to complete this action.\"\n2177\t    NotFound:\n2178\t      description: \"The requested record was not found.\"\n2179\t      content:\n2180\t        application/json:\n2181\t          schema:\n2182\t            $ref: '#/components/schemas/ApiError'\n2183\t          example:\n2184\t            code: \"NOT_FOUND\"\n2185\t            message: \"The requested record was not found.\"\n2186\t    Conflict:\n2187\t      description: \"The request conflicts with the current saved state.\"\n2188\t      content:\n2189\t        application/json:\n2190\t          schema:\n… (4376 lines total; ask for start=2191)\n</untrusted_document>"
+  }
+ ]
+}

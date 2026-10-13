@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Exact Design Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, .heading-main {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    h2, .heading-section {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    h3, .heading-small {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .quiet {
+      color: #626262;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes breatheWaiting {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Header */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 64px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      text-decoration: none;
+      color: #626262;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0 4px;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: #202020;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: #A94B1D;
+      font-weight: 600;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-initials {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      color: #202020;
+    }
+
+    .user-name {
+      font-size: 14px;
+      color: #202020;
+    }
+
+    .lang-divider {
+      width: 1px;
+      height: 18px;
+      background-color: #D5D5D5;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Main Container */
+    .main-content {
+      max-width: 1376px;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Page Title */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    /* Active Route Lead Card */
+    .active-route-lead {
+      display: grid;
+      grid-template-columns: 220px 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .route-vehicle-media {
+      width: 220px;
+      height: 165px; /* exactly 4:3 crop */
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      overflow: hidden;
+      background-color: #F7F7F7;
+      flex-shrink: 0;
+    }
+
+    .route-vehicle-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .route-details-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .route-details-top {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .badge-status.status-good {
+      color: #24704B;
+    }
+
+    .badge-status.status-waiting {
+      color: #805800;
+    }
+
+    .badge-status.status-failed {
+      color: #AE2C2C;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-good .status-dot {
+      background-color: #24704B;
+    }
+
+    .status-waiting .status-dot {
+      background-color: #805800;
+    }
+
+    .status-failed .status-dot {
+      background-color: #AE2C2C;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #D5D5D5;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-value {
+      font-size: 16px;
+      color: #202020;
+      font-weight: 500;
+    }
+
+    .route-lead-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-self: center;
+      min-width: 160px;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 100ms ease;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #202020;
+    }
+
+    /* Filter Controls Bar */
+    .filter-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    .filter-fields-group {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 240px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      color: #626262;
+      font-weight: 500;
+    }
+
+    .field-input, .field-select {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      color: #202020;
+      outline: none;
+      transition: border-color 140ms ease;
+    }
+
+    .field-input.mono, .field-select.mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .field-input:focus, .field-select:focus {
+      border-color: #A94B1D;
+      outline: 2px solid #A94B1D;
+      outline-offset: -1px;
+    }
+
+    /* Table Component */
+    .table-container {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+    }
+
+    .data-table td {
+      height: 48px;
+      padding: 8px 16px;
+      font-size: 16px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tbody tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    .table-vehicle-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .table-vehicle-thumb {
+      width: 48px;
+      height: 36px; /* 4:3 aspect ratio */
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background-color: #F7F7F7;
+    }
+
+    .table-vehicle-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .table-footer-status {
+      padding: 12px 16px;
+      background-color: #FFFFFF;
+      border-top: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header: strict single instance with Orders, Routes navigation -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="#" class="brand">
+        <div class="brand-mark">M</div>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item">Orders</a>
+        <a href="#" class="nav-item active">Routes</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-initials">PN</div>
+        <span class="user-name">Priya Nair · Dispatcher</span>
+      </div>
+      <div class="lang-divider"></div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-content animate-entrance">
+    
+    <!-- Page Single Heading -->
+    <div class="page-header">
+      <h1 class="heading-main">Routes</h1>
+    </div>
+
+    <!-- Leads with today's R-204 confirmed and primary Route plan action -->
+    <section class="panel active-route-lead">
+      <div class="route-vehicle-media">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1JZje9YSCv4-LB3Kkg2XuQ31FjLAWUklcmyIxZn9TNuWE2v9PXOFkDBPW6v7zfZ3WcndVoKwfNoxGQW8ruZNomlGNcVRm-QvuzQ4gVkN1GSAgyZT7JDI3rhGMKQY4NbIBz0gvpYc3JLMcWPXgoIE2lQ2kfPtKxedmTfZHQ9BUeVnAcidiJKJej0QKn61S_sG8oz-xv1vVVyTn7nLMYGtZuwzLsdhNAtLWdk9GItvQbDmr5O2-KkK5YgVB7WYTbDr5C41fXspBLmc" alt="VAN-27 refrigerated delivery cargo van">
+      </div>
+      <div class="route-details-body">
+        <div class="route-details-top">
+          <h2 class="heading-section">Route <span class="mono">R-204</span></h2>
+          <span class="badge-status status-good">
+            <span class="status-dot"></span>
+            confirmed
+          </span>
+          <span class="quiet" style="font-size: 14px;">Prototype date: <span class="mono">14 May 2026</span> · Europe/London (BST)</span>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Assigned driver & van</span>
+            <span class="meta-value">Tariq Mansour · <span class="mono">VAN-27</span> (<span class="mono">MTR-482</span>)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Planned destination stop</span>
+            <span class="meta-value">Cedar Clinic, 42 River Road (<span class="mono">15:00</span>)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Order & cargo allocation</span>
+            <span class="meta-value"><span class="mono">O-299</span> · 20 packs (<span class="mono">B-701</span>: 12, <span class="mono">B-702</span>: 8)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Box consignment status</span>
+            <span class="meta-value"><span class="badge-status status-good"><span class="status-dot"></span>good</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="route-lead-actions">
+        <button type="button" class="btn btn-primary">Route plan</button>
+        <button type="button" class="btn btn-secondary">Route detail</button>
+      </div>
+    </section>
+
+    <!-- Date filter & CSV export toolbar -->
+    <section class="filter-bar">
+      <div class="filter-fields-group">
+        <div class="field-group">
+          <label class="field-label" for="date-filter">Date</label>
+          <select id="date-filter" class="field-select mono">
+            <option value="all">All dates</option>
+            <option value="2026-05-14" selected>14 May 2026 (Today)</option>
+            <option value="2026-05-13">13 May 2026</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="driver-filter">Driver or van</label>
+          <input type="text" id="driver-filter" class="field-input" value="Tariq Mansour · VAN-27" readonly>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-secondary mono" style="display: inline-flex; gap: 8px;">
+          <span>↓ CSV export</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Date-filtered CSV-exportable table -->
+    <section class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 100px;">Route</th>
+            <th style="width: 130px;">Date</th>
+            <th style="width: 220px;">Vehicle</th>
+            <th style="width: 160px;">Driver</th>
+            <th>Planned stop & destination</th>
+            <th style="width: 140px;">Status</th>
+            <th style="width: 130px;">Last updated</th>
+            <th style="width: 120px; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Today's confirmed route R-204 -->
+          <tr>
+            <td class="mono" style="font-weight: 600;">R-204</td>
+            <td class="mono">14 May 2026</td>
+            <td>
+              <div class="table-vehicle-cell">
+                <div class="table-vehicle-thumb">
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1JZje9YSCv4-LB3Kkg2XuQ31FjLAWUklcmyIxZn9TNuWE2v9PXOFkDBPW6v7zfZ3WcndVoKwfNoxGQW8ruZNomlGNcVRm-QvuzQ4gVkN1GSAgyZT7JDI3rhGMKQY4NbIBz0gvpYc3JLMcWPXgoIE2lQ2kfPtKxedmTfZHQ9BUeVnAcidiJKJej0QKn61S_sG8oz-xv1vVVyTn7nLMYGtZuwzLsdhNAtLWdk9GItvQbDmr5O2-KkK5YgVB7WYTbDr5C41fXspBLmc" alt="VAN-27">
+                </div>
+                <div>
+                  <span class="mono" style="font-weight: 500;">VAN-27</span>
+                  <div class="quiet mono" style="font-size: 13px;">MTR-482</div>
+                </div>
+              </div>
+            </td>
+            <td>Tariq Mansour</td>
+            <td>
+              <div>Cedar Clinic, 42 River Road, London</div>
+              <div class="quiet" style="font-size: 14px;">Planned departure <span class="mono">15:00</span> · Order <span class="mono">O-299</span> (20 packs)</div>
+            </td>
+            <td>
+              <span class="badge-status status-good">
+                <span class="status-dot"></span>
+                confirmed
+              </span>
+            </td>
+            <td class="mono">09:30 BST</td>
+            <td style="text-align: right;">
+              <button type="button" class="btn btn-secondary" style="height: 36px; padding: 0 12px; font-size: 14px;">Route detail</button>
+            </td>
+          </tr>
+
+          <!-- Completed R-201 for 13 May -->
+          <tr>
+            <td class="mono" style="font-weight: 600;">R-201</td>
+            <td class="mono">13 May 2026</td>
+            <td>
+              <div class="table-vehicle-cell">
+                <div class="table-vehicle-thumb">
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1JZje9YSCv4-LB3Kkg2XuQ31FjLAWUklcmyIxZn9TNuWE2v9PXOFkDBPW6v7zfZ3WcndVoKwfNoxGQW8ruZNomlGNcVRm-QvuzQ4gVkN1GSAgyZT7JDI3rhGMKQY4NbIBz0gvpYc3JLMcWPXgoIE2lQ2kfPtKxedmTfZHQ9BUeVnAcidiJKJej0QKn61S_sG8oz-xv1vVVyTn7nLMYGtZuwzLsdhNAtLWdk9GItvQbDmr5O2-KkK5YgVB7WYTbDr5C41fXspBLmc" alt="VAN-27">
+                </div>
+                <div>
+                  <span class="mono" style="font-weight: 500;">VAN-27</span>
+                  <div class="quiet mono" style="font-size: 13px;">MTR-482</div>
+                </div>
+              </div>
+            </td>
+            <td>Tariq Mansour</td>
+            <td>
+              <div>Cedar Clinic, 42 River Road, London</div>
+              <div class="quiet" style="font-size: 14px;">Handed to Rania Karim at <span class="mono">10:14</span> · Order <span class="mono">O-290</span> (20 packs)</div>
+            </td>
+            <td>
+              <span class="badge-status status-good">
+                <span class="status-dot"></span>
+                delivered
+              </span>
+            </td>
+            <td class="mono">10:14 BST</td>
+            <td style="text-align: right;">
+              <button type="button" class="btn btn-secondary" style="height: 36px; padding: 0 12px; font-size: 14px;">Route detail</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer-status">
+        <span>Showing 2 routes for Tariq Mansour · VAN-27</span>
+        <span class="mono">Assigned depot: North Quay Warehouse · London</span>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

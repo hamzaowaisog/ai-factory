@@ -1,0 +1,533 @@
+diff --git a/components/screens/s-3/container.tsx b/components/screens/s-3/container.tsx
+index fb7b3b8..bb6f015 100644
+--- a/components/screens/s-3/container.tsx
++++ b/components/screens/s-3/container.tsx
+@@ -1,13 +1,522 @@
+ "use client";
+ 
+-// S-3 Imports (/imports): the approved Stitch page, built by the coding task in this file.
+-// Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;
+-// match its layout, sections and words. Fixture mode (?fixture=S-3:<state>) must show the approved sample content in
+-// that state with no backend; the states the design drew: Preview ready, Submitting import, Import result with matched records and allocation conflict, Loading adapter records, Adapter error.
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
++import { AlertCircle, CheckCircle2, Circle, LoaderCircle, RefreshCw, TriangleAlert } from "lucide-react";
++import { importSelectedRecords, previewSourceRecords } from "@/lib/api/client";
++import type { AllocationConflict, ImportResult, ImportSourceRecord } from "@/lib/api/client.schemas";
++import { clearSession, readSession, updatePermissions } from "@/lib/auth/session";
++import { useNav } from "@/lib/nav";
++import { Button } from "@/components/ui/button";
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
++import { Checkbox } from "@/components/ui/checkbox";
++import { Notice, NoticeDescription, NoticeTitle } from "@/components/ui/notice";
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
++import { Skeleton } from "@/components/ui/skeleton";
++import { StatusBadge, toneOf } from "@/components/ui/status-badge";
++import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
++
++const SAMPLE_RECORDS: ImportSourceRecord[] = [
++  {
++    id: 88411,
++    vendor: "Red Mesa Cattle Co.",
++    sourceIdentifier: "PO-8841-L1",
++    cost: 1875,
++    headCount: 80,
++    animalWeight: 884,
++    breed: "Angus",
++    age: "18 months",
++    source: "Red Mesa",
++    purchaseOrder: "PO-8841",
++    receiving: "RCV-8841-1",
++    animalDescription: "Angus steers",
++    sourceLineId: "Line 1",
++    existingMatch: true,
++    targetPen: "P-04",
++    receivedResult: "Matched, not duplicated",
++    adapterStatus: "Conflict flagged",
++    sampleData: true,
++  },
++  {
++    id: 88412,
++    vendor: "Red Mesa Cattle Co.",
++    sourceIdentifier: "PO-8841-L2",
++    cost: 1960,
++    headCount: 126,
++    animalWeight: 902,
++    breed: "Hereford",
++    age: "18 months",
++    source: "Red Mesa",
++    purchaseOrder: "PO-8841",
++    receiving: "RCV-8841-2",
++    animalDescription: "Hereford steers",
++    sourceLineId: "Line 2",
++    existingMatch: true,
++    targetPen: "P-07",
++    receivedResult: "Matched, not duplicated",
++    adapterStatus: "Matched",
++    sampleData: true,
++  },
++  {
++    id: 88413,
++    vendor: "Red Mesa Cattle Co.",
++    sourceIdentifier: "PO-8841-L3",
++    cost: 2040,
++    headCount: 94,
++    animalWeight: 916,
++    breed: "Charolais cross",
++    age: "19 months",
++    source: "Red Mesa",
++    purchaseOrder: "PO-8841",
++    receiving: "RCV-8841-3",
++    animalDescription: "Charolais-cross steers",
++    sourceLineId: "Line 3",
++    existingMatch: false,
++    targetPen: "P-12",
++    receivedResult: "Created on first import",
++    adapterStatus: "Ready",
++    sampleData: true,
++  },
++];
++
++const SAMPLE_CONFLICTS: AllocationConflict[] = [
++  {
++    sourceIdentifier: "PO-8841-L1",
++    returnedHeadCount: 80,
++    mappedHeadCount: 82,
++    message: "Mapped allocation exceeds updated source head count.",
++  },
++];
++
++const SAMPLE_RESULT: ImportResult = {
++  permissions: ["imports.manage"],
++  status: "completed_with_matches",
++  createdCount: 1,
++  updatedCount: 2,
++  records: SAMPLE_RECORDS,
++  allocationConflicts: SAMPLE_CONFLICTS,
++};
++
++function fixtureName(value: string | undefined) {
++  return value?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ?? "";
++}
++
++function sourceLine(record: ImportSourceRecord) {
++  return record.sourceLineId || record.sourceIdentifier;
++}
++
++function displayError(error: unknown) {
++  return error instanceof Error ? error.message : "The adapter could not complete the request. Try again.";
++}
++
+ export function ImportsContainer({ fixture }: { fixture?: string }) {
++  const nav = useNav();
++  const navRef = useRef(nav);
++  navRef.current = nav;
++  const mode = fixtureName(fixture);
++  const fixtureMode = fixture !== undefined;
++  const resultFixture = mode.includes("import-result") || mode === "adapter-error";
++  const [records, setRecords] = useState<ImportSourceRecord[]>(() => fixtureMode && mode !== "loading-adapter-records" ? SAMPLE_RECORDS : []);
++  const [permissions, setPermissions] = useState<string[]>(() => fixtureMode ? ["imports.manage"] : []);
++  const [result, setResult] = useState<ImportResult | null>(() => fixtureMode && resultFixture ? SAMPLE_RESULT : null);
++  const [selectedIds, setSelectedIds] = useState<number[]>(() => fixtureMode && mode !== "loading-adapter-records" ? SAMPLE_RECORDS.map((record) => record.id) : []);
++  const [selectedPreview, setSelectedPreview] = useState(() => fixtureMode && mode !== "loading-adapter-records");
++  const [loading, setLoading] = useState(() => !fixtureMode || mode === "loading-adapter-records");
++  const [refreshing, setRefreshing] = useState(false);
++  const [submitting, setSubmitting] = useState(() => fixtureMode && mode === "submitting-import");
++  const [error, setError] = useState<string | null>(() => fixtureMode && mode === "adapter-error" ? "The mock-data adapter is unavailable. Your last returned import activity is still shown." : null);
++  const [statusFilter, setStatusFilter] = useState("all");
++  const [penFilter, setPenFilter] = useState("all");
++  const [expired, setExpired] = useState(false);
++
++  const handleUnauthorized = useCallback(() => {
++    clearSession();
++    setRecords([]);
++    setPermissions([]);
++    setResult(null);
++    setSelectedIds([]);
++    setSelectedPreview(false);
++    setError(null);
++    setExpired(true);
++    navRef.current.go("/sign-in");
++  }, []);
++
++  const loadRecords = useCallback(async (refresh = false) => {
++    if (fixtureMode) {
++      if (refresh) {
++        setRefreshing(true);
++        setError(null);
++        await Promise.resolve();
++        setRecords(SAMPLE_RECORDS);
++        setPermissions(["imports.manage"]);
++        setLoading(false);
++        setRefreshing(false);
++        return;
++      }
++      return;
++    }
++
++    if (refresh) setRefreshing(true);
++    else setLoading(true);
++    setError(null);
++    try {
++      const accessToken = readSession()?.accessToken;
++      const response = await previewSourceRecords(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined);
++      if (response.status === 401) {
++        handleUnauthorized();
++        return;
++      }
++      if (response.status !== 200) {
++        setError(response.data.message || "The adapter could not load source records.");
++        return;
++      }
++      updatePermissions(response.data.permissions);
++      setRecords(response.data.records);
++      setSelectedIds((current) => current.filter((id) => response.data.records.some((record) => record.id === id)));
++      setSelectedPreview(false);
++      setError(null);
++    } catch (requestError) {
++      setError(displayError(requestError));
++    } finally {
++      setLoading(false);
++      setRefreshing(false);
++    }
++  }, [fixtureMode, handleUnauthorized]);
++
++  useEffect(() => {
++    if (!fixtureMode) void loadRecords();
++  }, [fixtureMode, loadRecords]);
++
++  const conflicts = result?.allocationConflicts ?? (fixtureMode && mode === "adapter-error" ? SAMPLE_CONFLICTS : []);
++  const conflictingIdentifiers = useMemo(() => new Set(conflicts.map((conflict) => conflict.sourceIdentifier)), [conflicts]);
++  const visibleRecords = useMemo(() => records.filter((record) => {
++    const statusMatches = statusFilter === "all"
++      || (statusFilter === "Matched" && (record.existingMatch || record.adapterStatus === "Matched"))
++      || (statusFilter === "Conflict flagged" && conflictingIdentifiers.has(record.sourceIdentifier))
++      || (statusFilter === "Created" && !record.existingMatch);
++    return statusMatches && (penFilter === "all" || record.targetPen === penFilter);
++  }), [conflictingIdentifiers, penFilter, records, statusFilter]);
++  const selectedRecords = records.filter((record) => selectedIds.includes(record.id));
++  const canImport = permissions.includes("imports.manage");
++  const allVisibleSelected = visibleRecords.length > 0 && visibleRecords.every((record) => selectedIds.includes(record.id));
++  const someVisibleSelected = visibleRecords.some((record) => selectedIds.includes(record.id));
++  const activePurchaseOrder = records[0]?.purchaseOrder ?? "No source loaded";
++  const sourceHeadCount = records.reduce((total, record) => total + record.headCount, 0);
++  const coordinator = fixtureMode ? "Tomas Reed" : "Receiving coordinator";
++  const coordinatorInitials = coordinator.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
++
++  const toggleRecord = (id: number, checked: boolean) => {
++    setSelectedIds((current) => checked ? [...new Set([...current, id])] : current.filter((selectedId) => selectedId !== id));
++    setSelectedPreview(false);
++  };
++
++  const toggleVisible = (checked: boolean) => {
++    const visibleIds = visibleRecords.map((record) => record.id);
++    setSelectedIds((current) => checked
++      ? [...new Set([...current, ...visibleIds])]
++      : current.filter((id) => !visibleIds.includes(id)));
++    setSelectedPreview(false);
++  };
++
++  const submitImport = async () => {
++    if (!canImport || selectedIds.length === 0 || submitting) return;
++    if (fixtureMode) {
++      setSubmitting(true);
++      await Promise.resolve();
++      setResult(SAMPLE_RESULT);
++      setRecords(SAMPLE_RESULT.records);
++      setPermissions(SAMPLE_RESULT.permissions);
++      setSubmitting(false);
++      setError(null);
++      return;
++    }
++
++    setSubmitting(true);
++    setError(null);
++    try {
++      const accessToken = readSession()?.accessToken;
++      const response = await importSelectedRecords({ selectedRecordIds: selectedIds }, accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined);
++      if (response.status === 401) {
++        handleUnauthorized();
++        return;
++      }
++      if (response.status !== 200) {
++        setError(response.data.message || "The import could not be completed.");
++        return;
++      }
++      setResult(response.data);
++      setRecords(response.data.records);
++      setPermissions(response.data.permissions);
++      updatePermissions(response.data.permissions);
++      setSelectedIds(response.data.records.map((record) => record.id));
++      setSelectedPreview(true);
++    } catch (requestError) {
++      setError(displayError(requestError));
++    } finally {
++      setSubmitting(false);
++    }
++  };
++
++  if (expired) {
++    return (
++      <main data-screen="S-3" data-state="session-expired" className="mx-auto grid w-full max-w-7xl gap-6 p-4 sm:p-6 lg:p-8">
++        <h1 className="font-heading text-3xl font-semibold tracking-tight">Imports</h1>
++        <Notice tone="bad"><AlertCircle /><NoticeTitle>Session expired</NoticeTitle><NoticeDescription>Your sign-in has expired. Please sign in again to view imports.</NoticeDescription></Notice>
++      </main>
++    );
++  }
++
+   return (
+-    <main data-screen="S-3" data-state={fixture ?? "default"}>
+-      <h1>Imports</h1>
++    <main data-screen="S-3" data-state={fixture ?? (submitting ? "submitting-import" : result ? "import-result-with-matched-records-and-allocation-conflict" : loading ? "loading-adapter-records" : "preview-ready")} className="mx-auto grid w-full max-w-7xl gap-6 p-4 sm:p-6 lg:p-8">
++      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
++        <div>
++          <h1 className="font-heading text-3xl font-semibold tracking-tight">Imports</h1>
++          <p className="mt-1 text-base text-muted-foreground">Mock procurement and receiving adapter for Red Mesa Yard, America/Denver (Mountain Time).</p>
++        </div>
++        <div className="flex flex-wrap items-center gap-3">
++          <Button type="button" variant="outline" onClick={() => void loadRecords(true)} disabled={refreshing || (loading && !fixtureMode)}>
++            <RefreshCw className={refreshing ? "animate-spin" : ""} />Refresh source PO
++          </Button>
++          <Button type="button" onClick={() => setSelectedPreview(true)} disabled={selectedIds.length === 0 || loading}>
++            Preview selected records
++          </Button>
++        </div>
++      </header>
++
++      <div aria-hidden="true" className="h-0.5 bg-border" />
++
++      {error && (
++        <Notice tone="bad">
++          <AlertCircle />
++          <NoticeTitle>{fixtureMode && mode === "adapter-error" ? "Adapter error" : result ? "Import error" : "Adapter error"}</NoticeTitle>
++          <NoticeDescription className="flex flex-wrap items-center justify-between gap-3">
++            <span>{error}</span>
++            <Button type="button" size="sm" variant="outline" onClick={() => void loadRecords(true)}>Retry</Button>
++          </NoticeDescription>
++        </Notice>
++      )}
++
++      <section aria-label="Import overview" className="grid grid-cols-1 gap-4 md:grid-cols-3">
++        <Card className="flex flex-col justify-between rounded-[var(--radius)] shadow-none">
++          <CardHeader className="flex-row items-center justify-between gap-2">
++            <CardDescription>Active Yard Source</CardDescription>
++            <StatusBadge tone={error ? "warn" : "ok"}><Circle className="size-2 fill-current" />{error ? "Adapter attention" : "Operational normal"}</StatusBadge>
++          </CardHeader>
++          <CardContent className="pt-3">
++            <div className="font-mono text-xl font-semibold">{activePurchaseOrder}</div>
++            <p className="mt-1 text-sm text-muted-foreground">{records.length} source lines • {sourceHeadCount} total source head</p>
++          </CardContent>
++        </Card>
++        <Card className="flex flex-col justify-between rounded-[var(--radius)] shadow-none">
++          <CardHeader className="flex-row items-center justify-between gap-2">
++            <CardDescription>First-import result</CardDescription>
++            <span className="font-mono text-xs text-muted-foreground">{result ? "Current response" : "Awaiting import"}</span>
++          </CardHeader>
++          <CardContent className="pt-3">
++            <div className="font-mono text-xl font-semibold">{result ? `${result.updatedCount} matched, ${result.createdCount} created` : "No import recorded"}</div>
++            <p className="mt-1 text-sm text-muted-foreground">{result ? `${result.updatedCount} updated • ${result.records.map((record) => record.sourceIdentifier).join(", ")}` : "Returned import results will appear here."}</p>
++          </CardContent>
++        </Card>
++        <Card className="flex flex-col justify-between rounded-[var(--radius)] shadow-none">
++          <CardHeader className="flex-row items-center justify-between gap-2">
++            <CardDescription>Repeat-import result</CardDescription>
++            <span className="font-mono text-xs text-muted-foreground">{result ? result.status : "No repeat import"}</span>
++          </CardHeader>
++          <CardContent className="pt-3">
++            <div className="font-mono text-xl font-semibold">{result ? "Matched, not duplicated" : "Ready when you are"}</div>
++            {conflicts.length > 0
++              ? <div className="mt-1 inline-flex items-center gap-1.5 text-sm text-warning"><TriangleAlert className="size-4" />Line 1 allocation conflict ({conflicts[0]!.returnedHeadCount} head vs {conflicts[0]!.mappedHeadCount} mapped)</div>
++              : <p className="mt-1 text-sm text-muted-foreground">Existing source lines stay matched on repeat imports.</p>}
++          </CardContent>
++        </Card>
++      </section>
++
++      {conflicts.map((conflict) => {
++        const record = records.find((line) => line.sourceIdentifier === conflict.sourceIdentifier);
++        return (
++          <Notice key={conflict.sourceIdentifier} tone="warn" className="rounded-[var(--radius)] border-l-4">
++            <TriangleAlert />
++            <NoticeTitle>Allocation conflict</NoticeTitle>
++            <NoticeDescription className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
++              <span>{sourceLine(record ?? SAMPLE_RECORDS[0]!)} {record?.animalDescription ?? "source record"} returned updated source count of <strong className="font-mono">{conflict.returnedHeadCount} head</strong> against <strong className="font-mono">{conflict.mappedHeadCount} head</strong> previously mapped in Pen {record?.targetPen ?? "P-04"}. Allocation retained for review; yard totals not silently altered. {conflict.message}</span>
++              <span className="shrink-0 font-mono text-xs text-muted-foreground">Returned by import service</span>
++            </NoticeDescription>
++          </Notice>
++        );
++      })}
++
++      <Card className="overflow-hidden rounded-[var(--radius)] shadow-none">
++        <CardHeader className="flex flex-col justify-between gap-4 border-b p-5 sm:p-6 lg:flex-row lg:items-center">
++          <div>
++            <CardTitle className="font-heading text-xl">{activePurchaseOrder} Source Worklist</CardTitle>
++            <CardDescription className="mt-0.5">Filter lines by receipt status, lot match, or pen assignment</CardDescription>
++          </div>
++          <div className="flex flex-wrap items-center gap-3">
++            <div className="flex items-center gap-2">
++              <label htmlFor="imports-status-filter" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</label>
++              <Select value={statusFilter} onValueChange={setStatusFilter}>
++                <SelectTrigger id="imports-status-filter" aria-label="Status" className="h-8 w-[165px]"><SelectValue /></SelectTrigger>
++                <SelectContent>
++                  <SelectItem value="all">All lines ({records.length})</SelectItem>
++                  <SelectItem value="Matched">Matched</SelectItem>
++                  <SelectItem value="Conflict flagged">Conflict flagged</SelectItem>
++                  <SelectItem value="Created">Created</SelectItem>
++                </SelectContent>
++              </Select>
++            </div>
++            <div className="flex items-center gap-2">
++              <label htmlFor="imports-pen-filter" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pen</label>
++              <Select value={penFilter} onValueChange={setPenFilter}>
++                <SelectTrigger id="imports-pen-filter" aria-label="Pen" className="h-8 w-[165px]"><SelectValue /></SelectTrigger>
++                <SelectContent>
++                  <SelectItem value="all">All pens</SelectItem>
++                  {[...new Set(records.map((record) => record.targetPen).filter(Boolean))].map((pen) => <SelectItem key={pen} value={pen}>{pen}</SelectItem>)}
++                </SelectContent>
++              </Select>
++            </div>
++            <span className="ml-2 font-mono text-xs text-muted-foreground">{selectedIds.length} records selected</span>
++          </div>
++        </CardHeader>
++
++        {loading ? (
++          <div className="grid gap-3 p-6" aria-busy="true" aria-label="Loading adapter records">
++            <Skeleton className="h-10" />
++            <Skeleton className="h-14" />
++            <Skeleton className="h-14" />
++          </div>
++        ) : (
++          <>
++            <Table className="min-w-[950px]">
++              <TableHeader>
++                <TableRow className="bg-muted/50">
++                  <TableHead className="w-12 text-center"><Checkbox aria-label="Select all visible source records" checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false} onCheckedChange={(checked) => toggleVisible(checked === true)} /></TableHead>
++                  <TableHead>Source Line</TableHead>
++                  <TableHead>Animal Description</TableHead>
++                  <TableHead className="text-right">Source Head Count</TableHead>
++                  <TableHead>Existing Match</TableHead>
++                  <TableHead>Target Pen</TableHead>
++                  <TableHead>Received Result</TableHead>
++                  <TableHead>Adapter Status</TableHead>
++                </TableRow>
++              </TableHeader>
++              <TableBody>
++                {visibleRecords.map((record) => {
++                  const conflict = conflicts.find((item) => item.sourceIdentifier === record.sourceIdentifier);
++                  return (
++                    <TableRow key={record.id}>
++                      <TableCell className="text-center"><Checkbox aria-label={record.sourceIdentifier} checked={selectedIds.includes(record.id)} onCheckedChange={(checked) => toggleRecord(record.id, checked === true)} /></TableCell>
++                      <TableCell className="font-mono font-semibold">{sourceLine(record)}</TableCell>
++                      <TableCell><span className="font-medium">{record.animalDescription}</span><span className="block text-xs text-muted-foreground">{record.vendor}</span></TableCell>
++                      <TableCell className="text-right font-mono font-semibold">{record.headCount} head{conflict && <span className="block font-sans text-xs font-normal text-warning">({conflict.mappedHeadCount} mapped)</span>}</TableCell>
++              <TableCell>{record.existingMatch ? <><span className="font-mono font-medium">{record.sourceIdentifier}</span><span className="block text-xs text-muted-foreground">Matched on {record.purchaseOrder}</span></> : <><span className="text-muted-foreground">No existing match</span><span className="block text-xs text-muted-foreground">New receiving record</span></>}</TableCell>
++                      <TableCell className="font-mono text-muted-foreground">{record.targetPen || "—"}</TableCell>
++                      <TableCell>{record.receivedResult}{conflict && <span className="block max-w-56 text-xs text-muted-foreground">Retained {conflict.mappedHeadCount} head mapped vs {conflict.returnedHeadCount} source</span>}</TableCell>
++                      <TableCell><StatusBadge tone={conflict ? "warn" : toneOf(record.adapterStatus)}><Circle className="size-2 fill-current" />{conflict ? "Conflict flagged" : record.adapterStatus}</StatusBadge></TableCell>
++                    </TableRow>
++                  );
++                })}
++                {visibleRecords.length === 0 && <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">{records.length === 0 ? "No source records are available. Refresh source PO to check again." : "No source lines match these filters."}</TableCell></TableRow>}
++              </TableBody>
++            </Table>
++
++            {selectedPreview && selectedRecords.length > 0 && (
++              <section aria-label="Selected source record details" className="grid gap-3 border-t p-5 sm:p-6">
++                <div>
++                  <h3 className="font-semibold">Selected source records</h3>
++                  <p className="text-sm text-muted-foreground">Source fields returned by the mock procurement and receiving adapter</p>
++                </div>
++                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
++                  {selectedRecords.map((record) => (
++                    <div key={record.id} className="rounded-[var(--radius)] border bg-muted/30 p-4">
++                      <div className="mb-3 flex items-center justify-between gap-2"><span className="font-mono font-semibold">{record.sourceIdentifier}</span><StatusBadge tone={toneOf(record.adapterStatus)}>{record.adapterStatus}</StatusBadge></div>
++                      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
++                        <dt className="text-muted-foreground">Vendor</dt><dd>{record.vendor}</dd>
++                        <dt className="text-muted-foreground">Source identifier</dt><dd>{record.sourceIdentifier}</dd>
++                        <dt className="text-muted-foreground">Cost</dt><dd>${record.cost}</dd>
++                        <dt className="text-muted-foreground">Head count</dt><dd>{record.headCount} head</dd>
++                        <dt className="text-muted-foreground">Animal weight</dt><dd>{record.animalWeight} lb</dd>
++                        <dt className="text-muted-foreground">Breed</dt><dd>{record.breed}</dd>
++                        <dt className="text-muted-foreground">Age</dt><dd>{record.age}</dd>
++                        <dt className="text-muted-foreground">Source</dt><dd>{record.source}</dd>
++                        <dt className="text-muted-foreground">Purchase order</dt><dd>{record.purchaseOrder}</dd>
++                        <dt className="text-muted-foreground">Receiving</dt><dd>{record.receiving}</dd>
++                      </dl>
++                    </div>
++                  ))}
++                </div>
++              </section>
++            )}
++
++            <div className="flex flex-col justify-between gap-4 border-t bg-muted/30 p-4 sm:flex-row sm:items-center">
++              <p className="text-sm text-muted-foreground">Showing <span className="font-mono font-medium text-foreground">{visibleRecords.length}</span> of <span className="font-mono font-medium text-foreground">{records.length}</span> PO lines • {selectedIds.length} selected for bulk action</p>
++              <div className="flex items-center gap-3">
++                <Button type="button" variant="outline" onClick={() => { setSelectedIds([]); setSelectedPreview(false); }}>Clear selection</Button>
++                <Button type="button" onClick={() => void submitImport()} disabled={!canImport || selectedIds.length === 0 || submitting || loading}>
++                  {submitting ? <><LoaderCircle className="animate-spin" />Importing records</> : "Import selected records"}
++                </Button>
++              </div>
++            </div>
++          </>
++        )}
++      </Card>
++
++      <div aria-hidden="true" className="h-0.5 bg-border" />
++
++      <section className="grid gap-6 lg:grid-cols-3">
++        <Card className="rounded-[var(--radius)] shadow-none lg:col-span-2">
++          <CardHeader>
++            <CardTitle className="font-heading text-xl">Mock-Data Adapter Return Payload</CardTitle>
++            <CardDescription>Returned transaction results for source {activePurchaseOrder} at Red Mesa Yard</CardDescription>
++          </CardHeader>
++          <CardContent className="grid gap-4 pt-2">
++            <div className="grid gap-4 sm:grid-cols-2">
++              <div className="rounded-[var(--radius)] border bg-muted/30 p-4">
++                <span className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">Returned Summary</span>
++                <div className="mt-1 font-mono text-base font-semibold">{result ? `${result.updatedCount} matched, ${result.createdCount} created (initial)` : "No import response yet"}</div>
++                <div className="mt-0.5 font-mono text-sm">{result ? `${result.records.length} matched, 0 duplicated (repeat)` : `${records.length} source records available`}</div>
++                <p className="mt-2 text-xs text-muted-foreground">Idempotent receiving logic prevents re-allocation of existing lines.</p>
++              </div>
++              <div className="rounded-[var(--radius)] border bg-muted/30 p-4">
++                <span className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">Operational Allocation Status</span>
++                <div className={`mt-1 font-mono text-base font-semibold ${conflicts.length ? "text-warning" : "text-foreground"}`}>{conflicts.length ? `Conflict flagged: ${records.find((record) => record.sourceIdentifier === conflicts[0]!.sourceIdentifier)?.targetPen ?? "Pen"}` : "No allocation conflicts returned"}</div>
++                {conflicts[0] && <div className="mt-1 font-mono text-xs">{conflicts[0].sourceIdentifier}: {conflicts[0].mappedHeadCount} mapped vs {conflicts[0].returnedHeadCount} source count</div>}
++                <p className="mt-2 text-xs text-muted-foreground">Retained mapped allocation for supervisor review; pen total unchanged.</p>
++              </div>
++            </div>
++            <div className="rounded-[var(--radius)] border p-4">
++              <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-semibold">Adapter Fields &amp; Mapping Integrity</span><span className="font-mono text-xs text-muted-foreground">Format: JSON response</span></div>
++              <dl className="divide-y text-xs font-mono">
++                <div className="flex flex-wrap justify-between gap-2 py-2"><dt className="text-muted-foreground">source_po:</dt><dd>{activePurchaseOrder}</dd></div>
++                <div className="flex flex-wrap justify-between gap-2 py-2"><dt className="text-muted-foreground">yard_destination:</dt><dd>Red Mesa Yard (America/Denver)</dd></div>
++                <div className="flex flex-wrap justify-between gap-2 py-2"><dt className="text-muted-foreground">repeat_match_policy:</dt><dd>match_existing_idempotent (no duplicate lot generation)</dd></div>
++                <div className="flex flex-wrap justify-between gap-2 py-2"><dt className="text-muted-foreground">count_variance_action:</dt><dd className="font-semibold text-warning">flag_allocation_conflict</dd></div>
++                {result && <div className="flex flex-wrap justify-between gap-2 py-2"><dt className="text-muted-foreground">status:</dt><dd>{result.status} · {result.createdCount} created · {result.updatedCount} updated</dd></div>}
++              </dl>
++            </div>
++          </CardContent>
++        </Card>
++
++        <Card className="flex flex-col justify-between rounded-[var(--radius)] shadow-none">
++          <CardHeader>
++            <CardTitle className="font-heading text-xl">Recorded Import Activity</CardTitle>
++            <CardDescription>Coordinator audit trail for Red Mesa Yard</CardDescription>
++            <div className="mt-4 flex items-center gap-3 border-t pt-4">
++              <div className="flex size-12 items-center justify-center rounded-[var(--radius)] border bg-muted/50 font-semibold">{coordinatorInitials}</div>
++              <div><div className="font-semibold">{coordinator}</div><div className="text-xs text-muted-foreground">Procurement • Receiving coordinator</div></div>
++            </div>
++          </CardHeader>
++          <CardContent className="grid gap-3 pt-0">
++            {result ? (
++              <div className="rounded-[var(--radius)] border bg-muted/30 p-3">
++                <div className="mb-1 flex items-center justify-between gap-2 text-xs"><span className="font-mono font-semibold">Latest returned activity</span><span className="inline-flex items-center gap-1 text-success"><CheckCircle2 className="size-3.5" />{conflicts.length ? "Conflict flagged" : "Import completed"}</span></div>
++                <p className="text-xs leading-relaxed">Import of {activePurchaseOrder} returned status {result.status}: {result.records.length} records, {result.createdCount} created, {result.updatedCount} updated. {conflicts.length ? `${conflicts[0]!.sourceIdentifier} returned ${conflicts[0]!.returnedHeadCount} head against ${conflicts[0]!.mappedHeadCount} already mapped; allocation conflict flagged.` : "Matched source records were not duplicated."}</p>
++              </div>
++            ) : (
++              <div className="rounded-[var(--radius)] border bg-muted/30 p-3 text-sm text-muted-foreground">No import activity has been returned in this session.</div>
++            )}
++            <div className="flex items-center justify-between border-t pt-3 text-xs text-muted-foreground"><span>Logged under Red Mesa yard events</span><span className="font-mono">{fixtureMode ? "Staff ID: TR-41" : "Staff ID: current session"}</span></div>
++          </CardContent>
++        </Card>
++      </section>
+     </main>
+   );
+ }

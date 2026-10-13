@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed plans — Range Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Exact Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #F5F5F5;
+      --surface: #FFFFFF;
+      --text: #262626;
+      --text-quiet: #626262;
+      --border: #D8D8D8;
+      --primary: #B3473D;
+      --status-good: #286143;
+      --status-waiting: #805600;
+      --status-failed: #A13D36;
+      --radius: 4px;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Signature & Ambient Motions */
+    @keyframes fadeInPage {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% { opacity: 0.82; }
+      50% { opacity: 0.86; }
+    }
+
+    @keyframes trackFill {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .animate-entrance {
+      animation: fadeInPage 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-breathing {
+      animation: live-breathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    .seq-track-fill {
+      transform-origin: left;
+      animation: trackFill 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @supports (animation-timeline: view()) {
+      .seq-track-fill {
+        animation-timeline: view();
+        animation-range: entry 0% entry 55%;
+        animation-duration: 420ms;
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Common Components */
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      height: 44px;
+      padding: 0 20px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 150ms ease, transform 100ms ease;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      height: 44px;
+      padding: 0 16px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #FAFAFA;
+      border-color: #B0B0B0;
+    }
+    .btn-secondary:active {
+      background-color: #F0F0F0;
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: var(--border);
+      background-color: transparent;
+    }
+
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    /* Table styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      height: 48px;
+      vertical-align: middle;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status indicator dot + text */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .major-divider {
+      border: 0;
+      height: 2px;
+      background-color: var(--border);
+      margin: 32px 0;
+    }
+
+    @media (max-width: 900px) {
+      .panel {
+        padding: 16px;
+      }
+      td {
+        height: 56px;
+      }
+      .btn-primary, .btn-secondary {
+        height: 48px;
+      }
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header: exact specification -->
+  <header style="background-color: #FFFFFF; border-bottom: 1px solid var(--border); width: 100%; position: sticky; top: 0; z-index: 50;">
+    <div style="max-width: 1440px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 24px;">
+      
+      <!-- Brand & Menu -->
+      <div style="display: flex; align-items: center; gap: 32px; overflow-x: auto; white-space: nowrap;">
+        <!-- Brand Mark -->
+        <div style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; flex-shrink: 0;">
+          <div style="width: 24px; height: 24px; background-color: #262626; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;">R</div>
+          <span class="font-heading" style="font-weight: 650; font-size: 17px; letter-spacing: -0.01em;">Range Ledger</span>
+        </div>
+
+        <!-- Shared Menu (exact order, Feed plans selected) -->
+        <nav style="display: flex; align-items: center; gap: 20px; font-size: 14px; font-weight: 500;">
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Yard</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Imports</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Allocations</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Lots</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Inventory</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Feed outlook</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Rations</a>
+          <a href="#" style="color: var(--primary); text-decoration: none; border-bottom: 2px solid var(--primary); padding-bottom: 16px; margin-bottom: -16px; font-weight: 600;">Feed plans</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Feeding</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Reports</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Feed-to-gain</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Profitability</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Sample data</a>
+          <a href="#" style="color: var(--text-quiet); text-decoration: none;">Delivery brief</a>
+        </nav>
+      </div>
+
+      <!-- Signed-in user (Maya Chen, Yard manager) -->
+      <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding-left: 16px;">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border);">
+        <div style="display: flex; flex-direction: column; line-height: 1.2;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text);">Maya Chen</span>
+          <span style="font-size: 12px; color: var(--text-quiet);">Yard manager</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main style="max-width: 1440px; margin: 0 auto; padding: 32px 24px 64px 24px;">
+
+    <!-- Page Title & Operational Context -->
+    <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 24px;">
+      <div>
+        <h1 class="font-heading" style="font-size: 32px; font-weight: 650; line-height: 40px; color: var(--text); letter-spacing: -0.02em;">Feed plans</h1>
+        <p style="color: var(--text-quiet); font-size: 15px; margin-top: 4px;">
+          Red Mesa Yard &bull; America/Denver (Mountain Time) &bull; Active yard head: <span class="font-mono">360</span> &bull; Capacity: <span class="font-mono">490</span> head across P-04, P-07, P-12
+        </p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="status-badge" style="color: var(--status-good); background: #FFFFFF; border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px;">
+          <span class="status-dot" style="background-color: var(--status-good);"></span>
+          Operational normal
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div class="panel" style="padding: 20px 24px;">
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-quiet);">Planned Delivered Feed (Jun 19)</div>
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px;">
+          <span class="font-mono" style="font-size: 32px; font-weight: 600; color: var(--text); line-height: 1;">8,384</span>
+          <span class="font-mono" style="font-size: 16px; color: var(--text-quiet);">lb/day</span>
+        </div>
+        <div style="font-size: 13px; color: var(--text-quiet); margin-top: 6px;">
+          Summed from saved yard pen plans (exact calculated: <span class="font-mono">8,383.8</span> lb).
+        </div>
+      </div>
+
+      <div class="panel" style="padding: 20px 24px;">
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-quiet);">Audit &amp; Pen Reconciliations</div>
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px;">
+          <span class="font-mono" style="font-size: 32px; font-weight: 600; color: var(--status-waiting); line-height: 1;">1</span>
+          <span style="font-size: 16px; font-weight: 500; color: var(--status-waiting);">review needed</span>
+        </div>
+        <div style="font-size: 13px; color: var(--text-quiet); margin-top: 6px;">
+          Pen P-04 head count updated to <span class="font-mono">140</span> (<span class="font-mono">142</span> saved in plan).
+        </div>
+      </div>
+
+      <div class="panel" style="padding: 20px 24px;">
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-quiet);">Configured Wastage Margin</div>
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px;">
+          <span class="font-mono" style="font-size: 32px; font-weight: 600; color: var(--text); line-height: 1;">2.8%</span>
+          <span class="font-mono" style="font-size: 14px; color: var(--text-quiet);">(235 lb/day)</span>
+        </div>
+        <div style="font-size: 13px; color: var(--text-quiet); margin-top: 6px;">
+          Kept separate from delivered feed; total 24h requirement is <span class="font-mono">8,619</span> lb.
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Saved Jun 19 Plan Worklist Table -->
+    <div class="panel" style="margin-bottom: 32px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <h2 class="font-heading" style="font-size: 24px; font-weight: 600; color: var(--text);">Saved Jun 19 Pen Delivery Worklist</h2>
+          <p style="color: var(--text-quiet); font-size: 14px; margin-top: 2px;">
+            Dated pen-level delivery plans with saved rations, delivery quotas, and execution assignments.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 14px; color: var(--text-quiet);">Source plan date: <strong class="font-mono" style="color: var(--text);">2025-06-19</strong></span>
+          <button type="button" class="btn-secondary" style="font-size: 14px;">Print delivery sheet</button>
+        </div>
+      </div>
+
+      <!-- Main Worklist Table -->
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 80px;">Pen</th>
+              <th style="width: 140px;">Ration</th>
+              <th style="width: 130px;">Plan Head Input</th>
+              <th style="width: 130px;">Current Head</th>
+              <th style="width: 130px;">Planned Rate</th>
+              <th style="width: 150px;">Saved Quota</th>
+              <th style="width: 160px;">Plan Review State</th>
+              <th style="width: 160px;">Execution Status</th>
+              <th style="width: 180px;">Operator Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- P-04 Row: Flagged for review (142 saved vs 140 current), retains 3337 lb -->
+            <tr style="background-color: #FFFDF8;">
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px;">P-04</span>
+              </td>
+              <td>
+                <span style="font-weight: 500;">Grower</span>
+                <span style="display: block; font-size: 12px; color: var(--text-quiet);">$0.145/lb &bull; 1.48 Mcal</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">142 head</span>
+                <span style="display: block; font-size: 12px; color: var(--status-waiting);">saved input</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; color: var(--status-waiting);">140 head</span>
+                <span style="display: block; font-size: 11px; color: var(--text-quiet);">L-2407: 80, L-2411: 60</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">23.5 lb/hd/day</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px;">3,337 lb</span>
+                <span style="display: block; font-size: 12px; color: var(--text-quiet);">Retained pending auth</span>
+              </td>
+              <td>
+                <div class="status-badge" style="color: var(--status-waiting);">
+                  <span class="status-dot" style="background-color: var(--status-waiting);"></span>
+                  Review needed
+                </div>
+                <div style="font-size: 11px; color: var(--text-quiet); margin-top: 2px;">Head count changed</div>
+              </td>
+              <td>
+                <div class="status-badge" style="color: var(--status-waiting);">
+                  <span class="status-dot status-dot-breathing" style="background-color: var(--status-waiting);"></span>
+                  Feeding pending
+                </div>
+                <div style="font-size: 11px; color: var(--text-quiet); margin-top: 2px;">Assigned: Eli Navarro</div>
+              </td>
+              <td>
+                <!-- Maya Chen signed in (Yard manager), Eli Navarro is pen operator; Maya or planner can confirm/regenerate, but operator execution requires pen assignment -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <button type="button" class="btn-secondary" style="height: 34px; padding: 0 10px; font-size: 13px;" title="Authorized feed planner or manager can confirm or regenerate quota">
+                    Confirm 140-head update
+                  </button>
+                  <span style="font-size: 11px; color: var(--text-quiet);">Execution: Eli Navarro only</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- P-07 Row: Operational normal, 2772 lb for 126 head -->
+            <tr>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px;">P-07</span>
+              </td>
+              <td>
+                <span style="font-weight: 500;">Grower</span>
+                <span style="display: block; font-size: 12px; color: var(--text-quiet);">$0.145/lb &bull; 1.48 Mcal</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">126 head</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">126 head</span>
+                <span style="display: block; font-size: 11px; color: var(--text-quiet);">L-2409: 126</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">22.0 lb/hd/day</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px;">2,772 lb</span>
+              </td>
+              <td>
+                <div class="status-badge" style="color: var(--status-good);">
+                  <span class="status-dot" style="background-color: var(--status-good);"></span>
+                  Saved
+                </div>
+              </td>
+              <td>
+                <div class="status-badge" style="color: var(--status-good);">
+                  <span class="status-dot" style="background-color: var(--status-good);"></span>
+                  Delivered
+                </div>
+                <div style="font-size: 11px; color: var(--text-quiet); margin-top: 2px;">Recorded 06:25 MT</div>
+              </td>
+              <td>
+                <!-- Maya Chen signed in: disabled status action with operator restriction notice -->
+                <button type="button" class="btn-secondary" disabled style="height: 34px; padding: 0 10px; font-size: 13px;" title="Only Eli Navarro (Assigned Pen Operator) can update execution status">
+                  Mark completed
+                </button>
+                <div style="font-size: 11px; color: var(--text-quiet); margin-top: 2px;">Assigned: Eli Navarro</div>
+              </td>
+            </tr>
+
+            <!-- P-12 Row: Finisher, 2274.8 lb for 94 head -->
+            <tr>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px;">P-12</span>
+              </td>
+              <td>
+                <span style="font-weight: 500;">Finisher</span>
+                <span style="display: block; font-size: 12px; color: var(--text-quiet);">$0.151/lb &bull; Service-returned</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">94 head</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">94 head</span>
+                <span style="display: block; font-size: 11px; color: var(--text-quiet);">L-2413: 94</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 500;">24.2 lb/hd/day</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; font-size: 15px;">2,274.8 lb</span>
+              </td>
+              <td>
+                <div class="status-badge" style="color: var(--status-good);">
+                  <span class="status-dot" style="background-color: var(--status-good);"></span>
+                  Saved
+                </div>
+              </td>
+              <td>
+                <!-- Example of returned refusal from service on status update -->
+                <div class="status-badge" style="color: var(--status-failed);">
+                  <span class="status-dot" style="background-color: var(--status-failed);"></span>
+                  Refused
+                </div>
+                <div style="font-size: 11px; color: var(--status-failed); margin-top: 2px;">Bunk unverified: scale offline</div>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <button type="button" class="btn-secondary" disabled style="height: 34px; padding: 0 10px; font-size: 13px;" title="Only assigned pen operator can update status">
+                    Retry status push
+                  </button>
+                  <span style="font-size: 11px; color: var(--text-quiet);">Assigned: Eli Navarro</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Feeding Sequence Visual Track (Signature Motion) -->
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-quiet);">Daily Delivery Sequence Completion</span>
+          <span class="font-mono" style="font-size: 13px; font-weight: 600; color: var(--text);">2,772 / 8,384 lb delivered (33.1%)</span>
+        </div>
+        <div style="width: 100%; height: 8px; background-color: #EAEAEA; border-radius: 4px; overflow: hidden; position: relative;">
+          <div class="seq-track-fill" style="width: 33.1%; height: 100%; background-color: var(--primary); border-radius: 4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-width 2px rule separating major groups -->
+    <hr class="major-divider">
+
+    <!-- Section 2: Interactive Plan Generator & Inline Preview -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      
+      <!-- Plan Generation Parameters Form -->
+      <div class="panel">
+        <h2 class="font-heading" style="font-size: 24px; font-weight: 600; color: var(--text); margin-bottom: 4px;">Generate plan</h2>
+        <p style="color: var(--text-quiet); font-size: 14px; margin-bottom: 20px;">
+          Recalculate pen quotas from real-time head counts and configured ration nutrition curves.
+        </p>
+
+        <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Target Delivery Date</label>
+            <input type="text" value="2025-06-20" class="font-mono" style="width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; color: var(--text); background: #FFFFFF; outline: none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Yard Scope</label>
+              <input type="text" value="Red Mesa Yard (All 3 Pens)" readonly style="width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; color: var(--text); background: #FBFBFB;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Reconciliation Base</label>
+              <input type="text" value="Current head count (360)" readonly style="width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; color: var(--text); background: #FBFBFB;">
+            </div>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Planner Authorization &amp; Sign-off</label>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: #FAFAFA;">
+              <img src="https://lh3.googleusercontent.com/aida/AEtjO1XAa7uvZd7Xq8LVl_nyzCwqfifo5S6bt0Dwmj_uVv_13qIjTopbTcMRV94ox3iN8ULgXo2vznLkVlz31bs8teT8by1wA62yy1ry7klO75WokSA-IkFpyxbACGxhtheKwKQX-e88klqVxhe4IxXXXTx6bgUwQnd4nbYU7L7R4lck42xeScWus_KDd37-Jw-7tv9p2AbMuB-8Dq5qiCKYc7nOWvqfL-_dbCLyq5SIYcAB8211dHwunN_vaPqG" alt="Maya Chen" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--text);">Maya Chen</div>
+                <div style="font-size: 12px; color: var(--text-quiet);">Yard manager &bull; Authorized feed planner</div>
+              </div>
+              <span class="status-badge" style="color: var(--status-good); font-size: 12px;">
+                <span class="status-dot" style="background-color: var(--status-good);"></span>
+                Authorized
+              </span>
+            </div>
+          </div>
+
+          <div style="margin-top: 8px; display: flex; gap: 12px;">
+            <button type="button" class="btn-primary" style="flex: 1;">Generate plan</button>
+            <button type="button" class="btn-secondary">Reset defaults</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Inline Preview Before Saving -->
+      <div class="panel">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div>
+            <h3 class="font-heading" style="font-size: 18px; font-weight: 600; color: var(--text);">Inline Preview (Before Saving)</h3>
+            <p style="color: var(--text-quiet); font-size: 13px;">Proposed regenerated quotas based on active 360 yard head.</p>
+          </div>
+          <div class="status-badge" style="color: var(--status-waiting); background: #FFFDF8; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+            <span class="status-dot" style="background-color: var(--status-waiting);"></span>
+            Unsaved draft
+          </div>
+        </div>
+
+        <table style="margin-top: 12px;">
+          <thead>
+            <tr>
+              <th>Pen</th>
+              <th>Head</th>
+              <th>Rate</th>
+              <th>Draft Quota</th>
+              <th>Delta vs Saved</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="font-mono" style="font-weight: 600;">P-04</span></td>
+              <td><span class="font-mono">140</span></td>
+              <td><span class="font-mono">23.5 lb</span></td>
+              <td><span class="font-mono" style="font-weight: 600; color: var(--text);">3,290.0 lb</span></td>
+              <td><span class="font-mono" style="color: var(--status-failed); font-weight: 500;">-47.0 lb</span></td>
+            </tr>
+            <tr>
+              <td><span class="font-mono" style="font-weight: 600;">P-07</span></td>
+              <td><span class="font-mono">126</span></td>
+              <td><span class="font-mono">22.0 lb</span></td>
+              <td><span class="font-mono" style="font-weight: 600; color: var(--text);">2,772.0 lb</span></td>
+              <td><span class="font-mono" style="color: var(--text-quiet);">0.0 lb</span></td>
+            </tr>
+            <tr>
+              <td><span class="font-mono" style="font-weight: 600;">P-12</span></td>
+              <td><span class="font-mono">94</span></td>
+              <td><span class="font-mono">24.2 lb</span></td>
+              <td><span class="font-mono" style="font-weight: 600; color: var(--text);">2,274.8 lb</span></td>
+              <td><span class="font-mono" style="color: var(--text-quiet);">0.0 lb</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totals summary block -->
+        <div style="margin-top: 16px; padding: 12px 16px; background: #FAFAFA; border: 1px solid var(--border); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 12px; color: var(--text-quiet); text-transform: uppercase; font-weight: 600;">Proposed Daily Delivered Total</div>
+            <div class="font-mono" style="font-size: 20px; font-weight: 600; color: var(--text);"><span style="color: var(--primary);">8,336.8</span> lb/day</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 12px; color: var(--text-quiet); text-transform: uppercase; font-weight: 600;">Total Variance</div>
+            <div class="font-mono" style="font-size: 15px; font-weight: 600; color: var(--status-failed);">-47.0 lb net</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn-secondary" style="font-size: 14px;">Discard preview</button>
+          <button type="button" class="btn-primary" style="font-size: 14px;">Commit and save plan</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Full-width 2px rule separating major groups -->
+    <hr class="major-divider">
+
+    <!-- Section 3: Shared Event Log & Audit History -->
+    <div class="panel">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div>
+          <h2 class="font-heading" style="font-size: 24px; font-weight: 600; color: var(--text);">Recorded Feed Plan Audit Trail</h2>
+          <p style="color: var(--text-quiet); font-size: 14px; margin-top: 2px;">
+            Time-ordered yard events and planner revisions logged in America/Denver (Mountain Time).
+          </p>
+        </div>
+        <div class="status-badge" style="color: var(--status-good);">
+          <span class="status-dot" style="background-color: var(--status-good);"></span>
+          Audit verified
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 170px;">Date &amp; Time (MT)</th>
+              <th style="width: 220px;">Staff Member</th>
+              <th style="width: 140px;">Location</th>
+              <th>Action Description</th>
+              <th style="width: 150px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Event 10 -->
+            <tr>
+              <td><span class="font-mono" style="font-size: 14px;">2025-06-18 10:35</span></td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1VvMtLpH_lI4ghANBGJeljpXxNwG3p1KeVAW4yIzVeGFgAgb3L0dYg4ZL5zOcBEqNd7nJl0k5106mwW6e0UkJPAPgL-z1ClLfLA21RjQjWWjmbK34xxUdSFgQYpmWtZbGnMBQqPgR4ay15SpJ2dFsNjBU6yQLAID2KCAie3Jcm4cpE7B1nY_h55fYCILrcgvSc2ikyr12Ee1_SsHqMol3czLKdKuSljExXsUdXrtt3zvg9RV18l7-mmsmWs" alt="Omar Diaz" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                  <div>
+                    <div style="font-size: 14px; font-weight: 600;">Omar Diaz</div>
+                    <div style="font-size: 11px; color: var(--text-quiet);">Feed planner</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="font-mono">P-04</span></td>
+              <td>Reviewed P-04 plan after relevant head-count change; saved plan retained at <span class="font-mono">3,337 lb</span></td>
+              <td>
+                <div class="status-badge" style="color: var(--status-waiting);">
+                  <span class="status-dot" style="background-color: var(--status-waiting);"></span>
+                  Flagged for review
+                </div>
+              </td>
+            </tr>
+
+            <!-- Event 7 -->
+            <tr>
+              <td><span class="font-mono" style="font-size: 14px;">2025-06-17 06:25</span></td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH" alt="Eli Navarro" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                  <div>
+                    <div style="font-size: 14px; font-weight: 600;">Eli Navarro</div>
+                    <div style="font-size: 11px; color: var(--text-quiet);">Pen operator</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="font-mono">P-07</span></td>
+              <td>Fed L-2409 in P-07 <span class="font-mono">2,772 lb</span> (saved with <span class="font-mono">-18 lb</span> returned variance, <span class="font-mono">$402</span> cost and <span class="font-mono">4,100 Mcal</span>)</td>
+              <td>
+                <div class="status-badge" style="color: var(--status-good);">
+                  <span class="status-dot" style="background-color: var(--status-good);"></span>
+                  Delivered
+                </div>
+              </td>
+            </tr>
+
+            <!-- Event 4 -->
+            <tr>
+              <td><span class="font-mono" style="font-size: 14px;">2025-06-14 06:20</span></td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1XUzBclMg30GPBf4z1rLciMGWP3JYNevHVWa1EgDq5LS0OvLNs9D_YCw-nW10DCV_6s58VYhgAn69_bcZoqoUOUwvQJRAT3XDJ4QX0mumM-O3wxuJB1ZskRJ_W7WkdBISSJiIkhsW9hSY5GJFTnBobYeHBjJNifszEusgCH7SulOe7Yvy8yfYYArdhm9JOdvsqXU5U8ii7SbYHfyUb_eUZx98inqxe0_S-wbmjwDCc-IgdGangIkBdnVuDH" alt="Eli Navarro" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                  <div>
+                    <div style="font-size: 14px; font-weight: 600;">Eli Navarro</div>
+                    <div style="font-size: 11px; color: var(--text-quiet);">Pen operator</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="font-mono">P-04</span></td>
+              <td>Fed P-04 lots L-2407 (<span class="font-mono">1,927 lb</span>) and L-2411 (<span class="font-mono">1,410 lb</span>) &bull; <span class="font-mono">3,337 lb</span> total (saved with <span class="font-mono">+44 lb</span> returned variance)</td>
+              <td>
+                <div class="status-badge" style="color: var(--status-good);">
+                  <span class="status-dot" style="background-color: var(--status-good);"></span>
+                  Delivered
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

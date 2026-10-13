@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quality cases</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: #202020;
+    }
+
+    .main-heading {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+
+    .section-heading {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+
+    .sub-heading {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    .text-sm {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Statuses */
+    .status-good {
+      color: #24704B;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-good::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-waiting::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #805800;
+    }
+
+    .status-failed {
+      color: #AE2C2C;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-failed::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+    }
+
+    /* Motion */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes syncPulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-sync-breathing::before {
+      animation: syncPulse 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Layout Components */
+    .header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 100%;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #202020;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #202020;
+      color: #FFFFFF;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+
+    .nav-item-active {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      color: #A94B1D;
+      font-weight: 600;
+      border-bottom: 2px solid #A94B1D;
+      padding: 0 4px;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      color: #202020;
+    }
+
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      background-color: #E8E8E8;
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 32px 48px;
+    }
+
+    .section-spacing {
+      margin-top: 32px;
+    }
+
+    /* Panels */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    .panel-flush {
+      padding: 0;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid #A94B1D;
+      outline-offset: 2px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    /* Forms & Fields */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #626262;
+    }
+
+    .field {
+      height: 48px;
+      padding: 0 14px;
+      border-radius: 2px;
+      border: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+
+    .field:focus {
+      border-color: #A94B1D;
+      outline: 1px solid #A94B1D;
+    }
+
+    /* Overview Cards Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .review-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .card-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .card-body-text {
+      font-size: 14px;
+      color: #202020;
+      line-height: 1.5;
+    }
+
+    /* Compact Filter Bar */
+    .filter-bar {
+      display: grid;
+      grid-template-columns: 1fr 220px 220px auto;
+      gap: 16px;
+      align-items: flex-end;
+      padding: 16px;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      border-bottom: 1px solid #D5D5D5;
+      background-color: #FFFFFF;
+    }
+
+    .data-table td {
+      height: 48px;
+      padding: 0 16px;
+      font-size: 15px;
+      color: #202020;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tr:hover td {
+      background-color: #FAFAFA;
+    }
+
+    /* Footer Info Strip */
+    .footer-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-top: 1px solid #D5D5D5;
+      font-size: 14px;
+      color: #626262;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="brand">
+        <div class="brand-mark">M</div>
+        <span>Meridian</span>
+      </div>
+      <nav class="nav-menu">
+        <span class="nav-item-active">Quality cases</span>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials">OS</div>
+        <span>Omar Saleh · Quality Officer</span>
+      </div>
+      <div class="lang-switcher">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="container">
+    
+    <!-- One Heading on Page -->
+    <h1 class="main-heading">Quality cases</h1>
+
+    <!-- Cases Needing Review Section -->
+    <section class="section-spacing">
+      <h2 class="section-heading" style="margin-bottom: 16px;">Cases needing review</h2>
+      
+      <div class="cards-grid">
+        
+        <!-- Case Q-88 Card -->
+        <article class="review-card">
+          <div>
+            <div class="card-meta-row">
+              <div>
+                <span class="mono" style="font-size: 18px; font-weight: 600;">Q-88</span>
+                <span class="text-quiet text-sm" style="margin-left: 8px;">Opened 14 May <span class="mono">08:30</span> BST</span>
+              </div>
+              <span class="status-waiting status-sync-breathing">waiting</span>
+            </div>
+            
+            <div style="margin-top: 12px;">
+              <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">HU-82 · 9.1°C excursion (22 minutes)</div>
+              <div class="text-quiet text-sm" style="margin-bottom: 8px;">
+                Lot <span class="mono">IG-2511</span> · Insulin Glargine 100 units/mL · North Quay Cold Room C2, Rack 4
+              </div>
+              <p class="card-body-text">
+                North Quay logger recorded 9.1°C excursion for 22m against 30m tier allowance (22m used, 8m remaining). HU-82 holds 20 packs: 10 quarantined, 5 on hold, 2 rejected, 3 expired.
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #D5D5D5; padding-top: 14px; margin-top: 4px;">
+            <span class="text-sm text-quiet">Customer: Inbound quarantine review</span>
+            <button class="btn btn-primary" type="button">Quality review</button>
+          </div>
+        </article>
+
+        <!-- Case Q-89 Card -->
+        <article class="review-card">
+          <div>
+            <div class="card-meta-row">
+              <div>
+                <span class="mono" style="font-size: 18px; font-weight: 600;">Q-89</span>
+                <span class="text-quiet text-sm" style="margin-left: 8px;">Opened 14 May <span class="mono">10:20</span> BST</span>
+              </div>
+              <span class="status-waiting">under review</span>
+            </div>
+            
+            <div style="margin-top: 12px;">
+              <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">Delivered O-290 · Late corrected datalogger readings</div>
+              <div class="text-quiet text-sm" style="margin-bottom: 8px;">
+                Lot <span class="mono">IG-2509</span> · Insulin Glargine 100 units/mL · Cedar Clinic (42 River Road)
+              </div>
+              <p class="card-body-text">
+                Handed to Rania Karim 13 May 10:14 on route R-201. Post-sync corrected readings generated certificate versions 1 and 2. Consignment completed on time and in full without dock refusal.
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #D5D5D5; padding-top: 14px; margin-top: 4px;">
+            <span class="text-sm text-quiet">Consignee: Cedar Health</span>
+            <button class="btn btn-primary" type="button">Quality review</button>
+          </div>
+        </article>
+
+        <!-- Case Q-90 Card -->
+        <article class="review-card">
+          <div>
+            <div class="card-meta-row">
+              <div>
+                <span class="mono" style="font-size: 18px; font-weight: 600;">Q-90</span>
+                <span class="text-quiet text-sm" style="margin-left: 8px;">Waited <span class="mono">4h 19m</span></span>
+              </div>
+              <span class="status-failed">escalated</span>
+            </div>
+            
+            <div style="margin-top: 12px;">
+              <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">RC-12 recall quarantine &amp; customer reconciliation</div>
+              <div class="text-quiet text-sm" style="margin-bottom: 8px;">
+                Lot <span class="mono">IG-2509</span> (Exp: 30 Nov 2026) · Active manufacturer recall RC-12
+              </div>
+              <p class="card-body-text">
+                Manufacturer recall initiated by Nadia Farouk at 10:00. 24 packs traced total: 4 packs quarantined on hand at Cold Room C2 Rack 4; 20 packs delivered to Cedar Clinic pending reconciliation.
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #D5D5D5; padding-top: 14px; margin-top: 4px;">
+            <span class="text-sm text-quiet">Manager: Nadia Farouk</span>
+            <button class="btn btn-primary" type="button">Quality review</button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- Compact Filtered CSV-Exportable List -->
+    <section class="section-spacing">
+      <div class="panel panel-flush">
+        
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="form-group">
+            <label class="form-label" for="filter-search">Search case, lot, entity, or consignee</label>
+            <input class="field" id="filter-search" type="text" placeholder="e.g. Q-88, HU-82, IG-2511, Cedar Health" value="">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="filter-status">Review status</label>
+            <select class="field" id="filter-status">
+              <option value="all">All statuses</option>
+              <option value="waiting" selected>waiting (1)</option>
+              <option value="under-review">under review (1)</option>
+              <option value="escalated">escalated (1)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="filter-scope">Case classification</label>
+            <select class="field" id="filter-scope">
+              <option value="all" selected>All categories</option>
+              <option value="excursion">Inbound excursion</option>
+              <option value="delivery">Delivery telemetry</option>
+              <option value="recall">Active recall</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-secondary" type="button">
+              CSV export
+            </button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Case</th>
+                <th style="width: 140px;">Opened (BST)</th>
+                <th style="width: 110px;">Lot number</th>
+                <th style="width: 110px;">Target entity</th>
+                <th>Scope, customer &amp; telemetry summary</th>
+                <th style="width: 140px;">Telemetry status</th>
+                <th style="width: 140px;">Review status</th>
+                <th style="width: 140px; text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1: Q-88 -->
+              <tr>
+                <td><span class="mono" style="font-weight: 600;">Q-88</span></td>
+                <td><span class="mono">14 May 08:30</span></td>
+                <td><span class="mono">IG-2511</span></td>
+                <td><span class="mono">HU-82</span></td>
+                <td>
+                  <div><strong>HU-82 excursion 9.1°C for 22m</strong> (allowance: 22m used / 8m left)</div>
+                  <div class="text-sm text-quiet">North Quay Cold Room C2, Rack 4 · 20 packs (10 quarantined, 5 on hold, 2 rejected, 3 expired)</div>
+                </td>
+                <td>
+                  <span class="status-waiting">excursion logged</span>
+                </td>
+                <td>
+                  <span class="status-waiting">waiting</span>
+                </td>
+                <td style="text-align: right;">
+                  <button class="btn btn-secondary" type="button" style="height: 38px; padding: 0 14px; font-size: 14px;">Quality review</button>
+                </td>
+              </tr>
+
+              <!-- Row 2: Q-89 -->
+              <tr>
+                <td><span class="mono" style="font-weight: 600;">Q-89</span></td>
+                <td><span class="mono">14 May 10:20</span></td>
+                <td><span class="mono">IG-2509</span></td>
+                <td><span class="mono">O-290</span></td>
+                <td>
+                  <div><strong>Delivered O-290 late corrected readings</strong> · Cedar Clinic (42 River Road)</div>
+                  <div class="text-sm text-quiet">Customer: Cedar Health · 20 packs delivered 13 May 10:14 · Certificate v1 and v2</div>
+                </td>
+                <td>
+                  <span class="status-good">good</span>
+                </td>
+                <td>
+                  <span class="status-waiting">under review</span>
+                </td>
+                <td style="text-align: right;">
+                  <button class="btn btn-secondary" type="button" style="height: 38px; padding: 0 14px; font-size: 14px;">Quality review</button>
+                </td>
+              </tr>
+
+              <!-- Row 3: Q-90 -->
+              <tr>
+                <td><span class="mono" style="font-weight: 600;">Q-90</span></td>
+                <td><span class="mono">14 May 10:00</span></td>
+                <td><span class="mono">IG-2509</span></td>
+                <td><span class="mono">RC-12</span></td>
+                <td>
+                  <div><strong>Active manufacturer recall RC-12</strong> · Waited <span class="mono">4h 19m</span></div>
+                  <div class="text-sm text-quiet">4 packs quarantined on hand at North Quay Cold Room C2; 20 packs delivered to Cedar Clinic</div>
+                </td>
+                <td>
+                  <span class="status-failed">refused</span>
+                </td>
+                <td>
+                  <span class="status-failed">escalated</span>
+                </td>
+                <td style="text-align: right;">
+                  <button class="btn btn-secondary" type="button" style="height: 38px; padding: 0 14px; font-size: 14px;">Quality review</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel Footer Strip -->
+        <div class="footer-strip">
+          <div>Showing <span class="mono" style="font-weight: 600; color: #202020;">3</span> quality cases under review · North Quay Warehouse scope</div>
+          <div>Unresolved reading gaps do not imply hold without validated excursion</div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

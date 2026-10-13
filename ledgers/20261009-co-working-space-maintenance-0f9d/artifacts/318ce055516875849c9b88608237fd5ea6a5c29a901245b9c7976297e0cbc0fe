@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "components/ui/status-badge.tsx"
+   },
+   "ms": 0,
+   "resultChars": 2847,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;components/ui/status-badge.tsx&quot;}\">\ncomponents/ui/status-badge.tsx lines 1-33\n1\timport { cva, type VariantProps } from \"class-variance-authority\";\n2\timport type { ComponentProps } from \"react\";\n3\timport { cn } from \"@/lib/utils\";\n4\t\n5\texport const badgeVariants = cva(\"inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold whitespace-nowrap\", {\n6\t  variants: {\n7\t    tone: {\n8\t      neutral: \"border-transparent bg-muted text-muted-foreground\",\n9\t      brand: \"border-transparent bg-primary/10 text-brand-text\",\n10\t      ok: \"border-transparent bg-success/6 text-success\",\n11\t      warn: \"border-transparent bg-warning/6 text-warning\",\n12\t      bad: \"border-transparent bg-destructive/6 text-destructive\",\n13\t      info: \"border-transparent bg-info/6 text-info\",\n14\t    },\n15\t  },\n16\t  defaultVariants: { tone: \"neutral\" },\n17\t});\n18\t\n19\texport function StatusBadge({ className, tone, ...props }: ComponentProps<\"span\"> & VariantProps<typeof badgeVariants>) {\n20\t  return <span data-slot=\"status-badge\" className={cn(badgeVariants({ tone }), className)} {...props} />;\n21\t}\n22\t\n23\t// a status word's colour, as the approved demo draws it (src/estimate/demo.ts, tone): wrong, needs attention, happening now, fine\n24\tconst TONES: [RegExp, \"bad\" | \"warn\" | \"brand\" | \"ok\"][] = [\n25\t  [/\\b(unpaid|overdue|fail(ed|ure|ing)?|errors?|reject(ed)?|block(ed)?|late|critical|declined|cancell?ed|bounced|expired|out of stock|sold out|missed|lost|suspended|offline|denied|no.?show|disputed|breach(ed)?|returned|refused|terminated|churned|urgent|severe|outage)\\b/i, \"bad\"],\n26\t  [/\\b(delayed|pending|due|wait(ing|list(ed)?)?|awaiting|draft|(in |under )?review|partial(ly)?|on hold|hold|low stock|few left|at risk|queued|processing|expiring|unverified|limited|needs (action|attention|review)|not \\w+|incomplete|requested|follow.?up|warning|moderate|paused)\\b/i, \"warn\"],\n27\t  [/\\b(boarding|in progress|live|now|in transit|on the way|out for delivery|preparing|checking in|ongoing|running|new|started|en route|departing|arriving|admitted|in surgery|deal|offer|sale|popular|featured|best (value|seller)|top rated|trending|limited time)\\b/i, \"brand\"],\n28\t  [/\\b(paid|active|done|approved|completed?|success(ful)?|delivered|ok|resolved|sent|on track|on time|open|confirmed|booked|available|in stock|verified|online|healthy|passed|shipped|arrived|landed|published|accepted|enrolled|checked.?in|ready|signed|settled|won|valid|insured|current|stable|discharged|normal|good|excellent|hired|closed won)\\b/i, \"ok\"],\n29\t];\n30\t\n31\t/** The tone a status word reads as (Paid, Overdue, Pending...). */\n32\texport const toneOf = (status: string): \"bad\" | \"warn\" | \"brand\" | \"ok\" | \"info\" => TONES.find(([re]) => re.test(status.trim()))?.[1] ?? \"info\";\n33\t\n</untrusted_document>"
+  }
+ ]
+}

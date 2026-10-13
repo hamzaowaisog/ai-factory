@@ -1,0 +1,524 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q1",
+      "category": "external",
+      "text": "What source connection should procurement and receiving synchronization use for the demo and eventual deployment?",
+      "options": [
+       "Use a documented import adapter with mock source data for the demo; defer a live connector until the procurement system and API are identified.",
+       "Connect directly to the named procurement system’s API as part of this delivery.",
+       "Support both mock data and a live connector to the procurement system."
+      ],
+      "recommended": "Use a documented import adapter with mock source data for the demo; defer a live connector until the procurement system and API are identified.",
+      "reason": "The request provides mock upstream data but does not identify a live system or interface.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "This determines whether the demo performs a live integration or uses sample imports."
+     },
+     {
+      "id": "Q2",
+      "category": "roles",
+      "text": "Who may import source records and change PO-to-lot and lot-to-pen mappings?",
+      "options": [
+       "Only users with operational access can import source records and change mappings; other users can view them.",
+       "Only designated data managers can import and change mappings; other users can view them.",
+       "Any signed-in user can import and change mappings."
+      ],
+      "recommended": "Only users with operational access can import source records and change mappings; other users can view them.",
+      "reason": "This keeps access limited without introducing a separate data-manager role.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "Import and mapping permissions control changes to traceability and operational records.",
+      "difference": "D-1",
+      "topic": "roles"
+     },
+     {
+      "id": "Q3",
+      "category": "data-model",
+      "text": "Can animals from one lot be allocated across multiple pens, and should the system retain the animal allocation for each pen?",
+      "options": [
+       "Allow a lot to occupy multiple pens and retain allocation quantities for traceability.",
+       "Require each lot to occupy exactly one pen.",
+       "Allow a lot to occupy multiple pens but do not track allocation quantities."
+      ],
+      "recommended": "Allow a lot to occupy multiple pens and retain allocation quantities for traceability.",
+      "reason": "This supports the stated PO-to-lot-to-pen traceability when a lot is split across pens.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "Pen allocation affects animal counts and later lot-level feed and performance rollups.",
+      "difference": "D-2"
+     },
+     {
+      "id": "Q4",
+      "category": "data-model",
+      "text": "What target-weight and growth-rate basis should the initial market-date forecast use when incoming records do not provide those values?",
+      "options": [
+       "Use configurable yard defaults for target weight and expected gain rate, with optional lot-specific overrides.",
+       "Require a target weight and expected gain rate to be entered for each lot before forecasting.",
+       "Do not forecast until enough lot weight measurements exist to calculate an observed gain rate."
+      ],
+      "recommended": "Use configurable yard defaults for target weight and expected gain rate, with optional lot-specific overrides.",
+      "reason": "This enables an initial forecast while making its assumptions explicit and adjustable.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "Target and gain assumptions change each lot’s forecast date and weight.",
+      "difference": "D-3"
+     },
+     {
+      "id": "Q5",
+      "category": "roles",
+      "text": "Who may change target weights and growth-rate assumptions used for forecasts?",
+      "options": [
+       "Authorized managers can change the assumptions; other users can view forecasts.",
+       "Any user who can access a lot can change its assumptions.",
+       "Only administrators can change assumptions; operational managers can only view forecasts."
+      ],
+      "recommended": "Authorized managers can change the assumptions; other users can view forecasts.",
+      "reason": "This permits operational management without allowing every viewer to alter forecast inputs.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "Changing assumptions alters visible forecasts and may influence shipping decisions.",
+      "difference": "D-4",
+      "topic": "roles"
+     },
+     {
+      "id": "Q6",
+      "category": "roles",
+      "text": "Who may maintain inventory items, record receipts or adjustments, and change the wastage setting?",
+      "options": [
+       "Authorized inventory users may make these changes; operational users may view inventory and record feeding subject to stock controls.",
+       "Any signed-in user may maintain inventory and change wastage settings.",
+       "Only administrators may make inventory changes; all other users have read-only access."
+      ],
+      "recommended": "Authorized inventory users may make these changes; operational users may view inventory and record feeding subject to stock controls.",
+      "reason": "This separates stock administration from routine operations without making inventory universally read-only.",
+      "spans": [
+       "I-3",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "These permissions determine who can change stock balances and consumption assumptions.",
+      "difference": "D-5",
+      "topic": "roles"
+     },
+     {
+      "id": "Q7",
+      "category": "data-model",
+      "text": "How should actual feed wastage be represented in relation to the configured wastage ratio?",
+      "options": [
+       "Apply the ratio to estimates and projections; record known actual wastage as a separate inventory movement, not as an extra charge on delivered feed.",
+       "Apply the ratio to estimates, projections, and every logged feeding event as additional inventory consumption.",
+       "Use the ratio only in projections and do not support a separate actual-wastage movement."
+      ],
+      "recommended": "Apply the ratio to estimates and projections; record known actual wastage as a separate inventory movement, not as an extra charge on delivered feed.",
+      "reason": "This supports wastage tracking while avoiding double-counting feed already recorded as delivered.",
+      "spans": [
+       "I-3",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Wastage treatment changes inventory balances and projected procurement needs.",
+      "difference": "D-6"
+     },
+     {
+      "id": "Q8",
+      "category": "scope",
+      "text": "What should ration optimization do with the available ingredients and nutrition requirements?",
+      "options": [
+       "Compare candidate mixes and identify the lowest-cost mix that meets user-selected nutrition requirements; let the user choose whether to save it.",
+       "Show cost and nutrition comparisons for candidate mixes without identifying a lowest-cost qualifying mix.",
+       "Automatically replace the current ration with the lowest-cost mix that meets configured requirements."
+      ],
+      "recommended": "Compare candidate mixes and identify the lowest-cost mix that meets user-selected nutrition requirements; let the user choose whether to save it.",
+      "reason": "This makes optimization actionable without silently changing an approved ration.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "This changes the optimization flow and whether a result is saved automatically.",
+      "difference": "D-7"
+     },
+     {
+      "id": "Q9",
+      "category": "roles",
+      "text": "Who may create, revise, optimize, or approve ration definitions?",
+      "options": [
+       "Authorized ration managers may create, revise, optimize, and approve rations; other users may view approved rations.",
+       "Any signed-in user may create and edit rations.",
+       "Only administrators may manage rations; operational users may not view draft or approved rations."
+      ],
+      "recommended": "Authorized ration managers may create, revise, optimize, and approve rations; other users may view approved rations.",
+      "reason": "This limits changes to ration definitions while allowing operational users to use approved recipes.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "Ration permissions control inputs that affect feed costs, nutrition, and inventory decrements.",
+      "difference": "D-8",
+      "topic": "roles"
+     },
+     {
+      "id": "Q10",
+      "category": "existing-data",
+      "text": "What should happen to a saved feed plan if its pen count, ration, or bunk-rate inputs change after generation?",
+      "options": [
+       "Keep the saved plan unchanged, flag it for review, and require an authorized user to confirm or regenerate it.",
+       "Silently recalculate the saved plan using the changed inputs.",
+       "Keep the plan unchanged and do not flag that its inputs have changed."
+      ],
+      "recommended": "Keep the saved plan unchanged, flag it for review, and require an authorized user to confirm or regenerate it.",
+      "reason": "This preserves the original plan basis while making stale plans visible.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Changing or preserving a plan affects planned quantities and comparisons with actual feeding.",
+      "difference": "D-9"
+     },
+     {
+      "id": "Q11",
+      "category": "roles",
+      "text": "Who may create or adjust feed plans, and who may update execution status?",
+      "options": [
+       "Authorized planners may create and adjust plans; operators may view assigned plans and update execution status.",
+       "Any signed-in user may create, adjust, and update plans.",
+       "Only administrators may create or adjust plans, and operators cannot update status."
+      ],
+      "recommended": "Authorized planners may create and adjust plans; operators may view assigned plans and update execution status.",
+      "reason": "This supports planning and execution without giving operators unnecessary access to planning assumptions.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "These permissions determine who can change planned quantities and execution state.",
+      "difference": "D-10",
+      "topic": "roles"
+     },
+     {
+      "id": "Q12",
+      "category": "errors",
+      "text": "What should happen when a feeding event would consume more ingredient stock than is available?",
+      "options": [
+       "Block saving the event until stock is sufficient or an authorized inventory adjustment is recorded.",
+       "Allow an authorized manager to override the shortage and record an explicitly negative balance.",
+       "Save the event and warn that the inventory balance is negative."
+      ],
+      "recommended": "Block saving the event until stock is sufficient or an authorized inventory adjustment is recorded.",
+      "reason": "This prevents an untracked negative balance while allowing stock corrections through inventory management.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Shortage handling determines whether feeding writes can create inconsistent inventory balances.",
+      "difference": "D-11"
+     },
+     {
+      "id": "Q13",
+      "category": "existing-data",
+      "text": "How should a saved feeding event be corrected or voided?",
+      "options": [
+       "Allow authorized corrections or voids, retain the original event and correction history, and adjust inventory and lot totals consistently.",
+       "Allow authorized users to overwrite or delete events without retaining the original values.",
+       "Do not allow saved events to be changed; enter a separate compensating event instead."
+      ],
+      "recommended": "Allow authorized corrections or voids, retain the original event and correction history, and adjust inventory and lot totals consistently.",
+      "reason": "This preserves a reviewable history and keeps derived balances consistent after corrections.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Corrections change inventory, lot consumption totals, and performance calculations.",
+      "difference": "D-12",
+      "topic": "audit"
+     },
+     {
+      "id": "Q14",
+      "category": "roles",
+      "text": "Who may record feeding activity and who may correct or void saved activity?",
+      "options": [
+       "Operators may record activity for assigned pens; authorized managers may correct or void saved activity.",
+       "Any signed-in user may record, correct, or void feeding activity.",
+       "Only administrators may record or change feeding activity."
+      ],
+      "recommended": "Operators may record activity for assigned pens; authorized managers may correct or void saved activity.",
+      "reason": "This supports day-to-day feeding work while limiting changes to saved operational records.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "These permissions determine who can write feeding records and reverse their stock effects.",
+      "difference": "D-13",
+      "topic": "roles"
+     },
+     {
+      "id": "Q15",
+      "category": "roles",
+      "text": "Who may add lot weight measurements?",
+      "options": [
+       "Authorized livestock or operations users may add measurements; other users may view weight history.",
+       "Any signed-in user may add measurements.",
+       "Only administrators may add measurements; operational users may only view them."
+      ],
+      "recommended": "Authorized livestock or operations users may add measurements; other users may view weight history.",
+      "reason": "This allows relevant staff to record weights without making the time series editable by every user.",
+      "spans": [
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Weight entries affect lot history, forecasts, and feed-to-gain metrics.",
+      "difference": "D-14",
+      "topic": "roles"
+     },
+     {
+      "id": "Q16",
+      "category": "data-model",
+      "text": "Which date basis should the projected ship-date formula use?",
+      "options": [
+       "Use the current date plus (target weight minus current weight) divided by positive ADG.",
+       "Use the receiving date plus (target weight minus current weight) divided by positive ADG.",
+       "Add days on feed to the remaining days-to-target value and display the result as a date."
+      ],
+      "recommended": "Use the current date plus (target weight minus current weight) divided by positive ADG.",
+      "reason": "This produces a calendar date from the remaining growth time and avoids adding a duration directly to days on feed.",
+      "spans": [
+       "I-8"
+      ],
+      "impact": 2,
+      "impactReason": "The formula changes the projected ship date shown for each lot.",
+      "difference": "D-15"
+     },
+     {
+      "id": "Q17",
+      "category": "roles",
+      "text": "Should dashboard visibility be limited by yard access, and should profitability values have additional access restrictions?",
+      "options": [
+       "Limit dashboard data to yards a user may access and restrict profitability details to authorized roles.",
+       "Allow every signed-in user to view all yard dashboards and profitability values.",
+       "Limit yard data by access but show profitability values to every user with access to that yard."
+      ],
+      "recommended": "Limit dashboard data to yards a user may access and restrict profitability details to authorized roles.",
+      "reason": "This keeps yard and financial information aligned with operational access needs.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 3,
+      "impactReason": "Access rules determine which operational and financial records each user can see.",
+      "difference": "D-17",
+      "topic": "roles"
+     },
+     {
+      "id": "Q18",
+      "category": "scope",
+      "text": "Should the feed-to-gain report and its exports follow the same yard and profitability access rules as dashboards?",
+      "options": [
+       "Restrict report results and exports to the user's authorized yards and apply the same profitability restrictions as dashboards.",
+       "Allow all signed-in users to see and export all report results.",
+       "Restrict on-screen results by yard but allow exports to include all yards."
+      ],
+      "recommended": "Restrict report results and exports to the user's authorized yards and apply the same profitability restrictions as dashboards.",
+      "reason": "This prevents exports from exposing data hidden in the dashboard or report view.",
+      "spans": [
+       "I-10"
+      ],
+      "impact": 3,
+      "impactReason": "Report permissions control visibility and export of lot and financial data.",
+      "difference": "D-18",
+      "topic": "roles"
+     },
+     {
+      "id": "Q19",
+      "category": "existing-data",
+      "text": "How should sample data be loaded and reset?",
+      "options": [
+       "Keep sample records visibly distinct, prevent duplicate loading, and require confirmation before a reset or replacement removes data.",
+       "Provide one fixed sample dataset and do not offer loading or reset controls.",
+       "Allow sample data to be loaded or reset without confirmation, even if existing records are replaced."
+      ],
+      "recommended": "Keep sample records visibly distinct, prevent duplicate loading, and require confirmation before a reset or replacement removes data.",
+      "reason": "This supports repeatable demonstrations without confusing sample records with operational data or silently deleting records.",
+      "spans": [
+       "I-11"
+      ],
+      "impact": 3,
+      "impactReason": "Loading and resetting sample records can create or remove operationally visible data.",
+      "difference": "D-19"
+     },
+     {
+      "id": "Q20",
+      "category": "roles",
+      "text": "Who may view the yard-level summary, and how should missing summary data be presented?",
+      "options": [
+       "Users with access to the yard may view its summary; identify unavailable metrics and the contributing active-lot data.",
+       "All signed-in users may view every yard summary; show unavailable metrics explicitly.",
+       "Users with yard access may view the summary, but show unavailable metrics as zero."
+      ],
+      "recommended": "Users with access to the yard may view its summary; identify unavailable metrics and the contributing active-lot data.",
+      "reason": "This keeps the stretch dashboard scoped to authorized users and avoids treating missing data as zero.",
+      "spans": [
+       "I-11"
+      ],
+      "impact": 3,
+      "impactReason": "This determines who sees yard-wide data and whether summary values can misrepresent missing records.",
+      "difference": "D-20",
+      "topic": "roles"
+     },
+     {
+      "id": "Q21",
+      "category": "data-model",
+      "text": "What data should the lot-level profitability analysis use to calculate financial return?",
+      "options": [
+       "Calculate feed cost of gain and show broader ROI as unavailable unless acquisition cost, sale proceeds, and any other included costs are supplied.",
+       "Calculate gross margin from acquisition cost, feed cost, and sale proceeds, excluding other operating costs.",
+       "Calculate full net ROI including acquisition, feed, other operating costs, and sale proceeds."
+      ],
+      "recommended": "Calculate feed cost of gain and show broader ROI as unavailable unless acquisition cost, sale proceeds, and any other included costs are supplied.",
+      "reason": "The request defines feed costs and acquisition cost but does not specify sale proceeds or which additional costs belong in ROI.",
+      "spans": [
+       "I-1",
+       "I-9"
+      ],
+      "impact": 3,
+      "impactReason": "Profitability definitions determine financial values shown for each lot.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q22",
+      "category": "scope",
+      "text": "What should the predictive insights recommend based on weight-gain trends?",
+      "options": [
+       "Show explainable rule-based suggestions for feeding adjustments or sale timing, and require a user to decide whether to act.",
+       "Show forecasts only and leave feeding and sale decisions to users.",
+       "Automatically change feeding plans or sale timing based on projected trends."
+      ],
+      "recommended": "Show explainable rule-based suggestions for feeding adjustments or sale timing, and require a user to decide whether to act.",
+      "reason": "This delivers the requested next-step suggestions without silently changing plans or sale decisions.",
+      "spans": [
+       "I-5",
+       "I-8",
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "This defines whether the product presents forecasts only or adds a decision-support flow."
+     },
+     {
+      "id": "Q23",
+      "category": "scope",
+      "text": "How should the system respond when actual bunk intake differs from the projected feeding plan?",
+      "options": [
+       "Show intake and variance and let an authorized user adjust a future plan; do not automatically rewrite a saved plan.",
+       "Automatically adjust upcoming feeding plans based on each actual intake.",
+       "Show the variance only and do not support plan adjustments based on intake."
+      ],
+      "recommended": "Show intake and variance and let an authorized user adjust a future plan; do not automatically rewrite a saved plan.",
+      "reason": "This supports the requested responsive bunk management while keeping operational decisions under user control.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "This changes the visible response to intake variance and whether future plans change automatically."
+     },
+     {
+      "id": "Q24",
+      "category": "terminology",
+      "text": "What quantity basis should be used for ration, plan, and feeding calculations when ingredient data uses different units or dry-matter values?",
+      "options": [
+       "Use as-fed quantities for plans and actual feeding, convert feed totals to pounds for feed-to-gain calculations, and use dry matter for nutrition calculations.",
+       "Use dry-matter quantities for plans, feeding events, and feed-to-gain calculations.",
+       "Retain each entered unit without normalization and calculate only when units match."
+      ],
+      "recommended": "Use as-fed quantities for plans and actual feeding, convert feed totals to pounds for feed-to-gain calculations, and use dry matter for nutrition calculations.",
+      "reason": "This makes inventory decrements and the stated pounds-based FCR formula comparable while preserving nutrition data.",
+      "spans": [
+       "I-3",
+       "I-4",
+       "I-5",
+       "I-6",
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "Unit basis changes stock movements, ration calculations, and reported feed-to-gain values."
+     },
+     {
+      "id": "Q25",
+      "category": "scope",
+      "text": "What should the report's date-range filter mean for per-lot ADG, FCR, and cost of gain?",
+      "options": [
+       "Calculate each metric from feeding and weight records within the selected date range, using the relevant starting and ending weights.",
+       "Filter lots by whether they were active during the range but show their current lifetime metrics.",
+       "Filter records by date but show the latest saved lifetime metrics for each matching lot."
+      ],
+      "recommended": "Calculate each metric from feeding and weight records within the selected date range, using the relevant starting and ending weights.",
+      "reason": "This makes the selected period affect the compared performance values rather than only the lot list.",
+      "spans": [
+       "I-10"
+      ],
+      "impact": 2,
+      "impactReason": "The date-range interpretation changes visible lot comparisons and exported metric values."
+     },
+     {
+      "id": "Q26",
+      "category": "scope",
+      "text": "What should determine the dashboard's best- and worst-performing lot ranking when performance measures disagree?",
+      "options": [
+       "Let users choose the ranking measure, such as FCR, ADG, or cost of gain, and show the chosen basis.",
+       "Rank only by FCR and show that basis.",
+       "Combine FCR, ADG, and cost of gain into one weighted score."
+      ],
+      "recommended": "Let users choose the ranking measure, such as FCR, ADG, or cost of gain, and show the chosen basis.",
+      "reason": "A selectable measure avoids implying a single definition of performance where the request names several KPIs.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "The ranking measure changes which lots are presented as best or worst."
+     },
+     {
+      "id": "Q27",
+      "category": "scope",
+      "text": "How should users sign in to access operational records and role-based permissions?",
+      "options": [
+       "Use email and password sign-in for the web app.",
+       "Use a shared demo account without individual sign-in.",
+       "Use an organization-provided single sign-on service."
+      ],
+      "recommended": "Use email and password sign-in for the web app.",
+      "reason": "Individual sign-in is the smallest way to apply the requested user-specific permissions and record accountability.",
+      "spans": [
+       "I-1",
+       "I-6",
+       "I-9",
+       "I-10",
+       "I-11"
+      ],
+      "impact": 3,
+      "impactReason": "Sign-in establishes user identity for permissions and attribution of operational changes.",
+      "topic": "sign-in"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/App.Api.csproj"
+   },
+   "ms": 1,
+   "resultChars": 1061,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/App.Api.csproj&quot;}\">\nApp.Api/App.Api.csproj lines 1-18\n1\t<Project Sdk=\"Microsoft.NET.Sdk.Web\">\n2\t  <PropertyGroup>\n3\t    <TargetFramework>net9.0</TargetFramework>\n4\t    <Nullable>enable</Nullable>\n5\t    <ImplicitUsings>enable</ImplicitUsings>\n6\t    <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\n7\t    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\n8\t    <OpenApiGenerateDocumentsOptions>--file-name built</OpenApiGenerateDocumentsOptions>\n9\t  </PropertyGroup>\n10\t  <ItemGroup>\n11\t    <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\n12\t    <PackageReference Include=\"Microsoft.Extensions.ApiDescription.Server\" Version=\"9.0.0\">\n13\t      <PrivateAssets>all</PrivateAssets>\n14\t    </PackageReference>\n15\t    <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.2\" />\n16\t  </ItemGroup>\n17\t</Project>\n18\t\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>AI-Factory - design demo</title>
+<meta name="color-scheme" content="light">
+<style>:root{--r:4px;--pad:10px;--font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--head:inherit;--e:cubic-bezier(.2,.8,.2,1);--rise:6px;--drift:paused;--bg:#f5f6f8;--sf:#ffffff;--ink:#12151c;--mut:#596273;--edge:#e1e4ea;--br:#0E7A5A;--a1:#0e7a5a;--a2:#0e7a5a;--on:#ffffff;--ok:#0f7b4f;--bad:#c8243a;--warn:#a35a00;--shadow:none;--blur:none}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;font:14px/1.5 var(--font);color:var(--ink);background:var(--bg);overflow-x:hidden}
+h1,h2,h3,h4{font-family:var(--head)}
+aside{width:260px;flex:none;padding:22px 16px;border-right:1px solid var(--edge);background:var(--sf);backdrop-filter:var(--blur);overflow:auto;max-height:100vh;position:sticky;top:0}
+aside h1{font-size:15px;margin:0 0 6px}
+aside p{color:var(--mut);font-size:12.5px;margin:.2rem 0 1rem}aside h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin:1.4rem 0 .5rem;font-family:var(--font)}
+aside ul{list-style:none;padding:0;margin:0;display:grid;gap:2px}
+aside a{display:block;padding:7px 10px;border-radius:calc(var(--r) - 2px);color:inherit;text-decoration:none;transition:background .2s}
+aside a:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+aside a.on{background:color-mix(in srgb,var(--a1) 12%,transparent);color:var(--a1);font-weight:600}
+aside code,.file{color:var(--mut);font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+aside li li{font-size:12px;color:var(--mut)}
+main{flex:1;min-width:0;padding:24px clamp(14px,3vw,36px) 60px}
+.screen:not([hidden]){animation:enter .4s var(--e) both}
+@keyframes enter{from{opacity:0;transform:translateY(calc(var(--rise)*.6))}}
+.top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:10px}
+.top h2{margin:0;font-size:13px;font-weight:600;color:var(--mut);font-family:var(--font)}.top .tag{margin-left:auto}
+.tag{border:1px solid var(--edge);background:var(--sf);border-radius:99px;padding:2px 11px;font-size:11.5px;color:var(--mut)}
+.states{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid var(--edge);border-radius:calc(var(--r) + 2px);background:var(--sf);margin:0 0 14px}
+.states button{border:0;background:transparent;color:var(--mut);padding:5px 14px;border-radius:var(--r);cursor:pointer;font:inherit;text-transform:capitalize;transition:color .2s,background .2s}
+.states button:hover{color:var(--ink)}
+.states .on{color:var(--on);background:var(--br)}
+.canvas{border:1px solid var(--edge);border-radius:calc(var(--r) + 4px);background:var(--bg);box-shadow:var(--shadow);overflow:hidden}
+.chrome{display:flex;align-items:center;gap:18px;padding:0 var(--pad);height:52px;background:var(--sf);backdrop-filter:var(--blur);border-bottom:1px solid var(--edge)}
+.chrome .lg{font-size:15px;font-family:var(--head);letter-spacing:-.01em;white-space:nowrap}
+.chrome nav{display:flex;gap:4px;overflow:auto;flex:1;min-width:0}
+.chrome nav a{color:var(--mut);text-decoration:none;padding:6px 11px;border-radius:calc(var(--r) - 2px);white-space:nowrap;font-weight:500;transition:color .2s,background .2s}
+.chrome nav a:hover{color:var(--ink)}.chrome nav a.on{color:var(--a1);background:color-mix(in srgb,var(--a1) 11%,transparent)}
+.chrome .me{width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--a1) 18%,var(--sf));color:var(--a1);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.chrome.brand{background:var(--br);color:var(--on);border-color:transparent}
+.chrome.brand nav a{color:color-mix(in srgb,var(--on) 78%,transparent)}.chrome.brand nav a:hover{color:var(--on)}.chrome.brand nav a.on{color:var(--on);background:color-mix(in srgb,var(--on) 18%,transparent)}
+.chrome.brand .me{background:color-mix(in srgb,var(--on) 20%,transparent);color:var(--on)}
+.pane{padding:22px clamp(14px,2.4vw,30px) 30px;min-height:260px}.pane[hidden]{display:none}.pane:not([hidden]){animation:enter .35s var(--e) both}
+.canvas img{max-width:100%;display:block;margin:18px auto}.wire{background:#fff;border-radius:var(--r);padding:10px;margin:14px}.wire svg{display:block;max-width:640px;margin:0 auto}
+.ph h3{margin:0;font-size:clamp(20px,2.4vw,26px);letter-spacing:-.015em}
+.sub{margin:.25rem 0 0;color:var(--mut)}.body{display:grid;gap:16px;margin-top:18px}
+.body>*{animation:rise .45s var(--e) both}.body>:nth-child(2){animation-delay:.05s}.body>:nth-child(3){animation-delay:.1s}.body>:nth-child(4){animation-delay:.15s}.body>:nth-child(5){animation-delay:.2s}.body>:nth-child(6){animation-delay:.25s}
+@keyframes rise{from{opacity:0;transform:translateY(var(--rise))}}
+.card{border:1px solid var(--edge);border-radius:var(--r);background:var(--sf);backdrop-filter:var(--blur);box-shadow:var(--shadow);padding:var(--pad);transition:border-color .2s,box-shadow .2s}
+.card.item:hover,.stat:hover{border-color:color-mix(in srgb,var(--a1) 45%,var(--edge))}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{border:1px solid var(--edge);border-radius:var(--r);padding:calc(var(--pad) - 2px) var(--pad);background:var(--sf);backdrop-filter:var(--blur);box-shadow:var(--shadow);display:grid;gap:2px;transition:border-color .2s}
+.stat .k{color:var(--mut);font-size:12px}.stat .v{font-size:clamp(22px,2.6vw,28px);letter-spacing:-.02em;font-variant-numeric:tabular-nums;font-weight:650}
+.delta{font-size:12px;font-weight:600}.delta.up{color:var(--ok)}.delta.dn{color:var(--bad)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.row.sp{justify-content:space-between}
+.search{display:flex;align-items:center;gap:8px;padding:0 12px;height:38px;border-radius:var(--r);border:1px solid var(--edge);background:var(--sf);min-width:220px;transition:border-color .2s,box-shadow .2s}
+.search:focus-within{border-color:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 18%,transparent)}
+.search input{background:none;border:0;outline:0;color:inherit;font:inherit;flex:1;min-width:0}
+svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.chart svg{width:100%;height:auto;stroke-width:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--edge);background:var(--sf);color:var(--mut);padding:5px 13px;border-radius:99px;cursor:pointer;font:inherit;transition:all .2s}
+.chip:hover{color:var(--ink)}.chip.on{color:var(--on);border-color:transparent;background:var(--br)}
+.tbl{padding:0;overflow:auto}table{width:100%;border-collapse:collapse;min-width:480px}
+th{text-align:left;font-size:12px;color:var(--mut);padding:11px 16px;font-weight:600;border-bottom:1px solid var(--edge);background:color-mix(in srgb,var(--ink) 3%,transparent)}
+td{padding:calc(var(--pad) - 3px) 16px;border-bottom:1px solid var(--edge);font-variant-numeric:tabular-nums;white-space:nowrap}tr:last-child td{border-bottom:0}
+tbody tr{animation:rise .4s var(--e) both;transition:background .15s;cursor:default}tbody tr:hover,tbody tr.sel{background:color-mix(in srgb,var(--a1) 7%,transparent)}
+tbody tr:nth-child(1){animation-delay:0.12s}tbody tr:nth-child(2){animation-delay:0.16s}tbody tr:nth-child(3){animation-delay:0.2s}tbody tr:nth-child(4){animation-delay:0.24s}tbody tr:nth-child(5){animation-delay:0.28s}tbody tr:nth-child(6){animation-delay:0.32s}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.badge:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}.badge.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.badge.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,transparent)}.badge.info{color:var(--mut);background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 16px;align-items:start}.form .row{grid-column:1/-1}
+.field{display:grid;gap:5px}.field label{font-size:12.5px;font-weight:600}
+.field input,.field select,.field textarea{background:var(--bg);border:1px solid var(--edge);color:inherit;border-radius:var(--r);padding:9px 12px;font:inherit;outline:0;transition:border-color .2s,box-shadow .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 18%,transparent)}
+.field.bad input,.field.bad select,.field.bad textarea{border-color:var(--bad);animation:shake .35s}.err{color:var(--bad);font-size:12px}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tog{display:flex;align-items:center;justify-content:space-between}.tog input{appearance:none;width:40px;height:22px;padding:0;border-radius:99px;position:relative;cursor:pointer;transition:background .25s}
+.tog input:before{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .25s var(--e)}.tog input:checked{background:var(--br);border-color:transparent}.tog input:checked:before{transform:translateX(18px)}
+.btn{border:1px solid var(--edge);background:var(--sf);color:var(--ink);padding:9px 20px;border-radius:var(--r);cursor:pointer;font:inherit;font-weight:600;position:relative;overflow:hidden;transition:background .2s,border-color .2s,transform .15s}
+.btn:hover{border-color:var(--a1)}.btn:active{transform:scale(.98)}
+.btn.primary{border-color:transparent;color:var(--on);background:var(--br)}.btn.primary:hover{background:color-mix(in srgb,var(--br) 88%,var(--ink))}
+.btn.busy{pointer-events:none;opacity:.85}.btn.busy:after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);animation:sweep .9s linear infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.chart h4{margin:0 0 12px;font-size:13px;color:var(--mut);font-weight:600;font-family:var(--font)}
+.bars{display:flex;align-items:flex-end;gap:clamp(6px,2vw,16px);height:170px;padding-top:18px}.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;position:relative}
+.bar i{display:block;width:100%;max-width:44px;height:var(--h);border-radius:calc(var(--r) - 4px) calc(var(--r) - 4px) 2px 2px;background:var(--a1);transform-origin:bottom;animation:grow .8s var(--e) both;animation-delay:calc(var(--d)*60ms + .15s)}
+@keyframes grow{from{transform:scaleY(0)}}
+.bar .n{font-size:11px;color:var(--mut);opacity:0;transition:opacity .2s}.bar:hover .n{opacity:1}.bar .l{font-size:11px;color:var(--mut)}
+.chart text{fill:var(--mut);font-size:10px;stroke:none}.chart .ln{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.2s var(--e) .15s forwards}.chart .area{opacity:0;animation:fade .8s ease .9s forwards}
+.chart .dot{fill:var(--sf);stroke:var(--a1);stroke-width:2;opacity:0;animation:fade .4s ease forwards;animation-delay:calc(var(--d)*80ms + .7s)}
+@keyframes draw{to{stroke-dashoffset:0}}@keyframes fade{to{opacity:1}}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.item{display:grid;gap:6px;align-content:start}.meta{color:var(--mut);font-size:12.5px;display:block}
+.pic{height:86px;margin:calc(var(--pad)*-1) calc(var(--pad)*-1) 4px;border-radius:calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0;background:linear-gradient(135deg,color-mix(in srgb,var(--br) 22%,var(--sf)),color-mix(in srgb,var(--a2) 10%,var(--sf)));display:grid;place-items:center;font:700 30px var(--head);color:color-mix(in srgb,var(--a1) 70%,transparent)}
+.list .li{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid var(--edge)}.list .li:last-child{border:0}.pip{width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--a1);flex:none}
+.steps{display:flex;gap:0;list-style:none;margin:0;padding:0;overflow:auto}.steps li{flex:1;display:flex;align-items:center;gap:9px;color:var(--mut);white-space:nowrap;min-width:max-content;padding-right:14px;position:relative}
+.steps li span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--edge);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;background:var(--sf)}
+.steps li:not(:last-child):after{content:"";flex:1;height:2px;min-width:18px;background:var(--edge);margin-left:6px}
+.steps .done span{background:var(--br);border-color:var(--br);color:var(--on)}.steps .done:not(:last-child):after{background:var(--br)}.steps .now{color:var(--ink);font-weight:600}.steps .now span{border-color:var(--br);color:var(--a1)}
+.tl{display:grid;gap:0}.ev{display:grid;grid-template-columns:78px 14px 1fr;gap:12px;padding:9px 0;align-items:start;position:relative}.ev .t{color:var(--mut);font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;padding-top:1px}
+.ev i{width:10px;height:10px;border-radius:50%;border:2px solid var(--edge);background:var(--sf);margin-top:5px;position:relative;z-index:1}.ev:not(:last-child) i:after{content:"";position:absolute;left:2px;top:12px;width:2px;height:calc(100% + 24px);background:var(--edge)}
+.ev.done i{background:var(--br);border-color:var(--br)}.ev.now i{border-color:var(--br);box-shadow:0 0 0 4px color-mix(in srgb,var(--br) 20%,transparent)}.ev.next{opacity:.7}
+.detail dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px 18px}.detail dt{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}.detail dd{margin:2px 0 0;font-weight:600}
+.dh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:14px}.dh .k{display:block;font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}.dh strong{font-size:22px;letter-spacing:-.01em}
+.detail.pass{border-top:4px solid var(--br)}.detail.pass dl{border-top:2px dashed var(--edge);padding-top:14px}
+.lead{color:var(--mut);margin:0;max-width:62ch}
+.banner{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--r);border:1px solid;animation:rise .4s var(--e) both}.banner span{flex:1}
+.banner.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--bg))}.banner.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--bg))}.banner.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--bg))}
+.banner .btn{padding:4px 12px;color:inherit}
+.stale{display:grid;gap:16px;opacity:.5;pointer-events:none}
+.empty{display:grid;justify-items:center;text-align:center;gap:6px;padding:46px 20px;border-style:dashed}.empty svg{width:42px;height:42px;color:var(--mut)}
+.empty h4{margin:.4rem 0 0;font-size:17px}.empty p{margin:0;color:var(--mut);max-width:42ch}
+.sk{display:block;border-radius:6px;margin:8px 0;background:linear-gradient(100deg,color-mix(in srgb,var(--ink) 7%,transparent) 30%,color-mix(in srgb,var(--ink) 13%,transparent) 50%,color-mix(in srgb,var(--ink) 7%,transparent) 70%);background-size:220% 100%;animation:shim 1.4s linear infinite}
+@keyframes shim{to{background-position:-220% 0}}.skrow{display:flex;gap:16px;align-items:center}.skrow .sk{flex:none}.skfield{margin-bottom:6px}
+.toast{position:fixed;right:20px;bottom:20px;z-index:9;display:flex;gap:10px;align-items:center;padding:11px 16px;border-radius:var(--r);background:var(--ink);color:var(--bg);box-shadow:0 12px 32px -10px rgba(0,0,0,.4);animation:toast 3s var(--e) forwards}
+@keyframes toast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0;transform:translateY(8px)}}
+.serves{margin-top:18px;border:1px solid var(--edge);border-radius:var(--r);background:var(--sf);padding:12px 16px}.serves summary{cursor:pointer;color:var(--mut);font-size:12.5px}
+.serves ul{margin:.6rem 0 0;padding-left:18px;color:var(--mut);font-size:12.5px}.serves b{color:var(--ink)}
+.nav{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:8px}.nav a{color:var(--a1);text-decoration:none;font-size:12.5px;border-bottom:1px solid transparent}.nav a:hover{border-color:currentColor}
+@media(max-width:760px){body{display:block}aside{width:auto;position:static;max-height:none;border-right:0;border-bottom:1px solid var(--edge)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+</style></head><body>
+<aside><h1>AI-Factory</h1><p>Staff sign in through the existing system and open Overdue invoices, a single list showing open invoices that are past the overdue threshold. They narrow the list by customer or by a days-overdue bucket (7–30, 31–60, 61–90, 90+) without leaving the page. If the session is not valid, the existing sign-in takes over before any invoice data loads.</p><h3>Screens</h3><ul><li><a href="#S-1">Overdue invoices <code>/invoices/overdue</code></a></li></ul><h3>No screen</h3><ul><li><b>REQ-3</b> The invoice reminders API shall work out overdue status at query time without writing any overdue flag or status to invoice records. <i>(no screen: This is a backend rule: overdue status is worked out at query time and no flag is written to invoice records. Users never see it.)</i></li><li><b>REQ-7</b> If a request to the overdue list endpoint has no valid staff authentication under the existing API&#39;s authentication scheme, then the invoice reminders API shall reject it with HTTP 401 and return no invoice or customer data. <i>(no screen: This is an API rule: the endpoint returns HTTP 401 without valid staff authentication. The existing auth flow handles it, and it needs no screen of its own.)</i></li></ul></aside>
+<main><section class="screen" id="S-1" data-i="0" hidden>
+<div class="top"><h2>S-1 <code>/invoices/overdue</code></h2><span class="tag">new</span></div>
+<p class="file">src/pages/invoices/OverdueInvoicesPage.tsx</p>
+<div class="states" role="tablist"><button role="tab" data-state="0" class="on">loading</button><button role="tab" data-state="1">empty</button><button role="tab" data-state="2">error</button></div>
+<div class="canvas"><div class="chrome"><b class="lg">AI-Factory</b><nav><a href="#S-1" class="on">Overdue invoices</a></nav><span class="me" aria-hidden="true">A</span></div><div class="pane" data-wf="0"><div class="app" data-kind="loading" aria-label="loading"><div class="ph"><div><h3>Overdue invoices</h3><p class="sub">Open invoices 7+ days past due · as of 16 Jun 2025, Europe/London</p></div></div><div class="body"><div class="stats"><div class="stat"><i class="sk" style="width:50%;height:10px"></i><i class="sk" style="width:70%;height:26px"></i><i class="sk" style="width:35%;height:10px"></i></div><div class="stat"><i class="sk" style="width:50%;height:10px"></i><i class="sk" style="width:70%;height:26px"></i><i class="sk" style="width:35%;height:10px"></i></div><div class="stat"><i class="sk" style="width:50%;height:10px"></i><i class="sk" style="width:70%;height:26px"></i><i class="sk" style="width:35%;height:10px"></i></div></div><div class="filters"><i class="sk" style="width:34%;height:36px"></i><i class="sk" style="width:12%;height:30px"></i><i class="sk" style="width:12%;height:30px"></i></div><div class="card"><i class="sk" style="width:100%;height:30px"></i><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div></div></div></div></div><div class="pane" data-wf="1" hidden><div class="app" data-kind="empty" aria-label="empty"><div class="ph"><div><h3>Overdue invoices</h3><p class="sub">Open invoices 7+ days past due · as of 16 Jun 2025, Europe/London</p></div></div><div class="body"><div class="filters"><label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input type="search" placeholder="Filter by customer" aria-label="Filter by customer"></label><div class="chips"><button type="button" class="chip on">All</button><button type="button" class="chip">7–30 days</button><button type="button" class="chip">31–60 days</button><button type="button" class="chip">61–90 days</button><button type="button" class="chip">90+ days</button></div></div><div class="card empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5 6 5.5h12l2.5 8M3.5 13.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5M3.5 13.5H9a3 3 0 0 0 6 0h5.5"/></svg><h4>Nothing overdue</h4><p>No open invoices match this customer or bucket. Try clearing the filters.</p></div></div></div></div><div class="pane" data-wf="2" hidden><div class="app" data-kind="error" aria-label="error"><div class="ph"><div><h3>Overdue invoices</h3><p class="sub">Open invoices 7+ days past due · as of 16 Jun 2025, Europe/London</p></div></div><div class="body"><div class="banner bad" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4L12 4Zm0 6v4.5m0 2.7v.1"/></svg><span>We couldn&#39;t load the overdue list. Refresh to try again.</span><button type="button" class="btn ghost" data-act="retry">Try again</button></div><div class="stale"><div class="stats"><div class="stat"><span class="k">Total overdue</span><b class="v" data-count="£31,666.30">£31,666.30</b></div><div class="stat"><span class="k">Overdue invoices</span><b class="v" data-count="6">6</b></div><div class="stat"><span class="k">90+ days</span><b class="v" data-count="£2,275.80">£2,275.80</b><span class="delta up">1 invoice</span></div></div><div class="filters"><label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input type="search" placeholder="Filter by customer" aria-label="Filter by customer"></label><div class="chips"><button type="button" class="chip on">All</button><button type="button" class="chip">7–30 days</button><button type="button" class="chip">31–60 days</button><button type="button" class="chip">61–90 days</button><button type="button" class="chip">90+ days</button></div></div><div class="card"><i class="sk" style="width:100%;height:30px"></i><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div><div class="skrow"><i class="sk" style="width:22%;height:12px"></i><i class="sk" style="width:36%;height:12px"></i><i class="sk" style="width:14%;height:12px"></i></div></div></div></div></div></div></div>
+<details class="serves"><summary>Serves 5 requirements</summary><ul><li><b>REQ-1</b> When an authenticated staff user requests the overdue list, the invoice reminders API shall return every invoice that has the open status and a due date and for which today&#39;s date in the configured business timezone is on or after its due date plus the configured overdue threshold (default 7 days).</li><li><b>REQ-2</b> If an invoice has any status other than open in the existing invoice data (including paid, closed, void, cancelled, draft or written off) or has no due date, then the invoice reminders API shall leave it out of the overdue list.</li><li><b>REQ-4</b> When the overdue list is requested, the invoice reminders API shall return, for each overdue invoice, its invoice number, customer name, amount, due date and days overdue, where days overdue is the number of whole calendar days from the due date to today in the business timezone.</li><li><b>REQ-5</b> When the overdue list is requested with a customer filter, the invoice reminders API shall return only overdue invoices belonging to that customer.</li><li><b>REQ-6</b> When the overdue list is requested with a days-overdue bucket filter of 7–30, 31–60, 61–90 or 91 and over (90+), the invoice reminders API shall return only overdue invoices whose days overdue falls inside that bucket, bounds included.</li></ul></details>
+<p class="nav"></p>
+</section></main>
+<script>
+(function(){
+  var $=function(s,r){return [].slice.call((r||document).querySelectorAll(s))};
+  var secs=$(".screen"),links=$("aside a");
+  function count(root){$("[data-count]",root).forEach(function(el){
+    var raw=el.getAttribute("data-count"),m=raw.match(/^(\D*?)(-?\d[\d,]*\.?\d*)(.*)$/);if(!m)return;
+    var to=parseFloat(m[2].replace(/,/g,"")),dec=(m[2].split(".")[1]||"").length,t0=null,comma=m[2].indexOf(",")>-1;
+    if(!isFinite(to)||matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+    function fmt(v){var s=v.toFixed(dec);return comma?Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}):s}
+    function step(t){if(t0===null)t0=t;var p=Math.min(1,(t-t0)/900),e=1-Math.pow(1-p,3);el.textContent=m[1]+fmt(to*e)+m[3];if(p<1)requestAnimationFrame(step)}
+    el.textContent=m[1]+fmt(0)+m[3];requestAnimationFrame(step);setTimeout(function(){el.textContent=raw},1300)})}
+  function show(){var id=decodeURIComponent((location.hash||"").slice(1))||(secs[0]&&secs[0].id);
+    secs.forEach(function(s){var on=s.id===id;s.hidden=!on;if(on)count(s)});
+    links.forEach(function(a){a.className=a.getAttribute("href")==="#"+id?"on":""})}
+  function toast(s,t){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=t;s.appendChild(d);setTimeout(function(){d.remove()},3100)}
+  secs.forEach(function(s){
+    $("[data-state]",s).forEach(function(b){b.addEventListener("click",function(){
+      $("[data-state]",s).forEach(function(x){x.className=""});b.className="on";
+      var k=b.getAttribute("data-state");$("[data-wf]",s).forEach(function(w){var on=w.getAttribute("data-wf")===k;w.hidden=!on;if(on)count(w)})})});
+    s.addEventListener("input",function(e){var t=e.target;if(!t.matches||!t.matches('input[type=search]'))return;
+      var q=t.value.toLowerCase(),pane=t.closest(".pane");$("tbody tr",pane).forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>-1?"":"none"})});
+    s.addEventListener("click",function(e){var t=e.target.closest?e.target.closest("button,tr"):null;if(!t)return;var pane=t.closest(".pane");
+      if(t.tagName==="TR"&&t.parentNode.tagName==="TBODY"){$("tr.sel",pane).forEach(function(r){r.classList.remove("sel")});t.classList.add("sel");return}
+      if(t.classList.contains("chip")){$(".chip",t.parentNode).forEach(function(c){c.classList.remove("on")});t.classList.add("on");
+        $(".tbl,.cards,.list",pane).forEach(function(x){x.style.opacity=.35;setTimeout(function(){x.style.opacity=""},450)});return}
+      var act=t.getAttribute("data-act");if(!act)return;t.classList.add("busy");
+      setTimeout(function(){t.classList.remove("busy");if(act==="submit")toast(s,"Saved");else if(act==="act")toast(s,t.textContent+" done")},800)});
+  });
+  window.addEventListener("hashchange",show);show();
+})();
+</script></body></html>

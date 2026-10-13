@@ -1,0 +1,245 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The feedlot web app shall provide email-and-password sign-in, send the submitted credentials to the sign-in service, display the resulting landing page or authentication error, render navigation and actions according to the signed-in user's returned permissions, and clear authenticated page data and return to sign-in when an authenticated session expires or a protected request returns HTTP 401.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-9",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "The sign-in screen is displayed and the authentication service accepts the submitted credentials and returns the user and permissions",
+        "when": "The user submits an email address and password",
+        "then": "The screen shows the returned operational landing page and navigation actions allowed by the returned permissions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "The sign-in screen is displayed and the authentication service refuses the submitted credentials",
+        "when": "The user submits an email address and password",
+        "then": "The screen shows the returned error message and remains on the sign-in page",
+        "level": "ui"
+       },
+       {
+        "id": "AC-1.3",
+        "given": "An authenticated screen displays protected data and the session expires or a protected request receives HTTP 401",
+        "when": "The web app handles the expired session or 401 response",
+        "then": "The screen returns to sign-in and no protected page data remains displayed",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When an operational user repeats an import containing previously imported source-system identifiers, the feedlot web app shall display the import result for the matched records returned by the import service without presenting them as newly created duplicates, and flag returned allocation conflicts when an updated head count is below existing mapped quantities.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-24",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "The import response identifies source records as matched to existing records",
+        "when": "The repeated import completes",
+        "then": "The screen displays the matched record list and response status without displaying those records as newly created duplicates",
+        "level": "ui"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "A repeated-import response updates a PO line's head count below its existing mapped allocation quantities and returns an allocation conflict",
+        "when": "The repeated import completes",
+        "then": "The screen displays the matched record, returned head count, existing mapped quantities, and an allocation-conflict flag without presenting the record as a new duplicate",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.3333333333333333
+     },
+     {
+      "id": "REQ-10",
+      "ears": "The feedlot web app shall flag a saved plan for review when relevant inputs change, retain its saved values until an authorized planner confirms an update or regenerates it, allow assigned-pen operators to update execution status while withholding enabled status-update actions from other operators and displaying returned refusals for rejected updates, and show intake variance without automatically rewriting the saved plan.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-7",
+       "ASM-8",
+       "ASM-19",
+       "ASM-30",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "A saved plan's pen count, bunk rate, animal count, or ration assignment changes after generation",
+        "when": "The user opens the plan",
+        "then": "The screen displays the saved plan unchanged and a review flag",
+        "level": "ui"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "An authorized planner opens a plan flagged for review",
+        "when": "The plan screen renders",
+        "then": "The screen shows authorized confirm-update and regenerate actions",
+        "level": "ui"
+       },
+       {
+        "id": "AC-10.3",
+        "given": "An authorized planner confirms an update or regenerates a flagged plan",
+        "when": "The planner submits the selected action",
+        "then": "The plan request contains the selected action and the screen displays the response status and returned plan",
+        "level": "ui"
+       },
+       {
+        "id": "AC-10.4",
+        "given": "An operator is assigned to the plan's pen",
+        "when": "The operator updates the execution status",
+        "then": "The screen displays the returned status value for that pen's plan",
+        "level": "ui"
+       },
+       {
+        "id": "AC-10.5",
+        "given": "Actual bunk intake differs from the saved plan",
+        "when": "The user views the feeding plan and activity",
+        "then": "The screen displays actual intake and variance while the saved plan values remain unchanged",
+        "level": "ui"
+       },
+       {
+        "id": "AC-10.6",
+        "given": "An operator is not assigned to the plan's pen and the screen renders using the operator's returned permissions",
+        "when": "The operator opens the plan",
+        "then": "The screen displays the current status and does not show an enabled status-update action",
+        "level": "ui"
+       },
+       {
+        "id": "AC-10.7",
+        "given": "The service refuses a status update submitted by an operator who is not assigned to the plan's pen",
+        "when": "The operator submits the status update",
+        "then": "The screen displays the returned refusal error and the current plan status remains displayed",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The feedlot web app shall let operational users record feeding activity by pen and lot, including per-lot allocations when a pen contains multiple lots, and display the returned variance, cost, energy, inventory consumption, feeding status, and lot-level consumption and cost totals, while displaying a returned stock error when insufficient stock prevents saving.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-5",
+       "I-6",
+       "ASM-4",
+       "ASM-9",
+       "ASM-10",
+       "ASM-11",
+       "ASM-20",
+       "ASM-28",
+       "ASM-31",
+       "ASM-32",
+       "ASM-34",
+       "Q-5",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "An operational user enters feeding date, pen, ration, planned quantity, actual delivered quantity, and status for a pen containing one or more lots",
+        "when": "The user submits the feeding event",
+        "then": "The feeding request contains the entered fields and a delivered-quantity allocation for each affected lot, and the screen displays the response status and returned event fields including the lot allocations",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "A successful feeding response contains calculated values",
+        "when": "The event screen renders the response",
+        "then": "The screen displays actual-minus-planned variance, feed cost, energy value, inventory consumed by ingredient, and cumulative lot feed consumption and cost",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "A successful feeding response contains planned quantity of 100 pounds, actual delivered quantity of 115 pounds, and a returned variance value of 15 pounds",
+        "when": "The event screen renders the response",
+        "then": "The screen displays the returned variance value of 15 pounds",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.4",
+        "given": "A feeding response includes actual delivered quantity and an inventory movement",
+        "when": "The event screen renders the response",
+        "then": "The screen displays stock consumption for the delivered quantity and known wastage as a separate movement rather than added delivered feed",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.5",
+        "given": "The service refuses a feeding event because available stock is insufficient",
+        "when": "The user submits the event",
+        "then": "The screen displays the returned stock error and does not display the event as saved",
+        "level": "ui"
+       },
+       {
+        "id": "AC-11.6",
+        "given": "A user without operational access opens feeding activity",
+        "when": "The screen renders",
+        "then": "The screen displays existing activity without an action to record a feeding event",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-17",
+      "ears": "The feedlot web app shall display dashboards, reports, and exports using only records and profitability fields returned for the signed-in user's authorized yards and permissions, and remove previously displayed data from view and subsequent exports when returned permissions change.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-10",
+       "Q-1",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "The service response contains only records for the user's authorized yards and profitability fields allowed by the user's returned permissions",
+        "when": "The user opens a dashboard or report",
+        "then": "The screen shows only the returned authorized-yard records and permitted profitability fields",
+        "level": "ui"
+       },
+       {
+        "id": "AC-17.2",
+        "given": "A user exports a filtered dashboard or report view",
+        "when": "The export is generated",
+        "then": "The downloaded file contains only the authorized-yard records and profitability fields shown to that user",
+        "level": "ui"
+       },
+       {
+        "id": "AC-17.3",
+        "given": "A dashboard or report displays records or profitability fields and an updated permissions response removes access to some of that data",
+        "when": "The web app processes the updated permissions",
+        "then": "The screen no longer displays the records or fields no longer permitted, and a subsequent downloaded file contains only currently permitted records and fields",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

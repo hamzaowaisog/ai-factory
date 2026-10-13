@@ -1,0 +1,93 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Choose a new password",
+     "subtitle": "Set a new password for your Parts Ordering Portal account. This link works once and expires 1 hour after it was sent.",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Account email",
+         "kind": "email",
+         "value": "orders@hallamautos.co.uk",
+         "readOnly": true,
+         "help": "The reset link was sent to this address."
+        },
+        {
+         "label": "New password",
+         "kind": "password",
+         "placeholder": "Enter a new password",
+         "required": true,
+         "help": "At least 10 characters, with a number and a letter.",
+         "error": "Use at least 10 characters, including a number and a letter."
+        },
+        {
+         "label": "Confirm new password",
+         "kind": "password",
+         "placeholder": "Enter it again",
+         "required": true,
+         "error": "The two passwords don't match."
+        }
+       ],
+       "submit": "Set new password"
+      },
+      {
+       "type": "text",
+       "body": "Saving your new password signs out other sessions, unlocks the account if it was locked after failed sign-ins, and makes this link unusable."
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Back to sign in",
+         "variant": "link"
+        },
+        {
+         "label": "Request a new link",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to sign in",
+       "to": "S-1"
+      },
+      {
+       "from": "Request a new link",
+       "to": "S-2"
+      },
+      {
+       "from": "Set new password",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Set new password",
+       "text": "Password changed. Sign in with your new password.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "validation": "Check the highlighted fields: the new password needs at least 10 characters and both entries must match.",
+      "error": "This reset link has expired or has already been used. Your password hasn't changed; request a new link to try again.",
+      "success": "Your password has been changed and your account is unlocked. Sign in to carry on ordering."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

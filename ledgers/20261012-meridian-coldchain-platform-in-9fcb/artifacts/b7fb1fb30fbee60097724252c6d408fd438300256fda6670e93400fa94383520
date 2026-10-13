@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit trail — Empty State</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-page: #F7F7F7;
+      --bg-surface: #FFFFFF;
+      --text-main: #202020;
+      --text-quiet: #626262;
+      --border-color: #D5D5D5;
+      --color-primary: #A94B1D;
+      --color-good: #24704B;
+      --color-waiting: #805800;
+      --color-failed: #AE2C2C;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Public Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-numbers {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes savedHandoff {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .motion-saved-handoff {
+      animation: savedHandoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .motion-waiting-dot {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    /* Controls: hover, focus, active */
+    button, a, input, select {
+      transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 90ms ease;
+    }
+
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+    }
+
+    button:active, a:active {
+      transform: scale(0.98);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D5D5D5] h-16 sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto h-full px-8 flex items-center justify-between">
+      
+      <!-- Brand & Main Navigation -->
+      <div class="flex items-center space-x-8">
+        <div class="flex items-center space-x-3">
+          <div class="w-7 h-7 bg-[#202020] rounded-[2px] flex items-center justify-center text-white font-heading font-bold text-sm tracking-tight">
+            M
+          </div>
+          <span class="font-heading font-bold text-lg text-[#202020] tracking-tight">Meridian</span>
+        </div>
+
+        <nav class="flex items-center space-x-6 text-[15px] font-medium">
+          <!-- Active Nav: Audit trail -->
+          <span class="text-[#A94B1D] font-semibold border-b-2 border-[#A94B1D] py-[21px] -mb-[1px]">
+            Audit trail
+          </span>
+          <!-- Controls that open other pages -->
+          <a href="#" class="text-[#626262] hover:text-[#202020] transition-colors py-[21px]">
+            Lot history
+          </a>
+          <a href="#" class="text-[#626262] hover:text-[#202020] transition-colors py-[21px]">
+            Reports
+          </a>
+        </nav>
+      </div>
+
+      <!-- Right User Identity & Language -->
+      <div class="flex items-center space-x-6 text-sm">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-[2px] bg-[#EFEFEF] border border-[#D5D5D5] flex items-center justify-center font-heading font-semibold text-xs text-[#202020]">
+            ER
+          </div>
+          <span class="text-[#202020] font-medium">Esha Raman · Auditor</span>
+        </div>
+        <div class="h-4 w-[1px] bg-[#D5D5D5]"></div>
+        <div class="text-[#626262] font-medium">
+          <span class="text-[#202020]">EN</span> / <span>العربية</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-8 py-8 animate-entrance">
+    
+    <!-- Page Heading -->
+    <div class="mb-8">
+      <h1 class="text-[28px] leading-tight font-[650] text-[#202020]">Audit trail</h1>
+    </div>
+
+    <!-- Filters Bar Panel -->
+    <div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] p-4 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        
+        <!-- Filter: Instant record or lot -->
+        <div class="md:col-span-3">
+          <label class="block text-sm font-medium text-[#202020] mb-2" for="filter-record">
+            Instant record or lot
+          </label>
+          <input 
+            id="filter-record"
+            type="text" 
+            placeholder="Search record, lot, or ID..." 
+            class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3.5 text-[#202020] placeholder-[#626262] text-sm hover:border-[#626262]"
+          />
+        </div>
+
+        <!-- Filter: User -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-[#202020] mb-2" for="filter-user">
+            User
+          </label>
+          <div class="relative">
+            <select 
+              id="filter-user" 
+              class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3.5 pr-8 text-[#202020] text-sm appearance-none hover:border-[#626262]"
+            >
+              <option>All users</option>
+              <option>Leila Haddad</option>
+              <option>Omar Saleh</option>
+              <option>Nadia Farouk</option>
+              <option>Priya Nair</option>
+              <option>Tariq Mansour</option>
+              <option>Hana Youssef</option>
+              <option>Esha Raman</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#626262]">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter: Date range -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-[#202020] mb-2" for="filter-date">
+            Date range
+          </label>
+          <div class="relative">
+            <select 
+              id="filter-date" 
+              class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3.5 pr-8 text-[#202020] text-sm appearance-none hover:border-[#626262]"
+            >
+              <option>All dates</option>
+              <option>14 May 2026 (Today)</option>
+              <option>13 May 2026</option>
+              <option>12 May 2026</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#626262]">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter: Action type -->
+        <div class="md:col-span-3">
+          <label class="block text-sm font-medium text-[#202020] mb-2" for="filter-action">
+            Action type
+          </label>
+          <div class="relative">
+            <select 
+              id="filter-action" 
+              class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-3.5 pr-8 text-[#202020] text-sm appearance-none hover:border-[#626262]"
+            >
+              <option>All actions</option>
+              <option>Record receipt</option>
+              <option>Upload logger</option>
+              <option>Quality release</option>
+              <option>Telemetry breach</option>
+              <option>Order registered</option>
+              <option>Route confirmation</option>
+              <option>Start recall</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#626262]">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Button: Export filtered CSV -->
+        <div class="md:col-span-2 flex justify-end">
+          <button 
+            type="button" 
+            class="w-full h-12 bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] px-4 flex items-center justify-center space-x-2 text-sm font-medium text-[#202020] hover:bg-[#F7F7F7] hover:border-[#626262]"
+          >
+            <svg class="w-4 h-4 text-[#626262]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Export filtered CSV</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Table Container Panel -->
+    <div class="bg-[#FFFFFF] border border-[#D5D5D5] rounded-[2px] overflow-hidden">
+      
+      <!-- Table Header (48px height) -->
+      <div class="h-12 border-b border-[#D5D5D5] px-6 grid grid-cols-12 items-center text-xs font-semibold uppercase tracking-wider text-[#626262]">
+        <div class="col-span-2">TIMESTAMP</div>
+        <div class="col-span-2">RECORD ID</div>
+        <div class="col-span-2">USER</div>
+        <div class="col-span-2">ACTION TYPE</div>
+        <div class="col-span-3">SCOPE &amp; SUMMARY</div>
+        <div class="col-span-1 text-right">STATUS</div>
+      </div>
+
+      <!-- Empty State View -->
+      <div class="py-24 px-6 flex flex-col items-center justify-center text-center">
+        
+        <!-- Document / Ledger Icon -->
+        <div class="w-12 h-12 border border-[#D5D5D5] rounded-[2px] flex items-center justify-center text-[#626262] mb-6">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+
+        <!-- Empty Heading -->
+        <h2 class="text-xl font-[650] text-[#202020] mb-2 font-heading">
+          No audit records recorded
+        </h2>
+
+        <!-- Explanatory Text -->
+        <p class="text-sm leading-relaxed text-[#626262] max-w-lg mb-8">
+          No system events or ledger modifications have been recorded for this facility yet. Record the first receipt or intake transaction to initialize the audit trail.
+        </p>
+
+        <!-- One Action that adds the first -->
+        <div>
+          <button 
+            type="button" 
+            class="h-12 px-6 bg-[#A94B1D] text-white rounded-[2px] font-medium text-sm hover:bg-[#923f17] flex items-center justify-center cursor-pointer"
+          >
+            Record receipt
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Table Footer / Metadata Bar -->
+      <div class="h-12 border-t border-[#D5D5D5] px-6 flex items-center justify-between text-xs text-[#626262] font-mono-numbers">
+        <div>0 audit records</div>
+        <div>Prototype date: 14 May 2026 · Europe/London (BST)</div>
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

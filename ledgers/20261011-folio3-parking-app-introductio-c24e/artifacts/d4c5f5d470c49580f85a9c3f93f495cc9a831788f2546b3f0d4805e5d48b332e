@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Audit Log - Folio3 Parking Admin Portal</title>
+<!-- Fonts: Hanken Grotesk, Public Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-variant": "#e0e3e0",
+            "surface-container-lowest": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface": "#f7faf7",
+            "secondary-fixed": "#cbe9dd",
+            "primary-fixed-dim": "#8ad5be",
+            "inverse-surface": "#2d312f",
+            "outline-variant": "#bec9c4",
+            "on-surface-variant": "#3f4945",
+            "tertiary-container": "#945044",
+            "primary-container": "#1f6f5c",
+            "error": "#ba1a1a",
+            "inverse-on-surface": "#eef1ee",
+            "on-tertiary": "#ffffff",
+            "on-tertiary-fixed": "#3a0a05",
+            "surface-bright": "#f7faf7",
+            "on-tertiary-container": "#ffd7d0",
+            "secondary": "#49645b",
+            "surface-container-low": "#f1f4f1",
+            "on-tertiary-fixed-variant": "#72352a",
+            "on-secondary-container": "#4d685f",
+            "on-secondary-fixed-variant": "#314c44",
+            "on-error": "#ffffff",
+            "on-primary": "#ffffff",
+            "inverse-primary": "#8ad5be",
+            "on-error-container": "#93000a",
+            "outline": "#6f7975",
+            "on-surface": "#181c1b",
+            "background": "#f7faf7",
+            "surface-container": "#ecefeb",
+            "on-secondary-fixed": "#042019",
+            "surface-tint": "#186a57",
+            "on-primary-fixed-variant": "#005141",
+            "on-background": "#181c1b",
+            "surface-container-high": "#e6e9e6",
+            "secondary-fixed-dim": "#afcdc2",
+            "secondary-container": "#c8e6db",
+            "tertiary": "#77392e",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "primary": "#005645",
+            "surface-dim": "#d8dbd8",
+            "surface-container-highest": "#e0e3e0",
+            "primary-fixed": "#a5f2d9",
+            "on-primary-fixed": "#002019",
+            "on-secondary": "#ffffff",
+            "on-primary-container": "#a3efd7",
+            "tertiary-fixed": "#ffdad4",
+            /* Design System Tokens */
+            "charcoal": "#18181B",
+            "graphite": "#3F3F46",
+            "steel": "#71717A",
+            "hairline": "#E4E4E7",
+            "strong-rule": "#D4D4D8",
+            "tint-step": "#EFEFF1",
+            "bay-green": "#1F6F5C",
+            "bay-green-wash": "#E6F0ED",
+            "verified-green": "#2F7D4A",
+            "stop-red": "#B42318",
+            "stop-red-wash": "#FBEAE8",
+            "caution-ochre": "#9A6700",
+            "caution-wash": "#FBF3DE"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["Public Sans", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      font-family: 'Public Sans', sans-serif;
+      color: #18181B;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .font-mono-numbers {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .live-pulse {
+      animation: live-breathe 6s ease-in-out infinite;
+    }
+    @keyframes live-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+    /* Plate chip styling per Design System */
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      background: #FFFFFF;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: #18181B;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.3;
+    }
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      background: #E6F0ED;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: #1F6F5C;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.3;
+    }
+  </style>
+</head>
+<body class="h-full bg-surface text-charcoal flex overflow-hidden">
+<!-- ========================================================================= -->
+<!-- LEFT SIDEBAR NAVIGATION (Folio3 Parking Design System & JSON Mapping)   -->
+<!-- ========================================================================= -->
+<aside class="fixed left-0 top-0 h-screen w-[232px] flex flex-col justify-between py-4 px-3 z-30 bg-surface-container-lowest border-r border-hairline select-none">
+<!-- Top Brand & Main Navigation -->
+<div class="flex flex-col gap-6">
+<!-- Brand Header -->
+<div class="flex items-center gap-3 px-2 pt-1">
+<div aria-label="Folio3 corporate emblem icon" class="w-8 h-8 rounded-DEFAULT bg-primary-container flex items-center justify-center text-surface-container-lowest font-headline font-bold text-sm tracking-tight shadow-sm">
+          F3
+        </div>
+<div class="flex flex-col leading-tight">
+<span class="font-headline text-base font-bold text-charcoal">Folio3 Parking</span>
+<span class="text-[11px] font-body text-steel font-normal">Admin Management Portal</span>
+</div>
+</div>
+<!-- Release CTA Button -->
+<button class="w-full bg-surface border border-hairline hover:bg-surface-container-low text-charcoal font-body text-xs font-semibold py-2 px-3 rounded-DEFAULT transition-all duration-160 flex items-center justify-center gap-2 active:scale-[0.97]" type="button">
+<span class="material-symbols-outlined text-[16px] text-bay-green" data-icon="swap_driving_apps">swap_driving_apps</span>
+<span>Release Today</span>
+</button>
+<!-- Primary Navigation Links -->
+<nav aria-label="Main Navigation" class="flex flex-col gap-1">
+<!-- Claim & Release -->
+<a class="text-steel hover:text-charcoal hover:bg-surface-container-low rounded-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm font-medium transition-colors duration-160 active:scale-[0.97]" href="#claim-release">
+<span class="material-symbols-outlined text-[18px]" data-icon="swap_driving_apps">swap_driving_apps</span>
+<span>Claim &amp; Release</span>
+</a>
+<!-- Daily Allocations -->
+<a class="text-steel hover:text-charcoal hover:bg-surface-container-low rounded-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm font-medium transition-colors duration-160 active:scale-[0.97]" href="#daily-allocations">
+<span class="material-symbols-outlined text-[18px]" data-icon="event_available">event_available</span>
+<span>Daily Allocations</span>
+</a>
+<!-- Guard Console -->
+<a class="text-steel hover:text-charcoal hover:bg-surface-container-low rounded-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm font-medium transition-colors duration-160 active:scale-[0.97]" href="#guard-console">
+<span class="material-symbols-outlined text-[18px]" data-icon="local_police">local_police</span>
+<span>Guard Console</span>
+</a>
+<!-- Vehicle Roster -->
+<a class="text-steel hover:text-charcoal hover:bg-surface-container-low rounded-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm font-medium transition-colors duration-160 active:scale-[0.97]" href="#vehicle-roster">
+<span class="material-symbols-outlined text-[18px]" data-icon="directions_car">directions_car</span>
+<span>Vehicle Roster</span>
+</a>
+<!-- Spaces & Employees -->
+<a class="text-steel hover:text-charcoal hover:bg-surface-container-low rounded-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm font-medium transition-colors duration-160 active:scale-[0.97]" href="#spaces-employees">
+<span class="material-symbols-outlined text-[18px]" data-icon="badge">badge</span>
+<span>Spaces &amp; Employees</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Secondary & Audit Logs Navigation -->
+<div class="flex flex-col gap-1 pt-4 border-t border-hairline">
+<!-- Audit Logs (ACTIVE STATE AS SPECIFIED) -->
+<a aria-current="page" class="bg-bay-green-wash text-charcoal font-semibold border-l-2 border-bay-green rounded-r-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm transition-colors duration-160 active:scale-[0.97]" href="#audit-log">
+<span class="material-symbols-outlined text-[18px] text-bay-green" data-icon="history" data-weight="fill" style="font-variation-settings: 'FILL' 1;">history</span>
+<span>Audit Logs</span>
+</a>
+<!-- Settings -->
+<a class="text-steel hover:text-charcoal hover:bg-surface-container-low rounded-DEFAULT px-3 py-2 flex items-center gap-3 font-body text-sm font-medium transition-colors duration-160 active:scale-[0.97]" href="#settings">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<!-- Compact Environment & Version Note -->
+<div class="px-3 pt-3 flex items-center justify-between text-[11px] text-steel">
+<span class="font-mono-numbers">v2.4.12-prod</span>
+<span class="inline-flex items-center gap-1.5 font-medium text-verified-green">
+<span class="w-1.5 h-1.5 rounded-full bg-verified-green live-pulse"></span> ANPR Active
+        </span>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- MAIN WORKSPACE & TOP BAR                                                  -->
+<!-- ========================================================================= -->
+<div class="ml-[232px] flex-1 flex flex-col h-screen overflow-hidden bg-surface">
+<!-- Top Navigation Bar -->
+<header class="w-full px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 bg-surface-container-lowest border-b border-hairline flex-shrink-0">
+<!-- Left: Breadcrumb and Search Bar -->
+<div class="flex items-center gap-6">
+<!-- Breadcrumb -->
+<nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-xs text-steel font-medium font-body">
+<span class="hover:text-charcoal cursor-pointer">Admin</span>
+<span class="text-steel/60">/</span>
+<span class="hover:text-charcoal cursor-pointer">Compliance &amp; Logs</span>
+<span class="text-steel/60">/</span>
+<span class="text-charcoal font-semibold">Audit Log</span>
+</nav>
+<div class="h-4 w-px bg-hairline"></div>
+<!-- Global Quick Search Bar -->
+<div class="relative w-80">
+<span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-steel">
+<span class="material-symbols-outlined text-[18px]" data-icon="search">search</span>
+</span>
+<input class="w-full pl-9 pr-3 py-1.5 text-xs bg-surface-container-low border border-hairline rounded-DEFAULT text-charcoal placeholder-steel focus:outline-none focus:border-bay-green focus:ring-1 focus:ring-bay-green transition-all" placeholder="Search plate, employee, space, incident ID..." type="text"/>
+<kbd class="absolute right-2 top-2 text-[10px] font-mono-numbers bg-surface-container border border-hairline text-steel px-1 rounded">⌘K</kbd>
+</div>
+</div>
+<!-- Right: Status Pill & Profile Avatar Area -->
+<div class="flex items-center gap-4">
+<!-- System Live Pill -->
+<div class="inline-flex items-center gap-2 bg-bay-green-wash border border-[#C6DDD5] px-2.5 py-1 rounded-full text-xs font-medium text-bay-green">
+<span class="w-2 h-2 rounded-full bg-bay-green live-pulse"></span>
+<span class="font-semibold tracking-tight">Live ANPR Sync</span>
+</div>
+<!-- Notification & Help Icon Buttons -->
+<div class="flex items-center gap-1 text-steel">
+<button aria-label="Notifications" class="w-8 h-8 rounded-DEFAULT flex items-center justify-center hover:bg-surface-container-low hover:text-charcoal transition-colors relative" title="Notifications">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-stop-red rounded-full"></span>
+</button>
+<button aria-label="Help" class="w-8 h-8 rounded-DEFAULT flex items-center justify-center hover:bg-surface-container-low hover:text-charcoal transition-colors" title="Documentation &amp; Help">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+</button>
+</div>
+<div class="h-5 w-px bg-hairline"></div>
+<!-- User Profile Pill -->
+<div class="flex items-center gap-2.5 pl-1">
+<div aria-label="Admin user profile avatar initials in circular badge" class="w-7 h-7 rounded-full bg-tint-step border border-hairline text-graphite font-headline font-semibold text-xs flex items-center justify-center shadow-none">
+            AS
+          </div>
+<div class="flex flex-col text-left leading-tight">
+<span class="text-xs font-semibold text-charcoal font-headline">Ayesha Siddiqui</span>
+<span class="text-[11px] text-steel font-mono-numbers">Admin F3-0921</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-steel cursor-pointer hover:text-charcoal" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</header>
+<!-- Sub-bar Interactive View Mode Switcher -->
+<div class="bg-surface-container-lowest border-b border-hairline px-8 py-2 flex items-center justify-between flex-shrink-0">
+<div class="flex items-center gap-2">
+<span class="text-xs text-steel uppercase tracking-wider font-semibold">Display State:</span>
+<div class="inline-flex p-0.5 bg-surface-container rounded-DEFAULT border border-hairline text-xs font-medium">
+<button class="px-3 py-1 rounded-DEFAULT bg-surface-container-lowest text-charcoal font-semibold shadow-sm transition-all flex items-center gap-1.5" id="tab-active-view" onclick="switchView('active')">
+<span class="w-1.5 h-1.5 rounded-full bg-bay-green"></span>
+<span>Default View (Active Records)</span>
+</button>
+<button class="px-3 py-1 rounded-DEFAULT text-steel hover:text-charcoal transition-all flex items-center gap-1.5" id="tab-empty-view" onclick="switchView('empty')">
+<span class="w-1.5 h-1.5 rounded-full bg-steel"></span>
+<span>Empty State View (No Records Filtered)</span>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-3 text-xs text-steel">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-verified-green" data-icon="verified">verified</span>
+          Cryptographic Hash Chain: Valid
+        </span>
+<span class="text-hairline">|</span>
+<span class="font-mono-numbers">Synced 4s ago</span>
+</div>
+</div>
+<!-- Scrollable Workspace Container -->
+<main class="flex-1 overflow-y-auto px-8 py-7 space-y-7">
+<!-- =================================================================== -->
+<!-- 1) HEADING & METADATA SECTION                                      -->
+<!-- =================================================================== -->
+<section class="flex flex-col gap-5">
+<!-- Header Row -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
+<div>
+<h1 class="font-headline font-bold text-2xl md:text-[28px] tracking-tight text-charcoal leading-tight">
+              Audit log
+            </h1>
+<p class="text-steel font-body text-sm mt-1 max-w-3xl">
+              Immutable chronological trace of temporary lottery claims, ANPR gate scans, and booth override events.
+            </p>
+</div>
+<!-- Quick action / Metadata -->
+<div class="flex items-center gap-3 flex-shrink-0">
+<!-- Compliance Badge -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-container-low border border-hairline rounded-DEFAULT text-xs text-graphite font-body">
+<span class="material-symbols-outlined text-[16px] text-steel" data-icon="shield">shield</span>
+<span class="font-medium">Retention: <strong class="font-semibold text-charcoal">90 Days compliant</strong></span>
+</div>
+<!-- Export CSV Action Button -->
+<button class="inline-flex items-center gap-2 px-3.5 py-2 bg-surface-container-lowest border border-hairline hover:bg-surface-container-low hover:border-strong-rule text-charcoal text-xs font-semibold rounded-DEFAULT transition-all duration-160 shadow-none active:scale-[0.97]">
+<span class="material-symbols-outlined text-[16px] text-steel" data-icon="download">download</span>
+<span>Export Audit CSV</span>
+</button>
+</div>
+</div>
+<!-- Filter Bar Panel -->
+<div class="bg-surface-container-lowest border border-hairline rounded-lg p-4 shadow-none">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+<!-- Date range selector (Cols 1-4) -->
+<div class="lg:col-span-4 flex items-center gap-2">
+<div class="relative flex-1">
+<span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-steel">
+<span class="material-symbols-outlined text-[16px]" data-icon="calendar_today">calendar_today</span>
+</span>
+<input class="w-full pl-8 pr-3 py-1.5 bg-surface text-charcoal font-mono-numbers text-xs font-medium border border-hairline rounded-DEFAULT focus:outline-none focus:border-bay-green cursor-pointer" readonly="" type="text" value="10 Jun 2025"/>
+</div>
+<!-- Quick Range Pills -->
+<div class="inline-flex p-0.5 bg-surface-container-low border border-hairline rounded-DEFAULT text-xs">
+<button class="px-2.5 py-1 bg-surface-container-lowest text-charcoal font-semibold rounded-DEFAULT shadow-xs">Today</button>
+<button class="px-2.5 py-1 text-steel hover:text-charcoal transition-colors">Past 7 days</button>
+</div>
+</div>
+<!-- Event type filter pill group (Cols 5-9) -->
+<div class="lg:col-span-5 flex items-center overflow-x-auto gap-1 py-0.5">
+<span class="text-xs text-steel font-semibold uppercase tracking-wider mr-1.5 flex-shrink-0">Events:</span>
+<button class="px-2.5 py-1 text-xs rounded-DEFAULT bg-bay-green text-surface-container-lowest font-medium flex-shrink-0 transition-colors">
+                All Events
+              </button>
+<button class="px-2.5 py-1 text-xs rounded-DEFAULT bg-surface-container-low hover:bg-surface-container text-graphite font-medium flex-shrink-0 transition-colors">
+                Claim
+              </button>
+<button class="px-2.5 py-1 text-xs rounded-DEFAULT bg-surface-container-low hover:bg-surface-container text-graphite font-medium flex-shrink-0 transition-colors">
+                Verification
+              </button>
+<button class="px-2.5 py-1 text-xs rounded-DEFAULT bg-surface-container-low hover:bg-surface-container text-graphite font-medium flex-shrink-0 transition-colors">
+                Unreadable
+              </button>
+<button class="px-2.5 py-1 text-xs rounded-DEFAULT bg-surface-container-low hover:bg-surface-container text-graphite font-medium flex-shrink-0 transition-colors">
+                Unverifiable
+              </button>
+<button class="px-2.5 py-1 text-xs rounded-DEFAULT bg-surface-container-low hover:bg-surface-container text-graphite font-medium flex-shrink-0 transition-colors">
+                Outage
+              </button>
+</div>
+<!-- Employee search filter & Reset (Cols 10-12) -->
+<div class="lg:col-span-3 flex items-center gap-2 justify-end">
+<div class="relative w-full">
+<span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-steel">
+<span class="material-symbols-outlined text-[16px]" data-icon="person_search">person_search</span>
+</span>
+<input class="w-full pl-8 pr-7 py-1.5 text-xs bg-surface border border-hairline rounded-DEFAULT text-charcoal placeholder-steel focus:outline-none focus:border-bay-green" placeholder="Filter by employee name or ID..." type="text" value="Bilal Ahmed"/>
+<button class="absolute inset-y-0 right-0 pr-2 flex items-center text-steel hover:text-charcoal" title="Clear employee search">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Reset / Clear filters -->
+<button class="text-xs text-bay-green hover:underline whitespace-nowrap font-medium flex items-center gap-1 flex-shrink-0 px-1 py-1" onclick="resetFiltersDemo()">
+<span class="material-symbols-outlined text-[14px]" data-icon="restart_alt">restart_alt</span>
+<span>Reset</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- =================================================================== -->
+<!-- VIEW 1: ACTIVE DEFAULT RECORDS                                      -->
+<!-- =================================================================== -->
+<div class="space-y-7" id="active-records-view">
+<!-- ================================================================= -->
+<!-- 2) CLAIMS TABLE                                                  -->
+<!-- ================================================================= -->
+<section class="flex flex-col gap-2.5">
+<!-- Section Header Bar -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="font-headline font-semibold text-base text-charcoal tracking-tight">
+                Temporary Space Claims
+              </h2>
+<span class="px-2 py-0.5 rounded-full bg-tint-step text-graphite font-mono-numbers text-xs font-semibold">
+                (2 records)
+              </span>
+</div>
+<div class="flex items-center gap-2 text-xs text-steel font-mono-numbers">
+<span>Lottery Release Batch: 08:00 PKT</span>
+</div>
+</div>
+<!-- Table Container -->
+<div class="bg-surface-container-lowest border border-hairline rounded-lg overflow-hidden shadow-none">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-tint-step text-steel uppercase text-[11px] font-semibold tracking-wider border-b border-hairline font-label">
+<th class="py-2.5 px-4 w-32" scope="col">Date</th>
+<th class="py-2.5 px-4 w-32" scope="col">Time</th>
+<th class="py-2.5 px-4 min-w-[220px]" scope="col">Employee</th>
+<th class="py-2.5 px-4 w-28" scope="col">Space</th>
+<th class="py-2.5 px-4 w-28" scope="col">Floor</th>
+<th class="py-2.5 px-4 w-36" scope="col">Plate on record</th>
+<th class="py-2.5 px-4 w-40 text-right" scope="col">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-hairline text-sm font-body">
+<!-- Row 1: Bilal Ahmed -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160 h-[46px]">
+<!-- Date -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-graphite whitespace-nowrap">
+                      10 Jun 2025
+                    </td>
+<!-- Time -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-charcoal font-medium whitespace-nowrap">
+                      08:02:41 PKT
+                    </td>
+<!-- Employee -->
+<td class="py-2.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-full bg-tint-step text-charcoal text-[11px] font-headline font-semibold flex items-center justify-center flex-shrink-0">
+                          BA
+                        </div>
+<div class="flex flex-col leading-tight">
+<span class="font-semibold text-charcoal text-xs">Bilal Ahmed</span>
+<span class="text-[11px] text-steel font-mono-numbers">F3-1187 · Software Engineering</span>
+</div>
+</div>
+</td>
+<!-- Space -->
+<td class="py-2.5 px-4">
+<span class="space-chip text-xs">
+                        B2-14
+                      </span>
+</td>
+<!-- Floor -->
+<td class="py-2.5 px-4 text-xs font-medium text-graphite whitespace-nowrap">
+                      Floor B2
+                    </td>
+<!-- Plate on record -->
+<td class="py-2.5 px-4">
+<span class="plate-chip text-xs">
+                        BKX-482
+                      </span>
+</td>
+<!-- Status -->
+<td class="py-2.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 text-xs font-medium text-verified-green">
+<span class="w-1.5 h-1.5 rounded-full bg-verified-green"></span>
+                        Confirmed Claim
+                      </span>
+</td>
+</tr>
+<!-- Row 2: Sara Malik -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160 h-[46px]">
+<!-- Date -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-graphite whitespace-nowrap">
+                      10 Jun 2025
+                    </td>
+<!-- Time -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-charcoal font-medium whitespace-nowrap">
+                      08:02:43 PKT
+                    </td>
+<!-- Employee -->
+<td class="py-2.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-full bg-tint-step text-charcoal text-[11px] font-headline font-semibold flex items-center justify-center flex-shrink-0">
+                          SM
+                        </div>
+<div class="flex flex-col leading-tight">
+<span class="font-semibold text-charcoal text-xs">Sara Malik</span>
+<span class="text-[11px] text-steel font-mono-numbers">F3-0842 · QA Lead</span>
+</div>
+</div>
+</td>
+<!-- Space -->
+<td class="py-2.5 px-4">
+<span class="space-chip text-xs">
+                        B1-03
+                      </span>
+</td>
+<!-- Floor -->
+<td class="py-2.5 px-4 text-xs font-medium text-graphite whitespace-nowrap">
+                      Floor B1
+                    </td>
+<!-- Plate on record -->
+<td class="py-2.5 px-4">
+<span class="plate-chip text-xs">
+                        LED-20-6612
+                      </span>
+</td>
+<!-- Status -->
+<td class="py-2.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 text-xs font-medium text-verified-green">
+<span class="w-1.5 h-1.5 rounded-full bg-verified-green"></span>
+                        Confirmed Claim
+                      </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Metadata -->
+<div class="bg-surface-container-low/50 px-4 py-2 border-t border-hairline flex items-center justify-between text-[11px] text-steel">
+<span>Automated allocation engine lock id: <code class="font-mono-numbers text-graphite">#SYS-LOT-20250610-0800</code></span>
+<span class="font-mono-numbers">2 entries validated</span>
+</div>
+</div>
+</section>
+<!-- ================================================================= -->
+<!-- 3) VERIFICATION EVENTS TABLE                                     -->
+<!-- ================================================================= -->
+<section class="flex flex-col gap-2.5">
+<!-- Section Header Bar -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="font-headline font-semibold text-base text-charcoal tracking-tight">
+                ANPR Gate Verification Events
+              </h2>
+<span class="px-2 py-0.5 rounded-full bg-tint-step text-graphite font-mono-numbers text-xs font-semibold">
+                (3 events)
+              </span>
+</div>
+<div class="flex items-center gap-3 text-xs text-steel">
+<span class="inline-flex items-center gap-1 font-mono-numbers">
+<span class="w-1.5 h-1.5 rounded-full bg-verified-green"></span>
+                Optical OCR Confidence ≥ 98.4%
+              </span>
+</div>
+</div>
+<!-- Table Container -->
+<div class="bg-surface-container-lowest border border-hairline rounded-lg overflow-hidden shadow-none">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-tint-step text-steel uppercase text-[11px] font-semibold tracking-wider border-b border-hairline font-label">
+<th class="py-2.5 px-4 w-32" scope="col">Time</th>
+<th class="py-2.5 px-4 w-36" scope="col">Detected plate</th>
+<th class="py-2.5 px-4 min-w-[200px]" scope="col">Result</th>
+<th class="py-2.5 px-4 min-w-[220px]" scope="col">Guard-recorded entry</th>
+<th class="py-2.5 px-4 min-w-[170px]" scope="col">Gate Booth</th>
+<th class="py-2.5 px-4 w-28 text-right" scope="col">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-hairline text-sm font-body">
+<!-- Row 1: BKX-482 Authorized Entry -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160 h-[48px]">
+<!-- Time -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-charcoal font-medium whitespace-nowrap">
+                      08:21:05 PKT
+                    </td>
+<!-- Detected Plate -->
+<td class="py-2.5 px-4">
+<span class="plate-chip text-xs">
+                        BKX-482
+                      </span>
+</td>
+<!-- Result -->
+<td class="py-2.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#EAF5EE] text-verified-green text-xs font-medium border border-[#BCE1CA]">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span>
+                        Authorized
+                      </span>
+</td>
+<!-- Guard-recorded entry -->
+<td class="py-2.5 px-4">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-low text-charcoal text-xs font-medium border border-hairline">
+<span class="material-symbols-outlined text-[13px] text-verified-green" data-icon="check">check</span>
+                          Entered
+                        </span>
+<span class="text-[11px] text-steel font-body">(barrier triggered)</span>
+</div>
+</td>
+<!-- Gate Booth -->
+<td class="py-2.5 px-4 text-xs font-medium text-graphite whitespace-nowrap">
+                      Gate 1 (Inbound)
+                    </td>
+<!-- Actions -->
+<td class="py-2.5 px-4 text-right">
+<button class="inline-flex items-center gap-1 text-xs text-bay-green hover:underline font-medium">
+<span>Snapshot</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="photo_camera">photo_camera</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Unreadable Plate -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160 h-[48px]">
+<!-- Time -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-charcoal font-medium whitespace-nowrap">
+                      08:15:12 PKT
+                    </td>
+<!-- Detected Plate (Unreadable / warning red badge / dashed) -->
+<td class="py-2.5 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-dashed border-stop-red text-stop-red bg-stop-red-wash font-mono text-xs font-semibold">
+                        Unreadable
+                      </span>
+</td>
+<!-- Result -->
+<td class="py-2.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-stop-red-wash text-stop-red text-xs font-medium border border-[#F5C4C0]">
+<span class="material-symbols-outlined text-[14px]" data-icon="cancel">cancel</span>
+                        No authorization
+                      </span>
+</td>
+<!-- Guard-recorded entry -->
+<td class="py-2.5 px-4">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-stop-red/40 text-stop-red bg-stop-red-wash/40 text-xs font-medium">
+<span class="material-symbols-outlined text-[13px]" data-icon="block">block</span>
+                        Did not enter
+                      </span>
+</td>
+<!-- Gate Booth -->
+<td class="py-2.5 px-4 text-xs font-medium text-graphite whitespace-nowrap">
+                      Gate 1 (Inbound)
+                    </td>
+<!-- Actions -->
+<td class="py-2.5 px-4 text-right">
+<button class="inline-flex items-center gap-1 text-xs text-graphite hover:text-charcoal hover:underline font-medium">
+<span>Incident Log</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="open_in_new">open_in_new</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Outage / Camera offline -->
+<tr class="hover:bg-surface-container-low transition-colors duration-160 h-[48px]">
+<!-- Time -->
+<td class="py-2.5 px-4 font-mono-numbers text-xs text-charcoal font-medium whitespace-nowrap">
+                      08:25:00 PKT
+                    </td>
+<!-- Detected Plate -->
+<td class="py-2.5 px-4 text-xs font-mono-numbers text-steel">
+                      —
+                    </td>
+<!-- Result -->
+<td class="py-2.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-caution-wash text-caution-ochre text-xs font-medium border border-[#F3DFB0]">
+<span class="material-symbols-outlined text-[14px] text-caution-ochre" data-icon="warning">warning</span>
+                        Outage: camera offline
+                      </span>
+</td>
+<!-- Guard-recorded entry -->
+<td class="py-2.5 px-4 text-xs font-mono-numbers text-steel">
+                      —
+                    </td>
+<!-- Gate Booth -->
+<td class="py-2.5 px-4 text-xs text-graphite whitespace-nowrap">
+                      Gate 2 <span class="text-caution-ochre font-medium">(Telemetry ping fail)</span>
+</td>
+<!-- Actions -->
+<td class="py-2.5 px-4 text-right">
+<button class="inline-flex items-center gap-1 text-xs text-bay-green hover:underline font-medium">
+<span>Diagnostics</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="build">build</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Verification Sub-Footer -->
+<div class="bg-surface-container-low/50 px-4 py-2 border-t border-hairline flex items-center justify-between text-[11px] text-steel">
+<span>Guard operator on duty: <strong class="text-charcoal font-medium">Tariq Mehmood (Badge #GD-04)</strong></span>
+<span class="font-mono-numbers">Barrier cycle uptime: 99.82%</span>
+</div>
+</div>
+</section>
+</div>
+<!-- =================================================================== -->
+<!-- VIEW 2: FILTERED EMPTY STATE (Interactive demo view)               -->
+<!-- =================================================================== -->
+<div class="hidden" id="empty-records-view">
+<section class="bg-surface-container-lowest border border-hairline rounded-lg p-12 text-left shadow-none flex flex-col items-start max-w-2xl">
+<div class="w-10 h-10 rounded-DEFAULT bg-tint-step border border-hairline flex items-center justify-center text-steel mb-3">
+<span class="material-symbols-outlined text-[22px]" data-icon="filter_list_off">filter_list_off</span>
+</div>
+<h3 class="font-headline font-semibold text-lg text-charcoal">
+            No events for the selected filters.
+          </h3>
+<p class="text-steel font-body text-sm mt-1 mb-5 leading-normal">
+            There are no claims or ANPR verification logs matching employee query, selected date, or event type criteria.
+          </p>
+<button class="px-4 py-2 bg-bay-green hover:bg-[#195C4C] text-surface-container-lowest font-body text-xs font-semibold rounded-DEFAULT transition-all duration-160 flex items-center gap-2 active:scale-[0.97]" onclick="switchView('active')" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="restart_alt">restart_alt</span>
+<span>Reset filters</span>
+</button>
+</section>
+</div>
+</main>
+</div>
+<!-- Inline Vanilla Interaction Logic for Switcher and Reset -->
+<script>
+    function switchView(viewType) {
+      const activeContainer = document.getElementById('active-records-view');
+      const emptyContainer = document.getElementById('empty-records-view');
+      const tabActive = document.getElementById('tab-active-view');
+      const tabEmpty = document.getElementById('tab-empty-view');
+
+      if (viewType === 'active') {
+        activeContainer.classList.remove('hidden');
+        emptyContainer.classList.add('hidden');
+
+        tabActive.className = "px-3 py-1 rounded-DEFAULT bg-surface-container-lowest text-charcoal font-semibold shadow-sm transition-all flex items-center gap-1.5";
+        tabEmpty.className = "px-3 py-1 rounded-DEFAULT text-steel hover:text-charcoal transition-all flex items-center gap-1.5";
+      } else {
+        activeContainer.classList.add('hidden');
+        emptyContainer.classList.remove('hidden');
+
+        tabEmpty.className = "px-3 py-1 rounded-DEFAULT bg-surface-container-lowest text-charcoal font-semibold shadow-sm transition-all flex items-center gap-1.5";
+        tabActive.className = "px-3 py-1 rounded-DEFAULT text-steel hover:text-charcoal transition-all flex items-center gap-1.5";
+      }
+    }
+
+    function resetFiltersDemo() {
+      switchView('active');
+    }
+  </script>
+</body></html>

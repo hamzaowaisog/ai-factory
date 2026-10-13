@@ -1,0 +1,428 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Stock imports",
+     "subtitle": "Hourly ERP stock file runs from sftp://erp/stock/out — stock quantities change only when a file passes validation",
+     "crumbs": [
+      "Catalogue",
+      "Stock imports"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Last import",
+         "value": "14:00",
+         "delta": "Succeeded"
+        },
+        {
+         "label": "Products updated at 14:00",
+         "value": "4,812",
+         "delta": "0 rejected"
+        },
+        {
+         "label": "Runs today",
+         "value": "6",
+         "delta": "2 failed · 2 partial"
+        },
+        {
+         "label": "Unknown codes skipped today",
+         "value": "3",
+         "delta": "since 09:00"
+        }
+       ]
+      },
+      {
+       "type": "toolbar",
+       "search": "Search file name or product code",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Succeeded",
+          "Partial",
+          "Failed"
+         ],
+         "value": "All statuses"
+        },
+        {
+         "label": "Period",
+         "options": [
+          "Today",
+          "Last 7 days",
+          "Last 30 days"
+         ],
+         "value": "Today"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Audit log",
+         "variant": "ghost",
+         "icon": "list"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Time",
+        "Status",
+        "Received",
+        "Applied",
+        "Rejected",
+        "Skipped codes / reason"
+       ],
+       "rows": [
+        [
+         "21 May 14:00",
+         "Succeeded",
+         "4,812",
+         "4,812",
+         "0",
+         "—"
+        ],
+        [
+         "21 May 13:00",
+         "Partial",
+         "4,810",
+         "4,807",
+         "3",
+         "Unknown: BRK-40118, FLT-22071 · Duplicate: OIL-5W30-5L"
+        ],
+        [
+         "21 May 12:00",
+         "Failed",
+         "0",
+         "0",
+         "0",
+         "No new file since 11:00 — stock unchanged"
+        ],
+        [
+         "21 May 11:00",
+         "Failed",
+         "4,806",
+         "0",
+         "4,806",
+         "Missing required column: quantity"
+        ],
+        [
+         "21 May 10:00",
+         "Partial",
+         "4,806",
+         "4,804",
+         "2",
+         "Unknown: ALT-88213 · Row 3,077: quantity -4"
+        ],
+        [
+         "21 May 09:00",
+         "Succeeded",
+         "4,801",
+         "4,801",
+         "0",
+         "—"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "pages": 14,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "Audit log",
+       "to": "S-36"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "More",
+       "title": "13:00 import · stock_20260521_1300.csv",
+       "text": "Valid rows were applied; the rows below were skipped and their stock left as it was.",
+       "blocks": [
+        {
+         "type": "detail",
+         "rows": [
+          {
+           "label": "Status",
+           "value": "Partial",
+           "badge": true
+          },
+          {
+           "label": "Finished",
+           "value": "21 May 2026, 13:00:42"
+          },
+          {
+           "label": "Received",
+           "value": "4,810 rows"
+          },
+          {
+           "label": "Applied",
+           "value": "4,807 rows"
+          },
+          {
+           "label": "Rejected",
+           "value": "3 rows"
+          },
+          {
+           "label": "Audit record",
+           "value": "ERP import succeeded"
+          }
+         ]
+        },
+        {
+         "type": "list",
+         "items": [
+          {
+           "title": "Row 412 · BRK-40118",
+           "meta": "Unknown product code — row skipped",
+           "badge": "Unknown"
+          },
+          {
+           "title": "Row 2,906 · FLT-22071",
+           "meta": "Unknown product code — row skipped",
+           "badge": "Unknown"
+          },
+          {
+           "title": "Row 3,518 · OIL-5W30-5L",
+           "meta": "Duplicate product code, also on row 1,104",
+           "badge": "Duplicate"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Close",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No stock imports yet",
+      "emptyHint": "The first scheduled run reads the ERP stock file at the top of the next hour and its result will appear here.",
+      "error": "Import history could not be loaded. Stock quantities are not affected — try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Stock imports",
+     "subtitle": "Hourly ERP stock file runs from sftp://erp/stock/out — stock quantities change only when a file passes validation",
+     "crumbs": [
+      "Catalogue",
+      "Stock imports"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Last import",
+         "value": "14:00",
+         "delta": "Succeeded"
+        },
+        {
+         "label": "Products updated at 14:00",
+         "value": "4,812",
+         "delta": "0 rejected"
+        },
+        {
+         "label": "Runs today",
+         "value": "9",
+         "delta": "3 failed · 3 partial"
+        },
+        {
+         "label": "Unknown codes skipped today",
+         "value": "3",
+         "delta": "since 06:00"
+        }
+       ]
+      },
+      {
+       "type": "toolbar",
+       "search": "Search file name or product code",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Succeeded",
+          "Partial",
+          "Failed"
+         ],
+         "value": "All statuses"
+        },
+        {
+         "label": "Period",
+         "options": [
+          "Today",
+          "Last 7 days",
+          "Last 30 days"
+         ],
+         "value": "Last 7 days"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Audit log",
+         "variant": "ghost",
+         "icon": "list"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Time",
+        "Status",
+        "Received",
+        "Applied",
+        "Rejected",
+        "Skipped codes / reason"
+       ],
+       "rows": [
+        [
+         "21 May 14:00",
+         "Succeeded",
+         "4,812",
+         "4,812",
+         "0",
+         "—"
+        ],
+        [
+         "21 May 13:00",
+         "Partial",
+         "4,810",
+         "4,807",
+         "3",
+         "Unknown: BRK-40118, FLT-22071 · Duplicate: OIL-5W30-5L"
+        ],
+        [
+         "21 May 12:00",
+         "Failed",
+         "0",
+         "0",
+         "0",
+         "No new file since 11:00 — stock unchanged"
+        ],
+        [
+         "21 May 11:00",
+         "Failed",
+         "4,806",
+         "0",
+         "4,806",
+         "Missing required column: quantity"
+        ],
+        [
+         "21 May 10:00",
+         "Partial",
+         "4,806",
+         "4,804",
+         "2",
+         "Unknown: ALT-88213 · Row 3,077: quantity -4"
+        ],
+        [
+         "21 May 09:00",
+         "Succeeded",
+         "4,801",
+         "4,801",
+         "0",
+         "—"
+        ],
+        [
+         "21 May 08:00",
+         "Partial",
+         "4,801",
+         "4,800",
+         "1",
+         "Duplicate: WPR-BOSCH-600 (rows 220, 4,118)"
+        ],
+        [
+         "21 May 07:00",
+         "Succeeded",
+         "4,799",
+         "4,799",
+         "0",
+         "—"
+        ],
+        [
+         "21 May 06:00",
+         "Failed",
+         "0",
+         "0",
+         "0",
+         "File unreadable: not valid UTF-8 CSV"
+        ],
+        [
+         "20 May 18:00",
+         "Succeeded",
+         "4,797",
+         "4,797",
+         "0",
+         "—"
+        ],
+        [
+         "20 May 17:00",
+         "Failed",
+         "0",
+         "0",
+         "0",
+         "File empty: stock_20260520_1700.csv"
+        ],
+        [
+         "20 May 16:00",
+         "Partial",
+         "4,795",
+         "4,794",
+         "1",
+         "Unknown: SPK-NGK-7090"
+        ],
+        [
+         "20 May 15:00",
+         "Succeeded",
+         "4,795",
+         "4,795",
+         "0",
+         "—"
+        ],
+        [
+         "20 May 14:00",
+         "Partial",
+         "4,793",
+         "4,791",
+         "2",
+         "Row 1,880: quantity \"12a\" · Row 2,415: quantity -1"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "pages": 14,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No stock imports yet",
+      "emptyHint": "The first scheduled run reads the ERP stock file at the top of the next hour and its result will appear here.",
+      "error": "Import history could not be loaded. Stock quantities are not affected — try again in a moment."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,875 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handling unit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: #F7F7F7;
+    color: #202020;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 40px;
+  }
+
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Hanken Grotesk', sans-serif;
+    color: #202020;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.25;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .text-quieter {
+    color: #626262;
+  }
+
+  .text-sm {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* Status Colors */
+  .status-good {
+    color: #24704B;
+  }
+  .dot-good {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #24704B;
+    margin-right: 6px;
+  }
+
+  .status-waiting {
+    color: #805800;
+  }
+  .dot-waiting {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #805800;
+    margin-right: 6px;
+    animation: waiting-breathe 6s ease-in-out infinite;
+  }
+
+  .status-refused {
+    color: #AE2C2C;
+  }
+  .dot-refused {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #AE2C2C;
+    margin-right: 6px;
+  }
+
+  .status-neutral {
+    color: #626262;
+  }
+  .dot-neutral {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #626262;
+    margin-right: 6px;
+  }
+
+  /* Panels */
+  .panel {
+    background-color: #FFFFFF;
+    border: 1px solid #D5D5D5;
+    border-radius: 2px;
+    padding: 16px;
+  }
+
+  .panel-flush {
+    background-color: #FFFFFF;
+    border: 1px solid #D5D5D5;
+    border-radius: 2px;
+  }
+
+  /* Buttons & links */
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 48px;
+    background-color: #A94B1D;
+    color: #FFFFFF;
+    border: 1px solid #A94B1D;
+    border-radius: 2px;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+  }
+  .btn-primary:hover {
+    background-color: #933e15;
+    border-color: #933e15;
+  }
+  .btn-primary:active {
+    transform: scale(0.99);
+  }
+  .btn-primary:focus-visible {
+    outline: 2px solid #A94B1D;
+    outline-offset: 2px;
+  }
+
+  .btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    background-color: #FFFFFF;
+    color: #202020;
+    border: 1px solid #D5D5D5;
+    border-radius: 2px;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-secondary:hover {
+    background-color: #F7F7F7;
+    border-color: #C0C0C0;
+  }
+  .btn-secondary:focus-visible {
+    outline: 2px solid #A94B1D;
+    outline-offset: 2px;
+  }
+
+  .link-action {
+    color: #202020;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .link-action:hover {
+    color: #A94B1D;
+  }
+  .link-action:focus-visible {
+    outline: 2px solid #A94B1D;
+    outline-offset: 2px;
+  }
+
+  /* Header */
+  header {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #D5D5D5;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .brand-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 24px;
+    height: 24px;
+    background-color: #202020;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-weight: 650;
+    font-size: 14px;
+    border-radius: 2px;
+  }
+
+  .brand-name {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-weight: 650;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .avatar-initials {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #D5D5D5;
+    background-color: #F7F7F7;
+    color: #202020;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+  }
+
+  .menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid #D5D5D5;
+    border-radius: 2px;
+    padding: 8px;
+    cursor: pointer;
+  }
+  .menu-toggle span {
+    display: block;
+    height: 2px;
+    background-color: #202020;
+    width: 100%;
+    border-radius: 1px;
+  }
+  .menu-toggle:focus-visible {
+    outline: 2px solid #A94B1D;
+    outline-offset: 2px;
+  }
+
+  /* Nav Menu Accordion/Behind */
+  .nav-drawer {
+    display: none;
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #D5D5D5;
+    padding: 8px 16px;
+  }
+  .nav-menu-open {
+    display: block;
+  }
+  .nav-item {
+    display: block;
+    padding: 12px 0;
+    color: #202020;
+    text-decoration: none;
+    font-size: 15px;
+    border-bottom: 1px solid #D5D5D5;
+  }
+  .nav-item:last-child {
+    border-bottom: none;
+  }
+  .nav-item.active {
+    color: #A94B1D;
+    font-weight: 600;
+  }
+
+  /* Container */
+  .container {
+    max-width: 390px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* Section Spacing */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Focal Card */
+  .focal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #D5D5D5;
+    padding-bottom: 12px;
+  }
+
+  .split-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    border-bottom: 1px solid #D5D5D5;
+  }
+  .split-status-row:last-child {
+    border-bottom: none;
+  }
+
+  /* Stacked Data Record */
+  .data-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid #D5D5D5;
+  }
+  .data-field:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .data-field:first-child {
+    padding-top: 0;
+  }
+
+  /* Ledger bar */
+  .tier-progress-track {
+    width: 100%;
+    height: 8px;
+    background-color: #EFEFEF;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #D5D5D5;
+  }
+  .tier-progress-fill {
+    height: 100%;
+    width: 73.33%; /* 22 of 30 mins */
+    background-color: #805800;
+  }
+
+  /* Reading record card */
+  .reading-record {
+    padding: 12px 16px;
+    border-bottom: 1px solid #D5D5D5;
+  }
+  .reading-record:last-child {
+    border-bottom: none;
+  }
+
+  /* Motion */
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes saved-handoff {
+    from {
+      opacity: 0.6;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes waiting-breathe {
+    0%, 100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .animate-enter {
+    animation: page-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .motion-saved-handoff {
+    animation: saved-handoff 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-area">
+      <div class="brand-mark">M</div>
+      <div class="brand-name">Meridian</div>
+    </div>
+    <div class="header-right">
+      <div class="user-badge">
+        <div class="avatar-initials">LH</div>
+        <span class="text-sm" style="display:none;">Leila Haddad · Warehouse Operator</span>
+      </div>
+      <span class="text-sm text-quieter">EN / العربية</span>
+      <button class="menu-toggle" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Behind Menu Button -->
+  <nav id="mobileNav" class="nav-drawer" style="display:none;">
+    <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #D5D5D5;">
+      <span class="text-sm" style="font-weight:600;">Leila Haddad · Warehouse Operator</span>
+    </div>
+    <a href="#" class="nav-item">Receipts</a>
+    <a href="#" class="nav-item active">Stock</a>
+    <a href="#" class="nav-item">Moves</a>
+    <a href="#" class="nav-item">Boxes</a>
+    <a href="#" class="nav-item">Cold rooms</a>
+  </nav>
+
+  <!-- Page Content Container -->
+  <main class="container animate-enter">
+
+    <!-- Page Heading & Context -->
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <h1>Handling unit</h1>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="text-sm text-quieter">Assigned warehouse: North Quay</span>
+        <span class="text-sm font-mono text-quieter">14 May 2026</span>
+      </div>
+    </div>
+
+    <!-- Section 1: Focal Line: HU-82 · 20 packs and returned split statuses -->
+    <section class="section">
+      <div class="panel">
+        <div class="focal-header">
+          <div>
+            <div style="font-size:14px; text-transform:uppercase; letter-spacing:0.04em;" class="text-quieter">Focal handling unit</div>
+            <h2 style="font-size:22px; margin-top:2px;"><span class="font-mono">HU-82</span> · <span class="font-mono">20</span> packs</h2>
+          </div>
+          <div style="text-align:right;">
+            <span class="text-sm text-quieter">Lot</span>
+            <div class="font-mono" style="font-weight:600;">IG-2511</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; margin-bottom:4px;">
+          <div class="text-sm text-quieter" style="margin-bottom:4px; font-weight:500;">Returned stock breakdown</div>
+          
+          <!-- Split Status Rows (48px standard rows, 1px rules) -->
+          <div class="split-status-row">
+            <span style="display:flex; align-items:center;">
+              <span class="dot-waiting"></span>
+              <span class="status-waiting" style="font-weight:500;">Quarantined</span>
+            </span>
+            <span class="font-mono" style="font-weight:600; font-size:18px;">10</span>
+          </div>
+
+          <div class="split-status-row">
+            <span style="display:flex; align-items:center;">
+              <span class="dot-waiting"></span>
+              <span class="status-waiting" style="font-weight:500;">On Hold</span>
+            </span>
+            <span class="font-mono" style="font-weight:600; font-size:18px;">5</span>
+          </div>
+
+          <div class="split-status-row">
+            <span style="display:flex; align-items:center;">
+              <span class="dot-refused"></span>
+              <span class="status-refused" style="font-weight:500;">Rejected</span>
+            </span>
+            <span class="font-mono" style="font-weight:600; font-size:18px;">2</span>
+          </div>
+
+          <div class="split-status-row">
+            <span style="display:flex; align-items:center;">
+              <span class="dot-refused"></span>
+              <span class="status-refused" style="font-weight:500;">Expired</span>
+            </span>
+            <span class="font-mono" style="font-weight:600; font-size:18px;">3</span>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #D5D5D5; display:flex; justify-content:space-between; align-items:center;">
+          <span class="text-sm text-quieter">Total unit quantity</span>
+          <span class="text-sm font-mono" style="font-weight:600;"><span class="font-mono">20</span> packs</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Product & Consignment Specification (Photograph, IG-2511, expiry, receipt, C2 Rack 4) -->
+    <section class="section">
+      <h2>Product specification</h2>
+      
+      <div class="panel">
+        <!-- 4:3 Photographic Crop -->
+        <div style="width:100%; aspect-ratio:4/3; border-radius:2px; overflow:hidden; border:1px solid #D5D5D5; margin-bottom:16px;">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine 100 units/mL carton packaging" style="width:100%; height:100%; object-fit:cover; display:block;">
+        </div>
+
+        <div style="display:flex; flex-direction:column;">
+          <div class="data-field">
+            <span class="text-sm text-quieter">Product</span>
+            <span style="font-weight:500;">Insulin Glargine 100 units/mL</span>
+            <span class="text-sm text-quieter">pack of 10 pens</span>
+          </div>
+
+          <div class="data-field">
+            <span class="text-sm text-quieter">Lot number</span>
+            <span class="font-mono" style="font-weight:600;">IG-2511</span>
+          </div>
+
+          <div class="data-field">
+            <span class="text-sm text-quieter">Expiry date</span>
+            <span class="font-mono">31 March 2027</span>
+          </div>
+
+          <div class="data-field">
+            <span class="text-sm text-quieter">Receipt intake</span>
+            <span class="font-mono">14 May 2026 08:00</span>
+          </div>
+
+          <div class="data-field">
+            <span class="text-sm text-quieter">Warehouse location</span>
+            <span>Cold Room C2, Rack 4</span>
+          </div>
+
+          <div class="data-field">
+            <span class="text-sm text-quieter">Storage specification</span>
+            <span class="font-mono text-sm">profile v3 (permitted 2–8°C)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Full-width Temperature Chart with 2-8°C permitted band -->
+    <section class="section">
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <h2>Temperature profile</h2>
+        <span class="text-sm font-mono text-quieter">2–8°C</span>
+      </div>
+
+      <div class="panel-flush" style="padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span class="text-sm text-quieter">Permitted threshold 2.0°C–8.0°C</span>
+          <span class="text-sm status-waiting" style="font-weight:500;">Excursion logged</span>
+        </div>
+
+        <!-- SVG Temperature Chart -->
+        <div style="width:100%; height:170px; background-color:#FFFFFF; border:1px solid #D5D5D5; border-radius:2px; position:relative; overflow:hidden;">
+          <svg viewBox="0 0 320 170" width="100%" height="100%" preserveAspectRatio="none" style="display:block;">
+            <defs>
+              <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#24704B" stop-opacity="0.10"></stop>
+                <stop offset="100%" stop-color="#24704B" stop-opacity="0.04"></stop>
+              </linearGradient>
+            </defs>
+
+            <!-- Grid Lines & Temperature Labels -->
+            <!-- 10°C line (y=30) -->
+            <line x1="38" y1="30" x2="312" y2="30" stroke="#D5D5D5" stroke-dasharray="3,3" stroke-width="1"></line>
+            <text x="32" y="34" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="end">10°C</text>
+
+            <!-- 8°C line (y=55) Top of permitted band -->
+            <line x1="38" y1="55" x2="312" y2="55" stroke="#24704B" stroke-dasharray="2,2" stroke-width="1"></line>
+            <text x="32" y="59" font-family="IBM Plex Mono" font-size="10" fill="#24704B" text-anchor="end">8°C</text>
+
+            <!-- 5°C line (y=92) -->
+            <line x1="38" y1="92" x2="312" y2="92" stroke="#E5E5E5" stroke-width="1"></line>
+            <text x="32" y="96" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="end">5°C</text>
+
+            <!-- 2°C line (y=130) Bottom of permitted band -->
+            <line x1="38" y1="130" x2="312" y2="130" stroke="#24704B" stroke-dasharray="2,2" stroke-width="1"></line>
+            <text x="32" y="134" font-family="IBM Plex Mono" font-size="10" fill="#24704B" text-anchor="end">2°C</text>
+
+            <!-- Permitted Band Box (between 8°C and 2°C: y=55 to y=130, height=75) -->
+            <rect x="38" y="55" width="274" height="75" fill="url(#bandGrad)"></rect>
+
+            <!-- Excursion Band (>8-10°C: y=30 to y=55) -->
+            <rect x="38" y="30" width="274" height="25" fill="#805800" fill-opacity="0.05"></rect>
+
+            <!-- Temperature Line: HU-82 sensor path -->
+            <!-- Points: 04:00 (45, 102 [4.4°C]), 06:00 (105, 101 [4.5°C]), 07:00 (165, 99 [4.7°C]), 08:00 (220, 97 [4.8°C]), 08:30 (255, 41 [9.1°C]), 09:00 (295, 99 [4.7°C]) -->
+            <polyline fill="none" stroke="#805800" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="45,102 105,101 165,99 220,97 255,41 295,99"></polyline>
+
+            <!-- Peak Excursion Marker at 08:30 (9.1°C) -->
+            <circle cx="255" cy="41" r="4.5" fill="#805800" stroke="#FFFFFF" stroke-width="1.5"></circle>
+            <rect x="220" y="18" width="70" height="16" fill="#805800" rx="2"></rect>
+            <text x="255" y="30" font-family="IBM Plex Mono" font-size="9" fill="#FFFFFF" font-weight="600" text-anchor="middle">9.1°C (22m)</text>
+
+            <!-- Time axis line & labels -->
+            <line x1="38" y1="148" x2="312" y2="148" stroke="#D5D5D5" stroke-width="1"></line>
+            <text x="45" y="162" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="middle">04:00</text>
+            <text x="115" y="162" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="middle">06:00</text>
+            <text x="185" y="162" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="middle">07:00</text>
+            <text x="245" y="162" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="middle">08:30</text>
+            <text x="295" y="162" font-family="IBM Plex Mono" font-size="10" fill="#626262" text-anchor="middle">09:00</text>
+          </svg>
+        </div>
+
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-block; width:12px; height:3px; background-color:#805800;"></span>
+            <span class="text-sm">HU-82 sensor logger profile</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-block; width:12px; height:8px; background-color:#24704B; opacity:0.25;"></span>
+            <span class="text-sm text-quieter">Permitted cold chain band (2–8°C)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Plain Tier Ledger (22 minutes used / 8 left above 8°C) -->
+    <section class="section">
+      <h2>Tier allowance ledger</h2>
+
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
+          <span style="font-weight:600;">First upper tier (&gt;8–10°C)</span>
+          <span class="font-mono text-sm text-quieter">30 min total</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span class="font-mono" style="font-size:18px; font-weight:600; color:#805800;">22 minutes used</span>
+          <span class="font-mono text-sm" style="font-weight:500;">8 left</span>
+        </div>
+
+        <!-- Track & fill bar -->
+        <div class="tier-progress-track">
+          <div class="tier-progress-fill"></div>
+        </div>
+
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #D5D5D5; display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span class="text-sm text-quieter">Permitted excursion limit</span>
+            <span class="text-sm font-mono">30 minutes</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span class="text-sm text-quieter">Excursion recorded</span>
+            <span class="text-sm font-mono">9.1°C for 22 minutes</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Quality Case Alert Q-88 and Returned Review Status -->
+    <section class="section">
+      <h2>Quality assurance case</h2>
+
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:8px; border-bottom:1px solid #D5D5D5;">
+          <span class="text-sm text-quieter">Case identifier</span>
+          <span class="font-mono" style="font-weight:600; font-size:18px;">Q-88</span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Alert title</span>
+          <span style="font-weight:500;">Upper tier excursion on HU-82</span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Returned review status</span>
+          <span style="display:flex; align-items:center;">
+            <span class="dot-waiting"></span>
+            <span class="status-waiting" style="font-weight:600;">waiting</span>
+          </span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Responsible Quality Officer</span>
+          <span>Omar Saleh</span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Logged at</span>
+          <span class="font-mono">14 May 2026 08:30</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Reading Gap Card (Actual time span and review status; no guessed temp, no tier charge, no inferred On Hold) -->
+    <section class="section">
+      <h2>Logger gap record</h2>
+
+      <div class="panel">
+        <div class="data-field">
+          <span class="text-sm text-quieter">Actual time span</span>
+          <span class="font-mono" style="font-weight:600;">14 May 2026 08:11 – 08:19</span>
+          <span class="text-sm text-quieter">Duration: 8 minutes</span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Gap review status</span>
+          <span style="display:flex; align-items:center;">
+            <span class="dot-waiting"></span>
+            <span class="status-waiting" style="font-weight:500;">waiting</span>
+          </span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Guessed temperature</span>
+          <span class="text-sm text-quieter">None recorded</span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Tier charge</span>
+          <span class="text-sm text-quieter">0 minutes charged</span>
+        </div>
+
+        <div class="data-field">
+          <span class="text-sm text-quieter">Returned stock status</span>
+          <span style="display:flex; align-items:center;">
+            <span class="dot-waiting"></span>
+            <span class="status-waiting" style="font-weight:500;">Quarantined</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 7: Readings Table (Stacked labelled records at phone width, 48px rows, 1px rules) -->
+    <section class="section">
+      <h2>Readings log</h2>
+
+      <div class="panel-flush">
+        <!-- Record 1 -->
+        <div class="reading-record">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+            <span class="font-mono text-sm" style="font-weight:600;">14 May 2026 08:30</span>
+            <span class="font-mono text-sm" style="font-weight:600; color:#805800;">9.1°C</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-sm text-quieter">Upper tier (&gt;8–10°C) · 22m</span>
+            <span style="display:flex; align-items:center;">
+              <span class="dot-waiting"></span>
+              <span class="text-sm status-waiting" style="font-weight:500;">Excursion (Q-88 opened)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Record 2: Reading Gap -->
+        <div class="reading-record" style="background-color:#FAFAFA;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+            <span class="font-mono text-sm" style="font-weight:600;">14 May 2026 08:11–08:19</span>
+            <span class="font-mono text-sm text-quieter">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-sm text-quieter">Unresolved reading gap (8m)</span>
+            <span style="display:flex; align-items:center;">
+              <span class="dot-waiting"></span>
+              <span class="text-sm status-waiting" style="font-weight:500;">waiting</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Record 3 -->
+        <div class="reading-record">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+            <span class="font-mono text-sm" style="font-weight:600;">14 May 2026 08:11</span>
+            <span class="font-mono text-sm" style="font-weight:600;">4.6°C</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-sm text-quieter">Permitted (2–8°C)</span>
+            <span style="display:flex; align-items:center;">
+              <span class="dot-good"></span>
+              <span class="text-sm status-good" style="font-weight:500;">Logger parsed</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Record 4 -->
+        <div class="reading-record">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+            <span class="font-mono text-sm" style="font-weight:600;">14 May 2026 08:00</span>
+            <span class="font-mono text-sm" style="font-weight:600;">4.8°C</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-sm text-quieter">Dock arrival intake</span>
+            <span style="display:flex; align-items:center;">
+              <span class="dot-waiting"></span>
+              <span class="text-sm status-waiting" style="font-weight:500;">Quarantined</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 8: Actions and Navigation Links -->
+    <section class="section" style="margin-top:8px;">
+      <!-- Primary Action: Move stock (within reach of thumb, 48px tall, contrasting text) -->
+      <button class="btn-primary" type="button">
+        Move stock
+      </button>
+
+      <!-- Secondary Links -->
+      <div style="display:flex; justify-content:space-around; align-items:center; padding:12px 0;">
+        <a href="#" class="link-action">Receipt detail</a>
+        <span class="text-quieter">·</span>
+        <a href="#" class="link-action">Stock</a>
+      </div>
+    </section>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-3","names":["request password reset","reset"],"words":["reset"]},{"id":"S-5","names":["access refused"],"words":["access","refused"]},{"id":"S-2","names":["one time code","code","sign in code"],"words":["sign","code"]},{"id":"S-4","names":["set new password","reset"],"words":["reset"]},{"id":"S-6","names":["receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-9","names":["stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-12","names":["move","warehouse move"],"words":["warehouse","move"]},{"id":"S-13","names":["boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-16","names":["cold room","warehouse cold room"],"words":["warehouse","cold","room"]},{"id":"S-18","names":["order","dispatch order"],"words":["dispatch","order"]},{"id":"S-20","names":["route","dispatch route"],"words":["dispatch","route"]},{"id":"S-25","names":["today s route","today","driver today"],"words":["driver","today"]},{"id":"S-30","names":["pending work","pending","driver pending"],"words":["driver","pending"]},{"id":"S-32","names":["quality case","case"],"words":["quality","case"]},{"id":"S-36","names":["waiting decision","waiting","quality manager waiting"],"words":["quality","manager","waiting"]},{"id":"S-38","names":["recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-41","names":["order","customer order"],"words":["customer","order"]},{"id":"S-45","names":["deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-48","names":["recall notice","recall","customer recall"],"words":["customer","recall"]},{"id":"S-50","names":["account","customer account"],"words":["customer","account"]},{"id":"S-51","names":["addresse","customer admin addresse"],"words":["customer","addresse"]},{"id":"S-52","names":["team","customer admin team"],"words":["customer","team"]},{"id":"S-53","names":["product","admin product"],"words":["product"]},{"id":"S-57","names":["organisation","admin organisation"],"words":["organisation"]},{"id":"S-59","names":["account","admin account"],"words":["account"]},{"id":"S-61","names":["audit trail","audit","admin audit"],"words":["audit"]},{"id":"S-62","names":["report","admin report"],"words":["report"]},{"id":"S-64","names":["audit trail","audit","auditor audit"],"words":["auditor","audit"]},{"id":"S-66","names":["report","auditor report"],"words":["auditor","report"]},{"id":"S-7","names":["record receipt","new","warehouse receipt new"],"words":["warehouse","receipt"]},{"id":"S-8","names":["receipt detail","receipt","warehouse receipt"],"words":["warehouse","receipt"]},{"id":"S-10","names":["handling unit","stock","warehouse stock"],"words":["warehouse","stock"]},{"id":"S-14","names":["pack box","boxe","warehouse boxe"],"words":["warehouse","boxe"]},{"id":"S-15","names":["opening stock","opening","warehouse stock opening"],"words":["warehouse","stock","opening"]},{"id":"S-17","names":["cold room detail","warehouse cold room c2"],"words":["warehouse","cold","room"]},{"id":"S-19","names":["order detail","order","dispatch order"],"words":["dispatch","order"]},{"id":"S-22","names":["route detail","route","dispatch route"],"words":["dispatch","route"]},{"id":"S-26","names":["route stop","route","driver route"],"words":["driver","route"]},{"id":"S-33","names":["quality review","case","quality case"],"words":["quality","case"]},{"id":"S-34","names":["signed decision","decision","quality decision"],"words":["quality","decision"]},{"id":"S-37","names":["decision approval","decision","quality manager decision"],"words":["quality","manager","decision"]},{"id":"S-39","names":["start recall","new","quality manager recall new"],"words":["quality","manager","recall"]},{"id":"S-40","names":["recall detail","recall","quality manager recall"],"words":["quality","manager","recall"]},{"id":"S-42","names":["place order","new","customer order new"],"words":["customer","order"]},{"id":"S-43","names":["order detail","order","customer order"],"words":["customer","order"]},{"id":"S-46","names":["delivery detail","deliverie","customer deliverie"],"words":["customer","deliverie"]},{"id":"S-54","names":["product detail","product","admin product"],"words":["product"]},{"id":"S-58","names":["organisation detail","organisation","admin organisation"],"words":["organisation"]},{"id":"S-60","names":["account detail","account","admin account"],"words":["account"]},{"id":"S-11","names":["move stock","move","warehouse stock move"],"words":["warehouse","stock","move"]},{"id":"S-21","names":["route plan","plan","dispatch route plan"],"words":["dispatch","route","plan"]},{"id":"S-23","names":["box temperature","temperature","dispatch boxe temperature"],"words":["dispatch","boxe","temperature"]},{"id":"S-24","names":["delivery evidence","evidence","dispatch deliverie evidence"],"words":["dispatch","deliverie","evidence"]},{"id":"S-27","names":["load boxe","load","driver route load"],"words":["driver","route","load"]},{"id":"S-31","names":["route change","change","driver route change"],"words":["driver","route","change"]},{"id":"S-35","names":["record destruction","destruction","quality stock destruction"],"words":["quality","stock","destruction"]},{"id":"S-44","names":["change order","change","customer order change"],"words":["customer","order","change"]},{"id":"S-47","names":["certificate","customer deliverie certificate"],"words":["customer","deliverie","certificate"]},{"id":"S-55","names":["temperature profile","profile","admin product profile"],"words":["product","profile"]},{"id":"S-63","names":["lot history","history","admin lot history"],"words":["lot","history"]},{"id":"S-65","names":["lot history","history","auditor lot history"],"words":["auditor","lot","history"]},{"id":"S-28","names":["stop detail","stop","driver route stop"],"words":["driver","route","stop"]},{"id":"S-49","names":["recall response","deliverie","customer recall deliverie"],"words":["customer","recall","deliverie"]},{"id":"S-56","names":["new profile version","new","admin product profile new"],"words":["product","profile"]},{"id":"S-29","names":["record handover","handover","driver route stop handover"],"words":["driver","route","stop","handover"]}],L={"receipts":"S-6","stock":"S-9","moves":"S-12","boxes":"S-13","cold rooms":"S-16","move stock":"S-11","receipt detail":"S-8"},A={"request password reset":"S-3","back to sign in":"S-1","record receipt":"S-7","opening stock":"S-15","pack box":"S-14","cold room detail":"S-17","routes":"S-20","route detail":"S-22","route plan":"S-21","box temperature":"S-23","delivery evidence":"S-24","pending work":"S-30","route stops":"S-26","today s routes":"S-25","load boxes":"S-27","stop detail":"S-28","route changes":"S-31","record handover":"S-29","sign in to sync":"S-1","quality review":"S-33","quality cases":"S-32","signed decision":"S-34","record destruction":"S-35","recalls":"S-38","decision approval":"S-37","waiting decisions":"S-36","start recall":"S-39","recall detail":"S-40","deliveries":"S-45","recall notices":"S-48","account":"S-50","place order":"S-42","change order":"S-44","delivery detail":"S-46","certificates":"S-47","recall response":"S-49","team":"S-52","addresses":"S-51","organisations":"S-57","accounts":"S-59","product detail":"S-54","products":"S-53","temperature profiles":"S-55","new profile version":"S-56","organisation detail":"S-58","account detail":"S-60"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-10";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

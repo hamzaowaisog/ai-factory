@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F7;
+      --panel: #FFFFFF;
+      --text: #202020;
+      --text-muted: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes savedHandoff {
+      from {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .status-dot-waiting {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-waiting);
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .status-dot-good {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    /* Header component */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background: #202020;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.2px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      height: 56px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      padding: 0 16px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--primary);
+    }
+
+    .nav-item:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .nav-item.active {
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      background: #EEEEEE;
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1040px;
+      margin: 32px auto 48px auto;
+      padding: 0 24px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .sections-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 24px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: #933F17;
+      border-color: #933F17;
+    }
+
+    .btn-secondary {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #F0F0F0;
+      border-color: #C0C0C0;
+    }
+
+    /* Big Status Panel */
+    .status-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+
+    .order-title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .order-id {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .status-waiting-text {
+      color: var(--status-waiting);
+    }
+
+    .status-good-text {
+      color: var(--status-good);
+    }
+
+    .metrics-row {
+      display: flex;
+      gap: 32px;
+      margin-top: 8px;
+    }
+
+    .metric-huge {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .metric-huge .accent {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+    }
+
+    .metric-huge .outstanding {
+      color: var(--status-waiting);
+    }
+
+    .metric-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Product card */
+    .product-layout {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .product-photo {
+      width: 160px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+    }
+
+    .product-details {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .product-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 650;
+      color: var(--text);
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .spec-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .spec-val {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+
+    .data-table th {
+      height: 40px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+    }
+
+    .data-table td {
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Timeline */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 140px 24px 1fr;
+      gap: 16px;
+      position: relative;
+      padding-bottom: 20px;
+    }
+
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .timeline-time {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: right;
+      padding-top: 2px;
+    }
+
+    .timeline-marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .timeline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      margin-top: 6px;
+      z-index: 2;
+    }
+
+    .timeline-dot.active {
+      background: var(--status-waiting);
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .timeline-dot.done {
+      background: var(--status-good);
+    }
+
+    .timeline-line {
+      position: absolute;
+      top: 16px;
+      bottom: -4px;
+      width: 1px;
+      background: var(--border);
+      z-index: 1;
+    }
+
+    .timeline-item:last-child .timeline-line {
+      display: none;
+    }
+
+    .timeline-content {
+      padding-top: 2px;
+    }
+
+    .timeline-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .timeline-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Address & Delivery estimate */
+    .info-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .info-block {
+      background: #FAFAFA;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    .info-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .info-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* Action bar */
+    .actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+      padding-top: 8px;
+    }
+
+    .returned-outcome-banner {
+      background: #FDF9F0;
+      border: 1px solid #E5D6AE;
+      border-radius: 2px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand">
+        <span class="brand-mark">M</span>
+        <span class="brand-name">Meridian</span>
+      </a>
+      <nav>
+        <a href="#" class="nav-item active">Orders</a>
+        <a href="#" class="nav-item">Deliveries</a>
+        <a href="#" class="nav-item">Recall notices</a>
+        <a href="#" class="nav-item">Account</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <span class="avatar">HY</span>
+        <span>Hana Youssef · Cedar Health</span>
+      </div>
+      <div class="lang-switcher">
+        <span>EN / العربية</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container animate-entrance">
+    <div class="page-header">
+      <h1>Order detail</h1>
+    </div>
+
+    <div class="sections-stack">
+
+      <!-- Status and Allocation Overview -->
+      <section class="panel">
+        <div class="status-banner">
+          <div class="order-title-group">
+            <span class="order-id mono">O-301</span>
+            <div class="status-badge">
+              <span class="status-dot-waiting"></span>
+              <span class="status-waiting-text">waiting</span>
+            </div>
+          </div>
+          <div style="font-size: 14px; color: var(--text-muted);">
+            Placed: <span class="mono">14 May 2026 09:00 BST</span>
+          </div>
+        </div>
+
+        <div class="metrics-row">
+          <div>
+            <div class="metric-huge">
+              <span class="accent">20</span> allocated / <span class="accent outstanding">10</span> outstanding
+            </div>
+            <div class="metric-sub">
+              Total quantity: <span class="mono">30</span> packs ordered
+            </div>
+          </div>
+        </div>
+
+        <div class="returned-outcome-banner">
+          <span class="status-dot-waiting"></span>
+          <span>
+            <strong>Returned outcome:</strong> Order registered and 20 packs allocated from HU-81. Remaining 10 packs await release before packing.
+          </span>
+        </div>
+      </section>
+
+      <!-- Product & Lot IG-2511 Allocation -->
+      <section class="panel">
+        <div style="margin-bottom: 16px;">
+          <h2>Product & lot allocation</h2>
+        </div>
+
+        <div class="product-layout">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine 100 units/mL" class="product-photo">
+          
+          <div class="product-details">
+            <div class="product-name">
+              Insulin Glargine 100 units/mL
+            </div>
+            <div style="font-size: 14px; color: var(--text-muted);">
+              Pack of 10 pens · Thermal profile v3 (permitted 2.0°C–8.0°C)
+            </div>
+
+            <div class="spec-grid">
+              <div class="spec-item">
+                <span class="spec-label">Lot number</span>
+                <span class="spec-val mono">IG-2511</span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Expiry date</span>
+                <span class="spec-val mono">31 March 2027</span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Ordered</span>
+                <span class="spec-val mono">30 packs</span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Remaining shelf life</span>
+                <span class="spec-val mono">321 days</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <h3 style="margin-bottom: 12px;">Allocation and delivery choice</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Lot number</th>
+                <th>Handling unit</th>
+                <th>Expiry date</th>
+                <th>Allocated</th>
+                <th>Outstanding</th>
+                <th>Delivery choice</th>
+                <th>Lot status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">IG-2511</td>
+                <td class="mono">HU-81</td>
+                <td class="mono">31 March 2027</td>
+                <td class="mono"><strong>20</strong> packs</td>
+                <td class="mono">0 packs</td>
+                <td>North Quay Cold Room C2, Rack 4</td>
+                <td>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span class="status-dot-good"></span>
+                    <span class="status-good-text">good</span>
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td class="mono">IG-2511</td>
+                <td class="mono">HU-82</td>
+                <td class="mono">31 March 2027</td>
+                <td class="mono">0 packs</td>
+                <td class="mono"><strong style="color: var(--status-waiting);">10</strong> packs</td>
+                <td>Awaiting release from inspection</td>
+                <td>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span class="status-dot-waiting"></span>
+                    <span class="status-waiting-text">waiting</span>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Destination & In-Transit Parameters -->
+      <section class="panel">
+        <div style="margin-bottom: 16px;">
+          <h2>Delivery details & transit parameters</h2>
+        </div>
+
+        <div class="info-two-col">
+          <div class="info-block">
+            <div class="info-label">Customer destination address</div>
+            <div class="info-value" style="font-weight: 600;">Cedar Clinic</div>
+            <div class="info-value">42 River Road, London</div>
+            <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+              Recipient: Cedar Health (Hana Youssef)
+            </div>
+          </div>
+
+          <div class="info-block">
+            <div class="info-label">Cedar Health arrival estimate & box temperature</div>
+            <div class="info-value" style="display: flex; justify-content: space-between; align-items: baseline;">
+              <span>Arrival estimate:</span>
+              <span class="mono">14 May 2026 16:30 BST</span>
+            </div>
+            <div class="info-value" style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px;">
+              <span>Box temperature status:</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span class="status-dot-good"></span>
+                <span class="status-good-text">good (2.0°C–8.0°C compliant)</span>
+              </span>
+            </div>
+            <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+              Assigned route: <span class="mono">R-204</span> (Cedar Clinic stop only)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status Timeline -->
+      <section class="panel">
+        <div style="margin-bottom: 20px;">
+          <h2>Status timeline</h2>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-time mono">14 May 09:00 BST</div>
+            <div class="timeline-marker">
+              <div class="timeline-dot done"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title">Order placed</div>
+              <div class="timeline-desc">Placed by Hana Youssef for 30 packs Insulin Glargine (Lot IG-2511) to Cedar Clinic.</div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time mono">14 May 09:15 BST</div>
+            <div class="timeline-marker">
+              <div class="timeline-dot done"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title">Stock allocated</div>
+              <div class="timeline-desc">20 packs allocated from HU-81 in Cold Room C2. 10 packs outstanding pending release.</div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time mono">14 May 09:30 BST</div>
+            <div class="timeline-marker">
+              <div class="timeline-dot active"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title" style="color: var(--status-waiting);">Waiting packing & staged release</div>
+              <div class="timeline-desc">Scheduled for packing into BioTherm shipper once remaining allocation is completed.</div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time mono">Pending</div>
+            <div class="timeline-marker">
+              <div class="timeline-dot"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title" style="color: var(--text-muted);">Dispatch & transit to Cedar Clinic</div>
+              <div class="timeline-desc">Tariq Mansour in VAN-27 scheduled for delivery at 42 River Road.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Primary & Secondary Actions (pre-Packed state) -->
+      <section class="panel" style="background: transparent; border: none; padding: 0;">
+        <div class="actions-bar">
+          <button class="btn btn-primary" type="button">Change order</button>
+          <button class="btn btn-secondary" type="button">Cancel order</button>
+        </div>
+        <div style="margin-top: 12px; font-size: 14px; color: var(--text-muted);">
+          Modifications and cancellations are permitted prior to order packing.
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+</body>
+</html>

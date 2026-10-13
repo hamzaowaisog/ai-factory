@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Move stock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F7;
+      --surface: #FFFFFF;
+      --text: #202020;
+      --text-quiet: #626262;
+      --border: #D5D5D5;
+      --primary: #A94B1D;
+      --status-good: #24704B;
+      --status-waiting: #805800;
+      --status-refused: #AE2C2C;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Typography */
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: var(--text);
+    }
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .sync-breathing-dot {
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text);
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background: #202020;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 2px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 16px 0;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    nav a:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    nav a.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .avatar-initials {
+      width: 28px;
+      height: 28px;
+      background: #EAEAEA;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .lang-switch {
+      color: var(--text-quiet);
+      font-size: 14px;
+    }
+
+    /* Layout */
+    main {
+      padding: 32px;
+      max-width: 1440px;
+    }
+
+    .content-container {
+      max-width: 760px; /* Keep wide-screen right margin empty as requested */
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.2;
+      margin-bottom: 32px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 32px;
+    }
+
+    .panel-heading {
+      font-size: 20px;
+      font-weight: 650;
+      margin-bottom: 16px;
+    }
+
+    .hu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hu-title {
+      font-size: 20px;
+      font-weight: 650;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-good {
+      color: var(--status-good);
+    }
+    .status-waiting {
+      color: var(--status-waiting);
+    }
+    .status-refused {
+      color: var(--status-refused);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+
+    /* Specification Grid */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .product-photo {
+      width: 140px;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+    }
+
+    .meta-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px 16px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: var(--text-quiet);
+      margin-bottom: 2px;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    /* Stock breakdown bar/list */
+    .quantities-row {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 24px;
+    }
+
+    /* Narrow Form */
+    .form-narrow {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    input, select {
+      height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .btn-primary {
+      height: 48px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 2px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 150ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      opacity: 0.85;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      height: 48px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 24px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #FBFBFB;
+      border-color: #C0C0C0;
+    }
+
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Movement Record / History Table */
+    .record-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    .record-table th {
+      text-align: left;
+      font-size: 14px;
+      color: var(--text-quiet);
+      font-weight: 500;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .record-table td {
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+
+    .record-table tr:last-child td {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header: strict single layout with exact links and user info -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand">
+        <span class="brand-mark">M</span>
+        Meridian
+      </a>
+      <nav>
+        <a href="#">Receipts</a>
+        <a href="#">Stock</a>
+        <a href="#" class="active">Moves</a>
+        <a href="#">Boxes</a>
+        <a href="#">Cold rooms</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-pill">
+        <span class="avatar-initials">LH</span>
+        <span>Leila Haddad · Warehouse Operator</span>
+      </div>
+      <span class="lang-switch">EN / العربية</span>
+    </div>
+  </header>
+
+  <!-- Main container -->
+  <main>
+    <div class="content-container animate-entrance">
+      <h1 class="page-title">Move stock</h1>
+
+      <!-- Handling Unit Context -->
+      <section class="panel">
+        <div class="hu-header">
+          <div>
+            <div class="hu-title">
+              <span>Handling unit</span>
+              <span class="mono">HU-81</span>
+              <span>·</span>
+              <span class="mono">100</span>
+              <span>packs</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-quiet); margin-top: 2px;">
+              Physical packaging handling unit · Warehouse scope North Quay
+            </p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <span class="status-indicator status-good">
+              <span class="dot"></span>
+              Released available
+            </span>
+            <a href="#" class="btn-secondary" style="height: 36px; padding: 0 14px; font-size: 14px;">Handling unit</a>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WgSPshUkFcZmvnxOy3H7uPFO7vnua31jEAabBdx4WfRYInoVBclaBYzr6EOTkCWFqGsJS1uhjgOZkjwXnc6tXok5_V7hnJD71fMFpVOQvB0xDilugRi-So3x2iuqG8mhzrhcPOXs_uaNz4_YRLSzRonyj7WTjf5nSvwTo_MrbJYO2Vuwzuzgh5Zyao9k4Tvi2zu6Rzpy9-qzR1Cr9NTtD1_aXoZOH7xfrp2HTEKJUlFP5vifyhiJqQhA" alt="Insulin Glargine packaging" class="product-photo">
+          <div class="meta-list">
+            <div class="meta-item">
+              <span class="meta-label">Product</span>
+              <span class="meta-value">Insulin Glargine 100 units/mL</span>
+              <span style="font-size: 14px; color: var(--text-quiet);">pack of 10 pens · profile v3 (2–8°C)</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Lot number</span>
+              <span class="meta-value mono">IG-2511</span>
+              <span style="font-size: 14px; color: var(--text-quiet);">Exp. <span class="mono">31 March 2027</span></span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Current location</span>
+              <span class="meta-value">Cold Room C2, Rack 4</span>
+              <span style="font-size: 14px; color: var(--text-quiet);">North Quay Warehouse</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Eligible quantity</span>
+              <span class="meta-value"><span class="mono">60</span> packs available</span>
+              <span style="font-size: 14px; color: var(--text-quiet);"><span class="mono">40</span> packs allocated (O-299 &amp; O-301)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="quantities-row">
+          <div>
+            <span class="meta-label">Total on unit</span>
+            <div class="mono" style="font-size: 18px; font-weight: 600;">100 packs</div>
+          </div>
+          <div>
+            <span class="meta-label">Available</span>
+            <div class="mono status-good" style="font-size: 18px; font-weight: 600;">60 packs</div>
+          </div>
+          <div>
+            <span class="meta-label">Allocated</span>
+            <div class="mono" style="font-size: 18px; font-weight: 600; color: var(--text-quiet);">40 packs</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Move Stock Form (Narrow form) -->
+      <section class="panel">
+        <h2 class="panel-heading">Record move</h2>
+        <form class="form-narrow" onsubmit="event.preventDefault();">
+          <div class="form-group">
+            <label for="source-loc">Source location</label>
+            <input type="text" id="source-loc" value="Cold Room C2, Rack 4" readonly style="background: #F7F7F7; color: var(--text);">
+          </div>
+
+          <div class="form-group">
+            <label for="dest-loc">Destination location</label>
+            <select id="dest-loc">
+              <option value="Cold Room C2, Rack 5">Cold Room C2, Rack 5</option>
+              <option value="Cold Room C2, Rack 6">Cold Room C2, Rack 6</option>
+              <option value="Cold Room C1, Rack 1">Cold Room C1, Rack 1</option>
+              <option value="Cold Room C1, Rack 2">Cold Room C1, Rack 2</option>
+              <option value="Dispatch Staging Bay A">Dispatch Staging Bay A</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="move-qty">Quantity to move (packs)</label>
+            <input type="text" id="move-qty" value="60">
+            <span style="font-size: 14px; color: var(--text-quiet);">Maximum eligible available: <span class="mono">60</span> packs</span>
+          </div>
+
+          <div style="margin-top: 8px;">
+            <button type="button" class="btn-primary" style="width: 100%;">Record move</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Success Record / Movement Record -->
+      <section class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+          <h2 class="panel-heading" style="margin-bottom: 0;">Completed movement record</h2>
+          <span class="status-indicator status-good">
+            <span class="dot"></span>
+            Recorded
+          </span>
+        </div>
+
+        <table class="record-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Source</th>
+              <th>Destination</th>
+              <th>Quantity</th>
+              <th>Operator</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">14 May 2026 08:19</td>
+              <td>Cold Room C2, Rack 4</td>
+              <td>Cold Room C2, Rack 4</td>
+              <td class="mono">100 packs</td>
+              <td>Leila Haddad</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

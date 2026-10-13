@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quality review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F7F7F7;
+      color: #202020;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography */
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1.25;
+      color: #202020;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.3;
+      color: #202020;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #202020;
+    }
+
+    .text-quiet {
+      color: #626262;
+    }
+
+    .text-sm {
+      font-size: 14px;
+    }
+
+    /* Colors & Status tokens */
+    /* good #24704B, waiting #805800, refused or failed #AE2C2C */
+    .status-good {
+      color: #24704B;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-good::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #24704B;
+    }
+
+    .status-waiting {
+      color: #805800;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-waiting::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #805800;
+      animation: waitingBreathe 6s ease-in-out infinite;
+    }
+
+    .status-refused {
+      color: #AE2C2C;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-refused::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #AE2C2C;
+    }
+
+    /* Header styling */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 100%;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #202020;
+    }
+
+    .logo-square {
+      width: 28px;
+      height: 28px;
+      background-color: #202020;
+      border-radius: 2px;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-name {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    nav {
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 100%;
+      padding: 0 12px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      color: #A94B1D;
+      border-bottom: 2px solid #A94B1D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-initials {
+      width: 32px;
+      height: 32px;
+      background-color: #F7F7F7;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #202020;
+    }
+
+    .user-name-role {
+      font-size: 15px;
+      color: #202020;
+    }
+
+    .lang-switcher {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    /* Layout Container */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      animation: pageEntrance 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .page-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    /* Grid layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    /* Key-Value detail groups */
+    .meta-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 14px;
+      color: #626262;
+    }
+
+    .meta-val {
+      font-size: 16px;
+      color: #202020;
+    }
+
+    /* Buttons */
+    .btn {
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 2px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #A94B1D;
+    }
+
+    .btn-primary {
+      background-color: #A94B1D;
+      color: #FFFFFF;
+      border: 1px solid #A94B1D;
+    }
+
+    .btn-primary:hover {
+      background-color: #933f17;
+      border-color: #933f17;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #202020;
+      border: 1px solid #D5D5D5;
+    }
+
+    .btn-secondary:hover {
+      background-color: #F7F7F7;
+      border-color: #C0C0C0;
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      background-color: #FFFFFF;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-size: 14px;
+      font-weight: 600;
+      color: #626262;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D5D5D5;
+      height: 48px;
+      padding: 0 16px;
+    }
+
+    td {
+      font-size: 15px;
+      color: #202020;
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid #D5D5D5;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Form Fields */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202020;
+    }
+
+    .input-field, select.input-field {
+      height: 48px;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 0 14px;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 15px;
+      color: #202020;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-field:focus {
+      border-color: #A94B1D;
+      box-shadow: 0 0 0 1px #A94B1D;
+    }
+
+    textarea.input-field {
+      height: auto;
+      min-height: 80px;
+      padding: 12px 14px;
+    }
+
+    /* Thermal Progress / Ledger */
+    .ledger-track {
+      width: 100%;
+      height: 12px;
+      background-color: #EDEDED;
+      border-radius: 2px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .ledger-fill-used {
+      width: 73.33%; /* 22 of 30 min */
+      background-color: #805800;
+    }
+
+    .ledger-fill-remain {
+      width: 26.67%; /* 8 min */
+      background-color: #EDEDED;
+    }
+
+    /* Temperature Chart SVG Container */
+    .chart-container {
+      width: 100%;
+      background-color: #FFFFFF;
+      border: 1px solid #D5D5D5;
+      border-radius: 2px;
+      padding: 16px;
+      position: relative;
+    }
+
+    /* Motion Tokens */
+    @keyframes pageEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes waitingBreathe {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .saved-handoff {
+      animation: savedHandoffAnim 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes savedHandoffAnim {
+      0% {
+        opacity: 0.6;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      main {
+        animation: none;
+      }
+      .status-waiting::before {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Global Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-group">
+        <div class="logo-square">M</div>
+        <span class="brand-name font-heading">Meridian</span>
+      </a>
+      <nav>
+        <a href="#" class="nav-item">Quality cases</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="user-initials font-mono">OS</div>
+        <div class="user-name-role">Omar Saleh · Quality Officer</div>
+      </div>
+      <div class="lang-switcher font-mono">EN / العربية</div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+
+    <!-- Top Title and Page Controls -->
+    <div class="title-row">
+      <div>
+        <h1>Quality review</h1>
+        <div class="text-quiet text-sm" style="margin-top: 4px;">
+          Case <span class="font-mono">Q-88</span> · Opened <span class="font-mono">14 May 2026 08:30 BST</span> · Evaluator: Omar Saleh
+        </div>
+      </div>
+      <div class="page-controls">
+        <button class="btn btn-secondary">Signed decision</button>
+        <button class="btn btn-secondary">Record destruction</button>
+        <button class="btn btn-secondary">Quality cases</button>
+      </div>
+    </div>
+
+    <!-- Case Summary & Returned Stock Scope -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Case Q-88: HU-82 excursion & returned stock breakdown</h2>
+          <div class="text-quiet text-sm" style="margin-top: 2px;">
+            Lot <span class="font-mono">IG-2511</span> · Insulin Glargine 100 units/mL · North Quay Cold Room C2, Rack 4
+          </div>
+        </div>
+        <div>
+          <span class="status-waiting">waiting</span>
+        </div>
+      </div>
+
+      <!-- Scope Breakdown Grid -->
+      <div class="grid-4" style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #D5D5D5;">
+        <div class="meta-group">
+          <span class="meta-label">Handling unit</span>
+          <span class="meta-val font-mono" style="font-weight: 600;">HU-82 (20 packs total)</span>
+        </div>
+        <div class="meta-group">
+          <span class="meta-label">Excursion recorded</span>
+          <span class="meta-val font-mono" style="color: #AE2C2C; font-weight: 600;">9.1°C (22 minutes)</span>
+        </div>
+        <div class="meta-group">
+          <span class="meta-label">Tier limit (Profile v3)</span>
+          <span class="meta-val font-mono">First upper tier >8–10°C (30m budget)</span>
+        </div>
+        <div class="meta-group">
+          <span class="meta-label">Excursion status</span>
+          <span class="meta-val font-mono" style="color: #805800; font-weight: 600;">22m used / 8m remaining</span>
+        </div>
+      </div>
+
+      <!-- Returned Stock Dispositions -->
+      <div>
+        <h3 style="margin-bottom: 12px;">Physical inventory breakdown on HU-82 (20 packs)</h3>
+        <div class="grid-4">
+          <div style="background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; padding: 12px;">
+            <div class="meta-label">Quarantined</div>
+            <div class="font-mono" style="font-size: 20px; font-weight: 600; color: #805800; margin: 4px 0;">10 packs</div>
+            <div class="text-sm text-quiet">Excursion review scope</div>
+          </div>
+          <div style="background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; padding: 12px;">
+            <div class="meta-label">On Hold</div>
+            <div class="font-mono" style="font-size: 20px; font-weight: 600; color: #805800; margin: 4px 0;">5 packs</div>
+            <div class="text-sm text-quiet">Pending intake logger parse</div>
+          </div>
+          <div style="background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; padding: 12px;">
+            <div class="meta-label">Rejected</div>
+            <div class="font-mono" style="font-size: 20px; font-weight: 600; color: #AE2C2C; margin: 4px 0;">2 packs</div>
+            <div class="text-sm text-quiet">Awaiting destruction</div>
+          </div>
+          <div style="background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; padding: 12px;">
+            <div class="meta-label">Expired</div>
+            <div class="font-mono" style="font-size: 20px; font-weight: 600; color: #AE2C2C; margin: 4px 0;">3 packs</div>
+            <div class="text-sm text-quiet">Logged at intake receipt</div>
+          </div>
+        </div>
+        <div class="text-sm text-quiet" style="margin-top: 12px;">
+          Note: Full lot <span class="font-mono">IG-2511</span> received 120 packs today (100 in compliant <span class="font-mono">HU-81</span> released 08:19 BST, 20 in <span class="font-mono">HU-82</span>). Total warehouse inventory on hand: <span class="font-mono">124</span> packs across 2 lots.
+        </div>
+      </div>
+    </section>
+
+    <!-- Temperature Chart & Reading Telemetry -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Full HU-82 temperature chart & readings</h2>
+          <div class="text-quiet text-sm">Permitted band 2.0°C–8.0°C · Upper tier >8.0°C–10.0°C (30m allowance)</div>
+        </div>
+        <div style="display: flex; gap: 16px; font-size: 14px;">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 12px; height: 3px; background-color: #24704B; display: inline-block;"></span> Permitted band (2–8°C)
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 12px; height: 3px; background-color: #805800; display: inline-block;"></span> Upper tier (>8–10°C)
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 12px; height: 8px; border: 1px dashed #626262; display: inline-block;"></span> Reading gap
+          </span>
+        </div>
+      </div>
+
+      <!-- Chart Graphic (Clean SVG) -->
+      <div class="chart-container" style="margin-bottom: 16px;">
+        <svg viewBox="0 0 1000 220" width="100%" height="220" style="display: block; overflow: visible;">
+          <!-- Grid lines -->
+          <line x1="60" y1="20" x2="960" y2="20" stroke="#EDEDED" stroke-width="1" />
+          <line x1="60" y1="60" x2="960" y2="60" stroke="#EDEDED" stroke-width="1" />
+          <line x1="60" y1="110" x2="960" y2="110" stroke="#EDEDED" stroke-width="1" />
+          <line x1="60" y1="160" x2="960" y2="160" stroke="#EDEDED" stroke-width="1" />
+          <line x1="60" y1="200" x2="960" y2="200" stroke="#EDEDED" stroke-width="1" />
+
+          <!-- Y-axis labels -->
+          <text x="50" y="24" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="end">12°C</text>
+          <text x="50" y="64" font-family="IBM Plex Mono" font-size="11" fill="#805800" text-anchor="end">10°C</text>
+          <text x="50" y="114" font-family="IBM Plex Mono" font-size="11" fill="#24704B" text-anchor="end">8°C</text>
+          <text x="50" y="164" font-family="IBM Plex Mono" font-size="11" fill="#24704B" text-anchor="end">2°C</text>
+          <text x="50" y="204" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="end">0°C</text>
+
+          <!-- Shaded Bands -->
+          <!-- Permitted band 2 to 8C: y110 to y160 -->
+          <rect x="60" y="110" width="900" height="50" fill="#24704B" fill-opacity="0.06" />
+          <!-- Upper tier >8 to 10C: y60 to y110 -->
+          <rect x="60" y="60" width="900" height="50" fill="#805800" fill-opacity="0.08" />
+
+          <!-- Reading Gap shading 06:30 - 07:15 -->
+          <rect x="360" y="20" width="130" height="180" fill="#F0F0F0" fill-opacity="0.7" stroke="#D5D5D5" stroke-dasharray="4,4" />
+          <text x="425" y="45" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">Reading gap (45m)</text>
+
+          <!-- Temperature Path -->
+          <!-- Points: 
+               04:00 (100, 142) -> 4.2°C
+               06:00 (300, 139) -> 4.5°C
+               06:30 - 07:15 (gap, unobserved)
+               08:00 (600, 136) -> 4.8°C
+               08:19 (680, 140) -> 4.4°C
+               08:30 (770, 78)  -> 9.1°C (Excursion)
+               09:00 (880, 140) -> 4.4°C
+          -->
+          <polyline points="100,142 300,139" fill="none" stroke="#24704B" stroke-width="2.5" />
+          <polyline points="300,139 360,139" fill="none" stroke="#626262" stroke-width="1.5" stroke-dasharray="3,3" />
+          <polyline points="490,136 600,136" fill="none" stroke="#626262" stroke-width="1.5" stroke-dasharray="3,3" />
+          <polyline points="600,136 680,140 770,78 880,140" fill="none" stroke="#805800" stroke-width="2.5" />
+
+          <!-- Temperature points -->
+          <circle cx="100" cy="142" r="4" fill="#24704B" />
+          <circle cx="300" cy="139" r="4" fill="#24704B" />
+          <circle cx="600" cy="136" r="4" fill="#24704B" />
+          <circle cx="680" cy="140" r="4" fill="#24704B" />
+          <circle cx="770" cy="78" r="6" fill="#805800" stroke="#FFFFFF" stroke-width="2" />
+          <circle cx="880" cy="140" r="4" fill="#24704B" />
+
+          <!-- Excursion Flag Label -->
+          <rect x="730" y="48" width="130" height="24" rx="2" fill="#805800" />
+          <text x="795" y="64" font-family="IBM Plex Mono" font-size="11" fill="#FFFFFF" font-weight="600" text-anchor="middle">9.1°C (22m used)</text>
+
+          <!-- X-axis timestamps -->
+          <text x="100" y="218" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">04:00</text>
+          <text x="300" y="218" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">06:00</text>
+          <text x="425" y="218" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">06:30–07:15</text>
+          <text x="600" y="218" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">08:00</text>
+          <text x="680" y="218" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">08:19</text>
+          <text x="770" y="218" font-family="IBM Plex Mono" font-size="11" fill="#805800" font-weight="600" text-anchor="middle">08:30</text>
+          <text x="880" y="218" font-family="IBM Plex Mono" font-size="11" fill="#626262" text-anchor="middle">09:00</text>
+        </svg>
+      </div>
+
+      <!-- Tier Ledger & Budget -->
+      <div style="background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; padding: 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="font-size: 15px;">First upper tier allowance ledger (>8.0°C–10.0°C)</h3>
+          <span class="font-mono text-sm" style="font-weight: 600; color: #805800;">22 minutes used / 8 minutes left</span>
+        </div>
+        <div class="ledger-track" style="margin-bottom: 8px;">
+          <div class="ledger-fill-used" title="22 min excursion used"></div>
+          <div class="ledger-fill-remain" title="8 min remaining allowance"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; color: #626262;">
+          <span class="font-mono">0m used</span>
+          <span>Permitted budget: <strong class="font-mono">30 minutes</strong> cumulative</span>
+          <span class="font-mono">8m remaining</span>
+        </div>
+      </div>
+
+      <!-- Readings Table with Gaps & Alerts -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp (BST)</th>
+              <th>Sensor ID</th>
+              <th>Recorded temp</th>
+              <th>Target profile</th>
+              <th>Duration</th>
+              <th>Silence / Gap flag</th>
+              <th>Assurance status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-mono">14 May 2026 08:30</td>
+              <td class="font-mono">LOG-HU82</td>
+              <td class="font-mono" style="font-weight: 600; color: #805800;">9.1°C</td>
+              <td>First upper tier (>8–10°C)</td>
+              <td class="font-mono">22 minutes</td>
+              <td>None</td>
+              <td><span class="status-waiting">waiting</span></td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 08:19</td>
+              <td class="font-mono">LOG-HU82</td>
+              <td class="font-mono">4.4°C</td>
+              <td>Permitted (2–8°C)</td>
+              <td class="font-mono">steady</td>
+              <td>Silence resume</td>
+              <td><span class="status-good">good</span></td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 08:00</td>
+              <td class="font-mono">LOG-HU82</td>
+              <td class="font-mono">4.8°C</td>
+              <td>Permitted (2–8°C)</td>
+              <td class="font-mono">intake</td>
+              <td>None</td>
+              <td><span class="status-waiting">waiting</span></td>
+            </tr>
+            <tr style="background-color: #FAFAFA;">
+              <td class="font-mono">14 May 2026 06:30–07:15</td>
+              <td class="font-mono">LOG-HU82</td>
+              <td class="font-mono text-quiet">[unobserved]</td>
+              <td>Permitted (2–8°C)</td>
+              <td class="font-mono">45m span</td>
+              <td>Unresolved gap (no tier charge)</td>
+              <td><span class="status-waiting">waiting</span></td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 06:00</td>
+              <td class="font-mono">LOG-HU82</td>
+              <td class="font-mono">4.5°C</td>
+              <td>Permitted (2–8°C)</td>
+              <td class="font-mono">steady</td>
+              <td>None</td>
+              <td><span class="status-good">good</span></td>
+            </tr>
+            <tr>
+              <td class="font-mono">14 May 2026 04:00</td>
+              <td class="font-mono">LOG-HU82</td>
+              <td class="font-mono">4.2°C</td>
+              <td>Permitted (2–8°C)</td>
+              <td class="font-mono">steady</td>
+              <td>None</td>
+              <td><span class="status-good">good</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-sm text-quiet" style="margin-top: 8px;">
+        Rule applied: Unresolved reading gap has no estimated temperature or tier charge. No hold is derived from telemetry gap alone.
+      </div>
+    </section>
+
+    <!-- Release & Disposition Options (Governance Rules) -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Available receipt release & disposition options</h2>
+          <div class="text-quiet text-sm">Mandatory dual-authorization governance workflow based on excursion compliance</div>
+        </div>
+      </div>
+
+      <!-- Recommendation Card -->
+      <div style="border: 1px solid #D5D5D5; border-radius: 2px; padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h3 style="font-size: 16px;">System recommendation for HU-82 (Quarantined 10 packs)</h3>
+            <div class="text-sm text-quiet">Evaluation against Profile v3 criteria: 22m cumulative tier excursion ≤ 30m allowance limit</div>
+          </div>
+          <span class="status-good">good</span>
+        </div>
+        <p class="text-sm" style="margin-bottom: 12px;">
+          <strong>Recommendation: Release to available stock.</strong> The recorded excursion of 9.1°C for 22 minutes is within the permitted 30-minute first-tier allowance (8 minutes remaining). Stock maintains full safety specifications.
+        </p>
+        <div style="padding: 12px; background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; font-size: 14px;">
+          <strong>Governance protocol:</strong> A matching first-tier recommendation with allowance allows a single-person signature (Omar Saleh). Every other case, including not-permitted range, requires Omar's proposal and a different manager's approval (Nadia Farouk). Written justification is required if opposing the recommendation.
+        </div>
+      </div>
+
+      <!-- Disposition Form -->
+      <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="disposition-action">Selected disposition action</label>
+            <select id="disposition-action" class="input-field">
+              <option value="release_compliant" selected>Release 10 quarantined packs to Available (Matches first-tier allowance)</option>
+              <option value="quarantine_hold">Extend Quarantine / Retain on Hold (Requires Manager approval)</option>
+              <option value="reject_destruction">Reject packs & assign to destruction (Requires Manager approval)</option>
+              <option value="custom_proposal">Opposing proposal / Not-permitted range (Requires Manager approval)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="manager-approval">Required approval workflow</label>
+            <input type="text" id="manager-approval" class="input-field" value="Single-person signature eligible (Omar Saleh)" readonly style="background-color: #F7F7F7; color: #202020;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="justification-text">Written justification (Required if opposing system advice)</label>
+          <textarea id="justification-text" class="input-field" placeholder="Provide clinical or physical packaging rationale if overriding recommendation..."></textarea>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="sign-in-method">Sign-in verification method</label>
+            <select id="sign-in-method" class="input-field">
+              <option value="ms_sso" selected>Omar Saleh · Meridian Microsoft account authentication</option>
+              <option value="one_time_code">One-time code verification</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirmation-input">Reason and confirmation</label>
+            <input type="text" id="confirmation-input" class="input-field" placeholder="Confirm: 'Approve release of HU-82 compliant allowance'" value="Approve release of HU-82 compliant allowance" />
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #D5D5D5;">
+          <div class="text-sm text-quiet">
+            Action is cryptographic and immutable: never recalculates old signed decisions upon execution.
+          </div>
+          <button type="button" class="btn btn-primary">Sign and execute disposition</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Returned Order / Box / Route Changes -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Returned order, box and route changes</h2>
+          <div class="text-quiet text-sm">Post-review downstream impact across dispatch routes, consignments and orders</div>
+        </div>
+      </div>
+
+      <div class="table-container" style="margin-bottom: 16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Entity</th>
+              <th>Reference</th>
+              <th>Consigned content</th>
+              <th>Current state</th>
+              <th>Downstream effect of decision</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Route stop</td>
+              <td class="font-mono">R-204 (Cedar Clinic)</td>
+              <td>Order O-299 (20 packs: B-701 & B-702)</td>
+              <td>Planned 15:00 BST (VAN-27 Tariq)</td>
+              <td>Eligible whole boxes remain confirmed; unhindered by HU-82 hold</td>
+              <td><span class="status-good">good</span></td>
+            </tr>
+            <tr>
+              <td>Consignment box</td>
+              <td class="font-mono">B-701</td>
+              <td>12 packs IG-2511 (from HU-81)</td>
+              <td>Sealed & confirmed</td>
+              <td>Intact, unaffected by HU-82 excursion</td>
+              <td><span class="status-good">good</span></td>
+            </tr>
+            <tr>
+              <td>Consignment box</td>
+              <td class="font-mono">B-702</td>
+              <td>8 packs IG-2511 (from HU-81)</td>
+              <td>Sealed & confirmed</td>
+              <td>Alternative API On Hold state only if active recall/telemetry fault</td>
+              <td><span class="status-good">good</span></td>
+            </tr>
+            <tr>
+              <td>Staged order</td>
+              <td class="font-mono">Order O-301</td>
+              <td>30 packs IG-2511 ordered (20 allocated)</td>
+              <td>10 packs outstanding</td>
+              <td>Releasing HU-82 immediately permits packing the 10 outstanding packs</td>
+              <td><span class="status-waiting">waiting</span></td>
+            </tr>
+            <tr>
+              <td>Active recall</td>
+              <td class="font-mono">RC-12 (Lot IG-2509)</td>
+              <td>4 packs on hand North Quay, 20 delivered</td>
+              <td>Escalated (4h 19m)</td>
+              <td>Strict segregation maintained on Cold Room C2 Rack 4; distinct from Q-88</td>
+              <td><span class="status-refused">refused</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Audit and Non-recalculation Policy -->
+      <div style="background-color: #F7F7F7; border: 1px solid #D5D5D5; border-radius: 2px; padding: 12px; font-size: 14px;">
+        <span class="text-quiet">Assurance ledger principle:</span>
+        <span style="font-weight: 500;">Signed decisions seal electronic custody records permanently. System never recalculates old signed decisions or modifies historical audit entries post-reconciliation.</span>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

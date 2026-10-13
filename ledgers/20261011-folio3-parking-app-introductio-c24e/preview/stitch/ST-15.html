@@ -1,0 +1,585 @@
+<!DOCTYPE html><html class="h-full bg-background text-on-surface" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Parking Spaces &amp; Inventory | Folio3 Parking</title>
+<!-- Fonts: Hanken Grotesk (Headlines/Display), Public Sans (Body/Labels), IBM Plex Mono (Codes/Plates/Numbers) -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface-variant": "#3f4945",
+            "on-primary-fixed-variant": "#005141",
+            "surface-container-highest": "#e0e3e0",
+            "on-tertiary-container": "#ffd7d0",
+            "secondary-fixed": "#cbe9dd",
+            "on-primary-container": "#a3efd7",
+            "secondary-fixed-dim": "#afcdc2",
+            "tertiary-container": "#945044",
+            "tertiary-fixed-dim": "#ffb4a7",
+            "on-primary-fixed": "#002019",
+            "on-background": "#181c1b",
+            "tertiary": "#77392e",
+            "on-secondary-fixed-variant": "#314c44",
+            "outline-variant": "#bec9c4",
+            "surface-tint": "#186a57",
+            "secondary-container": "#c8e6db",
+            "primary-fixed-dim": "#8ad5be",
+            "background": "#f7faf7",
+            "error": "#ba1a1a",
+            "inverse-primary": "#8ad5be",
+            "surface-container-low": "#f1f4f1",
+            "on-secondary-container": "#4d685f",
+            "primary": "#005645",
+            "secondary": "#49645b",
+            "primary-container": "#1f6f5c",
+            "surface-bright": "#f7faf7",
+            "on-error-container": "#93000a",
+            "tertiary-fixed": "#ffdad4",
+            "inverse-surface": "#2d312f",
+            "surface-dim": "#d8dbd8",
+            "primary-fixed": "#a5f2d9",
+            "on-secondary": "#ffffff",
+            "on-primary": "#ffffff",
+            "outline": "#6f7975",
+            "surface": "#f7faf7",
+            "inverse-on-surface": "#eef1ee",
+            "surface-container": "#ecefeb",
+            "on-secondary-fixed": "#042019",
+            "on-tertiary-fixed-variant": "#72352a",
+            "surface-variant": "#e0e3e0",
+            "error-container": "#ffdad6",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#e6e9e6",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed": "#3a0a05",
+            "on-surface": "#18181B",
+            "on-tertiary": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["Public Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    /* Design System strict specifications */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+    
+    body {
+      color: #18181B; /* Charcoal Ink off-black rule */
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      font-variant-numeric: tabular-nums;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    /* Signature Design System: Space Code & Plate Chip */
+    .space-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #1F6F5C;
+      border-radius: 4px;
+      padding: 3px 8px;
+      background-color: #FFFFFF;
+      color: #18181B;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+    
+    .plate-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      border: 1.5px solid #18181B;
+      border-radius: 4px;
+      padding: 3px 8px;
+      background-color: #FFFFFF;
+      color: #18181B;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+
+    .btn-press:active {
+      transform: scale(0.97);
+      transition: transform var(--dur-instant) var(--ease-out);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #F7FAF7;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #BEC9C4;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="h-full overflow-hidden flex flex-col font-body antialiased selection:bg-secondary-container">
+<!-- Top Demo Switcher Utility Bar -->
+<header class="h-9 w-full bg-inverse-surface text-inverse-on-surface px-4 flex items-center justify-between text-xs border-b border-outline z-50 shrink-0 font-label">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-fixed inline-block"></span>
+<span class="text-surface-container-highest tracking-wide font-medium">Folio3 Environment State Switcher:</span>
+</div>
+<div class="flex items-center gap-1.5" role="tablist">
+<button class="px-2.5 py-0.5 rounded bg-primary-container text-surface-container-lowest font-medium transition-colors" id="btn-demo-default">
+        Default View (Editing B1-03)
+      </button>
+<button class="px-2.5 py-0.5 rounded text-outline-variant hover:text-inverse-on-surface hover:bg-surface-variant/20 transition-colors" id="btn-demo-validation">
+        Validation Error State
+      </button>
+<button class="px-2.5 py-0.5 rounded text-outline-variant hover:text-inverse-on-surface hover:bg-surface-variant/20 transition-colors" id="btn-demo-empty">
+        Empty State
+      </button>
+</div>
+<div class="hidden sm:flex items-center gap-2 text-outline-variant font-mono text-[11px]">
+<span>BRANCH: release/bay-allocations-v2</span>
+</div>
+</header>
+<div class="flex-1 flex overflow-hidden relative">
+<!-- SHARED COMPONENT: SideNavBar (Strict compliance to JSON specs) -->
+<aside class="fixed left-0 top-9 bottom-0 w-58 h-[calc(100vh-36px)] flex flex-col justify-between py-6 px-3 z-40 bg-surface-container-lowest border-r border-outline-variant select-none">
+<div class="flex flex-col gap-6">
+<!-- Brand Header Section -->
+<div class="px-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container text-surface-container-lowest flex items-center justify-center font-headline font-bold text-sm tracking-tight shadow-sm" title="Folio3 Corporate Emblem">
+            F3
+          </div>
+<div class="flex flex-col">
+<span class="font-headline text-base font-bold text-on-surface tracking-tight leading-tight">Folio3 Parking</span>
+<span class="font-label text-xs uppercase tracking-wider text-outline">Bay Management</span>
+</div>
+</div>
+<!-- Quick Primary CTA -->
+<div class="px-1">
+<button class="w-full h-10 px-3 bg-primary-container hover:bg-[#195c4c] text-surface-container-lowest font-body font-medium text-sm rounded flex items-center justify-center gap-2 btn-press transition-colors">
+<span class="material-symbols-outlined" data-icon="local_parking">local_parking</span>
+<span>Claim space</span>
+</button>
+</div>
+<!-- Navigation Tabs (5 standard tabs from JSON) -->
+<nav aria-label="Main Bay Management Navigation" class="flex flex-col space-y-1">
+<!-- 1: Claim & Release -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="local_parking">local_parking</span>
+<span class="font-body text-sm font-medium">Claim &amp; Release</span>
+</a>
+<!-- 2: Daily Allocations -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="calendar_today">calendar_today</span>
+<span class="font-body text-sm font-medium">Daily Allocations</span>
+</a>
+<!-- 3: Guard Console -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="security">security</span>
+<span class="font-body text-sm font-medium">Guard Console</span>
+</a>
+<!-- 4: Vehicle Roster -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="directions_car">directions_car</span>
+<span class="font-body text-sm font-medium">Vehicle Roster</span>
+</a>
+<!-- Active Destination: Parking Spaces / Inventory (Mapped Contextually to Audit/Roster Admin Space) -->
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-surface font-medium border-l-2 border-primary rounded-r" href="#">
+<span class="material-symbols-outlined text-primary" data-icon="receipt_long">receipt_long</span>
+<span class="font-body text-sm font-semibold">Parking Spaces</span>
+</a>
+</nav>
+</div>
+<!-- Footer navigation elements (from JSON) -->
+<div class="flex flex-col border-t border-outline-variant pt-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="help_outline">help_outline</span>
+<span class="font-body text-sm font-medium">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-160 rounded" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="logout">logout</span>
+<span class="font-body text-sm font-medium">Sign out</span>
+</a>
+</div>
+</aside>
+<!-- App Main Container (Shifted right pl-58 / 232px for Fixed SideBar) -->
+<div class="flex-1 ml-58 flex flex-col h-full overflow-hidden bg-background">
+<!-- SHARED COMPONENT: TopNavBar (Strict compliance to JSON specs) -->
+<header class="flex justify-between items-center w-full h-16 px-8 border-b border-outline-variant bg-surface-container-lowest sticky top-0 z-30 shrink-0">
+<!-- Search bar on left -->
+<div class="flex items-center w-80 max-w-sm">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-outline pointer-events-none" data-icon="search">search</span>
+<input class="w-full h-9 pl-9 pr-3 text-xs bg-surface-container-low border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface placeholder:text-outline outline-none" placeholder="Search bays, space codes, holders..." type="text">
+</div>
+</div>
+<!-- Trailing Actions & Employee Profile Badge -->
+<div class="flex items-center gap-4">
+<button class="h-9 px-3 border border-outline-variant text-on-surface hover:bg-surface-container-low text-xs font-medium rounded transition-colors flex items-center gap-1.5 btn-press">
+<span>Release today</span>
+</button>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container-low hover:text-on-surface transition-colors" title="Notifications">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container-low hover:text-on-surface transition-colors" title="Help">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+</div>
+<div class="h-4 w-px bg-outline-variant"></div>
+<!-- Profile Badge -->
+<div class="flex items-center gap-2.5 pl-1 cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center font-headline font-semibold text-xs text-graphite border border-outline-variant" title="Employee avatar initials in circular badge">
+              AS
+            </div>
+<div class="hidden lg:flex flex-col text-left">
+<span class="font-body font-medium text-xs leading-none text-on-surface">Ayesha Siddiqui</span>
+<span class="font-mono text-[10px] text-outline leading-tight mt-0.5">Admin · F3-0921</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas Workspace (12-Column Layout Grid) -->
+<main class="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8">
+<div class="max-w-[1280px] mx-auto">
+<!-- SECTION 1: Heading & Metric Counts & Primary Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-outline-variant">
+<div>
+<div class="flex items-baseline gap-3">
+<h1 class="font-headline font-bold text-2xl lg:text-[28px] tracking-tight text-on-surface">Parking spaces</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-surface-container text-on-surface-variant border border-outline-variant">
+                  Inventory Master
+                </span>
+</div>
+<p class="font-body text-sm text-outline mt-1 font-mono tracking-tight">42 spaces · 3 floors</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="h-10 px-4 bg-surface-container-lowest border border-outline-variant text-on-surface text-sm font-medium rounded hover:bg-surface-container-low flex items-center gap-2 btn-press transition-colors">
+<span class="material-symbols-outlined text-outline" data-icon="file_upload">file_upload</span>
+<span>Import launch records (CSV)</span>
+</button>
+<button class="h-10 px-4 bg-primary-container text-surface-container-lowest text-sm font-medium rounded hover:bg-[#195c4c] flex items-center gap-2 btn-press transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>Add space</span>
+</button>
+</div>
+</div>
+<!-- SECTION 2: Filters Bar -->
+<div class="mt-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-surface-container-lowest p-2.5 rounded border border-outline-variant">
+<div class="flex flex-wrap items-center gap-2">
+<!-- Floor Selector Segmented Pills -->
+<div class="inline-flex p-1 bg-surface-container rounded border border-outline-variant/60 text-xs font-medium">
+<button class="px-3 py-1 rounded bg-surface-container-lowest text-on-surface shadow-xs font-semibold">All Floors</button>
+<button class="px-3 py-1 rounded text-outline hover:text-on-surface transition-colors">B1</button>
+<button class="px-3 py-1 rounded text-outline hover:text-on-surface transition-colors">B2</button>
+<button class="px-3 py-1 rounded text-outline hover:text-on-surface transition-colors">B3</button>
+</div>
+<!-- Status Dropdown / Pills -->
+<div class="inline-flex p-1 bg-surface-container rounded border border-outline-variant/60 text-xs font-medium">
+<button class="px-3 py-1 rounded bg-surface-container-lowest text-on-surface shadow-xs font-semibold">All</button>
+<button class="px-3 py-1 rounded text-outline hover:text-on-surface transition-colors">Assigned</button>
+<button class="px-3 py-1 rounded text-outline hover:text-on-surface transition-colors">Unassigned</button>
+</div>
+</div>
+<!-- Instant Search Input -->
+<div class="relative w-full md:w-72">
+<span class="material-symbols-outlined absolute left-2.5 top-2.5 text-outline text-base" data-icon="search">search</span>
+<input class="w-full h-9 pl-8 pr-3 text-xs bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface placeholder:text-outline outline-none" placeholder="Filter by code or holder name..." type="text">
+</div>
+</div>
+<!-- Dual Column Grid (8 Columns Table / 4 Columns Drawer Panel) -->
+<div class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- SECTION 3: Inventory Table (Columns 1 to 8 on desktop, or full 12 when drawer closed) -->
+<div class="lg:col-span-8 flex flex-col bg-surface-container-lowest border border-outline-variant rounded overflow-hidden" id="table-container">
+<!-- Regular Table State -->
+<div class="overflow-x-auto" id="view-normal-table">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant text-[11px] font-label font-semibold uppercase tracking-wider text-outline select-none">
+<th class="py-2.5 px-4 w-32">Space</th>
+<th class="py-2.5 px-4 w-28">Floor</th>
+<th class="py-2.5 px-4">Dedicated holder</th>
+<th class="py-2.5 px-4 text-right w-24">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/70 text-sm font-body">
+<!-- Row 1: B1-03 (Selected/Active) -->
+<tr class="bg-secondary-container/40 border-l-2 border-primary transition-colors cursor-pointer">
+<td class="py-3 px-4">
+<span class="space-chip">B1-03</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs text-on-surface-variant">B1</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<span class="font-medium text-on-surface">Ayesha Siddiqui</span>
+<span class="text-xs font-mono text-outline">(F3-0921)</span>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-xs font-semibold text-primary hover:underline px-2 py-1 rounded hover:bg-secondary-container">Edit</button>
+</td>
+</tr>
+<!-- Row 2: B2-14 (General Pool) -->
+<tr class="hover:bg-surface-container-low/70 transition-colors cursor-pointer">
+<td class="py-3 px-4">
+<span class="space-chip">B2-14</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs text-on-surface-variant">B2</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<span class="text-outline font-mono">—</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant">
+                            pool allocation
+                          </span>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-xs font-medium text-outline hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container">Edit</button>
+</td>
+</tr>
+<!-- Row 3: B3-07 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors cursor-pointer">
+<td class="py-3 px-4">
+<span class="space-chip">B3-07</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs text-on-surface-variant">B3</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<span class="font-medium text-on-surface">Usman Tariq</span>
+<span class="text-xs font-mono text-outline">(F3-0455)</span>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-xs font-medium text-outline hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container">Edit</button>
+</td>
+</tr>
+<!-- Illustrative Row 4: B1-04 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors cursor-pointer">
+<td class="py-3 px-4">
+<span class="space-chip">B1-04</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs text-on-surface-variant">B1</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<span class="font-medium text-on-surface">Farhan Akhtar</span>
+<span class="text-xs font-mono text-outline">(F3-0782)</span>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-xs font-medium text-outline hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container">Edit</button>
+</td>
+</tr>
+<!-- Illustrative Row 5: B2-01 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors cursor-pointer">
+<td class="py-3 px-4">
+<span class="space-chip">B2-01</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs text-on-surface-variant">B2</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<span class="text-outline font-mono">—</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant">
+                            pool allocation
+                          </span>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-xs font-medium text-outline hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container">Edit</button>
+</td>
+</tr>
+<!-- Illustrative Row 6: B3-12 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors cursor-pointer">
+<td class="py-3 px-4">
+<span class="space-chip">B3-12</span>
+</td>
+<td class="py-3 px-4 font-mono text-xs text-on-surface-variant">B3</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<span class="font-medium text-on-surface">Zainab Raza</span>
+<span class="text-xs font-mono text-outline">(F3-1109)</span>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-xs font-medium text-outline hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container">Edit</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Table Pagination/Status Footer -->
+<div class="px-4 py-3 bg-surface-container-lowest border-t border-outline-variant flex items-center justify-between text-xs text-outline">
+<span>Displaying 6 of 42 allocated slots</span>
+<div class="flex items-center gap-1 font-mono">
+<button class="px-2 py-1 rounded border border-outline-variant hover:bg-surface-container text-on-surface-variant disabled:opacity-40" disabled="">Previous</button>
+<span class="px-2 font-medium text-on-surface">1</span>
+<button class="px-2 py-1 rounded border border-outline-variant hover:bg-surface-container text-on-surface">2</button>
+<button class="px-2 py-1 rounded border border-outline-variant hover:bg-surface-container text-on-surface">Next</button>
+</div>
+</div>
+</div>
+<!-- EMPTY STATE SIMULATION VIEW (Controlled by demo switch) -->
+<div class="hidden p-12 text-center flex-col items-center justify-center" id="view-empty-table">
+<div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center text-outline mb-4">
+<span class="material-symbols-outlined text-3xl" data-icon="local_parking">local_parking</span>
+</div>
+<h3 class="font-headline font-bold text-base text-on-surface">No spaces yet</h3>
+<p class="font-body text-sm text-outline max-w-sm mt-1">
+                  No spaces yet — add your first space or import launch records to configure company parking bays.
+                </p>
+<div class="mt-6 flex items-center gap-3">
+<button class="h-9 px-4 bg-primary-container text-surface-container-lowest text-xs font-medium rounded hover:bg-[#195c4c] flex items-center gap-1.5 btn-press transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="add">add</span>
+<span>Add space</span>
+</button>
+<button class="h-9 px-4 bg-surface-container-lowest border border-outline-variant text-on-surface text-xs font-medium rounded hover:bg-surface-container-low transition-colors">
+                    Import launch records (CSV)
+                  </button>
+</div>
+</div>
+</div>
+<!-- SECTION 4: Side Panel Drawer / Form (Columns 9 to 12 Context Rail) -->
+<div class="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded p-5 flex flex-col shadow-xs" id="edit-drawer-panel">
+<!-- Drawer Header -->
+<div class="flex items-center justify-between pb-3.5 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<h2 class="font-headline font-semibold text-base text-on-surface" id="drawer-title">Edit space B1-03</h2>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-secondary-container text-on-secondary-fixed-variant" id="drawer-status-pill">
+                    ACTIVE
+                  </span>
+</div>
+<button class="w-7 h-7 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Close Panel">
+<span class="material-symbols-outlined text-base" data-icon="close">close</span>
+</button>
+</div>
+<!-- Validation Error Alert Banner (Hidden by default, shown in validation state) -->
+<div class="hidden mt-4 p-3 bg-[#FBEAE8] border-l-[3px] border-[#B42318] rounded-r text-xs" id="validation-banner">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[#B42318] text-base shrink-0 mt-0.5" data-icon="error">error</span>
+<div>
+<span class="font-semibold text-[#B42318] block">Duplicate space code</span>
+<span class="text-[#18181B] mt-0.5 block">Space code B1-03 already exists in Basement 1 registry.</span>
+</div>
+</div>
+</div>
+<!-- Form Body -->
+<form class="mt-4 space-y-4 text-xs">
+<!-- Field: Space Code -->
+<div>
+<label class="block font-medium text-graphite mb-1.5" for="input-space-code">Space code</label>
+<div class="relative">
+<input class="w-full h-10 px-3 font-mono font-medium uppercase tracking-wider bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-secondary-container text-on-surface outline-none transition-all" id="input-space-code" type="text" value="B1-03">
+</div>
+<p class="hidden text-[11px] text-[#B42318] mt-1 font-medium" id="space-code-error">Space code B1-03 already exists.</p>
+<p class="text-[11px] text-outline mt-1 font-mono" id="space-code-helper">Format: [Floor]-[Slot Number] (e.g. B1-03)</p>
+</div>
+<!-- Field: Floor Selection -->
+<div>
+<label class="block font-medium text-graphite mb-1.5" for="select-floor">Floor</label>
+<select class="w-full h-10 px-3 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-secondary-container text-on-surface outline-none transition-all" id="select-floor">
+<option selected="" value="B1">B1 (Basement 1)</option>
+<option value="B2">B2 (Basement 2)</option>
+<option value="B3">B3 (Basement 3)</option>
+<option value="GF">GF (Ground Level Pool)</option>
+</select>
+</div>
+<!-- Field: Dedicated Holder (Employee Search) -->
+<div>
+<label class="block font-medium text-graphite mb-1.5" for="input-holder">Dedicated holder</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-sm" data-icon="person">person</span>
+<input class="w-full h-10 pl-9 pr-8 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-secondary-container text-on-surface outline-none transition-all" id="input-holder" placeholder="Type employee name or ID..." type="text" value="Ayesha Siddiqui (F3-0921)">
+<button class="absolute right-2.5 text-outline hover:text-on-surface" title="Clear allocation" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span>
+</button>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="text-[11px] text-outline">Search directory by name or badge ID</span>
+<button class="text-[11px] text-primary hover:underline font-medium" type="button">Set as Pool</button>
+</div>
+</div>
+<!-- Field: Zone / Pillar Proximity Notes -->
+<div>
+<label class="block font-medium text-graphite mb-1.5" for="input-notes">Zone / Pillar proximity notes</label>
+<input class="w-full h-10 px-3 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-secondary-container text-on-surface outline-none transition-all" id="input-notes" placeholder="e.g. Near Elevator North, Pillar P-14" type="text" value="Pillar P-14">
+<p class="text-[11px] text-outline mt-1">Helps employees and guards locate the space quickly.</p>
+</div>
+<!-- Drawer Action Buttons -->
+<div class="pt-4 border-t border-outline-variant flex items-center gap-3">
+<button class="flex-1 h-10 bg-primary-container hover:bg-[#195c4c] text-surface-container-lowest font-medium text-xs rounded btn-press transition-colors flex items-center justify-center gap-1.5 shadow-xs" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
+<span>Save changes</span>
+</button>
+<button class="h-10 px-4 bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface-container-low font-medium text-xs rounded transition-colors" type="button">
+                    Cancel
+                  </button>
+</div>
+</form>
+<!-- Extra Context Info Card inside Rail -->
+<div class="mt-6 p-3 bg-surface-container-low rounded border border-outline-variant/60 text-xs">
+<span class="font-label uppercase font-semibold text-[10px] text-outline tracking-wider block">Access History</span>
+<div class="mt-1.5 space-y-1 font-mono text-[11px] text-graphite">
+<div class="flex justify-between">
+<span class="text-outline">Assigned:</span>
+<span>14 Jan 2025</span>
+</div>
+<div class="flex justify-between">
+<span class="text-outline">Last check-in:</span>
+<span>Today, 08:42</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+<!-- Micro-interactions & Demo State Controller Script -->
+
+<script>(function(){var T=[{"id":"S-1","names":["folio3 parking system","sign in"],"words":["sign"]},{"id":"S-2","names":["we couldn t load your employee profile","access error"],"words":["access"]},{"id":"S-3","names":["register your vehicle to continue","vehicle","onboarding vehicle"],"words":["onboarding","vehicle"]},{"id":"S-4","names":["good morning bilal","dashboard"],"words":["dashboard"]},{"id":"S-5","names":["hello ayesha siddiqui","holder","dashboard holder"],"words":["dashboard","holder"]},{"id":"S-6","names":["schedule releases for space b1 03","releases successfully scheduled","schedule","releases schedule"],"words":["release","schedule"]},{"id":"S-7","names":["my profile vehicles","profile"],"words":["profile"]},{"id":"S-8","names":["critical hardware alert","verifications","guard verifications"],"words":["guard","verification"]},{"id":"S-10","names":["employees","admin employees"],"words":["employee"]},{"id":"S-11","names":["employee parking vehicle maintenance","employees","admin employees"],"words":["employee"]},{"id":"S-12","names":["roles and access","roles","admin roles"],"words":["role"]},{"id":"S-13","names":["parking release settings","settings","admin settings"],"words":["setting"]},{"id":"S-14","names":["weekly report recipients","recipients","admin reports recipients"],"words":["report","recipient"]},{"id":"S-15","names":["weekly utilization report","reports","admin reports"],"words":["report"]},{"id":"S-16","names":["audit log","audit","admin audit"],"words":["audit"]}],L={},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"];
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
+var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

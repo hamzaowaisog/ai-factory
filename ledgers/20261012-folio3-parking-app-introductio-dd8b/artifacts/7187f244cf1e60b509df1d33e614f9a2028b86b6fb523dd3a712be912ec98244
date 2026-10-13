@@ -1,0 +1,152 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Temporary parking pass",
+     "subtitle": "Show the assigned plate at the entrance. Authorization is valid for the office-local date only.",
+     "badge": "Authorized",
+     "blocks": [
+      {
+       "type": "detail",
+       "style": "pass",
+       "title": "Today's allocation",
+       "lead": {
+        "label": "Assigned space",
+        "value": "B1 · 08"
+       },
+       "rows": [
+        {
+         "label": "Registered vehicle",
+         "value": "Toyota Corolla Altis · KLG-4821"
+        },
+        {
+         "label": "Authorized plate",
+         "value": "KLG-4821"
+        },
+        {
+         "label": "Claim date",
+         "value": "16 June 2026"
+        },
+        {
+         "label": "Entry status",
+         "value": "Awaiting detection",
+         "badge": true
+        },
+        {
+         "label": "Claim cancellation",
+         "value": "Unavailable in Phase 1"
+        },
+        {
+         "label": "Floor capacity",
+         "value": "B1: 8 free; B2: 8 free; B3: 5 free"
+        },
+        {
+         "label": "Allocation rule",
+         "value": "Most free spaces; ties go to lowest floor code (B1)"
+        },
+        {
+         "label": "Authorization scope",
+         "value": "KLG-4821 only · this allocation"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel parking claim",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "Employee cancellation of temporary claims is not available in Phase 1."
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Permanent-sticker safeguard",
+       "text": "Permanent-sticker plates are logged for utilization and bypass temporary checks. If a permanent holder enters this released stall, this allocation is canceled and later checks deny KLG-4821."
+      }
+     ]
+    },
+    "mockFull": {
+     "title": "Temporary parking pass",
+     "subtitle": "Show the assigned plate at the entrance. Authorization is valid for the office-local date only.",
+     "badge": "Authorized",
+     "blocks": [
+      {
+       "type": "detail",
+       "style": "pass",
+       "title": "Today's allocation",
+       "lead": {
+        "label": "Assigned space",
+        "value": "B1 · 08"
+       },
+       "rows": [
+        {
+         "label": "Registered vehicle",
+         "value": "Toyota Corolla Altis · KLG-4821"
+        },
+        {
+         "label": "Authorized plate",
+         "value": "KLG-4821"
+        },
+        {
+         "label": "Claim date",
+         "value": "16 June 2026 · office local"
+        },
+        {
+         "label": "Entry status",
+         "value": "Awaiting detection",
+         "badge": true
+        },
+        {
+         "label": "Claim cancellation",
+         "value": "Unavailable in Phase 1"
+        },
+        {
+         "label": "Floor capacity",
+         "value": "B1: 8/28 free; B2: 8/28 free; B3: 5/20 free"
+        },
+        {
+         "label": "Allocation rule",
+         "value": "Highest free count; ties go to lowest floor code (B1)"
+        },
+        {
+         "label": "Authorization scope",
+         "value": "KLG-4821 only · B1 space 08"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel parking claim",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "Employee cancellation of temporary claims is not available in Phase 1."
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Permanent-sticker safeguard",
+       "text": "Permanent-sticker plates are logged for utilization and bypass temporary checks. If a permanent holder enters this released stall, this allocation is canceled and later checks deny KLG-4821."
+      }
+     ]
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

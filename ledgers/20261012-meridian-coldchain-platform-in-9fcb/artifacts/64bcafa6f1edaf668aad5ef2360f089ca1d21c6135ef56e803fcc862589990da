@@ -1,0 +1,1 @@
+[{"check":"exception","frames":[],"message":"npm install failed: npm error Cannot read properties of null (reading 'edgesOut') npm error A complete log of this run can be found in: /npm-cache/_logs/2026-10-13T10_37_47_090Z-debug-0.log"}]

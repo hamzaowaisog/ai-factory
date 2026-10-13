@@ -1,0 +1,122 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Build Meridian as a responsive web app with role-oriented portals and navigation for stock, orders, deliveries, temperature monitoring, quality decisions, and recalls across phone, tablet, and desktop browser widths."
+     },
+     {
+      "n": 2,
+      "text": "Provide staff sign-in through Meridian Microsoft accounts; customer email-and-password sign-in followed by a one-time code; and customer password-reset requests by email."
+     },
+     {
+      "n": 3,
+      "text": "Show records and actions returned for each user's role, assigned warehouses, and customer organisation; make Auditor views read-only; and clear protected data when access is refused."
+     },
+     {
+      "n": 4,
+      "text": "Let Customer Administrators invite and remove users within their organisation, and maintain that organisation's saved delivery addresses."
+     },
+     {
+      "n": 5,
+      "text": "Let System Administrators list, search, view, deactivate, and maintain products; set organisation-level minimum remaining shelf life; and create versioned temperature profiles with storage bands, contiguous non-overlapping tiers, allowance or not-permitted designations, a reason, and an effective date, while keeping earlier versions read-only."
+     },
+     {
+      "n": 6,
+      "text": "Show API-returned recalculated budgets, decisions, current workflow statuses, notices, and errors for stock affected by an effective-dated profile change, including affected stock already released, allocated, packed, or delivered."
+     },
+     {
+      "n": 7,
+      "text": "Let Warehouse Operators record receipts with product, lot number, expiry date, quantity, supplier, and storage location, upload inbound logger files and separate image or PDF receipt evidence, and view returned quarantine status, temperature history, readings, and budget use before release."
+     },
+     {
+      "n": 8,
+      "text": "Present quality staff with available receipt-release and excursion-disposition actions and API-returned decision states, including separate proposal and approval steps for not-permitted-range dispositions."
+     },
+     {
+      "n": 9,
+      "text": "Show on-hand stock and mutually exclusive quantities for available, allocated, quarantined, On Hold, Rejected, Recalled, and Expired statuses, together with returned warehouse, lot, product, receipt, and location details; show handling units separately when their temperature histories differ."
+     },
+     {
+      "n": 10,
+      "text": "Provide stock-movement forms and show returned movement records with source and destination locations, quantity, actor, and time."
+     },
+     {
+      "n": 11,
+      "text": "Let customer users create orders with one or more product lines, pack quantities, an organisation-saved delivery address, an eligible delivery date, and a choice between delivery of available quantities and complete delivery only; show the organisation's minimum remaining shelf-life value read-only on customer and Dispatcher order forms."
+     },
+     {
+      "n": 12,
+      "text": "Show order status and allocated and outstanding quantities per line; expose customer change and cancellation controls only before Packed and Dispatcher cancellation controls when returned as available; and display returned API outcomes."
+     },
+     {
+      "n": 13,
+      "text": "Show order allocations by line and lot, including expiry dates and quantities; provide Dispatcher lot-override controls with a required reason; and show returned allocation and stock-status outcomes in order, box, and route views."
+     },
+     {
+      "n": 14,
+      "text": "Let Warehouse Operators pack stock into shipper boxes by type, associate one logger with each box, and show returned compatibility, contents, quantities, sealing, operator, and time details."
+     },
+     {
+      "n": 15,
+      "text": "Let Dispatchers create and view routes with a date, vehicle, driver, ordered stops, and planned arrival times; and show API-returned confirmation errors, configured qualified-duration safety margins, confirmed-route changes, schedule details, and driver notification status."
+     },
+     {
+      "n": 16,
+      "text": "Show temperature histories for boxes, cold rooms, and lots as charts and tables with returned readings, applicable bands, excursions, gaps, flags, and silence status; display returned histories in time order without presenting excluded readings as calculation inputs."
+     },
+     {
+      "n": 17,
+      "text": "Show returned excursions, handling-unit budget use and remaining allowances, alerts, hold statuses, and quality decision statuses for affected devices and stock."
+     },
+     {
+      "n": 18,
+      "text": "Show unresolved temperature-history gaps, review status, and returned On Hold stock status without estimating a temperature tier or charging an unobserved tier, until the gap is resolved."
+     },
+     {
+      "n": 19,
+      "text": "Show API-returned quality-review cases to relevant customer and staff users when corrected temperature history identifies an excursion affecting stock already delivered."
+     },
+     {
+      "n": 20,
+      "text": "Provide an installable, responsive driver web experience that caches the current workday's assigned route and queues supported loading and delivery actions offline for synchronization when connectivity returns; show stale-route, queued-action, synchronization, and refusal outcomes returned by the API."
+     },
+     {
+      "n": 21,
+      "text": "Let drivers record delivery handovers with recipient name, explicit electronic acknowledgment, quantities handed over, and any refusal or partial-delivery reason; show outstanding quantities and returned delivery status without requiring a drawn signature."
+     },
+     {
+      "n": 22,
+      "text": "Show returned warehouse receipts and quality-check results for undelivered stock returned to a warehouse, and show the stock as available only when the API reports it available."
+     },
+     {
+      "n": 23,
+      "text": "Let Quality Managers view and manage recalls, including returned lot locations, affected deliveries, quantities, and blocked remaining stock; let customer users submit a quantity and stated disposition for each affected delivery; and show returned reconciliation and outstanding quantities without requiring supporting-document upload."
+     },
+     {
+      "n": 24,
+      "text": "Provide filtered on-screen operational lists and CSV export, and show creator and last-changer identities and timestamps as read-only metadata where returned."
+     },
+     {
+      "n": 25,
+      "text": "Provide English and Arabic portal content, rendering Arabic pages right to left and English pages left to right."
+     },
+     {
+      "n": 26,
+      "text": "Ensure every portal page reflows for phone, tablet, and desktop browser widths, with touch-sized controls on narrow layouts; conform main staff, customer, and driver web flows to WCAG 2.1 Level AA; support the latest two versions of Chrome, Edge, Safari, and Firefox; and support the stated first-year user and record volume and simultaneous device volume."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

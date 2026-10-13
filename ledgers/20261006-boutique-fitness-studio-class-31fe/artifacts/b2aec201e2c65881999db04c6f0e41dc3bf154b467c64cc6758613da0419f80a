@@ -1,0 +1,200 @@
+diff --git a/App.Api/Endpoints/StudioEndpoints.cs b/App.Api/Endpoints/StudioEndpoints.cs
+new file mode 100644
+index 0000000..fcf30db
+--- /dev/null
++++ b/App.Api/Endpoints/StudioEndpoints.cs
+@@ -0,0 +1,71 @@
++using App.Api.Contracts;
++using App.Api.Data;
++using App.Api.Services;
++using Microsoft.AspNetCore.Mvc;
++
++namespace App.Api.Endpoints;
++
++public static class StudioEndpoints
++{
++    public static void MapStudioEndpoints(this WebApplication app)
++    {
++        app.MapGet("/me", (StudioQueries queries) => queries.GetMember())
++            .WithName("getMember").WithTags("member")
++            .Produces<Member>(200).Produces<Error>(500);
++
++        app.MapGet("/schedule", (DateOnly? date, ClassType[]? type, Intensity[]? intensity, TimeOfDay[]? timeOfDay, StudioQueries queries) =>
++                queries.GetSchedule(date, type, intensity, timeOfDay))
++            .WithName("getSchedule").WithTags("schedule")
++            .Produces<Schedule>(200).Produces<Error>(400).Produces<Error>(500);
++
++        app.MapGet("/sessions/{sessionId:int}", (int sessionId, StudioQueries queries) => queries.GetSession(sessionId))
++            .WithName("getSession").WithTags("schedule")
++            .Produces<Session>(200).Produces<Error>(404).Produces<Error>(500);
++
++        app.MapPost("/bookings", async ([FromBody] SessionRequest body, BookingCommands commands) =>
++                Results.Json(await commands.Create(body.SessionId), statusCode: StatusCodes.Status201Created))
++            .WithName("createBooking").WithTags("bookings")
++            .Produces<BookingChange>(201).Produces<Error>(400).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/bookings/{bookingId:int}/undo", (int bookingId, BookingCommands commands) => commands.Undo(bookingId))
++            .WithName("undoBooking").WithTags("bookings")
++            .Produces<UndoResult>(200).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/bookings/{bookingId:int}/cancel", (int bookingId, BookingCommands commands) => commands.Cancel(bookingId))
++            .WithName("cancelBooking").WithTags("bookings")
++            .Produces<BookingChange>(200).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/waitlist", async ([FromBody] SessionRequest body, BookingCommands commands) =>
++                Results.Json(await commands.JoinWaitlist(body.SessionId), statusCode: StatusCodes.Status201Created))
++            .WithName("joinWaitlist").WithTags("bookings")
++            .Produces<BookingChange>(201).Produces<Error>(400).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/bookings/{bookingId:int}/leave-waitlist", (int bookingId, BookingCommands commands) => commands.LeaveWaitlist(bookingId))
++            .WithName("leaveWaitlist").WithTags("bookings")
++            .Produces<BookingChange>(200).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapGet("/me/bookings", (StudioQueries queries) => queries.GetMyBookings())
++            .WithName("getMyBookings").WithTags("bookings")
++            .Produces<MyBookings>(200).Produces<Error>(500);
++
++        app.MapGet("/me/stats", (StudioQueries queries) => queries.GetStats())
++            .WithName("getStats").WithTags("bookings")
++            .Produces<Stats>(200).Produces<Error>(500);
++
++        app.MapGet("/me/promotion-notices", (StudioQueries queries) => queries.ListNotices())
++            .WithName("listPromotionNotices").WithTags("bookings")
++            .Produces<PromotionNotices>(200).Produces<Error>(500);
++
++        app.MapPost("/me/promotion-notices/acknowledge", async (BookingCommands commands) =>
++            {
++                await commands.Acknowledge();
++                return Results.NoContent();
++            })
++            .WithName("acknowledgePromotionNotices").WithTags("bookings")
++            .Produces(204).Produces<Error>(500);
++
++        app.MapPost("/test/sessions/{sessionId:int}/simulate-other-member-cancellation", (int sessionId, BookingCommands commands) => commands.Simulate(sessionId))
++            .WithName("simulateOtherMemberCancellation").WithTags("test-only")
++            .Produces<SimulationResult>(200).Produces<Error>(404).Produces<Error>(500);
++    }
++}
+diff --git a/App.Api/Infrastructure/ErrorHandling.cs b/App.Api/Infrastructure/ErrorHandling.cs
+new file mode 100644
+index 0000000..eb1cb26
+--- /dev/null
++++ b/App.Api/Infrastructure/ErrorHandling.cs
+@@ -0,0 +1,46 @@
++using System.Text.Json;
++using App.Api.Contracts;
++using Microsoft.AspNetCore.Diagnostics;
++
++namespace App.Api.Infrastructure;
++
++/// <summary>Turns every unhandled exception or empty-bodied error response into the contract's Error shape, without leaking exception details.</summary>
++public static class ErrorHandling
++{
++    private static readonly Error NotFound = new(ApiException.NotFound().Code, ApiException.NotFound().Message, null);
++    private static readonly Error Invalid = new(ApiException.Invalid().Code, ApiException.Invalid().Message, null);
++    private static readonly Error StorageFailure = new("storage_failure", "We couldn't save your changes just now. Please try again.", null);
++
++    public static void UseStudioErrorHandling(this WebApplication app)
++    {
++        app.UseExceptionHandler(handler => handler.Run(async context =>
++        {
++            var ex = context.Features.Get<IExceptionHandlerFeature>()?.Error;
++
++            var error = ex switch
++            {
++                ApiException api => new Error(api.Code, api.Message, api.Session),
++                BadHttpRequestException or { InnerException: JsonException } => Invalid,
++                _ => StorageFailure,
++            };
++
++            if (error == StorageFailure)
++                app.Logger.LogError(ex, "Unhandled exception");
++
++            context.Response.StatusCode = ex is ApiException apiEx ? apiEx.Status : error == Invalid ? 400 : 500;
++            await context.Response.WriteAsJsonAsync(error);
++        }));
++
++        app.UseStatusCodePages(async statusCodeContext =>
++        {
++            var response = statusCodeContext.HttpContext.Response;
++            var error = response.StatusCode switch
++            {
++                404 => NotFound,
++                >= 400 and < 500 => Invalid,
++                _ => StorageFailure,
++            };
++            await response.WriteAsJsonAsync(error);
++        });
++    }
++}
+diff --git a/App.Api/OpenApi/ContractOpenApi.cs b/App.Api/OpenApi/ContractOpenApi.cs
+new file mode 100644
+index 0000000..221cd22
+--- /dev/null
++++ b/App.Api/OpenApi/ContractOpenApi.cs
+@@ -0,0 +1,27 @@
++using App.Api.Contracts;
++using Microsoft.OpenApi.Any;
++using Microsoft.OpenApi.Models;
++
++namespace App.Api.OpenApi;
++
++/// <summary>Configures OpenAPI document generation so the built document (App.Api/openapi/built.json) lines up with contracts/openapi.yaml:
++/// the /api server url (routes are mapped without the prefix) and the inline durationMin enum on Session.</summary>
++public static class ContractOpenApi
++{
++    public static IServiceCollection AddContractOpenApi(this IServiceCollection services) =>
++        services.AddOpenApi(options =>
++        {
++            options.AddDocumentTransformer((document, _, _) =>
++            {
++                document.Servers = [new OpenApiServer { Url = "/api" }];
++                return Task.CompletedTask;
++            });
++
++            options.AddSchemaTransformer((schema, context, _) =>
++            {
++                if (context.JsonTypeInfo.Type == typeof(Session) && schema.Properties.TryGetValue("durationMin", out var durationMin))
++                    durationMin.Enum = [new OpenApiInteger(30), new OpenApiInteger(45), new OpenApiInteger(60), new OpenApiInteger(75)];
++                return Task.CompletedTask;
++            });
++        });
++}
+diff --git a/App.Api/Program.cs b/App.Api/Program.cs
+index 533c764..4ded49a 100644
+--- a/App.Api/Program.cs
++++ b/App.Api/Program.cs
+@@ -1,14 +1,31 @@
+ using App.Api;
++using App.Api.Data;
++using App.Api.Endpoints;
++using App.Api.Infrastructure;
++using App.Api.OpenApi;
++using App.Api.Services;
++using Microsoft.AspNetCore.Http;
+ using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.DependencyInjection.Extensions;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+-builder.Services.AddOpenApi();
+-// a local file database; nothing touches it at startup (the build runs this file to write the API's OpenAPI document)
++builder.Services.AddContractOpenApi();
++// the database is initialised at startup (InitializeDatabase), except under document generation
+ builder.Services.AddDbContext<AppDb>(o => o.UseSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db"));
+ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
++builder.Services.TryAddSingleton(TimeProvider.System);
++builder.Services.AddScoped<SessionProjection>();
++builder.Services.AddScoped<StudioQueries>();
++builder.Services.AddScoped<BookingCommands>();
++builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
++
+ var app = builder.Build();
++app.UsePathBase("/api");
++app.UseStudioErrorHandling();
+ app.UseCors();
+ app.MapGet("/", () => "API is up").ExcludeFromDescription();
++app.MapStudioEndpoints();
++app.InitializeDatabase();
+ 
+ app.Run();
+ 

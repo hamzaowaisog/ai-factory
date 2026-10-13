@@ -1,0 +1,161 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-24",
+      "op": "ADDED",
+      "ears": "The Meridian responsive web app shall provide an installable, responsive driver experience that caches the current workday's assigned route, queues supported loading and delivery actions for synchronization when connectivity returns, retains unsynchronized actions tied to the originating driver across sign-out and workday end until synchronization succeeds or the API rejects or refuses them, synchronizes those actions only after that same driver signs in again, clears cached route and delivery data when the driver signs out, the workday ends, or access is refused, erases or marks queued actions rejected when the API refuses access or reports the account disabled, and shows stale-route and queued-action outcomes returned by the API.",
+      "sources": [
+       "I-4",
+       "I-7",
+       "I-10",
+       "I-12",
+       "I-15",
+       "ASM-1",
+       "ASM-13",
+       "ASM-17",
+       "ASM-25",
+       "Q-3",
+       "Q-4",
+       "Q-10",
+       "Q-15"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "level": "ui",
+        "given": "A driver has opened today's assigned route while connected and then loses connectivity",
+        "when": "the driver opens the cached route",
+        "then": "the screen shows the route, stops, and delivery details while offline"
+       },
+       {
+        "id": "AC-24.2",
+        "level": "ui",
+        "given": "A driver records a supported action while offline",
+        "when": "the action is saved without a connection",
+        "then": "the screen shows the action as queued and retains its entered values until synchronization succeeds or the API rejects or refuses the action"
+       },
+       {
+        "id": "AC-24.3",
+        "level": "ui",
+        "given": "The originating driver signs in again with an enabled account and reconnects",
+        "when": "queued actions synchronize",
+        "then": "the screen shows the returned synchronization result for each queued action"
+       },
+       {
+        "id": "AC-24.4",
+        "level": "ui",
+        "given": "A queued action is submitted and the API reports that the originating driver's account is disabled or access is refused",
+        "when": "the synchronization response is displayed",
+        "then": "the screen shows the returned rejection message or error, marks the action as not accepted or synchronized, and shows it as rejected or no longer queued, with no later synchronization request for that action"
+       },
+       {
+        "id": "AC-24.5",
+        "level": "ui",
+        "given": "A Dispatcher changes a cached route or cancels an order while the driver is offline and the API returns the updated route or order on reconnection",
+        "when": "the driver refreshes or synchronizes the cached work",
+        "then": "the screen identifies the cached route or stop as stale, shows the returned changed route or cancellation status, and does not present a removed stop or cancelled order as actionable"
+       },
+       {
+        "id": "AC-24.6",
+        "level": "ui",
+        "given": "A queued loading or handover action refers to a moved or removed stop or a cancelled order",
+        "when": "the action synchronizes and the API returns an acceptance or refusal",
+        "then": "the screen shows the returned result for that action and does not mark a refused handover as completed or accepted"
+       },
+       {
+        "id": "AC-24.7",
+        "level": "ui",
+        "given": "The browser has cached route or delivery data, including recipient details",
+        "when": "the driver signs out, the cached workday ends, or an API response reports refused access or a disabled account, and the driver next opens the driver experience",
+        "then": "the screen shows the sign-in or access-denied page and no cached route, stop, delivery, or recipient details"
+       },
+       {
+        "id": "AC-24.8",
+        "level": "ui",
+        "given": "One or more actions remain queued after the originating driver signs out or the cached workday ends, and a different user signs in on the same browser",
+        "when": "that different user opens the driver experience or reconnects",
+        "then": "the screen shows no originating driver's route, recipient details, or queued-action details, and the browser sends no synchronization request for the originating driver's actions"
+       },
+       {
+        "id": "AC-24.9",
+        "level": "ui",
+        "given": "One or more actions remain queued after the originating driver signs out or the cached workday ends, with no successful synchronization or API rejection or refusal",
+        "when": "that same driver signs in again with an enabled account and reconnects",
+        "then": "the synchronization request uses that driver's authenticated identity and the screen shows the returned result for each queued action"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "op": "ADDED",
+      "ears": "When a driver records a delivery handover, the Meridian responsive web app shall capture the recipient's name, explicit electronic acknowledgment, quantities handed over, and any refusal or partial-delivery reason, and show outstanding quantities and returned delivery status, including restrictions returned when an offline handover synchronizes.",
+      "sources": [
+       "I-3",
+       "I-4",
+       "I-15",
+       "Q-3",
+       "Q-4",
+       "Q-14",
+       "I-9",
+       "I-10"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "level": "ui",
+        "given": "A driver opens a delivery handover form",
+        "when": "the form is displayed",
+        "then": "the screen shows a recipient-name field and explicit electronic acknowledgment control and does not require a drawn signature"
+       },
+       {
+        "id": "AC-25.2",
+        "level": "ui",
+        "given": "A driver submits a handover",
+        "when": "the web app sends the handover",
+        "then": "the captured request contains recipient name, acknowledgment value, and handed-over quantities"
+       },
+       {
+        "id": "AC-25.3",
+        "level": "ui",
+        "given": "A delivery is refused or only partly completed",
+        "when": "the driver records the handover",
+        "then": "the request includes delivered and undelivered quantities and the reason, and the screen shows the returned outstanding quantity"
+       },
+       {
+        "id": "AC-25.4",
+        "level": "ui",
+        "given": "Undelivered stock is returned to a warehouse",
+        "when": "the API returns the warehouse receipt and any required quality-check result",
+        "then": "the screen shows the returned receipt and quality status and shows stock as available only when the API reports it available"
+       },
+       {
+        "id": "AC-25.5",
+        "level": "ui",
+        "given": "An offline handover is queued and the API returns a restriction because the affected stock is On Hold or recalled",
+        "when": "the queued handover synchronizes and the restriction response is displayed",
+        "then": "the screen shows the returned restriction, does not mark the delivery as completed, and shows the affected quantity as outstanding for follow-up"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "removed": [],
+    "outOfScope": [],
+    "assumptions": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

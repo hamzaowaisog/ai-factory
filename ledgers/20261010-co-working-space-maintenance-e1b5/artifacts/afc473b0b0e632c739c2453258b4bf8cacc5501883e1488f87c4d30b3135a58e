@@ -1,0 +1,236 @@
+{
+  "header": {
+    "kind": "evidence-manifest",
+    "schemaVersion": 1,
+    "runId": "20261010-co-working-space-maintenance-e1b5",
+    "producedBy": {
+      "stage": "deliver"
+    },
+    "inputsHash": "dfca2ad652edd0ad5aa9099c3d03cadd83ad72b8648c38e71e7b5e1b25ba3171",
+    "createdAt": "2026-10-10T01:50:39.595Z"
+  },
+  "artifacts": [
+    {
+      "kind": "blob",
+      "path": "discover",
+      "sha": "ca1ed125a6abf5f19f81e459e772395065c629830cfc245d18b69e88c88f4f00"
+    },
+    {
+      "kind": "blob",
+      "path": "discover",
+      "sha": "d9912f251712ed69d8e3e890064cef07de74a4e30b6fc648c19acb71d4189811"
+    },
+    {
+      "kind": "blob",
+      "path": "intake",
+      "sha": "97ee1ee92b854e7a7823d6217b1cb1eec507fe057e3203cbd6d06b6122524159"
+    },
+    {
+      "kind": "blob",
+      "path": "ground",
+      "sha": "99fa3729cc892cc38cb7012c1609daef6781cff12466eccf6ec3c2176dddba5b"
+    },
+    {
+      "kind": "blob",
+      "path": "clarify",
+      "sha": "ff00e3e6f35008a03f73c999c66ad3bd0c4b70fd26e0da10b15b5c6f899f062a"
+    },
+    {
+      "kind": "blob",
+      "path": "clarify-2",
+      "sha": "85d9d955accd0d619f64ff7fe0be8579817894e68d0901dfb0aba4724ac657bf"
+    },
+    {
+      "kind": "blob",
+      "path": "drafts",
+      "sha": "c2ba5f5b74b2235d270f2e258ac7d3a4c5752181820e4a094a05eea27caf2b77"
+    },
+    {
+      "kind": "blob",
+      "path": "merge",
+      "sha": "91ea86e8d8514f049e2a123c5b44248410d3aa5f54e69ed43df7fd89efac266f"
+    },
+    {
+      "kind": "blob",
+      "path": "specify",
+      "sha": "57d4fa1ae8fa25d3d02c85d0607d1321e9cf3611ab0257c97095b02ef956b51a"
+    },
+    {
+      "kind": "blob",
+      "path": "specify",
+      "sha": "5d086fc7ac5d595788cff7f45fcafc55eb465702d273a123a948d5c568774559"
+    },
+    {
+      "kind": "blob",
+      "path": "impact",
+      "sha": "10c1ad3936e0ac1598e7a53013077f733c263f84899953deb708595bc66d1cd2"
+    },
+    {
+      "kind": "blob",
+      "path": "plan",
+      "sha": "7206b411d45e4c4aa9fb51c2f25ab63882a8576d8fadff7ae206857d78c2f07f"
+    },
+    {
+      "kind": "blob",
+      "path": "approve",
+      "sha": "a23eb96caf3eed2a7ca8ed5cc3742f2aa003b4e294c9bab1ff0d639cf1199996"
+    },
+    {
+      "kind": "blob",
+      "path": "stub-commit",
+      "sha": "1862744966dc01b4f6dcc15bbb3235ada56f8bc65b51a53172e973623388f4f2"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "f99c724a6fb4521f8af3c01f93913fc4b80d880515bc0df1a422855dbce6c964"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "8e8a876984a3297b6e0c8f187496cc28fb1254d6609559f2bc6f83dd222307ba"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "c2197bbb729aa166f343d34fe7219a76688755492868e3b2f96f60a6c5720695"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-1",
+      "sha": "9a6247b3ea290a12a5e11c6a89a9d62376a3c5715b344ec1542d1cb55706207d"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-1",
+      "sha": "1741d18b782d8cda253f45bcebfcaa8a9800e18e3ed8664db1c2bd3a91200c6f"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-2",
+      "sha": "058f745ec354e565814d7811ae8bec9a219f8cea95368b603b57ae81d0139dc9"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-2",
+      "sha": "46aa0bac08113c5b357c800250037e4e08152f6dfa960e3f6346aa51b8075dee"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-3",
+      "sha": "cceff785219ddd3f2b5cd09c273772a904384b927f95bc4ba35e787dd9f73e38"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-3",
+      "sha": "659dcc4201be595f610aad464add7693357f4ffde539819db5028bd18e4684bb"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-4",
+      "sha": "bbc1e30399b141bace207155342d96679efa04bcd115fd5c7b73437789bdfacd"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-4",
+      "sha": "595e6721322d136f02c3db2d0f0a602d43723abc51de92577c88a91e4cc17d98"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-5",
+      "sha": "e6777e8102b167d0dc0cf8e9eeb91aeca5a8d9d1cb643f822253cba030efee28"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-5",
+      "sha": "0a5ab01aceebb6ad76134561bbebf12d0975de5fbfb347079e00c7cde24bb9e1"
+    },
+    {
+      "kind": "blob",
+      "path": "integrate",
+      "sha": "0a5ab01aceebb6ad76134561bbebf12d0975de5fbfb347079e00c7cde24bb9e1"
+    },
+    {
+      "kind": "blob",
+      "path": "integrate",
+      "sha": "12fd9093697d3e5f7b9d7802fec19806a4fcab3cc01734188529a62038fd6649"
+    },
+    {
+      "kind": "blob",
+      "path": "accept",
+      "sha": "035281fc8cbca9414fbaecd15bc3456a2283b6fdda197616a7e458be9d7c8a1f"
+    },
+    {
+      "kind": "blob",
+      "path": "accept",
+      "sha": "41ab544f38288a30427143761b380dd66cfcde8e653b1059b293387a85a452d4"
+    },
+    {
+      "kind": "blob",
+      "path": "design-fidelity",
+      "sha": "3caaf6eb540e9c54bcbb312038eddccc1cfec14629971f7447df07e7d2fc0ad2"
+    },
+    {
+      "kind": "blob",
+      "path": "design-check",
+      "sha": "6891815fb71b3fb6806ba65242effc73a4c1accb36995f9ad28e80ced91c369d"
+    },
+    {
+      "kind": "blob",
+      "path": "review",
+      "sha": "ce026d4627c07a0467c9813852b6b32800b17277019d8492986150cf670dbfad"
+    }
+  ],
+  "locks": [
+    {
+      "file": "App.Tests/CharacterisationTests.cs",
+      "sha": "802a9e778408f451c01fa708a73c71ce45d861ca9ae036871d91bc378f428836"
+    },
+    {
+      "file": "App.Tests/PersistenceAndSeedTests.cs",
+      "sha": "a97ff7c1e1cbf41ef532b1d8cb9261129ece53b6a9a5b734e78351a0da14d156"
+    },
+    {
+      "file": "App.Tests/RequestApiTests.cs",
+      "sha": "18c95b9785157471859c5d8f894bd3b267704fed4e5186207f07b69c10200d0a"
+    },
+    {
+      "file": "App.Tests/TestSupport.cs",
+      "sha": "ff3c90493707bc7f260a2df96af7a95cb7f8a2bbb8c5bcbbcde06eec6280cf8d"
+    },
+    {
+      "file": "contracts/openapi.yaml",
+      "sha": "2cf06dc03513489ad19f5631d6cb9d0e0227d2ddaad4d32406639075a9ba2585"
+    },
+    {
+      "file": "contracts/data-model.yaml",
+      "sha": "a97fbc7cd1d9e269d81f5b1a016224ac7f8153d24dd765923f5ea183914afb91"
+    }
+  ],
+  "approvals": [
+    {
+      "gate": "approval-cb359fa5",
+      "artifactSha": "cb359fa59f0bae9bf77c0c8e75a751dcc3f9d52ccb48cd8223c04040bf940f7e",
+      "osUser": "Hamza (via web)",
+      "gitIdentity": "mhamza",
+      "riskNote": "",
+      "at": "2026-10-10T01:50:39.597Z"
+    }
+  ],
+  "gatedTreeSha": "9afa7b76b951635bac2253393a9bf1b7e77ca3d2",
+  "waivers": [],
+  "unlocks": [],
+  "configFingerprint": "7f8dbaa90ed3cafb87e9def65dcbb553a2681cb143a344e8528066071ff6d97c",
+  "versions": {
+    "factory": "0.1.0",
+    "commit": "165ef42",
+    "node": "v22.22.0",
+    "mode:brownfield": "1",
+    "mode:estimate": "1",
+    "mode:design": "1",
+    "@anthropic-ai/claude-agent-sdk": "0.3.283",
+    "@anthropic-ai/sdk": "0.128.0",
+    "openai": "7.23.0",
+    "zod": "4.6.5"
+  }
+}

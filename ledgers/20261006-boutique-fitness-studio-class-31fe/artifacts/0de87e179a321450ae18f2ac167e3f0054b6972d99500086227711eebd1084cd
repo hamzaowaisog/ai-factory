@@ -1,0 +1,27 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "seed|HasData|EnsureCreated|Migrat|ConnectionStrings"
+   },
+   "ms": 4,
+   "resultChars": 160,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;seed|HasData|EnsureCreated|Migrat|ConnectionStrings&quot;}\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "waitlist|capacity|overlap|limit|window",
+    "glob": "**/*.{cs,md,json,txt}"
+   },
+   "ms": 0,
+   "resultChars": 198,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;waitlist|capacity|overlap|limit|window&quot;,&quot;glob&quot;:&quot;**/*.{cs,md,json,txt}&quot;}\">\nNo matches\n</untrusted_document>"
+  }
+ ]
+}

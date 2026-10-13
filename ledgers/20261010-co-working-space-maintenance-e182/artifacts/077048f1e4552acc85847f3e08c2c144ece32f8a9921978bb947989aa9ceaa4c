@@ -1,0 +1,145 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-9",
+      "op": "MODIFIED",
+      "ears": "The maintenance request API shall accept the transitions Open to In progress, In progress to Done, and Done to Open, reject all other status changes, return a not-found response for an unknown request ID, and return an error without changing any request for a missing status body or unrecognized status value.",
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A request has status Open.",
+        "when": "A client changes its status to In progress through the API.",
+        "then": "The response record has status In progress.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "A request has status In progress.",
+        "when": "A client changes its status to Done through the API.",
+        "then": "The response record has status Done.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.3",
+        "given": "A request has status Done.",
+        "when": "A client changes its status to Open through the API.",
+        "then": "The response record has status Open.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.4",
+        "given": "A request has status Open.",
+        "when": "A client attempts to change its status directly to Done.",
+        "then": "The response is an error and the retrieved record still has status Open.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.5",
+        "given": "No request has the ID supplied to the status-change operation.",
+        "when": "A client attempts to change status for that ID through the API.",
+        "then": "The response identifies the request as not found.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.6",
+        "given": "A request exists and its current record has been retrieved.",
+        "when": "A client sends a status-change request with no body.",
+        "then": "The response is an error and the request row retains its original status.",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.7",
+        "given": "A request exists and its current record has been retrieved.",
+        "when": "A client sends a status-change request with an unrecognized status value.",
+        "then": "The response is an error and the request row retains its original status.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "op": "MODIFIED",
+      "ears": "When a request exists, the request detail screen shall display a back link, its title, area, priority badge, status badge, created date, and description or “No description.” when the description is empty.",
+      "sources": [
+       "I-6",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "A request with a description and a request without a description both exist.",
+        "when": "The user opens each request detail screen.",
+        "then": "Each screen displays the request fields, badges, created date, and back link, and the screen for the request without a description displays “No description.”",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "op": "MODIFIED",
+      "ears": "When a request ID does not exist, the request detail screen shall display “Request not found.” and a link back to the Requests screen.",
+      "sources": [
+       "I-6",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "No request has the ID in the address.",
+        "when": "The user opens the detail screen for that ID.",
+        "then": "The screen displays “Request not found.” and a link back to the Requests screen.",
+        "level": "manual"
+       },
+       {
+        "id": "AC-20.2",
+        "given": "No request has the requested ID.",
+        "when": "A client gets that ID through the API.",
+        "then": "The response identifies the request as not found.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "op": "MODIFIED",
+      "ears": "The maintenance request screens shall show request dates as date-only values, use stacked cards at 375 px and table rows at 1280 px, avoid horizontal page scrolling at those widths, label every field, and make every control keyboard reachable with WCAG AA text contrast.",
+      "sources": [
+       "I-5",
+       "I-6",
+       "I-7",
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "The Requests and detail screens are displayed.",
+        "when": "A person inspects created dates and tests the screens at 375 px and 1280 px, including keyboard navigation and contrast.",
+        "then": "The screen dates contain no time, the Requests list uses cards at 375 px and table rows at 1280 px, neither screen has horizontal page scroll, every field has a label, every control is keyboard reachable, and text meets WCAG AA contrast.",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "outOfScope": [
+     "Dedicated support guarantees for named browsers (Q-2).",
+     "Sign-in, roles, additional users, search, sorting choices, pagination, comments, attachments, assignees, due dates, notifications, email, live updates, dark mode, and animation.",
+     "Request-detail loading and non-not-found fetch-failure states (Q-7)."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

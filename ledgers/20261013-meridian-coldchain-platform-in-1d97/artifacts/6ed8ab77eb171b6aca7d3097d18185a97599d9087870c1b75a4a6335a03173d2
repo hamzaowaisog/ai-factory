@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1990,
+    "end": 2030
+   },
+   "ms": 2,
+   "resultChars": 1245,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1990,&quot;end&quot;:2030}\">\ncontracts/openapi.yaml lines 1990-2030\n1990\t          items:\n1991\t            $ref: \"#/components/schemas/Record\"\n1992\t    RecordEnvelope:\n1993\t      type: object\n1994\t      required:\n1995\t        - record\n1996\t      properties:\n1997\t        record:\n1998\t          $ref: \"#/components/schemas/Record\"\n1999\t    ActionEnvelope:\n2000\t      type: object\n2001\t      required:\n2002\t        - id\n2003\t        - status\n2004\t        - message\n2005\t      properties:\n2006\t        id:\n2007\t          type: integer\n2008\t        status:\n2009\t          type: string\n2010\t        message:\n2011\t          type: string\n2012\t    Problem:\n2013\t      type: object\n2014\t      required:\n2015\t        - code\n2016\t        - message\n2017\t      properties:\n2018\t        code:\n2019\t          type: string\n2020\t        message:\n2021\t          type: string\n2022\t    Credentials:\n2023\t      type: object\n2024\t      required:\n2025\t        - email\n2026\t        - password\n2027\t      properties:\n2028\t        email:\n2029\t          type: string\n2030\t          format: email\n… (2684 lines total; ask for start=2031)\n</untrusted_document>"
+  }
+ ]
+}
