@@ -56,9 +56,10 @@ export type ThinkResult<T> =
   | { ok: false; outcome: StepOutcome };
 
 /**
- * A step's budget is sized for a change request. Two inputs are what they are and must be read whole, so the budget grows by
+ * A step's budget is sized for a change request. Three inputs are what they are and must be read whole, so the budget grows by
  * their size (capped) and the usual room stays:
  * - the factory's own earlier outputs (sketches, drafts, a spec), which grow with the request, in every mode;
+ * - a repo document the step is held to (a product's locked API contract), which grows with the product, in every mode;
  * - the untrusted requirements document, in an estimate or a design-only run, where it is far longer than a change request.
  */
 export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefined, sections: ResolvedSection[], model: string): number | undefined {
@@ -66,7 +67,8 @@ export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefi
   const size = (pick: (x: ResolvedSection) => boolean) => sections.filter(pick).reduce((n, x) => n + estimateTokens(x.content, model), 0);
   const own = size((x) => x.spec.source === "artifact");
   const doc = readsRequirements(ctx.state.info.mode) ? size((x) => x.spec.trust === "untrusted") : 0;
-  return Math.min(Math.max(base, 180_000), base + (own > base / 2 ? own : 0) + (doc > base / 2 ? doc : 0));
+  const held = size((x) => !!x.whole);
+  return Math.min(Math.max(base, 180_000), base + (own > base / 2 ? own : 0) + (doc > base / 2 ? doc : 0) + (held > base / 2 ? held : 0));
 }
 
 /** how often a streaming answer's progress is logged (under the trace's one-minute heartbeat) */

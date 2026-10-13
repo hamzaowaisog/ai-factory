@@ -249,7 +249,8 @@ ${outsideSystemsPlanRule(ctx.project.stack)}
       S.artifact("critic", "critic", critic),
       ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
       ...(impactNote ? [S.template("impact", impactNote)] : []),
-      ...(lockedContract ? [S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not change the file and do not give a stub for it; a needed change to it is a change request.\n\n${lockedContract}`)]
+      // a whole product's contract is far over a change request's budget and cannot be cut: the budget grows by it (budgetFor)
+      ...(lockedContract ? [{ ...S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not change the file and do not give a stub for it; a needed change to it is a change request.\n\n${lockedContract}`), whole: true }]
         : cfile ? [S.template("contract-new", contractRules(cfile))] : []),
       ...(ctx.project.stack !== "node" ? [S.template("data-model", dataModelRules(modelRequired, impact?.entities ?? [], !!existingModel))] : []),
       // a change the impact step found to touch no stored data (a fix in logic, say) gets the tables by name and key only

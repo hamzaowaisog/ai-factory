@@ -119,6 +119,14 @@ describe("briefing budget", () => {
     expect(budgetFor(state("estimate"), 15000, [S.untrusted("request", "cli", "word ".repeat(400_000)), big], "claude-opus-5-5")).toBe(180_000);
     expect(budgetFor(state("estimate"), undefined, [doc], "claude-opus-5-5")).toBeUndefined();
   });
+
+  it("grows by a repo document the step is held to, in every mode", () => {
+    const contract = (text: string) => ({ ...S.template("contract-locked", text), whole: true });
+    expect(budgetFor(state("brownfield"), 30000, [contract("paths: {}")], "claude-opus-5-5")).toBe(30000);
+    expect(budgetFor(state("brownfield"), 30000, [S.template("tpl", "word ".repeat(30_000))], "claude-opus-5-5")).toBe(30000);
+    const text = "word ".repeat(30_000);
+    expect(budgetFor(state("brownfield"), 30000, [contract(text)], "claude-opus-5-5")).toBeGreaterThan(30000 + 15000);
+  });
 });
 
 describe("stored answers in a build run", () => {

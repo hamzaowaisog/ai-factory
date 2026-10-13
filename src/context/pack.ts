@@ -34,6 +34,8 @@ export interface ResolvedSection {
   artifactSha?: string;
   /** for images: the ledger artifact holding the bytes (sent to the model in pack order) */
   imageSha?: string;
+  /** a repo document the step is held to and must read whole (a locked API contract): the step's budget grows by it */
+  whole?: boolean;
 }
 
 export interface BuildPackInput {
