@@ -31,6 +31,11 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
       `  it("AC_1_2_NotYet", () => { expect("Not signed in").toBe("Signed in"); });`,
       `});`, ``,
     ].join("\n"));
+    // a second file that holds only a later task's test: a task's run leaves the file out (skipLater)
+    writeFileSync(join(repo, "tests", "later.test.ts"), [
+      `import { describe, expect, it } from "vitest";`,
+      `describe("orders", () => { it("AC_2_1_Later", () => { expect("no orders").toBe("3 orders"); }); });`, ``,
+    ].join("\n"));
     execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });
     execFileSync("git", ["add", "-A"], { cwd: repo, env });
     execFileSync("git", ["commit", "-q", "-m", "app"], { cwd: repo, env });
@@ -49,10 +54,24 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
     expect(out.build, phases.join("\n")).toMatchObject({ ok: true });
     expect(out.testRun.runner).toBe("vitest");
     const byTitle = Object.fromEntries(out.testRun.results.map((r) => [r.id, r.outcome]));
-    expect(byTitle).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed" });
+    expect(byTitle).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/later.test.ts::orders > AC_2_1_Later": "failed" });
     expect(out.testRun.results.find((r) => r.outcome === "failed")!.failureKind).toBe("assertion");
     expect(out.accept?.boot, phases.join("\n")).toMatchObject({ attempted: true, ok: true });
     expect(out.accept!.probes[0]).toMatchObject({ status: 200 });
+
+    // a task's run with a later task's file left out: the kept file runs in full, the skipped file not at all
+    const taskPhases: string[] = [];
+    const task = await produceNodeTests({
+      runId: "lab-e2e", key: "lab-task", repo, commit, stage: "task", rt,
+      project: ProjectConfig.parse({ project: "lab", repo, stack: "node" }),
+      exp: { expectPass: ["tests/lab.test.ts::sign in > AC_1_1_Works"], expectFail: [], compareToBaseline: [] },
+      skipLater: { ids: ["tests/later.test.ts::orders > AC_2_1_Later"], files: ["tests/later.test.ts"] },
+      onPhase: (_p, msg) => { taskPhases.push(msg); },
+    });
+    expect(task.build, taskPhases.join("\n")).toMatchObject({ ok: true });
+    expect(taskPhases.join("\n")).toContain("skipping 1 test file(s) of tasks that are not built yet");
+    expect(task.testRun.valid, taskPhases.join("\n")).toBe(true);
+    expect(Object.fromEntries(task.testRun.results.map((r) => [r.id, r.outcome])), taskPhases.join("\n")).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed" });
     rmSync(home, { recursive: true, force: true });
   });
 });

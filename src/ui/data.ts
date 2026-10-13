@@ -85,7 +85,7 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
  * `cannotBuild`: for such an estimate, why a new product (web app + API) would not build all of it (it prices a phone app);
  * `cannotBuildWebOnly`: why a web app alone, on a backend the client provides, would not (it prices backend work too).
  */
-export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string; repo: boolean; cannotBuild?: string; cannotBuildWebOnly?: string }
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string; repo: boolean; /** made with the design left out: a build from it draws its own */ noDesign?: true; cannotBuild?: string; cannotBuildWebOnly?: string }
 
 /** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
 export function approvedEstimatesView(): ApprovedEstimateRow[] {
@@ -104,7 +104,7 @@ export function approvedEstimatesView(): ApprovedEstimateRow[] {
         cannotBuild = newProductRefusal(id, scope, true);
         cannotBuildWebOnly = newProductRefusal(id, scope, false);
       }
-      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl", repo, ...(cannotBuild ? { cannotBuild } : {}), ...(cannotBuildWebOnly ? { cannotBuildWebOnly } : {}) });
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl", repo, ...(s.info.estimate?.drawDesign === false ? { noDesign: true as const } : {}), ...(cannotBuild ? { cannotBuild } : {}), ...(cannotBuildWebOnly ? { cannotBuildWebOnly } : {}) });
     } catch { /* a broken ledger doesn't hide the others */ }
   }
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
