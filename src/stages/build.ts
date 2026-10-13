@@ -58,7 +58,7 @@ import { designFidelityLint, designSizeCap } from "../design/gates.js";
 import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, stitchHtmlFor, stitchScaffoldBrief, type ApprovedDesign } from "../design/design-link.js";
 import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
 import { loadKit } from "../design/kit/kit.js";
-import { screenTestsReady } from "../design/kit/screen-tests.js";
+import { SCREEN_HELPER, SCREEN_SETUP, screenTestsReady } from "../design/kit/screen-tests.js";
 import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
@@ -742,6 +742,25 @@ export function inTests(file: string): boolean {
   return segs.some((_, i) => matchesAny(segs.slice(i).join("/"), TEST_SCOPE));
 }
 
+/**
+ * What a test writer in a scaffolded web app otherwise spends its first turns finding: the two test support files as they are,
+ * where each screen's code is, and the names the generated API test handlers export. All of it is in files the factory wrote.
+ * One writer used 50 turns and 30 shell commands, most of them on this (run 1679). Undefined where there is nothing to say.
+ */
+export function testKitFacts(wt: string, max = 12_000): string | undefined {
+  const text = (f: string) => (existsSync(join(wt, f)) ? readFileSync(join(wt, f), "utf8") : undefined);
+  const parts: string[] = [];
+  for (const f of [SCREEN_HELPER, SCREEN_SETUP]) { const t = text(f); if (t) parts.push(`${f} (as it is; import from it, don't copy or change it):\n${t.trim()}`); }
+  const screensDir = join(wt, "components", "screens");
+  const containers = existsSync(screensDir) ? readdirSync(screensDir).filter((d) => existsSync(join(screensDir, d, "container.tsx"))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })) : [];
+  if (containers.length) parts.push(`Each screen's code is components/screens/<screen id in lower case>/container.tsx: ${containers.join(", ")}.`);
+  const handlers = [...new Set([...(text(`${CLIENT_DIR}/client.msw.ts`) ?? "").matchAll(/^export const (\w+)/gm)].map((m) => m[1]!))];
+  if (handlers.length) parts.push(`${CLIENT_DIR}/client.msw.ts exports these API test handlers and example answers (generated from the contract; use them, don't write your own): ${handlers.join(", ")}.`);
+  if (!parts.length) return undefined;
+  const all = parts.join("\n\n");
+  return all.length > max ? `${all.slice(0, max)}\n… (cut; read the files for the rest)` : all;
+}
+
 /** One of several test writers working at the same time: its number and the criteria it writes tests for. */
 export interface WriterPart { index: number; of: number; ids: string[] }
 const WRITERS_MAX = 4, WRITER_CRITERIA = 12;
@@ -834,6 +853,7 @@ export const authorTestsStep: StepDef = {
       ...(contractFile && plan.stubs.some((s) => s.path === contractFile) ? [{ path: contractFile, reason: `the locked API contract; the client and test handlers in ${CLIENT_DIR} are generated from it` }] : [])];
     const room = testWriterRoom(needTest.length);
     const limits = { maxTurns: Math.round(testWriterTurns(light, needTest.map((a) => a.level)) * room), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: Math.round(45 * 60 * room) };
+    const kit = ctx.project.stack === "node" ? testKitFacts(wt) : undefined;
     // one briefing for the whole list, or one per writer when the list is split (part: that writer's share)
     const packFor = (part?: WriterPart, lim = limits) => { const mine = part ? needTest.filter((a) => part.ids.includes(a.id)) : needTest; const reqs = new Set(mine.map((a) => a.req)); return buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
@@ -850,6 +870,8 @@ Return the list of tests you wrote (acId, file, method name).` : `
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(pointers.length ? [S.pointers(pointers)] : []),
         ...(part ? [S.template("writer-part", writerPartNote(part, ctx.project.stack))] : []),
+        // what the writer would otherwise search the checkout for
+        ...(kit ? [S.reference("test-kit", `What is already in this checkout for your tests, so you need not search for it:\n\n${kit}`)] : []),
         S.artifact("acs", "acceptance-criteria", part ? acs.filter((a) => reqs.has(a.req)) : acs),
         ...(screens.length ? [S.artifact("approved-screens", "approved-screens", part ? screens.filter((x) => x.reqs.some((q) => reqs.has(q))) : screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before. For each test that opens one of the approved screens, also return that screen's id as "screen" (the screen the test renders, which can be another than the one its requirement is listed under): the test is then held at the task that builds that screen. Leave it out for a test that opens no screen.`)] : []),
         // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over
@@ -1120,24 +1142,47 @@ Report one verdict per criterion in "coverage", with testId "" unless one test i
  * then they were locked, so the run could only ask a person to waive). The reviewer's model reads them, not the writer's route.
  * A criterion the check leaves out counts as proven: the review at the end reads every test again and names what it finds weak.
  */
+/** At most this many readers check the tests at the same time, one per group of test files. */
+const PROOF_READERS = 4;
+
+/**
+ * The criteria and their tests in groups a reader each: by test file, the largest files spread first, at most PROOF_READERS
+ * groups. A criterion with no test goes to the first group, which reports it as "no-test". One reader read 85 tests in turn
+ * and took four minutes (run 1679); the files do not depend on each other, so they are read side by side.
+ */
+export function proofGroups<N extends { id: string }, T extends { acId: string; file: string }>(needTest: N[], tests: T[], max = PROOF_READERS): { need: N[]; tests: T[] }[] {
+  const files = [...new Set(tests.map((t) => t.file))].sort((a, b) => tests.filter((t) => t.file === b).length - tests.filter((t) => t.file === a).length);
+  const n = Math.max(1, Math.min(max, files.length));
+  const groups = Array.from({ length: n }, () => ({ need: [] as N[], tests: [] as T[] }));
+  files.forEach((f, k) => groups[k % n]!.tests.push(...tests.filter((t) => t.file === f)));
+  for (const a of needTest) (groups.find((g) => g.tests.some((t) => t.acId === a.id)) ?? groups[0]!).need.push(a);
+  return groups.filter((g) => g.need.length);
+}
+
 async function weakTests(ctx: StepContext, commit: string, needTest: { id: string }[], tests: { acId: string; file: string; name: string; testId: string }[]): Promise<{ failures: Failure[]; weak: WeakTest[] } | { outcome: StepOutcome }> {
   if (!needTest.length) return { failures: [], weak: [] };
-  const room = Math.max(1, Math.ceil(needTest.length / 12));
-  const r = await think({ ...ctx, priorFailures: [], gateAnswers: [] }, {
-    stage: "author-tests", label: "test check", route: "review", cls: "read-large", budgetTokens: 60_000, schema: ProofOut,
-    maxTurns: 14 * room, maxUsd: 1 * room, timeoutSec: 600 * room,
-    tools: ["read_file", "search"], repoTools: toolsAt(ctx, commit), toolsAt: "under-review",
-    sections: [
-      S.template("tpl", PROOF_TEMPLATE),
-      S.artifact("acs", "acceptance-criteria", needTest),
-      S.artifact("ac-tests", "acceptance-tests", tests.map((t) => ({ acId: t.acId, file: t.file, name: t.name }))),
-      S.task("Check these tests against their criteria. Open the test files."),
-    ],
-  });
-  if (!r.ok) return r.outcome.kind === "park" ? { outcome: r.outcome } : { failures: [], weak: [] };
+  const groups = proofGroups(needTest, tests);
+  if (groups.length > 1) ctx.log(`author-tests: test check: ${groups.length} readers at the same time, ${groups.map((g) => g.need.length).join(" + ")} criteria`);
+  const read = await Promise.all(groups.map((g) => {
+    const room = Math.max(1, Math.ceil(g.need.length / 12));
+    return think({ ...ctx, priorFailures: [], gateAnswers: [], share: groups.length }, {
+      stage: "author-tests", label: "test check", route: "review", cls: "read-large", budgetTokens: 60_000, schema: ProofOut,
+      maxTurns: 14 * room, maxUsd: 1 * room, timeoutSec: 600 * room,
+      tools: ["read_file", "search"], repoTools: toolsAt(ctx, commit), toolsAt: "under-review",
+      sections: [
+        S.template("tpl", PROOF_TEMPLATE),
+        S.artifact("acs", "acceptance-criteria", g.need),
+        S.artifact("ac-tests", "acceptance-tests", g.tests.map((t) => ({ acId: t.acId, file: t.file, name: t.name }))),
+        S.task("Check these tests against their criteria. Open the test files."),
+      ],
+    });
+  }));
+  const parked = read.find((r) => !r.ok && r.outcome.kind === "park");
+  if (parked && !parked.ok) return { outcome: parked.outcome };
+  // (a reader that failed otherwise checks nothing: its tests are locked as they are, as when the one reader failed)
   const ids = new Set(needTest.map((a) => a.id));
   const seen = new Set<string>();
-  const bad = r.output.coverage.filter((c) => c.verdict !== "proves-it" && ids.has(c.acId) && !seen.has(c.acId) && !!seen.add(c.acId));
+  const bad = read.flatMap((r) => (r.ok ? r.output.coverage : [])).filter((c) => c.verdict !== "proves-it" && ids.has(c.acId) && !seen.has(c.acId) && !!seen.add(c.acId));
   ctx.log(`author-tests: test check: ${bad.length ? `${bad.length} of ${needTest.length} criteria not proven by their tests` : `every criterion is proven by its tests`}`);
   return {
     weak: bad.map((c) => ({ acId: c.acId, verdict: c.verdict as WeakTest["verdict"], testId: c.testId, why: c.why })),

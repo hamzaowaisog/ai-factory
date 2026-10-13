@@ -36,6 +36,16 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
       `import { describe, expect, it } from "vitest";`,
       `describe("orders", () => { it("AC_2_1_Later", () => { expect("no orders").toBe("3 orders"); }); });`, ``,
     ].join("\n"));
+    // a screen test renders one part alone, outside the app frame: a part with a tooltip must not need the frame's provider
+    // (run c0aa: six locked tests crashed on "Tooltip must be used within TooltipProvider" and no rewrite could fix them)
+    writeFileSync(join(repo, "tests", "tip.test.tsx"), [
+      // (written in two parts: vitest reads this marker in any test file, this one included)
+      `// @vitest-${"environment"} jsdom`,
+      `import { render, screen } from "@testing-library/react";`,
+      `import { describe, expect, it } from "vitest";`,
+      `import { Tip } from "@/components/blocks/tip";`,
+      `describe("tip", () => { it("AC_3_1_RendersAlone", () => { render(<Tip hint="Save it"><button>Save</button></Tip>); expect(screen.getByRole("button", { name: "Save" })).toBeTruthy(); }); });`, ``,
+    ].join("\n"));
     execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });
     execFileSync("git", ["add", "-A"], { cwd: repo, env });
     execFileSync("git", ["commit", "-q", "-m", "app"], { cwd: repo, env });
@@ -54,7 +64,7 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
     expect(out.build, phases.join("\n")).toMatchObject({ ok: true });
     expect(out.testRun.runner).toBe("vitest");
     const byTitle = Object.fromEntries(out.testRun.results.map((r) => [r.id, r.outcome]));
-    expect(byTitle).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/later.test.ts::orders > AC_2_1_Later": "failed" });
+    expect(byTitle).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/later.test.ts::orders > AC_2_1_Later": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed" });
     expect(out.testRun.results.find((r) => r.outcome === "failed")!.failureKind).toBe("assertion");
     expect(out.accept?.boot, phases.join("\n")).toMatchObject({ attempted: true, ok: true });
     expect(out.accept!.probes[0]).toMatchObject({ status: 200 });
@@ -71,7 +81,7 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
     expect(task.build, taskPhases.join("\n")).toMatchObject({ ok: true });
     expect(taskPhases.join("\n")).toContain("skipping 1 test file(s) of tasks that are not built yet");
     expect(task.testRun.valid, taskPhases.join("\n")).toBe(true);
-    expect(Object.fromEntries(task.testRun.results.map((r) => [r.id, r.outcome])), taskPhases.join("\n")).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed" });
+    expect(Object.fromEntries(task.testRun.results.map((r) => [r.id, r.outcome])), taskPhases.join("\n")).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed" });
     rmSync(home, { recursive: true, force: true });
   });
 });

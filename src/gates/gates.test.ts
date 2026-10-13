@@ -142,6 +142,11 @@ describe("test gates", () => {
     expect(verdict(crash(prod)).passed).toBe(true);
     // a crash in the test's own code, a compile error or an infra failure is still a broken test
     expect(verdict(crash(inTest)).details).toMatch(/fails with exception/);
+    // and the writer is told what the test said, first line only (run c0aa: a missing provider, never shown)
+    expect(verdict(crash(inTest)).failures![0]!.message).toBe("T::A fails with exception, not an assertion or not-implemented: System.NullReferenceException");
+    const said = (message: string | undefined) => verdict(run([{ id: "T::A", outcome: "failed", failureKind: "exception", durationMs: 1, message, frames: [] } as never])).failures![0]!.message;
+    expect(said("\n  Error: `Tooltip` must be used within `TooltipProvider`\n    at useContext (index.mjs:51:13)")).toMatch(/not-implemented: Error: `Tooltip` must be used within `TooltipProvider`$/);
+    expect(said(undefined)).toMatch(/not-implemented$/);
     expect(verdict(crash([])).passed).toBe(false);
     expect(verdict(crash(prod, "compile")).passed).toBe(false);
     expect(verdict(crash(prod, "infra")).passed).toBe(false);

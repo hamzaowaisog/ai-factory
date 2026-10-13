@@ -1,7 +1,10 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, proofGroups, testKitFacts, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests } from "./build.js";
 import { ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { attemptSpend, startNeed } from "./executor.js";
@@ -361,5 +364,40 @@ describe("a task's run leaves out the tests of tasks not built yet", () => {
   });
   it("the last task leaves nothing out, so integrate can reuse its run", () => {
     expect(laterTests(lock, ["t1", "t2", "t3", "t4", "c1"])).toEqual({ ids: [], files: [] });
+  });
+});
+
+describe("the test check's readers and the writers' test kit", () => {
+  it("reads the test files side by side: one group a file, four at most, a criterion with no test in the first", () => {
+    const t = (file: string, ...acs: string[]) => acs.map((acId) => ({ acId, file }));
+    const need = (...ids: string[]) => ids.map((id) => ({ id }));
+    // one file: one reader, as before
+    expect(proofGroups(need("AC-1.1", "AC-1.2"), t("a.test.ts", "AC-1.1", "AC-1.2"))).toEqual([{ need: need("AC-1.1", "AC-1.2"), tests: t("a.test.ts", "AC-1.1", "AC-1.2") }]);
+    const two = proofGroups(need("AC-1.1", "AC-2.1", "AC-9.9"), [...t("a.test.ts", "AC-1.1"), ...t("b.test.ts", "AC-2.1")]);
+    expect(two.map((g) => g.need.map((a) => a.id))).toEqual([["AC-1.1", "AC-9.9"], ["AC-2.1"]]);
+    // six files, four readers: every criterion is read once
+    const files = ["a", "b", "c", "d", "e", "f"].flatMap((f, i) => t(`${f}.test.ts`, `AC-${i + 1}.1`));
+    const six = proofGroups(files.map((x) => ({ id: x.acId })), files);
+    expect(six).toHaveLength(4);
+    expect(six.flatMap((g) => g.need.map((a) => a.id)).sort()).toEqual(files.map((x) => x.acId).sort());
+    // nothing to read: no reader
+    expect(proofGroups([], [])).toEqual([]);
+  });
+
+  it("hands the writer the support files, the screens and the handler names; nothing where the checkout has none", () => {
+    const wt = mkdtempSync(join(tmpdir(), "factory-kit-"));
+    expect(testKitFacts(wt)).toBeUndefined();
+    for (const d of ["tests/support", "components/screens/s-2", "components/screens/s-10", "lib/api"]) mkdirSync(join(wt, d), { recursive: true });
+    writeFileSync(join(wt, "tests/support/screen.ts"), "export function at(path: string): void {}\n");
+    writeFileSync(join(wt, "components/screens/s-2/container.tsx"), "");
+    writeFileSync(join(wt, "components/screens/s-10/container.tsx"), "");
+    writeFileSync(join(wt, "lib/api/client.msw.ts"), "export const getGetOrdersResponseMock = () => [];\nexport const getGetOrdersMockHandler = () => 0;\nconst hidden = 1;\n");
+    const k = testKitFacts(wt)!;
+    expect(k).toContain("tests/support/screen.ts (as it is");
+    expect(k).toContain("export function at(path: string): void {}");
+    expect(k).toContain("container.tsx: s-2, s-10.");
+    expect(k).toContain("getGetOrdersResponseMock, getGetOrdersMockHandler.");
+    expect(k).not.toContain("hidden");
+    expect(testKitFacts(wt, 40)).toMatch(/… \(cut; read the files for the rest\)$/);
   });
 });

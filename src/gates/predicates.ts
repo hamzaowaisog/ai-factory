@@ -170,6 +170,15 @@ export function thrownByProductionCode(frames: string[] | undefined): boolean {
   return !/test/i.test(method);
 }
 
+/**
+ * What the test said when it failed, first line only. Without it the writer is told "fails with exception" and has to guess
+ * (run c0aa: six tests crashed on a missing provider, three attempts, the same six each time).
+ */
+const said = (message: string | undefined): string => {
+  const first = (message ?? "").split("\n").map((l) => l.trim()).find(Boolean);
+  return first ? `: ${first.slice(0, 200)}` : "";
+};
+
 export const failsOnBase = defineGate<{ run1: TestRun; run2: TestRun; tests: AcceptanceTests & { rules?: { productionExceptionOk?: boolean } } }>({
   id: "author-tests.fails-on-base", after: "author-tests", safety: false, waiver: "none",
   predicate: ({ run1, run2, tests }) => {
@@ -183,11 +192,11 @@ export const failsOnBase = defineGate<{ run1: TestRun; run2: TestRun; tests: Acc
         const r = byId.get(t.testId);
         if (!r || r.outcome === "notRun" || r.outcome === "skipped") fs.push(failure("not-executed", `${t.testId} (${t.acId}) didn't run`, { testId: t.testId }));
         // a must-keep-passing criterion ("stays upper case"): it passes on the old code and must keep passing
-        else if (t.failsOnBase === false) { if (r.outcome !== "passed") fs.push(failure("keep-passing", `${t.testId} (${t.acId}) describes behaviour that works today, but fails on the old code`, { testId: t.testId })); }
+        else if (t.failsOnBase === false) { if (r.outcome !== "passed") fs.push(failure("keep-passing", `${t.testId} (${t.acId}) describes behaviour that works today, but fails on the old code${said(r.message)}`, { testId: t.testId })); }
         else if (r.outcome === "passed") fs.push(failure("passes-on-base", `${t.testId} (${t.acId}) already passes before any change`, { testId: t.testId }));
         // only locks written with this rule accept production crashes, so older runs re-check as recorded
         else if (tests.rules?.productionExceptionOk && r.failureKind === "exception" && thrownByProductionCode(r.frames)) { /* a crash bug, failing for the right reason */ }
-        else if (!ok.has(r.failureKind ?? "")) fs.push(failure("wrong-failure-kind", `${t.testId} fails with ${r.failureKind ?? "unknown"}, not an assertion or not-implemented`, { testId: t.testId, frames: r.frames ?? [] }));
+        else if (!ok.has(r.failureKind ?? "")) fs.push(failure("wrong-failure-kind", `${t.testId} fails with ${r.failureKind ?? "unknown"}, not an assertion or not-implemented${said(r.message)}`, { testId: t.testId, frames: r.frames ?? [] }));
       }
       for (const c of tests.characterisation) {
         const r = byId.get(c.testId);
