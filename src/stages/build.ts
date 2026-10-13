@@ -622,7 +622,7 @@ async function dirtyPaths(wt: string): Promise<string[]> {
 }
 
 export const authorTestsStep: StepDef = {
-  key: "author-tests", stage: "author-tests", templateVersion: "3", coding: true, needsUsd: AGENT_START_USD,
+  key: "author-tests", stage: "author-tests", templateVersion: "4", coding: true, needsUsd: AGENT_START_USD,
   inputs: (s) => (s.steps.get("stub-commit")?.status === "completed" ? { stubs: s.steps.get("stub-commit")!.outputs[0], spec: s.steps.get("specify")!.outputs[0] } : undefined),
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
@@ -1331,7 +1331,7 @@ async function settleTests(ctx: StepContext, a: {
 export function implementStep(taskId: string): StepDef {
   const key = `implement/${taskId}`;
   return {
-    key, stage: "implement", templateVersion: "2", coding: true, needsUsd: AGENT_START_USD, judgesTests: true,
+    key, stage: "implement", templateVersion: "3", coding: true, needsUsd: AGENT_START_USD, judgesTests: true,
     inputs: (s) => {
       if (s.steps.get("author-tests")?.status !== "completed") return undefined;
       const plan = s.steps.get("plan")!.outputs[0];

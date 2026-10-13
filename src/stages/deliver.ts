@@ -28,6 +28,7 @@ import { recordTestLesson } from "../context/lessons.js";
 import { followUpSection, readImpact } from "./impact.js";
 import { rewrittenTests, type Judged } from "./test-defect.js";
 import { contractLockFiles } from "./contract.js";
+import { isSettingsFile, newSettings, settingsSection, type SettingsNeeded } from "./outside-systems.js";
 
 /** Only a delivered run teaches the next one where its tests go; never fails delivery. */
 function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
@@ -271,7 +272,7 @@ async function writeReview(ctx: StepContext, spec: Spec, head: string): Promise<
 // ---------- deliver ----------
 /** How a criterion's locked test proves it, in the PR text. */
 const PROOF: Record<string, string> = { unit: "unit test", api: "HTTP test + probe", job: "job test", ui: "screen test", manual: "manual" };
-export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spec; plan: Plan; lock: { tests: { acId: string; testId: string }[]; familyNote?: string }; run: TestRun; review: { findings: { id: string; severity: string; text: string; category?: string; owasp?: string; file?: string; line?: number }[]; note?: string }; manifestHash: string; commits: string[]; rewritten?: Judged[] }): string {
+export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spec; plan: Plan; lock: { tests: { acId: string; testId: string }[]; familyNote?: string }; run: TestRun; review: { findings: { id: string; severity: string; text: string; category?: string; owasp?: string; file?: string; line?: number }[]; note?: string }; manifestHash: string; commits: string[]; rewritten?: Judged[]; settings?: SettingsNeeded[] }): string {
   const flaky = a.run.results.filter((r) => r.flaky).map((r) => r.id);
   const security = a.review.findings.filter((f) => f.category === "security");
   // what a person decided at the review: the criteria tried by hand, and any check accepted as it stands
@@ -300,6 +301,7 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
       `${a.plan.dataModel.tables.length} table${a.plan.dataModel.tables.length === 1 ? "" : "s"}, approved with the plan and kept in \`${DATA_MODEL_FILE}\`.${nearModel(a.plan.dataModel).others ? ` The diagram shows the tables this change adds or changes and the tables joined to them; ${nearModel(a.plan.dataModel).others} other${nearModel(a.plan.dataModel).others === 1 ? " is" : "s are"} unchanged.` : ""}`,
       ``, "```mermaid", erdMermaid(nearModel(a.plan.dataModel).model), "```", ``,
     ] : []),
+    ...settingsSection(a.settings ?? []),
     `## Checks the factory ran itself`,
     `- ${a.run.results.length} tests in a sealed container; ${a.run.results.filter((r) => r.outcome === "passed").length} passed; no new failures vs the base branch`,
     `- Acceptance tests were written first, failed on the old code twice, then locked`,
@@ -317,6 +319,14 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     ``,
     `Cost: $${ctx.state.costUsd.toFixed(2)} · Run: \`${ctx.runId}\` · Evidence manifest: \`${a.manifestHash}\``,
   ].join("\n");
+}
+
+/** The settings the change declares that the base did not have, read from its settings files (appsettings.json, .env.example). */
+export async function settingsNeeded(wt: string, base: string, head: string): Promise<SettingsNeeded[]> {
+  const at = async (commit: string, path: string) => { try { return (await git(wt, ["show", `${commit}:${path}`])).stdout; } catch { return ""; } };
+  const files = (await changedFiles(wt, base, head)).filter((c) => c.status !== "D" && isSettingsFile(c.path)).map((c) => c.path).sort();
+  const found = await Promise.all(files.map(async (f) => newSettings(f, await at(base, f), await at(head, f))));
+  return found.filter((f): f is SettingsNeeded => !!f);
 }
 
 function githubApi(ctx: Pick<StepContext, "project">) {
@@ -468,7 +478,7 @@ export const deliverStep: StepDef = {
 
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
-    const body = prBody(ctx, { spec, plan, lock, run: requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate"), review: requireOutput(ctx.state, ctx.ledger, "review"), manifestHash, commits, rewritten: rewrittenTests(ctx.ledger.events()) })
+    const body = prBody(ctx, { spec, plan, lock, run: requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate"), review: requireOutput(ctx.state, ctx.ledger, "review"), manifestHash, commits, rewritten: rewrittenTests(ctx.ledger.events()), settings: await settingsNeeded(wt, changeBase(ctx.state), gated) })
       + followUpSection(readImpact(ctx.state, ctx.ledger));
     const jiraKey = ctx.state.info.sources?.find((s) => s.kind === "jira")?.key;
     const title = `${jiraKey ? `${jiraKey}: ` : "factory: "}${spec.requirements[0]?.ears.slice(0, 60) ?? ctx.runId}`;

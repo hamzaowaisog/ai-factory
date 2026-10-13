@@ -428,6 +428,7 @@ Full catalogue and designs: use-cases.md. Summary:
   - Discover looks for existing test doubles first.
   - If there are none, author-tests writes them and they are locked (G6).
   - Real systems are never called by tests.
+  - Built 2026-10-13 (`src/stages/outside-systems.ts`): the plan gives each system one seam as a stub and puts the settings file in a task's scope; the test writer puts a recording stand-in behind the seam (locked with the tests); the coding agent declares each setting by name with an empty value (`appsettings.json`, `.env.example`); the pull request lists the new settings under "Settings to fill in". Discover does not look for existing test doubles yet: the test writer is told to reuse one it finds. No run proves the real connection.
 - **D9. The developer's local DB is used read-only by the core in discover** (schema, sample shapes). Tests run on throwaway Testcontainers Postgres built from the repo's migrations. Migrations are linted with squawk.
 
 ## 17. Classify by the change, not the ticket label (2026-09-26)

@@ -37,6 +37,7 @@ import { WAIVER_AFTER_ATTEMPT } from "./waiver.js";
 import type { Breakdown } from "../contracts/index.js";
 import { affectsLines, planCoverageFailures, planNote, readImpact } from "./impact.js";
 import { dependencyKind, planIntro, stubRule } from "./stack-text.js";
+import { outsideSystemsPlanRule } from "./outside-systems.js";
 import { checkPlanScaffold, designForScopeGate, scaffoldForPlan, scaffoldOfRun } from "./scaffold-run.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -183,7 +184,7 @@ export function clientFolderProblems(plan: { stubs: { path: string }[]; tasks: {
 }
 
 export const planStep: StepDef = {
-  key: "plan", stage: "plan", templateVersion: "2",
+  key: "plan", stage: "plan", templateVersion: "3", // 3: one seam per outside system, its settings declared by name
   // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
   inputs: (s) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s), design: outputOf(s, "design-baseline") } : undefined),
   async run(ctx) {
@@ -235,6 +236,7 @@ export const planStep: StepDef = {
 - complexity, on every task: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack. Most tasks are standard. rules-or-algorithm is a task whose work is mostly business rules, validations, allowed state changes or calculations.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
+${outsideSystemsPlanRule(ctx.project.stack)}
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
 - newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.`),
       S.profile("repomap", `Repository map:\n${map}`),
