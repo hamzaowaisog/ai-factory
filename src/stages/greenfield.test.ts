@@ -52,6 +52,10 @@ paths:
         "200": { description: signed in, content: { application/json: { schema: { type: object, required: [message], properties: { message: { type: string } } }, example: { message: Signed in } } } }
 `;
 let planContract: string | undefined = CONTRACT;
+/** the code stubs the planner gives, one list per plan it writes (the last one repeats); none by default */
+let planCodeStubs: { path: string; content: string }[][] = [];
+/** the patch the planner returns for a plan the stub commit sent back */
+let stubPatch: { path: string; content: string } | undefined;
 const draft = { requirements: spec.requirements.map((r) => ({ ...r, acceptance: r.acceptance.map((a) => ({ ...a, then: "the screen shows Signed in" })) })), nfrs: [], outOfScope: [], assumptions: [], suggestions: [] };
 
 async function designRun(): Promise<string> {
@@ -108,18 +112,20 @@ function scriptedReview(user: string, findings: unknown[] = []) {
 }
 
 function answerFor(system: string, user: string): unknown {
+  if (system.includes("plan the implementation") && (system + user).includes("THE PLAN IS FIXED, NOT REWRITTEN") && stubPatch) return { stubs: [{ ...stubPatch, reason: "a stub the tests call" }] };
   if (system.includes("plan the implementation")) {
+    const code = (planCodeStubs.length > 1 ? planCodeStubs.shift() : planCodeStubs[0]) ?? [];
     const containers = [...user.matchAll(/"container":\s*"([^"]+)"/g)].map((m) => m[1]!);
     const ds = /"designSystemTask":\s*\{\s*"fileScope":\s*(\[[^\]]*\])/.exec(user);
     const dsFiles = ds ? (JSON.parse(ds[1]!) as string[]) : [];
     return {
-      tasks: [{ id: "TASK-1", title: "Sign-in screen", reqs: ["REQ-1"], fileScope: [...dsFiles, ...containers], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 20, approach: "wire the sign-in form in the screen's container",
+      tasks: [{ id: "TASK-1", title: "Sign-in screen", reqs: ["REQ-1"], fileScope: [...dsFiles, ...containers, ...code.map((c) => c.path)], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 20, approach: "wire the sign-in form in the screen's container",
         // a build from an approved estimate: the task delivers its estimate task (gate B1)
         ...(system.includes("APPROVED ESTIMATE") ? { estimateTaskId: "EST-1" } : {}) }],
       options: [{ id: "O-1", summary: "the screen's container", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "a separate auth module", simplest: false, tradeoffs: "more code" }],
       chosen: "O-1", adr: "Build it in the container the scaffold made.", protectedPathsDeclared: [], newDependencies: [],
       // asked for the product's API contract (a project with `contract`): the plan gives it as a stub, unless this test leaves it out
-      stubs: system.includes("API CONTRACT.") && planContract ? [{ path: "contracts/openapi.yaml", content: planContract, reason: "the API contract" }] : [],
+      stubs: [...(system.includes("API CONTRACT.") && planContract ? [{ path: "contracts/openapi.yaml", content: planContract, reason: "the API contract" }] : []), ...code.map((c) => ({ ...c, reason: "a stub the tests call" }))],
     };
   }
   if (system.includes("review a finished change")) return scriptedReview(user);
@@ -166,6 +172,9 @@ class NodeLab implements ContainerRuntime {
   editsContract = false;
   /** the screen's container, as the planner scoped it */
   container = "";
+  failedBuilds = 0;
+  /** what a container printed, where a test scripts it */
+  said = new Map<string, string>();
   async version() { return "fake"; }
   async create(s: ContainerSpec) { const id = `c${++this.n}`; this.specs.set(id, s); return id; }
   async start() {}
@@ -220,14 +229,17 @@ class NodeLab implements ContainerRuntime {
       writeFileSync(join(mount("/results")!, "r.json"), JSON.stringify({ testResults }));
       return testResults.some((f) => f.status === "failed") ? 1 : 0;
     }
-    return 0; // npm run build
+    // npm run build: a file that uses a type nobody declares stops it, as tsc would
+    const broken = s.cmd.includes("build") && src ? readdirSync(src, { recursive: true, encoding: "utf8" }).find((f) => f.endsWith(".ts") && !f.includes("node_modules") && readFileSync(join(src, f), "utf8").includes("MissingType")) : undefined;
+    if (broken) { this.failedBuilds++; this.said.set(id, `${broken}(1,31): error TS2304: Cannot find name 'MissingType'.`); return 1; }
+    return 0;
   }
   async exec(id: string, cmd: string[]) {
     if (this.specs.get(id)!.role === "app" && cmd[0] === "curl") return { code: 0, stdout: cmd.includes("-o") ? "200" : "ok\n200", stderr: "" };
     return { code: 0, stdout: "", stderr: "" };
   }
   async isRunning() { return true; }
-  async logs() { return "ready on http://127.0.0.1:3000"; }
+  async logs(id: string) { return this.said.get(id) ?? "ready on http://127.0.0.1:3000"; }
   async stop() {}
   async remove() {}
   async listByLabel() { return []; }
@@ -254,6 +266,8 @@ beforeEach(() => {
   setProviderFactory(() => provider);
   prompts.length = 0;
   planContract = CONTRACT;
+  planCodeStubs = [];
+  stubPatch = undefined;
 });
 
 describe("a new product end to end (greenfield, fakes)", () => {
@@ -310,6 +324,63 @@ describe("a new product end to end (greenfield, fakes)", () => {
     expect(execFileSync("git", ["show", `factory/${runId}:${lab.container}`], { cwd: repo, encoding: "utf8" })).toContain(DONE);
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
+
+  it("a stub that does not build on the scaffold goes back to the planner as a patch, is approved again, and only then are tests written", async () => {
+    const SESSION = "lib/auth/session.ts";
+    planCodeStubs = [[{ path: SESSION, content: "export function session(): MissingType { throw new Error(\"not implemented\"); }\n" }]];
+    stubPatch = { path: SESSION, content: "export function session(): string { throw new Error(\"not implemented\"); }\n" };
+    const design = await designRun();
+    const runId = await createRun("A portal where clinic staff sign in", "shop", "tester", { mode: "greenfield", fromDesign: approvedDesign(design) });
+    const ledger = Ledger.open(runId);
+    const r1 = await execute(runId);
+    expect(r1.status, r1.message).toBe("waiting");
+    // the plan cannot build its stubs yet: the scaffold they sit on is not written before the stub commit
+    expect(lab.failedBuilds).toBe(0);
+    const s1 = replay(ledger.events());
+    await decide(ledger, { decision: "approve", hashPrefix: s1.openCard!.artifactSha.slice(0, 6), by: "lead" });
+
+    const r2 = await execute(runId);
+    expect(r2.status, r2.message).toBe("waiting");
+    const refused = ledger.events().filter((e) => e.type === "plan.refused");
+    expect(refused).toHaveLength(1);
+    expect(JSON.stringify(ledger.getJson(String(refused[0]!.data!.failures)))).toMatch(/plan-stub-build.*lib\/auth\/session\.ts:1 TS2304 Cannot find name 'MissingType'/);
+    // no test writer ran on the stubs that do not build, and the planner was asked for a patch, with the error
+    expect(lab.jobs).toHaveLength(0);
+    const patch = prompts.filter((p) => (p.system + p.user).includes("THE PLAN IS FIXED, NOT REWRITTEN"));
+    expect(patch).toHaveLength(1);
+    expect(patch[0]!.system + patch[0]!.user).toContain("Cannot find name 'MissingType'");
+    const s2 = replay(ledger.events());
+    expect(s2.openCard?.kind).toBe("approval");
+    expect(s2.openCard!.artifactSha).not.toBe(s1.openCard!.artifactSha);
+    expect(ledger.getJson<{ stubs: { path: string; content: string }[] }>(s2.steps.get("plan")!.outputs[0]!).stubs.find((x) => x.path === SESSION)!.content).toContain("): string");
+    await decide(ledger, { decision: "approve", hashPrefix: s2.openCard!.artifactSha.slice(0, 6), by: "lead" });
+
+    const done = await execute(runId);
+    expect(done.status, done.message).toBe("delivered");
+    expect(ledger.events().filter((e) => e.type === "plan.refused")).toHaveLength(1);
+    expect(ledger.events().some((e) => e.type === "run.parked")).toBe(false);
+    expect(execFileSync("git", ["show", `factory/${runId}:${SESSION}`], { cwd: repo, encoding: "utf8" })).toContain("): string");
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  }, 60_000);
+
+  it("stubs that still do not build after two corrected plans stop the run for a person", async () => {
+    const SESSION = "lib/auth/session.ts";
+    const broken = (n: number) => ({ path: SESSION, content: `export function session${n}(): MissingType { throw new Error("not implemented"); }\n` });
+    planCodeStubs = [[broken(0)]];
+    const design = await designRun();
+    const runId = await createRun("A portal where clinic staff sign in", "shop", "tester", { mode: "greenfield", fromDesign: approvedDesign(design) });
+    const ledger = Ledger.open(runId);
+    let r = await execute(runId);
+    for (let n = 1; n <= 3 && r.status === "waiting"; n++) {
+      stubPatch = broken(n);
+      await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+      r = await execute(runId);
+    }
+    expect(r.status, r.message).toBe("parked");
+    expect(r.message).toMatch(/stubs still do not build after 2 corrected plans.*TS2304/);
+    expect(ledger.events().filter((e) => e.type === "plan.refused")).toHaveLength(2);
+    expect(lab.jobs).toHaveLength(0);
+  }, 60_000);
 
   it("one run from the request alone: reads it, writes the spec, draws the design on the kit, then builds it", async () => {
     // no mode and no design run: a plain start on a Node project whose repo is empty

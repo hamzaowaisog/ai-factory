@@ -2,6 +2,7 @@
 // change. On the web run of 2026-10-06 two uncovered requirements made the planner rewrite 51,000 output tokens ($1.30).
 import { z } from "zod";
 import { DataModel, InterfaceStub, PlanBody, PlanTask } from "../contracts/index.js";
+import { mendAnswer, zodIssues } from "../runners/api.js";
 
 type Plan = z.infer<typeof PlanBody>;
 
@@ -71,4 +72,25 @@ export function applyPlanPatch(prev: Plan, p: PlanPatch): { plan: Plan } | { pro
       ...(p.dataModel ?? prev.dataModel ? { dataModel: p.dataModel ?? prev.dataModel } : {}),
     },
   };
+}
+
+export const SHAPE_RULES = `"previous-plan" here is the plan as you sent it: it was not accepted because its shape does not match the schema, and the failures say where (a path such as tasks.3.complexity is the fourth task's complexity). Its content was not judged. Return the task or stub that holds each fault, written whole and in the right shape; do not rewrite a part the failures do not name.`;
+
+/**
+ * A plan the schema refused, with a patch applied: the plan when it now matches the schema, or what is still wrong (with the
+ * patched draft, for one more patch). A whole plan costs tens of thousands of output tokens and a fault in its shape is nearly
+ * always in one task or one field, so the planner is asked for that part only.
+ */
+export function applyToDraft(draft: unknown, p: PlanPatch): { plan: Plan } | { problem: string; draft?: unknown } {
+  if (!draft || typeof draft !== "object" || Array.isArray(draft)) return { problem: "the refused plan is not an object" };
+  const d = draft as Record<string, unknown>;
+  const list = (x: unknown) => (Array.isArray(x) ? x.filter((i) => !!i && typeof i === "object") : []);
+  const stubs = list(d.stubs).filter((s) => typeof (s as { path?: unknown }).path === "string" && typeof (s as { content?: unknown }).content === "string");
+  let applied: ReturnType<typeof applyPlanPatch>;
+  try { applied = applyPlanPatch({ ...d, tasks: list(d.tasks), stubs } as unknown as Plan, p); } catch (e) { return { problem: `the patch cannot be applied (${(e as Error).message})` }; }
+  if ("problem" in applied) return applied;
+  const parsed = PlanBody.safeParse(applied.plan);
+  if (parsed.success) return { plan: parsed.data };
+  const mended = mendAnswer(PlanBody, applied.plan);
+  return mended ? { plan: mended.output } : { problem: zodIssues(parsed.error), draft: applied.plan };
 }

@@ -38,13 +38,13 @@ import type { Expectations } from "../verify/validate.js";
 import { readApproved } from "../conventions/store.js";
 import { guidelinesBrief } from "../conventions/brief.js";
 import { approvedDesignFor } from "./design-inputs.js";
-import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { failureLines, FAILURES_KEPT, header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { availableRungs, lightLaneModel, modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S, think, tracePack } from "./think.js";
 import { changeBase, ensureWorktree, runtime, snapshotFor, toolsAt, uiBase } from "./workspace.js";
 import { replay, splitKey, type RunState } from "../ledger/state.js";
-import { JUDGE_TEMPLATE, JudgeOut, judgedTests, parkReason, relocked, REWRITE_RULES, rewrittenTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
+import { filesToOpen, JUDGE_TEMPLATE, JudgeOut, judgedTests, openedFiles, parkReason, relocked, REWRITE_CHECK_TEMPLATE, REWRITE_RULES, RewriteCheckOut, rewrittenTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
 import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
@@ -120,7 +120,7 @@ const packagesDir = (runId: string, stack: ProjectConfig["stack"] = "dotnet") =>
   return d;
 };
 
-async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { readSchema?: boolean; schemaOnly?: boolean; buildOnly?: boolean }): Promise<ProduceOutput> {
+async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { readSchema?: boolean; schemaOnly?: boolean; buildOnly?: boolean; skipLater?: { ids: string[]; files: string[] } }): Promise<ProduceOutput> {
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
   // full-suite runs (task, integrate) leave out tests that already fail on the base branch
@@ -153,17 +153,94 @@ export async function stubBuildProblems(ctx: StepContext, stubs: { path: string;
     if (repoIsEmpty(repo, base)) return [];
     const commit = await commitFiles(repo, base, stubs, `factory: the plan's stubs, built before approval, for ${ctx.runId}`);
     ctx.log(`plan: building the ${stubs.length} stub file(s) on the untouched code`);
-    const out = await produce(ctx, `plan/stubs-${ctx.attempt}`, commit, "author-tests-on-base", { expectPass: [], expectFail: [], compareToBaseline: [] }, undefined, undefined, undefined, undefined, { buildOnly: true });
-    if (out.build.ok) return [];
-    if (out.build.errors.some((e) => e.code === "RESTORE")) { ctx.log("plan: the stubs were not built (the packages could not be restored); going on without that check"); return []; }
-    // a failed build whose log names no error line still fails the plan, with the end of the log
-    const errors = out.build.errors.length ? out.build.errors : [{ file: "", line: 0, code: "BUILD", msg: out.logs.build.split("\n").filter(Boolean).slice(-3).join(" ").slice(0, 400) }];
-    const fix = "A stub may only use types the repo already has or that a stub in this plan declares: declare the missing type in a stub of its own, inside a task's file scope, or write the stub without it.";
-    return errors.slice(0, 10).map((e, i) => failure("plan-stub-build", `The stubs do not compile on the untouched code: ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
+    return stubFailures(await buildErrors(ctx, `plan/stubs-${ctx.attempt}`, commit, "plan") ?? [], "the untouched code");
   } catch (e) {
     ctx.log(`plan: the stubs were not built (${e instanceof Error ? e.message.split("\n")[0] : String(e)}); going on without that check`);
     return [];
   }
+}
+
+type BuildError = ProduceOutput["build"]["errors"][number];
+
+/** A commit's build errors as the test lab reports them; undefined when it builds, or when its packages could not be restored (no verdict). */
+async function buildErrors(ctx: StepContext, key: string, commit: string, who: string): Promise<BuildError[] | undefined> {
+  const out = await produce(ctx, key, commit, "author-tests-on-base", { expectPass: [], expectFail: [], compareToBaseline: [] }, undefined, undefined, undefined, undefined, { buildOnly: true });
+  if (out.build.ok) return undefined;
+  if (out.build.errors.some((e) => e.code === "RESTORE")) { ctx.log(`${who}: the stubs were not built (the packages could not be restored); going on without that check`); return undefined; }
+  // a failed build whose log names no error line still counts, with the end of the log
+  return out.build.errors.length ? out.build.errors : [{ file: "", line: 0, code: "BUILD", msg: out.logs.build.split("\n").filter(Boolean).slice(-3).join(" ").slice(0, 400) } as BuildError];
+}
+
+function stubFailures(errors: BuildError[], on: string): Failure[] {
+  const fix = "A stub may only use types the repo already has or that a stub in this plan declares: declare the missing type in a stub of its own, inside a task's file scope, or write the stub without it.";
+  return errors.slice(0, 10).map((e, i) => failure("plan-stub-build", `The stubs do not compile on ${on}: ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
+}
+
+/** How often the stub commit may send one run's plan back for stubs that do not build, before a person looks. */
+export const STUB_REFUSALS = 2;
+
+/** The plans the stub commit sent back because their stubs did not build, oldest first. */
+export function stubRefusals(ledger: Pick<Ledger, "events">): { seq: number; plan: string; failures: string }[] {
+  return ledger.events().filter((e) => e.type === "plan.refused").map((e) => ({ seq: e.seq, ...(e.data as { plan: string; failures: string }) }));
+}
+
+/** The refusal the planner has not answered yet: the newest one, while no plan attempt has ended since. */
+export function openStubRefusal(ledger: Pick<Ledger, "events">): { plan: string; failures: string } | undefined {
+  const last = stubRefusals(ledger).at(-1);
+  if (!last) return undefined;
+  const since = ledger.events().some((e) => e.seq > last.seq && (e.type === "step.completed" || e.type === "step.failed") && !!e.key && splitKey(e.key).step === "plan");
+  return since ? undefined : last;
+}
+
+/**
+ * The stubs built where the plan could not build them: on a scaffold or a new product's first files, which exist only once the
+ * stub commit has written them (run 0f9d and three new-product runs reached the test writer with stubs that did not compile, and
+ * it may not touch them). A build that fails goes back to the planner as a patch to the plan, which is approved again; errors the
+ * code under the stubs has by itself are not the plan's. After STUB_REFUSALS the run stops for a person.
+ */
+async function stubsBuiltOrBack(ctx: StepContext, planSha: string, commit: string, under: string | undefined, stubs: string[]): Promise<StepOutcome | undefined> {
+  try {
+    ctx.log(`stub-commit: building the ${stubs.length} stub file(s) on the code written under them`);
+    const errors = await buildErrors(ctx, `stub-commit/stubs-${ctx.attempt}`, commit, "stub-commit");
+    if (!errors) return undefined;
+    const sig = (e: BuildError) => `${e.file}\n${e.code}\n${e.msg}`;
+    const there = under && under !== commit ? new Set((await buildErrors(ctx, `stub-commit/under-${ctx.attempt}`, under, "stub-commit") ?? []).map(sig)) : new Set<string>();
+    const own = errors.filter((e) => !there.has(sig(e)));
+    if (!own.length) { ctx.log(`stub-commit: the build fails without the stubs too (${errors.length} error(s)); not the plan's, going on`); return undefined; }
+    const failures = stubFailures(own, "the scaffold and first files the factory wrote");
+    const list = failures.slice(0, 3).map((f) => f.message.split(" A stub may only")[0]).join("; ");
+    if (stubRefusals(ctx.ledger).length >= STUB_REFUSALS) return { kind: "park", reason: `The plan's stubs still do not build after ${STUB_REFUSALS} corrected plans: ${list}. Fix the stubs in the plan (or the files they build on), then resume.` };
+    await ctx.ledger.append({ type: "plan.refused", key: "stub-commit", data: { plan: planSha, failures: ctx.ledger.putJson(failures), commit } }, ctx.writer);
+    return { kind: "back", reason: `the plan's stubs do not build (${own.length} error(s): ${list}); the planner corrects the plan before any test is written` };
+  } catch (e) {
+    ctx.log(`stub-commit: the stubs were not built (${e instanceof Error ? e.message.split("\n")[0] : String(e)}); going on without that check`);
+    return undefined;
+  }
+}
+
+/**
+ * The locked tests a task's run can leave out: those no check of this task reads, because the task that makes them pass is not
+ * built yet (in a 40-task product the second task otherwise runs, and waits for, 38 tasks' failing tests on every attempt).
+ * `files`: the test files that hold nothing this task expects and no test of the code base.
+ */
+export function laterTests(lock: { tests: { testId: string; file: string }[]; characterisation: { testId: string; file: string }[] }, expected: Iterable<string>, baselineIds: string[] = []): { ids: string[]; files: string[] } {
+  const want = new Set(expected);
+  const later = lock.tests.filter((t) => !want.has(t.testId));
+  const needed = new Set([...lock.tests, ...lock.characterisation].filter((t) => want.has(t.testId)).map((t) => t.file));
+  const files = [...new Set(later.map((t) => t.file))].filter((f) => !needed.has(f) && !baselineIds.some((id) => id.includes(f)));
+  return { ids: later.map((t) => t.testId), files };
+}
+
+/**
+ * How every test stood when a task started: the run of the task before it, and for a test that run left out (a later task's,
+ * see laterTests) the run of the locked tests on the code before any task.
+ */
+function stoodBefore(ctx: StepContext, prevDone: string[]): TestRun | undefined {
+  const base = outputOf(ctx.state, "author-tests", "run2"), prev = prevDone.length ? outputOf(ctx.state, prevDone.at(-1)!, "testRun") : undefined;
+  const first = base ? ctx.ledger.getJson<TestRun>(base) : undefined, last = prev ? ctx.ledger.getJson<TestRun>(prev) : undefined;
+  if (!first || !last) return last ?? first;
+  const ran = new Set(last.results.map((r) => r.id));
+  return { ...last, results: [...last.results, ...first.results.filter((r) => !ran.has(r.id))] };
 }
 
 /** This run's baseline results (empty before discover has finished). */
@@ -463,6 +540,7 @@ export const stubCommitStep: StepDef = {
       scaffoldRec = { target: scaf.target, source: scaf.source, why: scaf.detected.why, kit: l.kit, root: l.root, fresh: l.fresh, written, kept: l.kept, protected: l.protected, screens: l.screens, removed: l.removed, designSystem: l.designSystem, notes: l.notes, summary: scaffoldSummary(l), ...(scaf.changed ? { changed: scaf.changed } : {}), ...(scaffoldCommit ? { commit: scaffoldCommit } : {}) };
       ctx.log(`stub-commit: scaffold ${l.target}: ${written.length} files written${l.kept.length ? `, ${l.kept.length} kept (the repo's own)` : ""}`);
     } else if (scaf) ctx.log(`stub-commit: UI target ${scaf.target} (${scaf.source}; ${scaf.detected.why}): no scaffold, the screens are built with the repo's own components`);
+    const underStubs = await headSha(wt);
     for (const s of plan.stubs) {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
       writeFileSync(join(wt, s.path), s.content);
@@ -473,6 +551,13 @@ export const stubCommitStep: StepDef = {
       writeFileSync(join(wt, DATA_MODEL_FILE), dataModelYaml(plan.dataModel));
     }
     const commit = plan.stubs.length || plan.dataModel ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
+    // the plan could not build its stubs where they sit on files written here first: build them now, before a test is written
+    const code = plan.stubs.filter((st) => st.path !== ctx.project.contract?.file).map((st) => st.path);
+    const newProduct = (() => { try { return repoIsEmpty(ctx.state.info.repoPath!, ctx.state.info.baseCommit!); } catch { return false; } })();
+    if (code.length && (scaf?.layout || newProduct)) {
+      const back = await stubsBuiltOrBack(ctx, ctx.state.steps.get("plan")!.outputs[0]!, commit, underStubs === ctx.state.info.baseCommit ? undefined : underStubs, code);
+      if (back) return back;
+    }
     const design = pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, ...(commitPackage ? { dir: `${REPO_DESIGN_DIR}/${pkg.manifest.line}/v${pkg.manifest.version}` } : {}) } : undefined;
     const scaffoldSha = scaffoldRec ? ctx.ledger.putJson(scaffoldRec) : undefined;
     return {
@@ -1443,9 +1528,10 @@ type LockTest = Lock["tests"][number];
  */
 async function settleTests(ctx: StepContext, a: {
   key: string; taskId: string; wt: string; start: string; asked: string[]; own: LockTest[]; lock: Lock; fileScope: string[];
+  /** every file the approved plan lists for a task of this run */ planned: string[];
   lastCommit?: string; lastChange?: string; acs: { id: string; req: string }[];
   /** how every test stood when this task started */ before?: Pick<TestRun, "results">;
-}): Promise<{ fixed: string[] } | { outcome: StepOutcome }> {
+}): Promise<{ fixed: string[]; opened: string[] } | { outcome: StepOutcome }> {
   const record = async (j: Judged) => { await ctx.ledger.append({ type: "test.judged", key: a.key, data: j as unknown as Record<string, unknown> }, ctx.writer); return j; };
   const mine = a.own.filter((t) => a.asked.includes(t.testId));
   // a test of an earlier task, or one that pins today's behaviour, passed before this task's change: the change broke it
@@ -1453,7 +1539,7 @@ async function settleTests(ctx: StepContext, a: {
     const t = a.lock.tests.find((x) => x.testId === id);
     await record({ step: a.key, testId: id, acId: t?.acId ?? "", file: t?.file ?? a.lock.characterisation.find((c) => c.testId === id)?.file ?? "", verdict: "code", why: "this test passed before this task's change, so the change broke it" });
   }
-  if (!mine.length) return { fixed: [] };
+  if (!mine.length) return { fixed: [], opened: [] };
   ctx.log(`implement ${a.taskId}: ${mine.length === 1 ? "a locked test" : `${mine.length} locked tests`} failed twice; checking whether the test or the code is wrong (${mine.map((t) => t.testId).join(", ")})`);
   const change = a.lastChange ?? (a.lastCommit ? (await git(a.wt, ["diff", "--no-color", a.start, a.lastCommit])).stdout : "");
   const r = await think({ ...ctx, priorFailures: [], gateAnswers: [] }, {
@@ -1471,96 +1557,144 @@ async function settleTests(ctx: StepContext, a: {
     ],
   });
   if (!r.ok) return { outcome: r.outcome.kind === "park" ? r.outcome : { kind: "park", reason: `The test-or-code check for ${mine.map((t) => t.testId).join(", ")} did not finish. Resume the run to try it again.` } };
+  const named = new Map<string, string[]>();
   const judged: Judged[] = mine.map((t) => {
     const v = r.output.verdicts.find((x) => x.testId === t.testId);
+    if (v?.verdict === "scope") named.set(t.testId, v.files);
     return { step: a.key, testId: t.testId, acId: t.acId, file: t.file, verdict: v?.verdict ?? "unclear", why: v?.why ?? "" };
   });
   ctx.log(`implement ${a.taskId}: test-or-code check: ${judged.map((j) => `${j.testId} → ${j.verdict}`).join(", ")}`);
   const wrong = judged.filter((j) => j.verdict === "test"), open = judged.filter((j) => j.verdict === "unclear");
-  for (const j of judged.filter((x) => x.verdict !== "test")) await record(j);
-  if (!wrong.length) return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: [] };
+  for (const j of judged.filter((x) => x.verdict === "code" || x.verdict === "unclear")) await record(j);
+  // "scope": the test is right and needs a file another task of the plan lists. That file opens to this task, the test stays
+  // as it is, and the opening is on the ledger for the pull request (run 9fcb parked here: the test was rewritten instead, and
+  // the rewrite could only pass on the old code). A file the plan gives to no task does not open: that stays a person's call.
+  const opened: string[] = [];
+  for (const j of judged.filter((x) => x.verdict === "scope")) {
+    const o = filesToOpen(named.get(j.testId) ?? [], { mine: a.fileScope, planned: a.planned, locked: a.lock.lock.map((l) => l.file), tests: TEST_SCOPE, matches: matchesAny });
+    const there = o.open.filter((f) => existsSync(join(a.wt, f)) || a.planned.includes(f));
+    const refused = [...o.refused, ...o.open.filter((f) => !there.includes(f)).map((f) => `${f} (not in the repo)`)];
+    if (there.length) {
+      opened.push(...there);
+      await record({ ...j, opened: there });
+      ctx.log(`implement ${a.taskId}: ${j.testId} needs ${there.join(", ")}, which another task of the plan lists; opened to this task${refused.length ? ` (not opened: ${refused.join(", ")})` : ""}`);
+    } else if (!refused.length && (named.get(j.testId) ?? []).length) {
+      // every file it names is one this task may change already: nothing is in the way but the code
+      await record({ ...j, verdict: "code", why: `${j.why} (${(named.get(j.testId) ?? []).join(", ")} ${(named.get(j.testId) ?? []).length === 1 ? "is" : "are"} already in this task's file scope)` });
+    } else open.push(await record({ ...j, rejected: refused.join(", ") || "no file was named" }));
+  }
+  if (!wrong.length) return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: [], opened };
 
   // "test": the test writer rewrites those tests and nothing else, and they must fail again on the code before this task
   const files = [...new Set(wrong.map((j) => j.file))];
   const was = new Map(files.map((f) => [f, sha256(readFileSync(join(a.wt, f)))]));
-  const rejectAll = async (why: string): Promise<{ outcome: StepOutcome }> => {
-    await git(a.wt, ["checkout", a.start, "--", ...files]);
-    await git(a.wt, ["reset", "-q", "--", ...files]);
-    for (const j of wrong) await record({ ...j, rejected: why });
-    return { outcome: { kind: "park", reason: parkReason([...wrong.map((j) => ({ ...j, rejected: why })), ...open]) } };
-  };
+  const putBack = async () => { await git(a.wt, ["checkout", a.start, "--", ...files]); await git(a.wt, ["reset", "-q", "--", ...files]); };
   const { model, effort } = modelFor(ctx.project, "author-tests", 0);
-  const limits = { maxTurns: 30, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 2), timeoutSec: 20 * 60 };
-  const pack = buildPack({
-    stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
-    sections: [
-      S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(a.wt), apiElsewhere(ctx.project))),
-      S.template("rewrite", REWRITE_RULES),
-      S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => wrong.some((j) => j.acId === c.id))),
-      S.artifact("tests-to-fix", "locked-tests", wrong.map((j) => ({ testId: j.testId, acId: j.acId, file: j.file, name: a.own.find((t) => t.testId === j.testId)?.name, why: j.why }))),
-      ...contractNote(ctx.project, a.wt, "tests"),
-      S.pointers(files.map((f) => ({ path: f, reason: "the test file to fix" }))),
-      S.task(`Rewrite the tests named in tests-to-fix, in ${files.join(", ")}, and nothing else.${limitsNote(limits, "Return done=true as soon as the tests are fixed.")}`),
-      S.recap(["only the named tests", "keep each test's name", "no other file", "assert what the criterion says"]),
-    ],
-  });
-  tracePack(ctx.trace, `test rewrite ${a.taskId}`, pack, ctx.ledger.putJson(pack));
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
   await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
   if (ctx.project.stack === "node") await ensurePackages(ctx, a.start, a.wt);
-  const before = await dirtyHashes(a.wt);
-  const run = await codingRunner(rt, {
-    runId: ctx.runId, key: `${a.key}/${ctx.attempt}/test-rewrite`, fileScope: files, lockedFiles: a.lock.lock.map((l) => l.file).filter((f) => !files.includes(f)), extraProtected: [], onProgress: agentTracer(ctx, "test writer"),
-    protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
-    onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: a.key, data: { id, role: "agent" } }, ctx.writer); },
-    onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: a.key, data: { id } }, ctx.writer); },
-  }, model).run({ step: "author-tests", model, effort, pack, schema: RewriteOut, limits, workdir: a.wt });
-  await ctx.usage({ model, inputTokens: run.usage.inputTokens, outputTokens: run.usage.outputTokens, cacheRead: run.usage.cacheRead, cacheWrite: run.usage.cacheWrite, turns: run.usage.turns, wallMs: run.usage.wallMs, estUsd: run.usage.estUsd });
-  if (run.status === "config-error") {
-    // nothing is judged yet, so the check is asked again when the run goes on
-    await git(a.wt, ["checkout", a.start, "--", ...files]);
-    await git(a.wt, ["reset", "-q", "--", ...files]);
-    return { outcome: { kind: "park", reason: run.error ?? "The API rejected the test writer's request", ...(run.error === NO_CREDIT_TEXT ? { data: { noCredit: true, rung: ctx.rung } } : {}) } };
-  }
-  if (run.status !== "ok") return rejectAll(`the test writer did not finish (${run.error ?? run.status})`);
-  // only the named files may differ from before the rewrite
-  const after = await dirtyHashes(a.wt);
-  const strayed = [...new Set([...before.keys(), ...after.keys()])].filter((f) => !files.includes(f) && before.get(f) !== after.get(f));
-  if (strayed.length) return rejectAll(`it also changed ${strayed.slice(0, 5).join(", ")}; those changes are still in the checkout`);
-  const same = files.filter((f) => !existsSync(join(a.wt, f)) || sha256(readFileSync(join(a.wt, f))) === was.get(f));
-  if (same.length) return rejectAll(`${same.join(", ")} was not changed`);
-  // a rewrite changes lines, so only a skip marker counts as tampering here; the other tests in the file are held to their results below
-  const tampered = testWriterTampering(await Promise.all(files.map(async (f) => ({ status: "M", path: f, ...patchLines((await git(a.wt, ["diff", "--no-color", "-U0", a.start, "--", f])).stdout) })))).filter((f) => f.check === "author-tests-skip");
-  if (tampered.length) return rejectAll(tampered.map((f) => f.message).join("; "));
-  // one lab run on the code before this task, with the rewritten tests: each must fail there for the right reason
-  const at = await commitWith(a.wt, a.start, files, `factory: ${a.taskId} tests rewritten after the test-or-code check`);
   const ids = wrong.map((j) => j.testId);
-  ctx.log(`implement ${a.taskId}: running the rewritten test${ids.length === 1 ? "" : "s"} on the code before this task`);
   // the other locked tests in those files run too: each must still be there and end as it did before this task
   const others = [...a.lock.tests, ...a.lock.characterisation].filter((t) => files.includes(t.file) && !ids.includes(t.testId)).map((t) => t.testId);
-  const lab = await produce(ctx, `${a.key}/${ctx.attempt}/test-check`, at, "author-tests-on-base", { expectPass: [], expectFail: ids.map((id) => ({ id, kinds: ["assertion", "not-implemented", "exception"] })), compareToBaseline: [] }, [...ids, ...others]);
-  if (!lab.build.ok) return rejectAll(`the rewritten test does not build: ${lab.build.errors.slice(0, 3).map((e) => `${e.file}:${e.line} ${e.msg}`).join("; ")}`);
-  const stored = storeRun(ctx, lab);
-  const rewrote = a.own.filter((t) => ids.includes(t.testId)).map((t) => ({ ...t, failsOnBase: true }));
-  const proof = ctx.ledger.putJson({ tests: rewrote, characterisation: [], lock: [], rules: { productionExceptionOk: true } });
-  const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: stored.testRun, run2: stored.testRun, tests: proof }, ctx.policy, { step: a.key, treeSha: at });
-  if (!g.passed) return rejectAll(`on the code before this task: ${[...new Set((g.failures ?? []).map((f) => f.message))].slice(0, 5).join("; ")}`);
-  const moved = others.filter((id) => {
-    const now = lab.testRun.results.find((x) => x.id === id)?.outcome, then = a.before?.results.find((x) => x.id === id)?.outcome;
-    return now === undefined || now === "notRun" || now === "skipped" || (then !== undefined && (now === "passed") !== (then === "passed"));
-  });
-  if (moved.length) return rejectAll(`it changed, removed or skipped other tests in the file: ${moved.slice(0, 5).join(", ")}`);
-  // and each must still prove its criterion: a rewrite that asserts less is not accepted
-  const weak = await weakTests(ctx, at, a.acs.filter((c) => wrong.some((j) => j.acId === c.id)), a.own.filter((t) => wrong.some((j) => j.acId === t.acId)));
-  if ("outcome" in weak) return rejectAll("the check that the rewritten test proves its criterion did not finish");
-  if (weak.failures.length) return rejectAll(weak.failures.map((f) => f.message).join("; "));
+  type Tried = { refused: string } | { stop: StepOutcome } | { at: string; run: string };
+  /** One rewrite and its checks. `sentBack`: why the rewrite before it was refused. */
+  const rewrite = async (n: number, sentBack?: string): Promise<Tried> => {
+    const limits = { maxTurns: 30, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 2), timeoutSec: 20 * 60 };
+    const pack = buildPack({
+      stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
+      sections: [
+        S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(a.wt), apiElsewhere(ctx.project))),
+        S.template("rewrite", REWRITE_RULES),
+        S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => wrong.some((j) => j.acId === c.id))),
+        S.artifact("tests-to-fix", "locked-tests", wrong.map((j) => ({ testId: j.testId, acId: j.acId, file: j.file, name: a.own.find((t) => t.testId === j.testId)?.name, why: j.why }))),
+        ...contractNote(ctx.project, a.wt, "tests"),
+        S.pointers(files.map((f) => ({ path: f, reason: "the test file to fix" }))),
+        ...(sentBack ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: `Your first rewrite was not accepted and the file is back as it was locked: ${sentBack}\nRewrite it again so that this no longer holds. This is the last try.` }] : []),
+        S.task(`Rewrite the tests named in tests-to-fix, in ${files.join(", ")}, and nothing else.${limitsNote(limits, "Return done=true as soon as the tests are fixed.")}`),
+        S.recap(["only the named tests", "keep each test's name", "no other file", "assert what the criterion says"]),
+      ],
+    });
+    tracePack(ctx.trace, `test rewrite ${a.taskId}`, pack, ctx.ledger.putJson(pack));
+    const before = await dirtyHashes(a.wt);
+    const run = await codingRunner(rt, {
+      runId: ctx.runId, key: `${a.key}/${ctx.attempt}/test-rewrite${n > 1 ? `-${n}` : ""}`, fileScope: files, lockedFiles: a.lock.lock.map((l) => l.file).filter((f) => !files.includes(f)), extraProtected: [], onProgress: agentTracer(ctx, "test writer"),
+      protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
+      onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: a.key, data: { id, role: "agent" } }, ctx.writer); },
+      onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: a.key, data: { id } }, ctx.writer); },
+    }, model).run({ step: "author-tests", model, effort, pack, schema: RewriteOut, limits, workdir: a.wt });
+    await ctx.usage({ model, inputTokens: run.usage.inputTokens, outputTokens: run.usage.outputTokens, cacheRead: run.usage.cacheRead, cacheWrite: run.usage.cacheWrite, turns: run.usage.turns, wallMs: run.usage.wallMs, estUsd: run.usage.estUsd });
+    // nothing is judged yet, so the check is asked again when the run goes on
+    if (run.status === "config-error") return { stop: { kind: "park", reason: run.error ?? "The API rejected the test writer's request", ...(run.error === NO_CREDIT_TEXT ? { data: { noCredit: true, rung: ctx.rung } } : {}) } };
+    if (run.status !== "ok") return { refused: `the test writer did not finish (${run.error ?? run.status})` };
+    // only the named files may differ from before the rewrite
+    const after = await dirtyHashes(a.wt);
+    const strayed = [...new Set([...before.keys(), ...after.keys()])].filter((f) => !files.includes(f) && before.get(f) !== after.get(f));
+    if (strayed.length) return { refused: `it also changed ${strayed.slice(0, 5).join(", ")}; those changes are still in the checkout` };
+    const same = files.filter((f) => !existsSync(join(a.wt, f)) || sha256(readFileSync(join(a.wt, f))) === was.get(f));
+    if (same.length) return { refused: `${same.join(", ")} was not changed` };
+    // a rewrite changes lines, so only a skip marker counts as tampering here; the other tests in the file are held to their results below
+    const tampered = testWriterTampering(await Promise.all(files.map(async (f) => ({ status: "M", path: f, ...patchLines((await git(a.wt, ["diff", "--no-color", "-U0", a.start, "--", f])).stdout) })))).filter((f) => f.check === "author-tests-skip");
+    if (tampered.length) return { refused: tampered.map((f) => f.message).join("; ") };
+    // one lab run on the code before this task, with the rewritten tests: each must fail there for the right reason
+    const at = await commitWith(a.wt, a.start, files, `factory: ${a.taskId} tests rewritten after the test-or-code check`);
+    ctx.log(`implement ${a.taskId}: running the rewritten test${ids.length === 1 ? "" : "s"} on the code before this task`);
+    const lab = await produce(ctx, `${a.key}/${ctx.attempt}/test-check${n > 1 ? `-${n}` : ""}`, at, "author-tests-on-base", { expectPass: [], expectFail: ids.map((id) => ({ id, kinds: ["assertion", "not-implemented", "exception"] })), compareToBaseline: [] }, [...ids, ...others]);
+    if (!lab.build.ok) return { refused: `the rewritten test does not build: ${lab.build.errors.slice(0, 3).map((e) => `${e.file}:${e.line} ${e.msg}`).join("; ")}` };
+    const stored = storeRun(ctx, lab);
+    const rewrote = a.own.filter((t) => ids.includes(t.testId)).map((t) => ({ ...t, failsOnBase: true }));
+    const proof = ctx.ledger.putJson({ tests: rewrote, characterisation: [], lock: [], rules: { productionExceptionOk: true } });
+    const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: stored.testRun, run2: stored.testRun, tests: proof }, ctx.policy, { step: a.key, treeSha: at });
+    if (!g.passed) return { refused: `on the code before this task: ${[...new Set((g.failures ?? []).map((f) => f.message))].slice(0, 5).join("; ")}` };
+    const moved = others.filter((id) => {
+      const now = lab.testRun.results.find((x) => x.id === id)?.outcome, then = a.before?.results.find((x) => x.id === id)?.outcome;
+      return now === undefined || now === "notRun" || now === "skipped" || (then !== undefined && (now === "passed") !== (then === "passed"));
+    });
+    if (moved.length) return { refused: `it changed, removed or skipped other tests in the file: ${moved.slice(0, 5).join(", ")}` };
+    // and it must still assert what the locked test asserted. Only the change is read, against the test as it was locked: the
+    // whole test read again against its criterion refused a rewrite for a weakness the locked test already had, one nobody
+    // had asked the rewrite to fix (run 1679 parked on a wait made longer, for an assertion the locked test never made)
+    const change = (await git(a.wt, ["diff", "--no-color", "-U12", a.start, at, "--", ...files])).stdout;
+    const kept = await think({ ...ctx, priorFailures: [], gateAnswers: [] }, {
+      stage: "implement", label: "rewrite check", route: "review", cls: "read-large", budgetTokens: 60_000, schema: RewriteCheckOut,
+      maxTurns: 10, maxUsd: 1, timeoutSec: 600,
+      tools: ["read_file", "search"], repoTools: toolsAt(ctx, at), toolsAt: "under-review",
+      sections: [
+        S.template("tpl", REWRITE_CHECK_TEMPLATE),
+        S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => wrong.some((j) => j.acId === c.id))),
+        S.artifact("tests", "locked-tests", wrong.map((j) => ({ testId: j.testId, acId: j.acId, file: j.file, name: a.own.find((t) => t.testId === j.testId)?.name, why: j.why }))),
+        { spec: { id: "rewrite", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff", content: "The change to the test files:\n" + (change.length > PREV_CHANGE_CAP ? change.slice(0, PREV_CHANGE_CAP) + "\n… (cut; read the files for the rest)" : change) },
+        S.task("Say for each test whether its rewrite keeps what the locked test asserted."),
+      ],
+    });
+    // a check that did not run refuses nothing and accepts nothing: the run stops and asks again when it goes on
+    if (!kept.ok) return { stop: kept.outcome.kind === "park" ? kept.outcome : { kind: "park", reason: `The check of the rewritten ${ids.join(", ")} did not finish. Resume the run to try it again.` } };
+    const loosened = kept.output.verdicts.filter((v) => v.verdict === "loosened" && ids.includes(v.testId));
+    if (loosened.length) return { refused: `it asserts less than the locked test did: ${loosened.map((v) => `${v.testId}: ${v.why}`).join("; ")}` };
+    return { at, run: stored.testRun };
+  };
+  // a refused rewrite goes back to the test writer once with the reason, before the run stops for a person
+  let tried = await rewrite(1);
+  let firstRefusal: string | undefined;
+  if ("refused" in tried) {
+    firstRefusal = tried.refused;
+    ctx.log(`implement ${a.taskId}: the rewrite was not accepted (${firstRefusal.slice(0, 200)}); sent back once`);
+    await putBack();
+    tried = await rewrite(2, firstRefusal);
+  }
+  if ("stop" in tried) { await putBack(); return { outcome: tried.stop }; }
+  if ("refused" in tried) {
+    const why = firstRefusal && firstRefusal !== tried.refused ? `${firstRefusal}; sent back once, and then: ${tried.refused}` : tried.refused;
+    await putBack();
+    for (const j of wrong) await record({ ...j, rejected: why });
+    return { outcome: { kind: "park", reason: parkReason([...wrong.map((j) => ({ ...j, rejected: why })), ...open]) } };
+  }
   for (const j of wrong) {
     const sha = ctx.ledger.putArtifact(readFileSync(join(a.wt, j.file)));
-    await record({ ...j, rewritten: { sha, was: was.get(j.file)!, commit: at, run: stored.testRun } });
+    await record({ ...j, rewritten: { sha, was: was.get(j.file)!, commit: tried.at, run: tried.run } });
   }
   ctx.log(`implement ${a.taskId}: rewrote and locked again ${files.join(", ")} (${ids.join(", ")})`);
-  return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: ids };
+  return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: ids, opened };
 }
 
 export function implementStep(taskId: string): StepDef {
@@ -1631,7 +1765,10 @@ export function implementStep(taskId: string): StepDef {
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
       // criteria held here for requirements an earlier task lists: this task gets those requirements and may change those tasks' files
       const taken = takenOver(plan, spec, task.id, layered, stuck);
-      const fileScope = [...task.fileScope, ...taken.fileScope];
+      // files of other tasks the test-or-code check opened to this task (test-defect.ts): its change may reach them too
+      const openedHere = () => openedFiles(ctx.ledger.events(), key).map((o) => o.file).filter((f) => !matchesAny(f, [...task.fileScope, ...taken.fileScope]));
+      let opened = openedHere();
+      let fileScope = [...task.fileScope, ...taken.fileScope, ...opened];
       // a file a person unlocked for this run that this task may write: the agent is told, since the folder's rule still says hands off
       const freed = unlockedFiles(ctx.ledger.events()).map((u) => u.file).filter((f) => matchesAny(f, fileScope));
       // the same locked test failed twice: is the test wrong, or the code? (test-defect.ts) Settled before the coding agent is paid again
@@ -1640,11 +1777,12 @@ export function implementStep(taskId: string): StepDef {
       const asked = testsToJudge(ctx.ledger.events(), key);
       let retest = false;
       if (asked.length) {
-        const stoodSha = (inputs.prevDone as string[]).length ? outputOf(ctx.state, (inputs.prevDone as string[]).at(-1)!, "testRun") : outputOf(ctx.state, "author-tests", "run2");
-        const settled = await settleTests(ctx, { key, taskId, wt, start, asked, own: myTests, lock, fileScope, lastCommit: prev?.commit, lastChange: prevChange, before: stoodSha ? ctx.ledger.getJson<TestRun>(stoodSha) : undefined,
+        const settled = await settleTests(ctx, { key, taskId, wt, start, asked, own: myTests, lock, fileScope, planned: plan.tasks.flatMap((t) => t.fileScope), lastCommit: prev?.commit, lastChange: prevChange, before: stoodBefore(ctx, inputs.prevDone as string[]),
           acs: spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a }))) });
         if ("outcome" in settled) return settled.outcome;
         ({ lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger));
+        opened = openedHere();
+        fileScope = [...task.fileScope, ...taken.fileScope, ...opened];
         // every failure was a test that has now been rewritten: the kept code is judged against the new tests as it is
         retest = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && settled.fixed.includes(f.testId));
       }
@@ -1710,11 +1848,11 @@ export function implementStep(taskId: string): StepDef {
           ...dataModelNote(ctx.project, wt, "code", !!databaseBefore(ctx)),
           ...(rules ? [S.reference("guidelines", rules.text)] : []),
           S.artifact("tests", "locked-tests", myTests),
-          S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...taken.fileScope.map((p) => ({ path: p, reason: "an earlier task's file; change it only to fix a failing test" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
+          S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...taken.fileScope.map((p) => ({ path: p, reason: "an earlier task's file; change it only to fix a failing test" })), ...opened.map((p) => ({ path: p, reason: "another task's file, opened for a locked test of yours; change only what that test needs" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
           ...(prevChange !== undefined ? [{ spec: { id: "previous-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff",
             content: "Your previous change (diff from the task start; it is already in the files):\n" + (prevChange.length > PREV_CHANGE_CAP ? prevChange.slice(0, PREV_CHANGE_CAP) + `\n… (diff cut at ${PREV_CHANGE_CAP / 1000} KB; read the files for the rest)` : prevChange) }] : []),
           ...(gap?.length ? [{ spec: { id: "contract-gap", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: gapNote(gap) }] : []),
-          ...(ctx.priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: ctx.priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}${f.frames.length ? `\n    ${f.frames.join("\n    ")}` : ""}`).join("\n") }] : []),
+          ...(ctx.priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: failureLines(ctx.priorFailures, 24_000, true) }] : []),
           ...(checked ? [{ spec: { id: "test-check", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: checked }] : []),
           S.task(`Implement ${task.id}: ${task.title}.${unfinishedBefore
             ? " The previous attempt stopped before it finished (above). Its code is still in the files: read it, keep what is right and finish the task."
@@ -1735,7 +1873,7 @@ export function implementStep(taskId: string): StepDef {
       if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);
       // rejected only for locked tests this task is no longer held to (they belong to a later task now): its code is judged again as it is
       const held = new Set([...myTests.map((t) => t.testId), ...earlier.keys(), ...lock.characterisation.map((c) => c.testId)]);
-      const dropped = prevChange !== undefined && ctx.priorFailures.length > 0 && (ctx.priorFailures.length < 20 || !!prev?.untouched) && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && !held.has(f.testId));
+      const dropped = prevChange !== undefined && ctx.priorFailures.length > 0 && (ctx.priorFailures.length < FAILURES_KEPT || !!prev?.untouched) && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && !held.has(f.testId));
       const recheck = dropped || retest;
       if (retest) ctx.log(`implement ${taskId}: the previous attempt failed only on tests that were rewritten; checking its code against them without the implementer`);
       else if (recheck) ctx.log(`implement ${taskId}: the previous attempt failed only on tests this task is no longer held to; checking its code again without the implementer`);
@@ -1773,15 +1911,14 @@ export function implementStep(taskId: string): StepDef {
       const diff = await diffSummary(wt, start, commit, lock);
       const diffSha = ctx.ledger.putJson(diff);
       const baseline = ctx.ledger.getJson<TestRun>(baselineSha);
-      // how every test stood when this task started: the run of the task before it, or of the locked tests on the code before any task
-      const beforeSha = (inputs.prevDone as string[]).length ? outputOf(ctx.state, (inputs.prevDone as string[]).at(-1)!, "testRun") : outputOf(ctx.state, "author-tests", "run2");
-      const before = beforeSha ? ctx.ledger.getJson<TestRun>(beforeSha) : undefined;
+      // how every test stood when this task started
+      const before = stoodBefore(ctx, inputs.prevDone as string[]);
       const failed = (g: NonNullable<Awaited<ReturnType<typeof gateAll>>>, now?: TestRun) => {
         const layers = failsForLayers(plan, spec, lock.tests, task.id, g.lockedFailedIds ?? []);
         // nothing else is wrong and each of them fails exactly as it did before this task: they move on now, with no second attempt
         // (not a task that writes a route or page itself: it could have reached them, so it gets its retry)
         const untouched = layers && !!now && !writesEntry(task.fileScope, ctx.project.stack) && g.failures.every((f) => LOCKED_CHECKS.has(f.check)) && failsAsBefore(before, now, g.lockedFailedIds ?? []);
-        return { kind: "fail" as const, category: g.category, failures: g.failures.slice(0, 20), signature: failureSignature(g.failures.map((f) => `${f.check}:${f.testId ?? f.message}`)), diffSha: sha256(JSON.stringify(diff.files)), lockedFailedIds: g.lockedFailedIds, data: { ...retry, commit, ...(untouched ? { untouched: true } : {}) },
+        return { kind: "fail" as const, category: g.category, failures: g.failures, signature: failureSignature(g.failures.map((f) => `${f.check}:${f.testId ?? f.message}`)), diffSha: sha256(JSON.stringify(diff.files)), lockedFailedIds: g.lockedFailedIds, data: { ...retry, commit, ...(untouched ? { untouched: true } : {}) },
           // its own tests cannot pass before a later task is done: the same failure twice moves them there instead of parking the run
           ...(layers ? { deferrable: true } : {}), ...(untouched ? { deferNow: true } : {}) };
       };
@@ -1799,11 +1936,23 @@ export function implementStep(taskId: string): StepDef {
       ]);
       if (diffGated) return failed(diffGated);
       // 2. only then build and run the tests on that exact commit
-      const produced = await produce(ctx, `${key}/${ctx.attempt}`, commit, "task", {
-        // must pass: this task's own criteria, earlier tasks' criteria and the characterisation tests (behaviour that must not change)
-        expectPass: [...myTests.map((t) => t.testId), ...earlier.keys(), ...lock.characterisation.map((c) => c.testId)],
-        expectFail: [], compareToBaseline: baseline.results.map((b) => b.id),
-      });
+      // must pass: this task's own criteria, earlier tasks' criteria and the characterisation tests (behaviour that must not change)
+      const expectPass = [...myTests.map((t) => t.testId), ...earlier.keys(), ...lock.characterisation.map((c) => c.testId)];
+      const exp = { expectPass, expectFail: [], compareToBaseline: baseline.results.map((b) => b.id) };
+      // the tests of tasks not built yet are left out of this task's runs: they cannot pass here and no check reads them
+      const skipLater = laterTests(lock, expectPass, exp.compareToBaseline);
+      // a retry on kept code, after locked tests failed: those tests alone first. While one of them still fails, the whole suite
+      // would say nothing the attempt can use, so the attempt ends there; once they pass, the whole suite runs as always.
+      const again = retry.retryMode === "keep" ? [...new Set(ctx.priorFailures.filter((f) => f.check === "locked-failed" && !!f.testId && expectPass.includes(f.testId)).map((f) => f.testId!))] : [];
+      if (again.length && again.length < expectPass.length) {
+        const first = await produce(ctx, `${key}/${ctx.attempt}-first`, commit, "task", { expectPass: again, expectFail: [], compareToBaseline: [] }, again);
+        if (first.build.ok && first.testRun.results.some((r) => again.includes(r.id) && r.outcome === "failed")) {
+          ctx.log(`implement ${taskId}: ${first.testRun.results.filter((r) => again.includes(r.id) && r.outcome === "failed").length} of the ${again.length} locked test(s) that failed last time still fail; the rest of the suite was not run`);
+          const still = await gateAll(ctx, key, commit, [[testExpectations, { run: storeRun(ctx, first).testRun, baseline: baselineSha }]], earlier);
+          if (still) return failed(still, first.testRun);
+        }
+      }
+      const produced = await produce(ctx, `${key}/${ctx.attempt}`, commit, "task", exp, undefined, undefined, undefined, undefined, skipLater.ids.length ? { skipLater } : undefined);
       const run = storeRun(ctx, produced);
       // a failed build marks every expected test "Build failed": that's the build, not a regression
       const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? [...contractGate(ctx, wt, commit, true), ...dataModelGate(ctx, wt, commit, true)] : [])], produced.build.ok ? earlier : undefined);

@@ -32,6 +32,18 @@ function isCodeValue(prefix: string, value: string, before: string): boolean {
   return /^[{(]*[A-Za-z_$][\w$.?!()[\]<>|&{]*$/.test(value);
 }
 
+/**
+ * In a source file, a quoted value that is not a secret either: sample data named as such (`accessToken: "demo-token-01"` in a
+ * screen's fixture) or the first word of a message (`errors.password = "Password is required."`). Both were reported on the
+ * real files of run 1679 after the bare values no longer were. A passphrase of plain words in source is not caught by this rule.
+ */
+function isCodeLiteral(prefix: string, value: string, after: string): boolean {
+  const quote = prefix.slice(-1);
+  if (quote !== '"' && quote !== "'") return false;
+  if (/^(?:demo|example|sample|fake|test|mock|fixture)(?:[-_.]|$)/i.test(value)) return true;
+  return /^[A-Za-z]+[.,:!?]?$/.test(value) && new RegExp(`^\\s+[^${quote}]*[A-Za-z][^${quote}]*${quote}`).test(after);
+}
+
 export class Redactor {
   private readonly seen = new Map<string, string>();
 
@@ -46,7 +58,8 @@ export class Redactor {
         const isAssign = rule.id === "password-assignment";
         const value = isAssign ? m[2]! : m[0]!;
         if (isAssign && /^(«SECRET_\d+»|\*+|x+|dummy|changeme|placeholder|your[_-].*|<.*>|\{\{.*)$/i.test(value)) return m[0]!;
-        if (isAssign && this.opts.code && isCodeValue(m[1]!, value, String(m[m.length - 1]).slice(0, Number(m[m.length - 2])))) return m[0]!;
+        const whole = String(m[m.length - 1]), at = Number(m[m.length - 2]);
+        if (isAssign && this.opts.code && (isCodeValue(m[1]!, value, whole.slice(0, at)) || isCodeLiteral(m[1]!, value, whole.slice(at + m[0]!.length)))) return m[0]!;
         let ph = this.seen.get(value);
         if (!ph) {
           ph = `«SECRET_${this.seen.size + 1}»`;

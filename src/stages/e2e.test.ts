@@ -58,6 +58,10 @@ function makeRepo(): string {
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 /** Three tasks, one criterion each: Greeter says Hello, Farewell says Bye, Third says Three. */
 let multi = false;
+/** multi: how many times the planner sends a plan that does not match its schema */
+let planBadShape = 0;
+/** multi: the plan's tasks do not build on each other (no task waits for another's files) */
+let unchained = false;
 /** how many times the multi-task planner leaves REQ-3 out of its plan */
 let planMisses = 0;
 /** what the scripted reviewer reports (non-blocking) */
@@ -88,10 +92,12 @@ function multiAnswer(system: string): unknown {
   }
   if (system.includes("plan the implementation")) {
     const one = answerFor(system, false) as { tasks: { reqs: string[]; fileScope: string[] }[] };
-    const t = (n: number) => ({ id: `TASK-${n}`, title: `Part ${n}`, reqs: [`REQ-${n}`], fileScope: [MULTI_FILES[n - 1]!], exemplars: [], conventions: [], dependsOn: n > 1 ? [`TASK-${n - 1}`] : [], plannedLoc: 3, approach: "small edit" });
+    const t = (n: number) => ({ id: `TASK-${n}`, title: `Part ${n}`, reqs: [`REQ-${n}`], fileScope: [MULTI_FILES[n - 1]!], exemplars: [], conventions: [], dependsOn: n > 1 && !unchained ? [`TASK-${n - 1}`] : [], plannedLoc: 3, approach: "small edit" });
     // a plan that failed its checks is asked for as a patch: only the missing task comes back
     if (system.includes("THE PLAN IS FIXED, NOT REWRITTEN")) return { tasks: [t(3)] };
     if (planMisses-- > 0) return { ...one, tasks: [t(1), t(2)] };
+    // a plan in the wrong shape: the third task's size is a word
+    if (planBadShape-- > 0) return { ...one, tasks: [t(1), t(2), { ...t(3), plannedLoc: "three lines" }] };
     return { ...one, tasks: [t(1), t(2), t(3)] };
   }
   return undefined;
@@ -105,8 +111,13 @@ let reviewCalls = 0;
 let proofVerdict: "proves-it" | "weak" | "no-test" | undefined;
 let proofCalls = 0;
 /** what the scripted test-or-code check says about every locked test it is asked about, and how often it was asked */
-let judgeVerdict: "code" | "test" | "unclear" = "code";
+let judgeVerdict: "code" | "test" | "scope" | "unclear" = "code";
 let judgeCalls = 0;
+/** "scope": the files the scripted check says the test needs */
+let judgeFiles: string[] = [];
+/** what the scripted check of a rewritten test says, and how often it was asked */
+let rewriteVerdict: "keeps" | "loosened" = "keeps";
+let rewriteChecks = 0;
 /** the spec also carries a criterion only a person can check */
 let manualCriterion = false;
 /** A scripted review must now account for every acceptance criterion, as a real one must. */
@@ -148,7 +159,11 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("review a finished change")) return scriptedReview(user, reviewFindings);
   if (system.includes("A locked acceptance test failed on two attempts")) {
     judgeCalls += 1;
-    return { verdicts: [...new Set([...user.matchAll(/"testId":\s*"([^"]+)"/g)].map((m) => m[1]!))].map((testId) => ({ testId, verdict: judgeVerdict, why: "scripted verdict" })) };
+    return { verdicts: [...new Set([...user.matchAll(/"testId":\s*"([^"]+)"/g)].map((m) => m[1]!))].map((testId) => ({ testId, verdict: judgeVerdict, why: "scripted verdict", files: judgeFiles })) };
+  }
+  if (system.includes("has been rewritten. Check the rewrite")) {
+    rewriteChecks += 1;
+    return { verdicts: [...new Set([...user.matchAll(/"testId":\s*"([^"]+)"/g)].map((m) => m[1]!))].map((testId) => ({ testId, verdict: rewriteVerdict, why: "scripted rewrite check" })) };
   }
   if (proofVerdict && system.includes("check acceptance tests before they are locked")) {
     proofCalls += 1;
@@ -350,6 +365,8 @@ beforeEach(() => {
   setProviderFactory(() => provider);
   modelCalls.length = 0;
   multi = false;
+  unchained = false;
+  planBadShape = 0;
   planMisses = 0;
   intakeRisk = "low";
   reviewFindings = [];
@@ -359,6 +376,9 @@ beforeEach(() => {
   proofCalls = 0;
   judgeVerdict = "code";
   judgeCalls = 0;
+  judgeFiles = [];
+  rewriteVerdict = "keeps";
+  rewriteChecks = 0;
   manualCriterion = false;
   criticFindings = [];
   repairSpec = undefined;
@@ -1068,6 +1088,16 @@ describe("implement loop across tasks (fakes)", () => {
     expect(s.steps.get("implement/TASK-2")?.attempts).toBe(3);
     expect(s.steps.get("implement/TASK-3")?.attempts).toBe(2);
     const ids = MULTI_TESTS.map((n) => `Api.Tests::Api.Tests.GreetTests.${n}`);
+    // a task's run leaves out the locked tests of tasks not built yet; the last task has none to leave out
+    const testCmd = (k: string) => [...lab.specs.values()].find((sp) => sp.cmd[1] === "test" && sp.labels.key === k)!.cmd.join(" ");
+    expect(testCmd("implement/TASK-1/2")).toMatch(/--filter FullyQualifiedName!=Api\.Tests\.GreetTests\.AC_2_1_SaysBye&FullyQualifiedName!=Api\.Tests\.GreetTests\.AC_3_1_\w+$/);
+    // and none of them is run a second time as a "failed test worth one more run"
+    expect([...lab.specs.values()].filter((sp) => sp.cmd[1] === "test" && sp.labels.key.startsWith("implement/")).map((sp) => sp.labels.key)).toEqual(["implement/TASK-1/2", "implement/TASK-2/1", "implement/TASK-2/2", "implement/TASK-2/3", "implement/TASK-3/1", "implement/TASK-3/2-first", "implement/TASK-3/2"]);
+    expect(testCmd("implement/TASK-2/1")).toMatch(/--filter FullyQualifiedName!=Api\.Tests\.GreetTests\.AC_3_1_\w+$/);
+    expect(testCmd("implement/TASK-3/1")).not.toContain("!=");
+    // a retry on kept code runs the test that failed last time first, alone, and the whole suite once it passes
+    expect(testCmd("implement/TASK-3/2-first")).toMatch(/--filter [^!]*AC_3_1/);
+    expect(testCmd("implement/TASK-3/2")).not.toContain("--filter");
     const start = (task: string) => String(s.steps.get(task)!.data!.commit);
 
     // TASK-1: out-of-scope edit → the retry starts from the task start commit, the stray file gone
@@ -1146,6 +1176,23 @@ describe("implement loop across tasks (fakes)", () => {
     expect(expected("implement/TASK-1")).not.toContain(ids[0]);
     expect(expected("implement/TASK-3")).toEqual(expect.arrayContaining(ids));
     expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/implement TASK-3: also held to the criteria of TASK-1, TASK-2/);
+  }, 30_000);
+
+  it("a plan in the wrong shape is fixed by a patch in the same attempt: the planner is not asked for the whole plan again", async () => {
+    multi = true;
+    planBadShape = 1;
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    const s = replay(ledger.events());
+    expect(s.steps.get("plan")?.attempts).toBe(1);
+    expect(failedAttempts(ledger, "plan")).toHaveLength(0);
+    expect(planPrompt).toContain("THE PLAN IS FIXED, NOT REWRITTEN");
+    expect(planPrompt).toContain("it was not accepted because its shape does not match the schema");
+    expect(planPrompt).toMatch(/The plan does not match its schema: [^\n]*tasks\.2\.plannedLoc/);
+    // the plan as sent went back with the request, and what came out is that plan with the one task put right
+    expect(planPrompt).toContain("three lines");
+    const plan = ledger.getJson<{ tasks: { id: string; plannedLoc: number }[] }>(s.steps.get("plan")!.outputs[0]!);
+    expect(plan.tasks.map((t) => [t.id, t.plannedLoc])).toEqual([["TASK-1", 3], ["TASK-2", 3], ["TASK-3", 3]]);
   }, 30_000);
 
   it("a plan that fails its checks is fixed by a patch: the retry returns only the missing task", async () => {
@@ -1304,6 +1351,146 @@ describe("implement loop across tasks (fakes)", () => {
     const r2 = await execute(runId);
     expect(r2.status, r2.message).toBe("delivered");
     expect(judgeCalls).toBe(1);
+  }, 30_000);
+
+  it("a refused rewrite goes back to the test writer once, and the second one is locked", async () => {
+    multi = true;
+    judgeVerdict = "test";
+    lab.edits = {
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }],
+      // the first rewrite passes on any code; sent back, the second asks for what the criterion says
+      [TEST_FILE]: [{ [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:ANYTHING */ }\n" }, { [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:Trois */ }\n" }],
+    };
+    const { runId, ledger } = await approved();
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const rewrites = lab.jobs.filter((j) => j.fileScope[0] === TEST_FILE) as unknown as { task: string }[];
+    expect(rewrites).toHaveLength(2);
+    expect(rewrites[0]!.task).not.toContain("Your first rewrite was not accepted");
+    expect(rewrites[1]!.task).toContain("Your first rewrite was not accepted");
+    expect(rewrites[1]!.task).toContain("already passes before any change");
+    // the second rewrite started from the test as it was locked, and only it is on the ledger
+    expect(lab.seen.filter((x) => x.scope === TEST_FILE)).toHaveLength(2);
+    const [j] = judgedIn(ledger);
+    expect(j).toMatchObject({ verdict: "test", rewritten: expect.objectContaining({ sha: expect.any(String) }) });
+    expect(j!.rejected).toBeUndefined();
+    expect(judgedIn(ledger)).toHaveLength(1);
+    expect(rewriteChecks).toBe(1);
+    expect(ledger.events().some((e) => e.type === "run.parked")).toBe(false);
+  }, 30_000);
+
+  it("a rewrite is read against the locked test, not against its criterion again: one that asserts less twice stops the run", async () => {
+    multi = true;
+    // the check before the lock would call every test weak; a rewrite is not held to it (run 1679)
+    proofVerdict = "weak";
+    judgeVerdict = "test";
+    lab.edits = {
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }],
+      [TEST_FILE]: [{ [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:Trois */ }\n" }],
+    };
+    const { runId, ledger } = await approved();
+    const before = proofCalls;
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    // the whole-test check was not asked about the rewrite; the check of the change was, once
+    expect(proofCalls - before).toBe(proofCalls - before > 0 ? proofCalls - before : 0);
+    expect(rewriteChecks).toBe(1);
+    expect(judgedIn(ledger)[0]).toMatchObject({ verdict: "test", rewritten: expect.anything() });
+
+    // and one that drops an assertion is refused, sent back once, and then the run stops with what was lost
+    proofVerdict = "proves-it";
+    rewriteVerdict = "loosened";
+    rewriteChecks = 0;
+    lab.edits[TEST_FILE] = [{ [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:Trois */ }\n" }];
+    lab.edits["src/Api/Third.cs"] = [{ "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }];
+    const second = await approved();
+    const r2 = await execute(second.runId);
+    expect(r2.status, r2.message).toBe("parked");
+    expect(r2.message).toMatch(/its rewrite was not accepted: it asserts less than the locked test did.*scripted rewrite check/);
+    expect(rewriteChecks).toBe(2);
+    expect(judgedIn(second.ledger)[0]).toMatchObject({ verdict: "test", rejected: expect.stringContaining("it asserts less than the locked test did") });
+  }, 60_000);
+
+  it("a locked test that is right but needs a later task's file opens that file to the task, and the pull request says so", async () => {
+    multi = true;
+    // the tasks do not build on each other, so a test of TASK-2 cannot wait for TASK-3: it has to pass at TASK-2
+    unchained = true;
+    judgeVerdict = "scope";
+    judgeFiles = ["src/Api/Third.cs"];
+    const SECOND_ID = "Api.Tests::Api.Tests.GreetTests.AC_2_1_SaysBye";
+    lab.edits = {
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+      // the third attempt also changes TASK-3's file (run 9fcb: a screen a later task builds), which the file-scope check would refuse without the opening
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("By") }, { "src/Api/Farewell.cs": cls("By ") }, { "src/Api/Farewell.cs": cls("Bye"), "src/Api/Third.cs": cls("Early") }],
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Three") }],
+    };
+    const { runId, ledger } = await approved();
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    expect(judgedIn(ledger)).toEqual([expect.objectContaining({ step: "implement/TASK-2", testId: SECOND_ID, verdict: "scope", opened: ["src/Api/Third.cs"] })]);
+    // no test was rewritten, and only the attempt after the check may change the opened file
+    expect(lab.jobs.some((j) => j.fileScope[0] === TEST_FILE)).toBe(false);
+    const jobs2 = lab.jobs.filter((j) => j.fileScope[0] === MULTI_FILES[1]);
+    expect(jobs2.map((j) => j.fileScope.includes("src/Api/Third.cs"))).toEqual([false, false, true]);
+    const t2 = lab.seen.filter((x) => x.scope === MULTI_FILES[1]);
+    expect(t2[2]!.task).toContain("are right, but they could not pass with this task's own files");
+    expect(t2[2]!.task).toContain(`- ${SECOND_ID} (AC-2.1): src/Api/Third.cs. scripted verdict`);
+    const s = replay(ledger.events());
+    const commit = String(s.steps.get("implement/TASK-2")!.data!.commit);
+    expect(execFileSync("git", ["show", `${commit}:src/Api/Third.cs`], { cwd: s.info.repoPath!, encoding: "utf8" })).toBe(cls("Early"));
+    // the later task builds on it
+    expect(execFileSync("git", ["show", `${s.steps.get("implement/TASK-3")!.data!.commit}:src/Api/Third.cs`], { cwd: s.info.repoPath!, encoding: "utf8" })).toBe(cls("Three"));
+    expect(ledger.readCard(`pr-${runId}`)).toContain("File opened to another task during the build: `src/Api/Third.cs` was changed by TASK-2");
+    expect(ledger.events().some((e) => e.type === "run.parked")).toBe(false);
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  }, 30_000);
+
+  it("a file no task of the plan lists does not open: the run stops for a person, and goes on with the test as it is", async () => {
+    multi = true;
+    judgeVerdict = "scope";
+    judgeFiles = ["src/Api/Extra.cs", TEST_FILE];
+    lab.edits = {
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Thre") }, { "src/Api/Third.cs": cls("Thre ") }, { "src/Api/Third.cs": cls("Three") }],
+    };
+    const { runId, ledger } = await approved();
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("parked");
+    expect(r.message).toMatch(/the test is right but needs a file this task may not change.*src\/Api\/Extra\.cs \(no task of the plan lists it\)/);
+    expect(judgedIn(ledger)[0]).toMatchObject({ verdict: "scope", rejected: expect.stringContaining("(locked)") });
+    expect(judgedIn(ledger)[0]!.opened).toBeUndefined();
+    const r2 = await execute(runId);
+    expect(r2.status, r2.message).toBe("delivered");
+    expect(judgeCalls).toBe(1);
+    expect(lab.jobs.some((j) => j.fileScope.includes("src/Api/Extra.cs") || (j.fileScope[0] !== TEST_FILE && j.fileScope.includes(TEST_FILE)))).toBe(false);
+  }, 30_000);
+
+  it("a test said to need a file the task may already change is the code's fault: the task goes on", async () => {
+    multi = true;
+    judgeVerdict = "scope";
+    // TASK-3 is built on TASK-1, so after a locked failure its file is open to it already
+    judgeFiles = ["src/Api/Greeter.cs"];
+    lab.edits = {
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Thre") }, { "src/Api/Third.cs": cls("Thre ") }, { "src/Api/Third.cs": cls("Three") }],
+    };
+    const { runId, ledger } = await approved();
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    expect(judgedIn(ledger)).toEqual([expect.objectContaining({ verdict: "code", why: expect.stringContaining("already in this task's file scope") })]);
+    // the second attempt kept the code: its failed test ran alone, still failed, and the rest of the suite was not run
+    const testKeys = [...lab.specs.values()].filter((sp) => sp.cmd[1] === "test").map((sp) => sp.labels.key);
+    expect(testKeys).toContain("implement/TASK-3/2-first");
+    expect(testKeys).not.toContain("implement/TASK-3/2");
+    expect(testKeys).toEqual(expect.arrayContaining(["implement/TASK-3/3-first", "implement/TASK-3/3"]));
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/implement TASK-3: 1 of the 1 locked test\(s\) that failed last time still fail; the rest of the suite was not run/);
+    expect(ledger.readCard(`pr-${runId}`)).not.toContain("File opened to another task");
   }, 30_000);
 
   it("two broken builds in a row climb the ladder instead of parking as a suspect test", async () => {

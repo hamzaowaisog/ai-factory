@@ -373,7 +373,7 @@ export interface TurnTrace {
   mended?: string[];
 }
 
-function zodIssues(err: z.ZodError): string {
+export function zodIssues(err: z.ZodError): string {
   return err.issues.slice(0, 10).map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");
 }
 
@@ -461,6 +461,8 @@ export class ApiRunner implements Runner {
     }
     const convo = this.deps.provider(job.model).start(job.model, job.effort, system, job.pack.user, tools, images);
     let reasks = 0;
+    const maxReasks = job.limits.reasks ?? MAX_REASKS;
+    let rejected: Result<T>["rejected"];
 
     const done = (status: Result<T>["status"], extra: Partial<Result<T>> = {}): Result<T> =>
       ({ status, usage: { ...usage, wallMs: Date.now() - started }, ...extra });
@@ -525,6 +527,7 @@ export class ApiRunner implements Runner {
           } else if (!parsed.success) {
             reasks++;
             schemaError = zodIssues(parsed.error);
+            rejected = { input: c.input, issues: schemaError };
             results.push({ id: c.id, content: `The result doesn't match the schema: ${schemaError}. Fix it and call ${SUBMIT} again.`, isError: true });
           } else {
             results.push({ id: c.id, content: "Already accepted." });
@@ -545,7 +548,7 @@ export class ApiRunner implements Runner {
       if (over) return done("over-budget");
       // a submit cut off mid-way fails the schema; asking again only buys the same cut-off answer
       if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
-      if (reasks > MAX_REASKS) return done("bad-output", { error: "Output failed the schema after 2 re-asks" });
+      if (reasks > maxReasks) return done("bad-output", { error: maxReasks ? `Output failed the schema after ${maxReasks} re-asks` : `Output failed the schema: ${rejected?.issues ?? "no answer"}`, ...(rejected ? { rejected } : {}) });
       // one turn left: say so, so the model answers with what it has instead of running out mid-search
       if (turn === job.limits.maxTurns - 2 && results.length) {
         const last = results[results.length - 1]!;

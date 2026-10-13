@@ -16,6 +16,9 @@ export const EventType = z.enum([
   "test.judged",
   // a generated, locked file the factory wrote again in a run that was already under way (the API client's test handlers)
   "client.refreshed",
+  // the plan's stubs did not build on the code the stub commit writes under them (a scaffold, a new product): the plan is
+  // patched and approved again before any test is written
+  "plan.refused",
 ]);
 export type EventType = z.infer<typeof EventType>;
 

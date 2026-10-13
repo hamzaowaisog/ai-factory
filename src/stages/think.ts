@@ -8,7 +8,7 @@ import { Redactor } from "../context/secrets.js";
 import { estimateTokens } from "../context/tokens.js";
 import type { RepoTools } from "../context/tools.js";
 import { ApiRunner, defaultProvider, type Provider } from "../runners/api.js";
-import type { StepContext, StepOutcome } from "./framework.js";
+import { failureLines, type StepContext, type StepOutcome } from "./framework.js";
 import { answersText } from "./gate-questions.js";
 import { argsSummary, type Trace } from "../util/trace.js";
 import { cacheDisabled, cacheForget, cacheGet, cacheKey, cachePut } from "../estimate/cache.js";
@@ -48,12 +48,15 @@ export interface ThinkSpec<T> {
   hardTimeout?: boolean;
   /** Use this effort instead of the route's (e.g. a lighter critic on the light lane). */
   effort?: Effort;
+  /** How often an answer that fails the schema is asked for again in the same conversation (default 2). 0: the refused answer comes back as `draft`, for a caller that fixes it more cheaply than a second whole answer. */
+  reasks?: number;
 }
 
 export type ThinkResult<T> =
   /** `forget` drops the stored answer when the step's own checks reject it */
   | { ok: true; output: T; model: string; packSha: string; note?: string; forget?: () => void }
-  | { ok: false; outcome: StepOutcome };
+  /** `draft`: the answer that failed the schema, as the model gave it, and what was wrong with it */
+  | { ok: false; outcome: StepOutcome; draft?: { input: unknown; issues: string } };
 
 /**
  * A step's budget is sized for a change request. Three inputs are what they are and must be read whole, so the budget grows by
@@ -90,7 +93,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   if (ctx.priorFailures.length) {
     sections.push({
       spec: { id: "failures", source: "feedback", trust: "derived", placement: "user" },
-      content: "Your previous attempt was rejected for these reasons. Fix them:\n" + ctx.priorFailures.map((f) => `- [${f.check}] ${f.message}`).join("\n"),
+      content: "Your previous attempt was rejected for these reasons. Fix them:\n" + failureLines(ctx.priorFailures, 12_000),
     });
   }
   // the answers to questions this step's failing checks raised (src/stages/gate-questions.ts)
@@ -159,7 +162,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   const r = await runner.run({
     step: spec.stage, model, effort, pack, schema: spec.schema,
     // never more than what's left of the run's cost limit
-    limits: { maxTurns: spec.maxTurns ?? 8, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), spec.maxUsd ?? 2, ctx.share), timeoutSec: spec.timeoutSec ?? 900, ...(spec.hardTimeout ? { hardTimeout: true } : {}) },
+    limits: { maxTurns: spec.maxTurns ?? 8, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), spec.maxUsd ?? 2, ctx.share), timeoutSec: spec.timeoutSec ?? 900, ...(spec.hardTimeout ? { hardTimeout: true } : {}), ...(spec.reasks !== undefined ? { reasks: spec.reasks } : {}) },
   });
   if (r.status === "ok") {
     if (key) cachePut({ key, step: spec.stage, route: spec.route, model, runId: ctx.runId, createdAt: new Date().toISOString(), output: r.output });
@@ -171,6 +174,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   return {
     ok: false,
     outcome: { kind: "fail", category, failures: [{ check: `runner-${r.status}`, message: r.error ?? r.status, frames: [] }], signature: `${spec.stage}:${r.status}` },
+    ...(r.status === "bad-output" && r.rejected ? { draft: r.rejected } : {}),
   };
 }
 

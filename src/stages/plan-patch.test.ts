@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PlanBody } from "../contracts/index.js";
-import { applyPlanPatch, PlanPatch } from "./plan-patch.js";
+import { applyPlanPatch, applyToDraft, PlanPatch } from "./plan-patch.js";
 
 const task = (n: number, over: Record<string, unknown> = {}) => ({ id: `TASK-${n}`, title: `Part ${n}`, reqs: [`REQ-${n}`], fileScope: [`src/p${n}.ts`], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 3, approach: "small edit", ...over });
 const prev = PlanBody.parse({
@@ -47,5 +47,33 @@ describe("a plan patch", () => {
   it("an empty patch is refused, and a top-level field is replaced only when given", () => {
     expect(patch({})).toMatchObject({ problem: "the patch changes nothing" });
     expect(planOf(patch({ adr: "Changed." })).adr).toBe("Changed.");
+  });
+});
+
+describe("a plan the schema refused", () => {
+  // as a model sends it: one task's size is a word, and a list arrived as a broken entry
+  const draft = { ...prev, tasks: [task(1), task(2, { plannedLoc: "about thirty" }), null] };
+
+  it("is fixed by the one task at fault, and everything else stays as it was sent", () => {
+    expect(PlanBody.safeParse(draft).success).toBe(false);
+    const r = applyToDraft(draft, PlanPatch.parse({ tasks: [task(2, { plannedLoc: 30 })] }));
+    if (!("plan" in r)) throw new Error(r.problem);
+    expect(r.plan.tasks.map((t) => [t.id, t.plannedLoc])).toEqual([["TASK-1", 3], ["TASK-2", 30]]);
+    expect(r.plan.stubs).toEqual(prev.stubs);
+    expect(r.plan.adr).toBe(prev.adr);
+  });
+
+  it("a patch that leaves a fault says what is still wrong and hands back the patched draft for one more", () => {
+    const r = applyToDraft({ ...draft, chosen: 7 }, PlanPatch.parse({ tasks: [task(2, { plannedLoc: 30 })] }));
+    expect(r).toMatchObject({ problem: expect.stringMatching(/chosen/), draft: { tasks: [{ id: "TASK-1" }, { id: "TASK-2", plannedLoc: 30 }] } });
+    const again = applyToDraft((r as { draft: unknown }).draft, PlanPatch.parse({ chosen: "O-1" }));
+    expect("plan" in again).toBe(true);
+  });
+
+  it("an answer that is no plan at all, or a patch that changes nothing, is not patched", () => {
+    expect(applyToDraft("a plan", PlanPatch.parse({ tasks: [task(1)] }))).toEqual({ problem: "the refused plan is not an object" });
+    expect(applyToDraft([], PlanPatch.parse({ tasks: [task(1)] }))).toEqual({ problem: "the refused plan is not an object" });
+    expect(applyToDraft(draft, PlanPatch.parse({}))).toEqual({ problem: "the patch changes nothing" });
+    expect(applyToDraft({}, PlanPatch.parse({ dropStubs: ["x"] }))).toMatchObject({ problem: expect.any(String) });
   });
 });

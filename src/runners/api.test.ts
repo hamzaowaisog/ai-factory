@@ -75,6 +75,16 @@ describe("ApiRunner", () => {
     expect((await new ApiRunner({ provider: () => p2 }).run(job())).status).toBe("bad-output");
   });
 
+  it("with no re-asks, an answer that fails the schema comes back at once, as the model gave it", async () => {
+    const input = { changeClass: "nope", spans: ["a"] };
+    const { provider, seen } = scripted([call("submit_result", input)]);
+    const r = await new ApiRunner({ provider: () => provider }).run(job({ limits: { maxTurns: 8, maxUsd: 1, timeoutSec: 60, reasks: 0 } }));
+    expect(r.status).toBe("bad-output");
+    expect(r.rejected).toEqual({ input, issues: expect.stringMatching(/changeClass/) });
+    expect(r.error).toMatch(/failed the schema: .*changeClass/);
+    expect(seen.toolResults).toHaveLength(0);
+  });
+
   it("serves read-only tools and refuses anything else", async () => {
     const tools = { call: (n: string, i: Record<string, unknown>) => `${n}:${JSON.stringify(i)}` };
     const { provider, seen } = scripted([

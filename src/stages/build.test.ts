@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests } from "./build.js";
 import { ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { attemptSpend, startNeed } from "./executor.js";
@@ -346,5 +346,20 @@ describe("test writing: parallel writers and the lighter test check", () => {
     expect(shownFailures([...compile, ...proof]).filter((f) => f.check === "test-proof")).toHaveLength(37);
     expect(shownFailures([...compile, ...proof]).filter((f) => f.check === "tests-compile")).toHaveLength(20);
     expect(proofNamed([...proof.slice(0, 2), proof[0]!, compile[0]!])).toEqual(["AC-1.1", "AC-2.1"]);
+  });
+});
+
+describe("a task's run leaves out the tests of tasks not built yet", () => {
+  const lock = {
+    tests: [{ testId: "t1", file: "tests/a.test.ts" }, { testId: "t2", file: "tests/a.test.ts" }, { testId: "t3", file: "tests/b.test.ts" }, { testId: "t4", file: "tests/old.test.ts" }],
+    characterisation: [{ testId: "c1", file: "tests/c.test.ts" }],
+  };
+  it("by test: every locked test the task does not expect; by file: only a file that holds nothing it expects and no test of the code base", () => {
+    // t2 shares a file with t1, which this task must pass: the file runs; old.test.ts also holds a test of the code base
+    expect(laterTests(lock, ["t1", "c1"], ["tests/old.test.ts > was here"])).toEqual({ ids: ["t2", "t3", "t4"], files: ["tests/b.test.ts"] });
+    expect(laterTests(lock, ["t1", "c1"])).toEqual({ ids: ["t2", "t3", "t4"], files: ["tests/b.test.ts", "tests/old.test.ts"] });
+  });
+  it("the last task leaves nothing out, so integrate can reuse its run", () => {
+    expect(laterTests(lock, ["t1", "t2", "t3", "t4", "c1"])).toEqual({ ids: [], files: [] });
   });
 });

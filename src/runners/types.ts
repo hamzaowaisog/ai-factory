@@ -12,7 +12,8 @@ export interface Job<T = unknown> {
   /** zod schema the result must satisfy (the single schema source). */
   schema: z.ZodType<T>;
   /** hardTimeout (api runner only): abort a model request still in flight when timeoutSec is up, instead of letting the turn finish */
-  limits: { maxTurns: number; maxUsd: number; timeoutSec: number; hardTimeout?: boolean };
+  /** reasks (api runner only): how often an answer that fails the schema is asked for again in the same conversation (default 2); 0 hands the refused answer back at once */
+  limits: { maxTurns: number; maxUsd: number; timeoutSec: number; hardTimeout?: boolean; reasks?: number };
   /** agent runners only: the run's worktree */
   workdir?: string;
 }
@@ -43,6 +44,8 @@ export interface Result<T = unknown> {
   status: ResultStatus;
   output?: T;
   error?: string;
+  /** "bad-output" for an answer that failed the schema: the last answer as the model gave it, and what was wrong with it */
+  rejected?: { input: unknown; issues: string };
   usage: Usage;
   /** vendor session id, for audit only */
   sessionId?: string;

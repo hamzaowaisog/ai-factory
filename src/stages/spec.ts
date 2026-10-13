@@ -18,7 +18,7 @@ import { apiSide } from "../config/platform.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { guided, header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { acOwners, slicesProblem, stubBuildProblems } from "./build.js";
+import { acOwners, openStubRefusal, slicesProblem, stubBuildProblems, stubRefusals } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { requirementSummary, riskLines, spendLine, taskSummary, withSummary } from "./card-summary.js";
 import { gateNotes } from "./gate-questions.js";
@@ -27,7 +27,7 @@ import { CLIENT_DIR } from "./contract.js";
 import { CriticOut } from "./specpipe.js";
 import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
-import { applyPlanPatch, PATCH_RULES, PlanPatch } from "./plan-patch.js";
+import { applyPlanPatch, applyToDraft, PATCH_RULES, PlanPatch, SHAPE_RULES } from "./plan-patch.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
 import { complexityOf, LANE, lightSpec } from "./lane.js";
@@ -190,8 +190,12 @@ export function clientFolderProblems(plan: { stubs: { path: string }[]; tasks: {
 export const planStep: StepDef = {
   key: "plan", stage: "plan", templateVersion: "3", // 3: one seam per outside system, its settings declared by name
   // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
-  inputs: (s) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s), design: outputOf(s, "design-baseline") } : undefined),
-  async run(ctx) {
+  inputs: (s, l) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s), design: outputOf(s, "design-baseline"), ...(stubRefusals(l).length ? { stubRefusals: stubRefusals(l).map((x) => x.failures) } : {}) } : undefined),
+  async run(ctx0) {
+    // a plan the stub commit sent back (its stubs did not build on the scaffold): those errors are this attempt's failures and
+    // that plan is the one patched, as if the plan's own checks had refused it
+    const refusal = openStubRefusal(ctx0.ledger);
+    const ctx = refusal ? { ...ctx0, priorFailures: ctx0.ledger.getJson<Failure[]>(refusal.failures) } : ctx0;
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
     const cb = requireOutput<CB>(ctx.state, ctx.ledger, "ground");
     const critic = requireOutput<{ findings: unknown[] }>(ctx.state, ctx.ledger, "specify", "critic");
@@ -268,7 +272,7 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     const call = { stage: "plan" as const, route: "plan", cls: "read-large" as const, budgetTokens: 30000, tools: ["read_file", "search", "repo_map"] as ("read_file" | "search" | "repo_map")[], repoTools: toolsFor(ctx), maxTurns: 12 };
     // a plan that failed its checks is fixed by a patch (src/stages/plan-patch.ts); a patch that cannot be read or applied, or a
     // second patch that still fails, goes back to a whole plan
-    const before = lastFailureData(ctx.ledger, "plan") as { rejectedPlan?: string; patches?: number } | undefined;
+    const before = refusal ? { rejectedPlan: refusal.plan, patches: 0 } : lastFailureData(ctx.ledger, "plan") as { rejectedPlan?: string; patches?: number } | undefined;
     const rejected = before?.rejectedPlan && (before.patches ?? 0) < MAX_PLAN_PATCHES && ctx.priorFailures.length ? PlanBody.safeParse(ctx.ledger.getJson(before.rejectedPlan)) : undefined;
     let r: { ok: true; output: z.infer<typeof PlanBody>; model: string; forget?: () => void } | undefined;
     if (rejected?.success) {
@@ -280,9 +284,25 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     }
     const patched = !!r;
     if (!r) {
-      const full = await think(ctx, { ...call, schema: PlanBody, sections: [...sections, S.task("Write the plan.")] });
-      if (!full.ok) return full.outcome;
-      r = full;
+      // an answer in the wrong shape comes back at once (no re-ask of the whole plan) and is fixed by a patch
+      const full = await think(ctx, { ...call, schema: PlanBody, reasks: 0, sections: [...sections, S.task("Write the plan.")] });
+      if (full.ok) r = full;
+      else {
+        let draft = full.draft;
+        for (let n = 0; draft && !r && n < MAX_PLAN_PATCHES; n++) {
+          ctx.log(`plan: the plan does not match its schema (${draft.issues.slice(0, 300)}); asking for the parts at fault, not the whole plan again`);
+          const shape = { ...ctx, priorFailures: [failure("plan-schema", `The plan does not match its schema: ${draft.issues}`)] };
+          const pr = await think(shape, { ...call, label: "plan (shape patch)", schema: PlanPatch, sections: [...sections, S.template("patch-rules", PATCH_RULES), S.template("patch-shape", SHAPE_RULES), S.artifact("previous-plan", "plan", draft.input), S.task("Return the changes that fix the failures.")] });
+          if (!pr.ok) {
+            if (pr.outcome.kind !== "fail" || pr.outcome.category === "rate-limit") return pr.outcome;
+            break;
+          }
+          const a = applyToDraft(draft.input, pr.output);
+          if ("plan" in a) r = { ok: true, output: a.plan, model: pr.model };
+          else draft = a.draft !== undefined ? { input: a.draft, issues: a.problem } : undefined;
+        }
+        if (!r) return full.outcome;
+      }
     }
     // an existing backend: the model kept is the whole database, the plan's tables laid over the ones read from it
     const dataModel = existingModel && r.output.dataModel ? mergeDataModel(existingModel, r.output.dataModel) : r.output.dataModel;

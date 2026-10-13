@@ -54,6 +54,11 @@ export interface ProduceInput {
   buildCache?: string;
   /** Test IDs not to run on a full-suite run: the repo's known failures, which can never block anything. */
   skipTests?: string[];
+  /**
+   * Locked tests of tasks that are not built yet, left out of a task's full-suite run: they cannot pass and nothing reads their
+   * result there. By test ID (.NET), and the test files that hold nothing else (Node, where a run leaves out whole files).
+   */
+  skipLater?: { ids: string[]; files: string[] };
   /** Read what the built app's database has even when the commit has no approved data model (the untouched repo, before a plan). */
   readSchema?: boolean;
   /** Stop once the database was read: no accept, no tests. For a baseline whose tests are already on record. */
@@ -441,9 +446,13 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
 
     // a full-suite run skips the repo's known failures (every expected test still runs)
     const targeted = inp.filterExpr ?? (inp.onlyTests?.length ? filterFor(inp.onlyTests) : undefined);
-    const skipFilter = targeted || !inp.skipTests?.length ? undefined : skipFilterFor(inp.skipTests);
-    const skipped = skipFilter ? inp.skipTests! : [];
-    if (skipFilter) phase("skip", `lab: skipping ${skipped.length} test(s) that already fail on the base branch`);
+    // and a task's run leaves out the tests of tasks not built yet; where both make the filter too long, the known failures alone
+    const later = targeted ? [] : inp.skipLater?.ids ?? [];
+    const both = !targeted && later.length ? skipFilterFor([...(inp.skipTests ?? []), ...later]) : undefined;
+    const skipFilter = both ?? (targeted || !inp.skipTests?.length ? undefined : skipFilterFor(inp.skipTests));
+    const skipped = skipFilter ? inp.skipTests ?? [] : [];
+    if (both) phase("skip", `lab: skipping ${later.length} locked test(s) of tasks that are not built yet`);
+    if (skipFilter && skipped.length) phase("skip", `lab: skipping ${skipped.length} test(s) that already fail on the base branch`);
     else if (!targeted && inp.skipTests?.length) phase("skip", `lab: running the known failures too: the filter to skip ${inp.skipTests.length} test(s) would be too long`);
     const filter = targeted ?? skipFilter;
     const tTests = Date.now();
@@ -460,7 +469,8 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     if (dbId && needsProbe(results)) probe = (await rt.exec(dbId, ["pg_isready", "-h", "127.0.0.1"])).code === 0;
 
     const exp = inp.resolveExp ? inp.resolveExp(results) : inp.exp;
-    const again = rerunCandidates(results, exp, inp.knownFailures);
+    // (a later task's locked test that ran all the same is not worth a second run: it fails until that task is built)
+    const again = rerunCandidates(results, exp, new Set([...(inp.knownFailures ?? []), ...(inp.skipLater?.ids ?? [])]));
     if (again.length && again.length <= 20 && probe) {
       const dir = join(work, "results-rerun");
       mkdirSync(dir, { recursive: true });

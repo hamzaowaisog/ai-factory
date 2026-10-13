@@ -26,7 +26,7 @@ import { saveReport } from "../report.js";
 import { hashJson, sha256 } from "../util/hash.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
-import type { StepContext, StepDef, StepOutcome } from "./framework.js";
+import { FAILURES_KEPT, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
 import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
 import { greenfieldRefusal, newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
@@ -342,7 +342,7 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
    * with carryOn and could not carry what fails, so the run parks with the reason.
    */
   async function askRound(ctx: StepContext, step: StepDef, key: string, rounds: FiledRound[], failures: Failure[], rec2: AttemptRecord, nextRung: number, reason: string, data?: Record<string, unknown>): Promise<ExecuteResult | undefined> {
-    const failuresSha = ledger.putJson(failures.slice(0, 20));
+    const failuresSha = ledger.putJson(failures.slice(0, FAILURES_KEPT));
     const park = async (why: string): Promise<ExecuteResult> => {
       await ledger.append({ type: "step.failed", key, outputs: [failuresSha], data: { ...(data ?? {}), ...rec2, action: "park", reason: why } }, writer);
       await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${why}`, step: step.key } }, writer);
@@ -491,7 +491,7 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
         // the same locked test failed twice, but at a task that cannot reach it yet: the test waits for the later task, the run goes on.
         // Once is enough when it fails exactly as it did before the task: the retry would be paid for and change nothing.
         const defer = !!outcome.deferrable && (action.action === "a5-check" || (action.action === "retry" && !!outcome.deferNow));
-        const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
+        const failuresSha = ledger.putJson(outcome.failures.slice(0, FAILURES_KEPT));
         await ledger.append({
           type: "step.failed", key, outputs: [failuresSha],
           data: { ...(outcome.data ?? {}), ...rec2, ...(testCheck && action.action === "retry" ? { testCheck } : {}), action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },

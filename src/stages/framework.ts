@@ -10,6 +10,34 @@ import type { FailureCategory } from "../gates/ladder.js";
 import type { Trace } from "../util/trace.js";
 import type { GateAnswer } from "./gate-questions.js";
 
+/**
+ * How many of a step's failures the ledger keeps for its next attempt. Twenty were kept once, so a retry was never told of
+ * the rest and the whole cycle ran again for them (run 1679: 52 weak tests found, 20 passed on).
+ */
+export const FAILURES_KEPT = 200;
+
+/**
+ * A step's failures as a briefing lists them: every one, the failures of one check together, up to a size. Past it the rest
+ * are counted by check, so the reader knows how many there are and of what kind.
+ */
+export function failureLines(failures: Failure[], maxChars = 16_000, frames = false): string {
+  const checks = [...new Set(failures.map((f) => f.check))];
+  const ordered = checks.flatMap((c) => failures.filter((f) => f.check === c));
+  const lines: string[] = [];
+  let used = 0, shown = 0;
+  for (const f of ordered) {
+    const line = `- [${f.check}] ${f.message}${frames && f.frames.length ? `\n    ${f.frames.join("\n    ")}` : ""}`;
+    if (shown && used + line.length > maxChars) break;
+    lines.push(line); used += line.length + 1; shown += 1;
+  }
+  const left = ordered.slice(shown);
+  if (left.length) {
+    const by = [...new Set(left.map((f) => f.check))].map((c) => `${left.filter((f) => f.check === c).length} × ${c}`);
+    lines.push(`… and ${left.length} more not shown (${failures.length} in all): ${by.join(", ")}. Fix the kinds above everywhere they occur, not only in the lines shown.`);
+  }
+  return lines.join("\n");
+}
+
 export type StepOutcome =
   /** outputs: named artifact shas (first is the main one). */
   | { kind: "done"; outputs: Record<string, string>; treeSha?: string; data?: Record<string, unknown> }

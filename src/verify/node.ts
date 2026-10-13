@@ -50,6 +50,9 @@ export function parseNodeBuildErrors(log: string): BuildRun["errors"] {
   return out;
 }
 
+/** More test files than this are not left out one by one: the command line would not hold them. */
+const MAX_SKIP_FILES = 400;
+
 export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput> {
   const { rt, project } = inp;
   if (project.database) throw new Error("A test database is not available for Node projects yet: remove database: from the project config.");
@@ -135,12 +138,15 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
       for (const p of accept.probes) phase("probe", `lab: probe ${p.method} ${p.path} → ${p.status} (expected ${p.expectStatus})`);
     }
 
+    // a task's full run leaves out the test files that hold only tests of tasks not built yet
+    const later = inp.skipLater?.files.length && inp.skipLater.files.length <= MAX_SKIP_FILES ? inp.skipLater.files : [];
+    if (later.length && !inp.filterExpr && !inp.onlyTests?.length) phase("skip", `lab: skipping ${later.length} test file(s) of tasks that are not built yet`);
     const runTests = async (pattern: string | undefined, resultsDir: string) => {
       const started = Date.now();
       const t = await launch({
         role: "producer", image: project.node.image, network: "none", workdir: "/src", env: NODE_ENV,
         mounts: [{ src, dst: "/src" }, { src: cache, dst: "/npm-cache", ro: true }, { src: resultsDir, dst: "/results" }],
-        cmd: ["npx", "--no-install", "vitest", "run", "--reporter=json", "--outputFile=/results/r.json", "--passWithNoTests", ...(pattern ? ["-t", pattern] : [])],
+        cmd: ["npx", "--no-install", "vitest", "run", "--reporter=json", "--outputFile=/results/r.json", "--passWithNoTests", ...(pattern ? ["-t", pattern] : later.flatMap((f) => ["--exclude", f]))],
       });
       const code = await rt.wait(t, project.node.testTimeoutSec * 1000);
       await rt.stop(t);
@@ -168,7 +174,8 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
       first.reports.length && !fileErrors.length ? undefined : { logTail: logs.test.split("\n").slice(-40).join("\n") });
 
     const exp: Expectations = inp.resolveExp ? inp.resolveExp(results) : inp.exp;
-    const again = rerunCandidates(results, exp, inp.knownFailures).filter((id) => !isLoadError(id));
+    // (a later task's locked test in a file that had to run is not worth a second run: it fails until that task is built)
+    const again = rerunCandidates(results, exp, new Set([...(inp.knownFailures ?? []), ...(inp.skipLater?.ids ?? [])])).filter((id) => !isLoadError(id));
     if (again.length && again.length <= 20) {
       const dir = join(work, "results-rerun");
       mkdirSync(dir, { recursive: true });
