@@ -1,0 +1,38 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every operation declared by the locked OpenAPI contract, including Google OAuth authorization and sign-in, employee and administrator endpoints, parking releases, claims and availability, entrance verification, notifications, and office settings."
+     },
+     {
+      "n": 2,
+      "text": "Persist API-managed records in the configured PostgreSQL App database and initialize its schema on startup using the existing fresh-database EnsureCreated behavior."
+     },
+     {
+      "n": 3,
+      "text": "When Seed:Demo is true, use SeedData.Run to add schema-valid sample rows to every empty application table; when it is false or unset, do not add demo sample rows."
+     },
+     {
+      "n": 4,
+      "text": "Ensure the API and contract test suite operate on explicitly arranged records without requiring demo-seed rows."
+     },
+     {
+      "n": 5,
+      "text": "Keep product surfaces limited to contracted HTTP operations and API documentation; do not add employee, administrator, or security-guard product screens."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

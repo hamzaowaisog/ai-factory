@@ -1,0 +1,130 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement `GET /api/auth/google/authorization` to return a Google Workspace authorization URL using the deployment-configured OAuth client identifier and redirect URI, with a nonempty state, or return 503 when configuration or the authorization service is unavailable."
+     },
+     {
+      "n": 2,
+      "text": "Implement `POST /api/auth/sign-in` to exchange an authorization code and matching state with Google using the configured OAuth credentials and redirect URI, return a session only for eligible Folio3 Workspace employees, and return 400 for invalid requests, 401 for unaccepted identities, or 503 when Google is unavailable."
+     },
+     {
+      "n": 3,
+      "text": "Implement bearer-authenticated `GET /api/employees/me` to return the employee profile, parking assignment, and registered vehicles, with 401 for invalid authentication, 403 for insufficient access, and 404 when no profile exists."
+     },
+     {
+      "n": 4,
+      "text": "Implement bearer-authenticated `GET /api/parking/dashboard` to return the office date, timezone, release time, parking assignment and status, availability, registered vehicle, and working-day information, with 401 for invalid authentication."
+     },
+     {
+      "n": 5,
+      "text": "Implement bearer-authenticated `POST /api/parking/releases/today` to release eligible dedicated parking for today in the office timezone and return the space, claimable time, status, and a `Released` audit event, with 401, 403, or 409 for the specified failure cases."
+     },
+     {
+      "n": 6,
+      "text": "Implement bearer-authenticated `GET /api/vehicles` to return only the employee's registered vehicles with their contract fields, with 401 for invalid authentication."
+     },
+     {
+      "n": 7,
+      "text": "Implement bearer-authenticated `POST /api/vehicles` to register a valid plate with optional make, model, and color, return the active vehicle with status 201, and return 400, 401, or 409 for invalid input, invalid authentication, or a conflicting plate."
+     },
+     {
+      "n": 8,
+      "text": "Implement bearer-authenticated `GET /api/parking/releases` to return only the employee's saved releases and audit events, with 401 for invalid authentication."
+     },
+     {
+      "n": 9,
+      "text": "Implement bearer-authenticated `POST /api/parking/releases` to schedule one or more dates within the next 30 calendar days for eligible dedicated-parking holders, return saved releases with `Scheduled` audit events and status 201, and return 400, 403, or 422 for the specified invalid requests."
+     },
+     {
+      "n": 10,
+      "text": "Implement bearer-authenticated cancellation of an employee's unclaimed scheduled release through `DELETE /api/parking/releases/{releaseId}`, returning a `Cancelled` release with scheduling and cancellation audit events or the applicable 401, 403, 404, or 409 error."
+     },
+     {
+      "n": 11,
+      "text": "Implement bearer-authenticated `GET /api/parking/availability` to return the office date, timezone, available spaces, release time, and per-floor free and total spaces, with 401 for invalid authentication."
+     },
+     {
+      "n": 12,
+      "text": "Implement bearer-authenticated `POST /api/parking/claims` to allocate a claimable temporary space for an eligible employee's registered vehicle and office date, return the contract's allocation details with status 201, allow exactly one successful claim for a concurrently contested last space, and return applicable 400, 401, 403, 409, or 422 errors."
+     },
+     {
+      "n": 13,
+      "text": "Implement bearer-authenticated `GET /api/parking/claims/today` to return the employee's active temporary allocation for today, with 404 if none exists and 401 for invalid authentication."
+     },
+     {
+      "n": 14,
+      "text": "Implement bearer-authenticated `DELETE /api/parking/claims/{claimId}` to cancel an employee's cancellable claim and return its resulting status, with 401, 403, 404, or 409 for the specified failure cases."
+     },
+     {
+      "n": 15,
+      "text": "Implement administrator-authorized `GET /api/admin/roster` with the documented search, assignment, and pagination filters and a matching employee roster page, returning 401 for unauthenticated callers and 403 for non-administrators."
+     },
+     {
+      "n": 16,
+      "text": "Implement administrator-authorized `GET /api/admin/entry-checks` with the documented search, result, and page filters and a matching page of entry checks, returning 401 for unauthenticated callers and 403 for non-administrators."
+     },
+     {
+      "n": 17,
+      "text": "Implement unauthenticated `POST /api/entrance/verify` to verify car detections against active temporary parking authorization, command `Green` for authorized cars and `None` for non-car or unsuccessful detections, record each processed outcome in App for administrator entry checks, and return 400 for malformed requests or 503 when a required entrance service is unavailable."
+     },
+     {
+      "n": 18,
+      "text": "Implement administrator-authorized `GET /api/admin/utilization` to return the requested week's dates, generation time, releases, claims, utilization percentage, daily statistics, and unused parking, with 400 for an invalid week start, 401 for unauthenticated callers, and 403 for non-administrators."
+     },
+     {
+      "n": 19,
+      "text": "Implement administrator-authorized `GET /api/admin/office-settings` to return the stored timezone, release time, scheduling window, report recipients, next delivery, and report schedule, with 401 for unauthenticated callers and 403 for non-administrators."
+     },
+     {
+      "n": 20,
+      "text": "Implement administrator-authorized `PUT /api/admin/office-settings` to save valid timezone, release time, and nonempty report recipients so a subsequent read returns the saved settings, with applicable 400, 401, or 403 errors."
+     },
+     {
+      "n": 21,
+      "text": "Implement the administrator-authorized `GET /api/admin/activity` reading that returns a filtered, paginated `activity` list for optional search, event type, and page filters, with 401 for unauthenticated callers and 403 for non-administrators."
+     },
+     {
+      "n": 22,
+      "text": "Implement the administrator-authorized `GET /api/admin/activity` reading that returns a filtered, paginated `events` list with the specified `ParkingActivity` fields, with 401 for unauthenticated callers and 403 for non-administrators."
+     },
+     {
+      "n": 23,
+      "text": "Implement unauthenticated `POST /api/notifications/availability` to dispatch the fixed `parking-availability` email template to eligible non-dedicated employees for a valid request with positive available spaces, return an accepted dispatch with status 202, and return 400 for invalid requests or 503 when email service is unavailable."
+     },
+     {
+      "n": 24,
+      "text": "Persist API-managed application records in the PostgreSQL database configured by `ConnectionStrings:App`, initialize its schema on startup using the existing fresh-database `EnsureCreated` behavior, and retain registered vehicles across restarts without demo seeding."
+     },
+     {
+      "n": 25,
+      "text": "When `Seed:Demo` is true, use the public `SeedData.Run` method in `App.Api/SeedData.cs` to populate empty application tables with schema-valid sample rows, using contract examples where available, while leaving demo-only records unseeded when the setting is unset or false."
+     },
+     {
+      "n": 26,
+      "text": "Run the API contract tests against explicitly arranged records and provisioned identities without requiring demo-seed rows, including an empty roster count of zero when no roster records are arranged."
+     },
+     {
+      "n": 27,
+      "text": "Keep the repository's product surfaces to contracted HTTP operations and API documentation, without adding employee, administrator, or security-guard product screens."
+     },
+     {
+      "n": 28,
+      "text": "Implement all operations in the locked OpenAPI contract with its request, response, and security definitions, including contract-defined error codes, messages, and fields."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Specific authorization, parking, vehicle, and domain rules",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Specifies Google authorization, corporate-email employee identity, and denial of unauthorized or non-Folio3 sign-in."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Adds explicit parking-holder roles, release/scheduling constraints, and claim conflict rules."
+       },
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "Adds vehicle authorization and current-day allocation rules plus verification, administration, and reporting validation."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Requires only the authentication and authorization declared for each contract operation, without specifying those domain rules."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Requires contract-specified error handling and authorization but does not state the additional domain rules."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-2",
+      "topic": "Behavior when the database connection string is missing",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "For a database-backed operation, surface failure if the connection string is absent."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Fail application startup if the connection string is absent."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Fail startup or the affected operation if the connection string is missing."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

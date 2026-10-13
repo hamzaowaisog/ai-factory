@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  /",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 1080,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  /&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:10: /auth/google/authorization:\ncontracts/openapi.yaml:27: /auth/sign-in:\ncontracts/openapi.yaml:61: /employees/me:\ncontracts/openapi.yaml:93: /parking/dashboard:\ncontracts/openapi.yaml:122: /parking/releases/today:\ncontracts/openapi.yaml:157: /vehicles:\ncontracts/openapi.yaml:218: /parking/releases:\ncontracts/openapi.yaml:281: /parking/releases/{releaseId}:\ncontracts/openapi.yaml:315: /parking/availability:\ncontracts/openapi.yaml:344: /parking/claims:\ncontracts/openapi.yaml:391: /parking/claims/today:\ncontracts/openapi.yaml:423: /parking/claims/{claimId}:\ncontracts/openapi.yaml:458: /admin/roster:\ncontracts/openapi.yaml:517: /admin/entry-checks:\ncontracts/openapi.yaml:574: /entrance/verify:\ncontracts/openapi.yaml:646: /admin/utilization:\ncontracts/openapi.yaml:698: /admin/office-settings:\ncontracts/openapi.yaml:761: /admin/activity:\ncontracts/openapi.yaml:816: /notifications/availability:\n</untrusted_document>"
+  }
+ ]
+}

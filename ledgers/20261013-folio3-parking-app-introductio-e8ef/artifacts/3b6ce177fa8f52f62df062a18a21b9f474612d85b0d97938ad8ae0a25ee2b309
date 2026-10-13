@@ -1,0 +1,92 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat contracts/openapi.yaml as the sole source for operation details; implement its operations and do not infer additional API behavior from the accompanying product narrative.",
+      "behaviours": [
+       {
+        "text": "For every operation declared in contracts/openapi.yaml, expose the specified HTTP method and path and handle its declared request inputs, response bodies, status codes, and headers as written.",
+        "kind": "happy"
+       },
+       {
+        "text": "Return the contract-specified error responses for invalid requests, failed authorization, missing resources, and other documented failure cases; do not substitute undocumented behavior for those cases.",
+        "kind": "error"
+       },
+       {
+        "text": "Enforce the authentication and authorization requirements declared by each contract operation, allowing or denying callers accordingly.",
+        "kind": "permission"
+       },
+       {
+        "text": "Requests to contract operations that are not implemented or cannot be served must not be reported as successful contract operations.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Read the PostgreSQL connection string from the existing configuration key ConnectionStrings:App and use that database for application data; data written through the API remains available after an application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "If the App connection string is absent, startup fails rather than silently using another data store.",
+        "kind": "error"
+       },
+       {
+        "text": "If PostgreSQL cannot be reached or a database operation fails, the affected operation does not report a successful data write or read.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, SeedData.Run inserts a few believable sample records for every table, using values represented in the contract's examples (including the Aisha Rahman profile and Toyota Corolla vehicle where applicable), so list operations have sample records to return.",
+        "kind": "data"
+       },
+       {
+        "text": "When demo seeding is disabled, SeedData.Run does not add those demo records.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "Tests do not require, assert, or otherwise depend on demo seed rows being present; they continue to pass when Seed:Demo is false and the database has no demo data.",
+        "kind": "happy"
+       },
+       {
+        "text": "Tests that need records provide or create their own test data rather than relying on the rows in SeedData.cs.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "The change exposes backend API behavior only and does not add product screens or a web-app UI; the web app remains the responsibility of its separate repository.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

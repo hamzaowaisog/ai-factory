@@ -1,0 +1,757 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Wire the API and deliver identity, employee, vehicle, and availability-notification slices",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-6",
+       "REQ-7",
+       "REQ-23",
+       "REQ-27"
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/Endpoints/IEndpointModule.cs",
+       "App.Api/Endpoints/AuthAndVehicleEndpoints.cs",
+       "App.Api/Endpoints/AvailabilityNotificationEndpoints.cs",
+       "App.Api/Services/ApiAuth.cs",
+       "App.Api/Entities/IAppEntity.cs",
+       "App.Api/Entities/Employee.cs",
+       "App.Api/Entities/Vehicle.cs",
+       "App.Api/Entities/AuthSession.cs",
+       "App.Api/Entities/OAuthState.cs",
+       "App.Api/Seeders/IAppSeeder.cs",
+       "App.Api/Seeders/CoreSeeder.cs",
+       "App.Api/Integrations/IWorkspaceOAuthClient.cs",
+       "App.Api/Integrations/WorkspaceOAuthClient.cs",
+       "App.Api/Integrations/IAvailabilityEmailDispatcher.cs",
+       "App.Api/Integrations/ConfiguredAvailabilityEmailDispatcher.cs",
+       "App.Api/appsettings.json"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Keep contracts/openapi.yaml unchanged; map only its documented paths, methods, status codes, field names, and security definitions.",
+       "This is the one startup-wiring task: Program discovers and registers every IEndpointModule in the API assembly, so later slices add only their own endpoint module files and need no Program.cs edits.",
+       "AppDb maps every discovered IAppEntity type by convention, with its class name as the table name; later slices add entity files and are included by the existing model-discovery rule.",
+       "SeedData.Run discovers ordered IAppSeeder implementations; each later slice seeds its own tables only when empty. Preserve Seed:Demo gating and do not make API behavior depend on demo rows.",
+       "Use only IWorkspaceOAuthClient for Google Workspace calls and IAvailabilityEmailDispatcher for email delivery, register both seams in DI, and allow tests to replace them with stand-ins.",
+       "Declare Google OAuth endpoint/client/secret/redirect and email endpoint/key/sender settings in appsettings.json with empty values for each new setting; read them by configuration name in the real seam implementations.",
+       "Use the signed-in employee helper for bearer-protected routes, persist only hashes of issued session tokens, and serialize contract role names explicitly."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 900,
+      "complexity": "external-dependency",
+      "approach": "Wire startup once with convention-based endpoint and seeder discovery, preserve health/OpenAPI/Swagger, and retain EnsureCreated. Implement OAuth authorization/state validation and eligible Folio3 sign-in, employee profile and vehicle list/register, plus the unauthenticated fixed-template notification route. Add the initial entity mapping and seed convention now so later slices can contribute entities and seeders without modifying these files."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Deliver dedicated-space dashboard and release lifecycle",
+      "reqs": [
+       "REQ-4",
+       "REQ-5",
+       "REQ-8",
+       "REQ-9",
+       "REQ-10"
+      ],
+      "fileScope": [
+       "App.Api/Entities/ParkingRelease.cs",
+       "App.Api/Entities/ReleaseAuditEvent.cs",
+       "App.Api/Endpoints/ParkingReleaseEndpoints.cs",
+       "App.Api/Seeders/ParkingReleaseSeeder.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Add an IEndpointModule implementation; startup discovers it without edits to Program.cs.",
+       "Persist each release with its owner, office date, assigned space, claimable instant, state, and related audit events; enforce one employee release per date.",
+       "Use office-local time/settings and the documented 30-calendar-day scheduling window; return the contract error shape and statuses for invalid, ineligible, or conflicting transitions.",
+       "The dashboard and collection/cancel/today operations must be wired in this slice, not left for a later endpoint-registration task.",
+       "The seeder must add schema-valid release and audit rows only when the corresponding tables are empty."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 500,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add the release and audit entities plus a seeder, then map dashboard, today release, list/schedule releases, and cancellation in one module. Implement ownership checks, office-date validation, state transitions, and append-only Scheduled/Released/Cancelled audit events; use existing auth and configuration conventions."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Deliver floor availability and temporary-claim lifecycle",
+      "reqs": [
+       "REQ-11",
+       "REQ-12",
+       "REQ-13",
+       "REQ-14"
+      ],
+      "fileScope": [
+       "App.Api/Entities/ParkingFloor.cs",
+       "App.Api/Entities/ParkingClaim.cs",
+       "App.Api/Endpoints/ParkingClaimEndpoints.cs",
+       "App.Api/Seeders/ParkingClaimSeeder.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "contracts/openapi.yaml"
+      ],
+      "conventions": [
+       "Add entities and an IEndpointModule; the existing model and endpoint discovery conventions must pick them up without editing AppDb.cs or Program.cs.",
+       "Allocate by highest free count, breaking ties by lowest floor code, and emit contract-defined floorCapacity, allocationRule, and authorizationScope fields.",
+       "Serialize claims for the same office date by locking capacity rows in a database transaction so concurrent requests for the last slot produce one 201 and one 409.",
+       "Validate vehicle ownership, employee eligibility, office date, claim ownership, and cancellable state; return contract error shapes and statuses.",
+       "Seed capacity and claims with valid references, and add rows only when their tables are empty."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 600,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add floor-capacity and claim persistence, with seeded floor capacity. Implement availability, claim creation, today's claim, and cancellation together in a discovered endpoint module. Use a transaction and row locks for deterministic allocation under contention, and build response capacity/authorization fields from stored allocations and the selected employee-owned vehicle."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Deliver entrance verification and administrator entrance-check reading",
+      "reqs": [
+       "REQ-16",
+       "REQ-17"
+      ],
+      "fileScope": [
+       "App.Api/Entities/EntranceCheck.cs",
+       "App.Api/Endpoints/EntranceEndpoints.cs",
+       "App.Api/Seeders/EntranceCheckSeeder.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "contracts/openapi.yaml"
+      ],
+      "conventions": [
+       "Add a discovered endpoint module and an IAppSeeder; do not edit shared startup, AppDb, seeding, or contract files.",
+       "Persist each detection's input identifier/time/object type, office date/time, plate when available, result, entry status, indicator command, and detail.",
+       "Non-car, unreadable-plate, unavailable-service, and unauthorized-car outcomes must fail closed exactly as documented; only a verified active allocation may request Green.",
+       "The admin reader must enforce administrator role and return matching paginated checks with the contract field names.",
+       "Seed at least two valid entrance records when the table is empty."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-3"
+      ],
+      "plannedLoc": 450,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add the entrance-check entity and seeder, then map POST /entrance/verify and GET /admin/entry-checks in the same slice. Resolve car authorization from active claims and office date, produce fail-closed outcomes for all other cases, persist every processed outcome, and implement admin filtering/pagination."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Deliver administrator parking roster search",
+      "reqs": [
+       "REQ-15"
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/AdminRosterEndpoints.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "contracts/openapi.yaml"
+      ],
+      "conventions": [
+       "Map the documented administrator-only GET route in an IEndpointModule discovered by the existing startup convention.",
+       "Use shared employee authentication and administrator authorization; return 401 for absent/invalid sessions and 403 for an employee session.",
+       "Apply search and assignment filters before pagination and return the documented RosterPage fields and employee assignments/vehicle plate values.",
+       "Do not add demo-seed dependencies or modify shared wiring."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 220,
+      "complexity": "standard",
+      "approach": "Implement roster query/filter/pagination and its endpoint in one module. Derive assignment and active vehicle display values from Employee and Vehicle records, enforce administrator authorization, and preserve empty results when no rows were arranged."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Deliver office settings, utilization and activity reporting; complete persistence and seed acceptance",
+      "reqs": [
+       "REQ-18",
+       "REQ-19",
+       "REQ-20",
+       "REQ-21",
+       "REQ-22",
+       "REQ-24",
+       "REQ-25",
+       "REQ-26"
+      ],
+      "fileScope": [
+       "App.Api/Entities/OfficeSettings.cs",
+       "App.Api/Entities/OfficeReportRecipient.cs",
+       "App.Api/Endpoints/AdminReportingAndSettingsEndpoints.cs",
+       "App.Api/Seeders/OfficeSettingsSeeder.cs"
+      ],
+      "exemplars": [
+       "App.Api/SeedData.cs",
+       "contracts/openapi.yaml"
+      ],
+      "conventions": [
+       "Add entities, seeder, and endpoints through existing discovery conventions; do not modify Program.cs, AppDb.cs, SeedData.cs, tests, migrations, or the locked OpenAPI file.",
+       "Persist timezone, release time, scheduling window, and report recipients; compute nextReportDelivery/reportSchedule and weekly utilization from retained release, claim, and entrance records rather than storing derived fields.",
+       "Validate timezone, time, recipient format, weekStart, and filters; enforce administrator role and documented status/error response bodies.",
+       "For the conflicting REQ-21 reading versus REQ-22 and the locked schema, return the contract's `events` property for GET /admin/activity, not an invented `activity` property.",
+       "At completion, ensure convention-discovered entities make every application table appear after EnsureCreated; every empty table has schema-valid demo rows (one for singleton settings, two or more for other tables), and Seed:Demo=false remains empty.",
+       "Verify all 22 locked operations are reachable and test scenarios can arrange records without demo seeding; preserve the repository's API-only surfaces."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5"
+      ],
+      "plannedLoc": 650,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add the settings/recipient entities and seeder, then implement settings GET/PUT, utilization, and activity routes in this module. Derive reports/activity from previously persisted data, return the locked contract's `events` activity response, and verify the complete EnsureCreated/seeder conventions satisfy the all-table and no-demo-test criteria."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Use discovered endpoint modules, entity mapping, and seeders with each feature delivered as a wired API slice (chosen).",
+      "simplest": false,
+      "tradeoffs": "Requires the initial discovery conventions, but keeps later tasks independent of shared startup and database files, supports incremental route-level acceptance, and respects non-overlapping task scopes."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Map all handlers directly in Program.cs and define every entity/database mapping and seeding path up front.",
+      "simplest": true,
+      "tradeoffs": "Initially straightforward and avoids reflection conventions, but creates a large monolithic startup file, front-loads all feature layers, and forces later features to share the same route/wiring scope."
+     }
+    ],
+    "chosen": "OPTION-1",
+    "adr": "Choose discovered endpoint modules, entity mapping, and ordered seeders so each feature task adds its own working route and persistence slice.\nKeep Program.cs, AppDb.cs, and SeedData.cs exclusive to the first task; later task files are discovered by convention.\nUse the locked OpenAPI contract as authoritative, including `events` for GET /admin/activity where REQ-21 conflicts.\nNo new NuGet dependencies or migration/contract changes are planned.",
+    "protectedPathsDeclared": [],
+    "newDependencies": [],
+    "stubs": [
+     {
+      "path": "App.Api/Integrations/IWorkspaceOAuthClient.cs",
+      "reason": "Public external-system seam for OAuth stand-ins in contract tests.",
+      "content": "using System;\nusing System.Collections.Generic;\nusing System.Threading;\nusing System.Threading.Tasks;\n\nnamespace App.Api.Integrations;\n\npublic interface IWorkspaceOAuthClient\n{\n    Task<string> CreateAuthorizationUrlAsync(string state, CancellationToken cancellationToken = default)\n        => throw new NotImplementedException();\n\n    Task<IReadOnlyDictionary<string, string>?> ExchangeAuthorizationCodeAsync(\n        string authorizationCode,\n        string state,\n        CancellationToken cancellationToken = default)\n        => throw new NotImplementedException();\n}\n"
+     },
+     {
+      "path": "App.Api/Integrations/IAvailabilityEmailDispatcher.cs",
+      "reason": "Public external-system seam for email-delivery stand-ins in contract tests.",
+      "content": "using System;\nusing System.Collections.Generic;\nusing System.Threading;\nusing System.Threading.Tasks;\n\nnamespace App.Api.Integrations;\n\npublic interface IAvailabilityEmailDispatcher\n{\n    Task<int> SendAvailabilityAsync(\n        DateOnly officeDate,\n        int availableSpaces,\n        IReadOnlyList<string> recipientEmails,\n        CancellationToken cancellationToken = default)\n        => throw new NotImplementedException();\n}\n"
+     }
+    ],
+    "dataModel": {
+     "tables": [
+      {
+       "name": "Employee",
+       "purpose": "Pre-provisioned Folio3 identities, roles, and dedicated parking assignments.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "EmployeeId",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "EmployeeName",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "CorporateEmail",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Role",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "employee",
+          "administrator"
+         ]
+        },
+        {
+         "name": "DedicatedParking",
+         "type": "bool",
+         "required": true
+        },
+        {
+         "name": "AssignedFloor",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "AssignedSpace",
+         "type": "string",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "Vehicle",
+       "purpose": "Employee-owned registered vehicle plates and optional vehicle details.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "EmployeeId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Employee",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Plate",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "Make",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "Model",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "Color",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "Active",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "AuthSession",
+       "purpose": "Hashed bearer-session credentials and their validity window.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "EmployeeId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Employee",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "TokenHash",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ExpiresAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "OAuthState",
+       "purpose": "One-time OAuth state values and expiry used to validate sign-in callbacks.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "State",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "ExpiresAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "ParkingRelease",
+       "purpose": "Employee-owned dedicated-space releases for office dates.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "EmployeeId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Employee",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "OfficeDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "Space",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Reserved",
+          "Released",
+          "Claimed",
+          "Cancelled"
+         ]
+        },
+        {
+         "name": "ClaimableAt",
+         "type": "datetime",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "EmployeeId",
+         "OfficeDate"
+        ]
+       ]
+      },
+      {
+       "name": "ReleaseAuditEvent",
+       "purpose": "Append-only scheduling and state-transition history for a parking release.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "ParkingReleaseId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "ParkingRelease",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Action",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "OccurredAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "ParkingFloor",
+       "purpose": "Enabled office parking floors and their total vehicle capacity.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Floor",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "TotalSpaces",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "Enabled",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "ParkingClaim",
+       "purpose": "Employee temporary allocations linking an owned vehicle to a floor and office date.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "EmployeeId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Employee",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "VehicleId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Vehicle",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "ParkingFloorId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "ParkingFloor",
+          "column": "Id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "OfficeDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "SpaceCode",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Active",
+          "Cancelled"
+         ]
+        },
+        {
+         "name": "EntryStatus",
+         "type": "string",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "EntranceCheck",
+       "purpose": "Retained entrance detections and their fail-closed verification outcomes.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "RequestDetectionId",
+         "type": "int",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "DetectedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "OfficeDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "OfficeTime",
+         "type": "time",
+         "required": true
+        },
+        {
+         "name": "ObjectType",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "car",
+          "pedestrian",
+          "motorcycle",
+          "other"
+         ]
+        },
+        {
+         "name": "Plate",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "VerificationResult",
+         "type": "enum",
+         "required": false,
+         "values": [
+          "Authorized",
+          "Denied",
+          "Permanent sticker",
+          "Unsuccessful",
+          "Allocation cancelled"
+         ]
+        },
+        {
+         "name": "EntryStatus",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "IndicatorCommand",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Green",
+          "None"
+         ]
+        },
+        {
+         "name": "Detail",
+         "type": "string",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "OfficeSettings",
+       "purpose": "Singleton office timezone, daily release time, and scheduling-window settings.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "Timezone",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "ReleaseTime",
+         "type": "time",
+         "required": true
+        },
+        {
+         "name": "SchedulingWindowDays",
+         "type": "int",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "OfficeReportRecipient",
+       "purpose": "Email recipients configured for weekly utilization reports.",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "OfficeSettingsId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "OfficeSettings",
+          "column": "Id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "Email",
+         "type": "string",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "OfficeSettingsId",
+         "Email"
+        ]
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 5,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

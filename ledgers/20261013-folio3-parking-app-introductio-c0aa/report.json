@@ -1,0 +1,334 @@
+{
+  "runId": "20261013-folio3-parking-app-introductio-c0aa",
+  "status": "parked",
+  "parkedReason": "author-tests: Every retry option is used up",
+  "request": "Folio3 Parking App\n\nIntroduction\n\nFolio3 has a fixed number of parking spaces available at its office premises, while the number of\nemployees commuting to the office by car is greater than the availab",
+  "costUsd": 0.22223337,
+  "activeMin": 30.554833333333335,
+  "firstTimePassRate": 0.8888888888888888,
+  "topCost": [
+    {
+      "step": "author-tests",
+      "costUsd": 0.18727791000000002
+    },
+    {
+      "step": "plan",
+      "costUsd": 0.03495546
+    }
+  ],
+  "steps": [
+    {
+      "step": "discover",
+      "stage": "discover",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.071,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.006,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.005,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 5,
+        "answersChanged": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.004,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 3,
+        "answersChanged": 0
+      }
+    },
+    {
+      "step": "specify",
+      "stage": "specify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.006,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "plan",
+      "stage": "plan",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures"
+      ],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 91240,
+        "output": 51617,
+        "cached": 2296
+      },
+      "costUsd": 0.03495546,
+      "activeSec": 342.341,
+      "gates": {
+        "passed": 7,
+        "failed": 5,
+        "failedIds": [
+          "plan.checks",
+          "build.b1-design-scope",
+          "build.b6-design-screens",
+          "build.b1-design-scope",
+          "build.b1-design-scope"
+        ]
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "waive"
+        ]
+      },
+      "time": {
+        "modelSec": 334,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "approve",
+      "stage": "approve",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.088,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "stub-commit",
+      "stage": "stub-commit",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 233.247,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "author-tests",
+      "stage": "author-tests",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 3,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Same failure again; escalating",
+        "Every retry option is used up"
+      ],
+      "highestRung": 1,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 333,
+        "output": 150851,
+        "cached": 5560861
+      },
+      "costUsd": 0.18727791000000002,
+      "activeSec": 1298.3229999999999,
+      "gates": {
+        "passed": 0,
+        "failed": 3,
+        "failedIds": [
+          "author-tests.fails-on-base",
+          "author-tests.fails-on-base",
+          "author-tests.fails-on-base"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 687,
+        "labSec": 375
+      }
+    }
+  ],
+  "createdAt": "2026-10-13T22:46:03.947Z",
+  "humanCards": [
+    "waiver",
+    "approval"
+  ]
+}

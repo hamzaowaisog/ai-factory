@@ -1,0 +1,80 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "For every operation declared in contracts/openapi.yaml, accept the documented HTTP method, path, parameters, headers, and request body, and return the documented success status, headers, and response shape for valid requests.",
+        "kind": "happy"
+       },
+       {
+        "text": "For invalid or incomplete requests, unauthenticated or unauthorized callers, and operation failures, return the error status and response shape specified for that operation in the contract; do not silently substitute undocumented behavior.",
+        "kind": "error"
+       },
+       {
+        "text": "Expose the contract's declared API operations (including its authorization and signed-in employee profile operations) at their contract paths, rather than only exposing health and API documentation routes.",
+        "kind": "happy"
+       }
+      ],
+      "readingChosen": "Treat the locked OpenAPI document as the source of truth for operation paths, request/response details, and documented failure behavior; do not infer additional API behavior from the product narrative."
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Persist API application data in the project's PostgreSQL database using the existing App connection string, so data written through the API remains available on subsequent reads and after an application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "If the App connection string is missing or the PostgreSQL database cannot be reached when required, startup or the affected operation fails rather than silently switching to another storage location.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, populate each database table with a small set of plausible sample rows, using applicable examples from the contract (including the Aisha Rahman employee and Toyota Corolla vehicle examples); list operations then have sample records to return.",
+        "kind": "data"
+       },
+       {
+        "text": "When demo seeding is not enabled, do not insert these demo rows; the application can run without presenting demo data as guaranteed production data.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "Tests pass without requiring demo rows to exist: they do not assert seed-specific records or use seeded records as prerequisites, and must remain valid when Seed:Demo is false and the database has no demo data.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "This API project does not provide product screens or web-app UI flows; callers use the API, while the web application is supplied by its separate repository.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

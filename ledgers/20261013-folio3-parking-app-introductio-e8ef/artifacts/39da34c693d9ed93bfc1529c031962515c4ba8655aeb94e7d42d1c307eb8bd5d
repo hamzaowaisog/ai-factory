@@ -1,0 +1,1 @@
+[{"check":"tests-compile","frames":[],"message":"App.Tests/AcceptancePart4Tests.cs:453 CS1503 Argument 3: cannot convert from 'string' to 'System.Func<int, int, bool>'"}]

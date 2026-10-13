@@ -1,0 +1,368 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Set up the design system",
+      "reqs": [],
+      "fileScope": [
+       "app/layout.tsx",
+       "package.json",
+       "app/globals.css"
+      ],
+      "exemplars": [
+       "app/layout.tsx",
+       "app/globals.css"
+      ],
+      "conventions": [
+       "Use the generated next-shadcn scaffold and its component kit."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 35,
+      "complexity": "standard",
+      "approach": "Do the ui-scaffold designSystemTask.todo exactly: install the packages and build the app once so the scaffold compiles as written. Keep the generated layout and navigation; put the design tokens in the global stylesheet."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Wire Folio3 sign-in",
+      "reqs": [
+       "REQ-1",
+       "REQ-2"
+      ],
+      "fileScope": [
+       "components/screens/s-1/container.tsx"
+      ],
+      "exemplars": [
+       "app/sign-in/page.tsx",
+       "components/ui/button.tsx"
+      ],
+      "conventions": [
+       "Use only the generated API client from lib/api for API calls.",
+       "Keep the approved sign-in page and its generated layout unchanged; implement behavior in its container."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Wire the Workspace sign-in action to the generated API client, handle the authorization redirect/callback and show loading, error, and success states. Let the API enforce Folio3 identity policy and establish the session; route a successful employee to the parking screen."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Connect the employee parking home",
+      "reqs": [
+       "REQ-2",
+       "REQ-4",
+       "REQ-5",
+       "REQ-8",
+       "REQ-10",
+       "REQ-11",
+       "REQ-13"
+      ],
+      "fileScope": [
+       "components/screens/s-2/container.tsx"
+      ],
+      "exemplars": [
+       "app/parking/page.tsx",
+       "components/ui/card.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api; do not add a hand-written client.",
+       "Keep status, timing, and availability values sourced from the API rather than duplicating business rules in the page."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 130,
+      "complexity": "standard",
+      "approach": "Load the signed-in employee's parking summary and availability, show office-local release time and working-day information, and wire the one-action same-day release with duplicate-release feedback. Refresh and display the updated status after success. Availability-notification delivery is API-side; the screen only reflects API availability."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Connect vehicle registration",
+      "reqs": [
+       "REQ-2",
+       "REQ-3",
+       "REQ-12"
+      ],
+      "fileScope": [
+       "components/screens/s-3/container.tsx"
+      ],
+      "exemplars": [
+       "app/vehicles/page.tsx",
+       "components/ui/input.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api for list and create operations.",
+       "Keep validation and server errors in the generated form; do not rebuild the approved page."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 110,
+      "complexity": "standard",
+      "approach": "Fetch only the signed-in employee's vehicles. Validate the required plate, submit optional make/model/color, and show a newly registered plate as active immediately. Provide the vehicle data needed by the claim flow."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Connect scheduled parking releases",
+      "reqs": [
+       "REQ-4",
+       "REQ-6",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9"
+      ],
+      "fileScope": [
+       "components/screens/s-4/container.tsx"
+      ],
+      "exemplars": [
+       "app/parking/releases/page.tsx",
+       "components/ui/calendar.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api.",
+       "Use API-provided office dates, timezone, release time, and release statuses for calendar state."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 145,
+      "complexity": "rules-or-algorithm",
+      "approach": "Load saved releases and office timing, wire multi-date save and cancellation confirmation, and display the saved calendar state. Reject selections outside the 30-calendar-day window and claimed-release cancellations using API results; show Monday–Friday as working days, including holidays."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Connect temporary-space claiming",
+      "reqs": [
+       "REQ-3",
+       "REQ-10",
+       "REQ-11",
+       "REQ-12"
+      ],
+      "fileScope": [
+       "components/screens/s-5/container.tsx"
+      ],
+      "exemplars": [
+       "app/parking/claim/page.tsx",
+       "components/ui/select.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api for availability, vehicle options, and claim submission.",
+       "Treat the API's accepted claim and assignment as authoritative, including concurrent-claim conflicts."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 120,
+      "complexity": "standard",
+      "approach": "Load current claimable count and the employee's active registered plates. Require a selected plate, block the submit flow when registration is missing, submit the claim, and surface a conflict if another eligible claim wins first. Navigate to the pass on success."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Connect the temporary parking pass",
+      "reqs": [
+       "REQ-12",
+       "REQ-14",
+       "REQ-16"
+      ],
+      "fileScope": [
+       "components/screens/s-6/container.tsx"
+      ],
+      "exemplars": [
+       "app/parking/claims/today/page.tsx",
+       "components/ui/badge.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api.",
+       "Do not add employee claim cancellation; the approved Phase 1 control remains unavailable."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 95,
+      "complexity": "standard",
+      "approach": "Load today's allocation and render its assigned floor, selected authorized plate, office-local claim date, entry status, and allocation details. Keep claim cancellation unavailable and show the approved permanent-sticker safeguard message; permanent-vehicle handling itself is API-side."
+     },
+     {
+      "id": "TASK-8",
+      "title": "Connect the employee parking roster",
+      "reqs": [
+       "REQ-2"
+      ],
+      "fileScope": [
+       "components/screens/s-7/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/roster/page.tsx",
+       "components/ui/table.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api.",
+       "Use the API's authorization and filtered roster response; do not expose another employee's data on employee routes."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 90,
+      "complexity": "standard",
+      "approach": "Fetch and render the authorized administrator roster with its approved search, assignment filter, and pagination. Display directory identity, parking assignment, vehicle plate, and access fields from the API."
+     },
+     {
+      "id": "TASK-9",
+      "title": "Connect entrance verification activity",
+      "reqs": [
+       "REQ-15",
+       "REQ-16",
+       "REQ-17"
+      ],
+      "fileScope": [
+       "components/screens/s-8/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/entry-checks/page.tsx",
+       "components/ui/table.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api.",
+       "This is the administrator activity view, not a guard-facing screen or manual-verification path."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Load and filter recorded entrance results, including authorized, denied, permanent-sticker, and unsuccessful attempts. Display fail-closed outcomes and permanent-sticker activity returned by the API; entrance verification, indicator calls, and allocation cancellation are API-side."
+     },
+     {
+      "id": "TASK-10",
+      "title": "Connect the weekly utilization report",
+      "reqs": [
+       "REQ-4",
+       "REQ-18",
+       "REQ-19",
+       "REQ-21"
+      ],
+      "fileScope": [
+       "components/screens/s-9/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/utilization/page.tsx",
+       "components/ui/chart.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api and display report values without inventing a utilization formula.",
+       "Do not add warnings, suspensions, or penalties."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 115,
+      "complexity": "standard",
+      "approach": "Fetch the generated weekly report and render its period, daily and weekly statistics, unused-parking employee lists, released-space and claim counts, and returned overall percentage. Show the approved weekday and no-enforcement information; report generation and utilization evaluation are API-side."
+     },
+     {
+      "id": "TASK-11",
+      "title": "Connect office parking settings",
+      "reqs": [
+       "REQ-8",
+       "REQ-9",
+       "REQ-20"
+      ],
+      "fileScope": [
+       "components/screens/s-10/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/settings/office/page.tsx",
+       "components/ui/input.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api.",
+       "Keep settings and recipient authorization enforced by the API."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 105,
+      "complexity": "standard",
+      "approach": "Load and save the office timezone, daily release time, and configured report recipients using the generated form. Show API validation and permission errors and refresh the displayed saved values after success; do not locally schedule reports."
+     },
+     {
+      "id": "TASK-12",
+      "title": "Connect parking activity history",
+      "reqs": [
+       "REQ-5",
+       "REQ-7",
+       "REQ-18",
+       "REQ-22"
+      ],
+      "fileScope": [
+       "components/screens/s-11/container.tsx"
+      ],
+      "exemplars": [
+       "app/admin/activity/page.tsx",
+       "components/ui/table.tsx"
+      ],
+      "conventions": [
+       "Use the generated API client from lib/api.",
+       "Display retained API records; do not implement a separate retention store or alter the retention policy."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 100,
+      "complexity": "standard",
+      "approach": "Fetch and render release, cancellation, claim, entrance, and utilization activity using the approved search, event filter, and pagination. Display the retained history and outcomes supplied by the API."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Use the generated API client directly from each screen container, keeping integrations and business rules API-side.",
+      "simplest": true,
+      "tradeoffs": "Smallest implementation and preserves the scaffold's page/container structure; screens rely on the shared contract and should avoid duplicating business rules."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Add an application-owned service wrapper for each feature before connecting screen containers.",
+      "simplest": false,
+      "tradeoffs": "Can centralize transformations, but adds wrapper code and indirection, risks duplicating generated-client behavior, and increases scope without a demonstrated need."
+     }
+    ],
+    "chosen": "OPTION-1",
+    "adr": "Decision: use the generated API client directly in each screen container.\nThe API contract is shared with the separate API repository; parking rules and external integrations remain API-side.\nThe factory-generated routes, frame, navigation, and approved pages remain unchanged.\nUse the scaffold's design-system task exactly, then implement one wired screen slice per task.",
+    "protectedPathsDeclared": [
+     "package.json"
+    ],
+    "newDependencies": [],
+    "stubs": [
+     {
+      "path": "contracts/openapi.yaml",
+      "reason": "Shared API contract for the web app's generated client and the API repository; it is not in any implementation task's file scope.",
+      "content": "openapi: 3.0.3\ninfo:\n  title: Folio3 Parking API\n  version: 1.0.0\nservers:\n  - url: /api\nsecurity:\n  - bearerAuth: []\npaths:\n  /auth/google/authorization:\n    get:\n      operationId: getGoogleAuthorization\n      summary: Get the Folio3 Google Workspace authorization URL\n      security: []\n      responses:\n        \"200\":\n          description: Authorization URL created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/AuthorizationStart\"\n              example:\n                authorizationUrl: \"https://accounts.google.com/o/oauth2/v2/auth?client_id=folio3\"\n                state: \"state-20260616\"\n        \"503\":\n          $ref: \"#/components/responses/ServiceUnavailable\"\n  /auth/sign-in:\n    post:\n      operationId: signIn\n      summary: Exchange a Google Workspace authorization code for a Folio3 session\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/SignInRequest\"\n            example:\n              authorizationCode: \"google-code-example\"\n              state: \"state-20260616\"\n      responses:\n        \"200\":\n          description: Folio3 identity accepted\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Session\"\n              example:\n                id: 101\n                employeeId: \"F3-1042\"\n                employeeName: \"Aisha Rahman\"\n                corporateEmail: \"aisha.rahman@folio3.com\"\n                role: \"employee\"\n                accessToken: \"example-access-token\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"503\":\n          $ref: \"#/components/responses/ServiceUnavailable\"\n  /employees/me:\n    get:\n      operationId: getMyEmployeeProfile\n      summary: Get the signed-in employee profile\n      responses:\n        \"200\":\n          description: Employee profile\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/EmployeeProfile\"\n              example:\n                id: 101\n                employeeId: \"F3-1042\"\n                employeeName: \"Aisha Rahman\"\n                corporateEmail: \"aisha.rahman@folio3.com\"\n                dedicatedParking: true\n                assignedFloor: \"B2\"\n                assignedSpace: \"B2-114\"\n                vehicles:\n                  - id: 501\n                    plate: \"KLG-4821\"\n                    make: \"Toyota\"\n                    model: \"Corolla\"\n                    color: \"Silver\"\n                    active: true\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n  /parking/dashboard:\n    get:\n      operationId: getParkingDashboard\n      summary: Get today's parking assignment and availability summary\n      responses:\n        \"200\":\n          description: Parking dashboard summary\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ParkingDashboard\"\n              example:\n                id: 301\n                officeDate: \"2026-06-16\"\n                timezone: \"Asia/Karachi\"\n                releaseTime: \"08:00\"\n                assignedSpace: \"B2-114\"\n                spaceStatus: \"Reserved\"\n                availableSpaces: 3\n                registeredVehicle: \"Honda Civic · LEB-7421\"\n                workingDays:\n                  - \"Monday\"\n                  - \"Tuesday\"\n                  - \"Wednesday\"\n                  - \"Thursday\"\n                  - \"Friday\"\n                workingDayRule: \"Monday–Friday, including holidays\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n  /parking/releases/today:\n    post:\n      operationId: releaseTodaysSpace\n      summary: Release today's dedicated parking space\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/TodayReleaseRequest\"\n            example:\n              officeDate: \"2026-06-16\"\n      responses:\n        \"200\":\n          description: Today's space was released\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Release\"\n              example:\n                id: 701\n                officeDate: \"2026-06-16\"\n                space: \"B2-114\"\n                status: \"Released\"\n                claimableAt: \"2026-06-16T08:00:00+05:00\"\n                auditEvents:\n                  - id: 801\n                    action: \"Released\"\n                    occurredAt: \"2026-06-16T07:45:00+05:00\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n  /vehicles:\n    get:\n      operationId: listMyVehicles\n      summary: List the signed-in employee's registered vehicles\n      responses:\n        \"200\":\n          description: Registered vehicles\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/VehicleCollection\"\n              example:\n                vehicles:\n                  - id: 501\n                    plate: \"KLG-4821\"\n                    make: \"Toyota\"\n                    model: \"Corolla\"\n                    color: \"Silver\"\n                    active: true\n                  - id: 502\n                    plate: \"LEA-9073\"\n                    make: \"Honda\"\n                    model: \"City\"\n                    color: \"White\"\n                    active: true\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n    post:\n      operationId: registerVehicle\n      summary: Register and immediately activate a vehicle plate\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/VehicleInput\"\n            example:\n              plate: \"LEB-7421\"\n              make: \"Honda\"\n              model: \"Civic\"\n              color: \"White\"\n      responses:\n        \"201\":\n          description: Vehicle registered and active\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Vehicle\"\n              example:\n                id: 503\n                plate: \"LEB-7421\"\n                make: \"Honda\"\n                model: \"Civic\"\n                color: \"White\"\n                active: true\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n  /parking/releases:\n    get:\n      operationId: listMyReleases\n      summary: List saved future releases and their audit events\n      responses:\n        \"200\":\n          description: Saved parking releases\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ReleaseCollection\"\n              example:\n                releases:\n                  - id: 701\n                    officeDate: \"2026-06-18\"\n                    space: \"B2-114\"\n                    status: \"Released\"\n                    claimableAt: \"2026-06-18T08:00:00+05:00\"\n                    auditEvents:\n                      - id: 801\n                        action: \"Scheduled\"\n                        occurredAt: \"2026-06-16T09:00:00+05:00\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n    post:\n      operationId: scheduleParkingReleases\n      summary: Schedule one or more release dates within the next 30 calendar days\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ReleaseScheduleRequest\"\n            example:\n              officeDates:\n                - \"2026-06-18\"\n                - \"2026-06-25\"\n      responses:\n        \"201\":\n          description: Release records saved\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ReleaseCollection\"\n              example:\n                releases:\n                  - id: 701\n                    officeDate: \"2026-06-18\"\n                    space: \"B2-114\"\n                    status: \"Released\"\n                    claimableAt: \"2026-06-18T08:00:00+05:00\"\n                    auditEvents:\n                      - id: 801\n                        action: \"Scheduled\"\n                        occurredAt: \"2026-06-16T09:00:00+05:00\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"422\":\n          $ref: \"#/components/responses/UnprocessableEntity\"\n  /parking/releases/{releaseId}:\n    parameters:\n      - $ref: \"#/components/parameters/ReleaseId\"\n    delete:\n      operationId: cancelParkingRelease\n      summary: Cancel an unclaimed scheduled release\n      responses:\n        \"200\":\n          description: Release cancelled with scheduling and cancellation audit events\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Release\"\n              example:\n                id: 701\n                officeDate: \"2026-06-18\"\n                space: \"B2-114\"\n                status: \"Cancelled\"\n                claimableAt: \"2026-06-18T08:00:00+05:00\"\n                auditEvents:\n                  - id: 801\n                    action: \"Scheduled\"\n                    occurredAt: \"2026-06-16T09:00:00+05:00\"\n                  - id: 802\n                    action: \"Cancelled\"\n                    occurredAt: \"2026-06-16T09:10:00+05:00\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n  /parking/availability:\n    get:\n      operationId: getParkingAvailability\n      summary: Get claimable spaces for the office-local date\n      responses:\n        \"200\":\n          description: Current claimable parking spaces\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ParkingAvailability\"\n              example:\n                id: 401\n                officeDate: \"2026-06-16\"\n                timezone: \"Asia/Karachi\"\n                availableSpaces: 3\n                releaseTime: \"08:00\"\n                floors:\n                  - floor: \"B1\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                  - floor: \"B2\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                  - floor: \"B3\"\n                    freeSpaces: 5\n                    totalSpaces: 20\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n  /parking/claims:\n    post:\n      operationId: claimParkingSpace\n      summary: Claim the next available temporary parking space\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/ClaimRequest\"\n            example:\n              vehicleId: 501\n              officeDate: \"2026-06-16\"\n      responses:\n        \"201\":\n          description: Space allocated to the selected registered vehicle\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ParkingClaim\"\n              example:\n                id: 901\n                floor: \"B1\"\n                space: \"B1-08\"\n                plate: \"KLG-4821\"\n                officeDate: \"2026-06-16\"\n                status: \"Active\"\n                entryStatus: \"Awaiting detection\"\n                floorCapacity:\n                  - floor: \"B1\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                  - floor: \"B2\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                allocationRule: \"Highest free count; ties go to lowest floor code\"\n                authorizationScope: \"KLG-4821 only · this allocation\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n        \"422\":\n          $ref: \"#/components/responses/UnprocessableEntity\"\n  /parking/claims/today:\n    get:\n      operationId: getTodaysParkingClaim\n      summary: Get the signed-in employee's temporary allocation for today\n      responses:\n        \"200\":\n          description: Today's temporary parking allocation\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ParkingClaim\"\n              example:\n                id: 901\n                floor: \"B1\"\n                space: \"B1-08\"\n                plate: \"KLG-4821\"\n                officeDate: \"2026-06-16\"\n                status: \"Active\"\n                entryStatus: \"Awaiting detection\"\n                floorCapacity:\n                  - floor: \"B1\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                  - floor: \"B2\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                allocationRule: \"Highest free count; ties go to lowest floor code\"\n                authorizationScope: \"KLG-4821 only · this allocation\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n  /parking/claims/{claimId}:\n    parameters:\n      - $ref: \"#/components/parameters/ClaimId\"\n    delete:\n      operationId: cancelParkingClaim\n      summary: Request cancellation of a temporary parking claim\n      responses:\n        \"200\":\n          description: Claim cancellation outcome\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ParkingClaim\"\n              example:\n                id: 901\n                floor: \"B1\"\n                space: \"B1-08\"\n                plate: \"KLG-4821\"\n                officeDate: \"2026-06-16\"\n                status: \"Active\"\n                entryStatus: \"Awaiting detection\"\n                floorCapacity:\n                  - floor: \"B1\"\n                    freeSpaces: 8\n                    totalSpaces: 28\n                allocationRule: \"Highest free count; ties go to lowest floor code\"\n                authorizationScope: \"KLG-4821 only · this allocation\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n        \"404\":\n          $ref: \"#/components/responses/NotFound\"\n        \"409\":\n          $ref: \"#/components/responses/Conflict\"\n  /admin/roster:\n    get:\n      operationId: getParkingRoster\n      summary: Search and filter the employee parking roster\n      parameters:\n        - name: search\n          in: query\n          required: false\n          schema:\n            type: string\n        - name: assignment\n          in: query\n          required: false\n          schema:\n            type: string\n            enum:\n              - all\n              - dedicated\n              - nonDedicated\n        - name: page\n          in: query\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n        - name: pageSize\n          in: query\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n      responses:\n        \"200\":\n          description: Authorized roster page\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/RosterPage\"\n              example:\n                id: 1\n                page: 1\n                pages: 18\n                employees:\n                  - id: 101\n                    employeeName: \"Aisha Rahman\"\n                    corporateEmail: \"aisha.rahman@folio3.com\"\n                    assignment: \"Dedicated · B2-114\"\n                    vehiclePlate: \"KLG-4821\"\n                    access: \"Employee\"\n                  - id: 102\n                    employeeName: \"Bilal Ahmed\"\n                    corporateEmail: \"bilal.ahmed@folio3.com\"\n                    assignment: \"Non-dedicated\"\n                    vehiclePlate: \"LEA-9073\"\n                    access: \"Employee\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n  /admin/entry-checks:\n    get:\n      operationId: getEntranceChecks\n      summary: Search and filter entrance verification activity\n      parameters:\n        - name: search\n          in: query\n          required: false\n          schema:\n            type: string\n        - name: result\n          in: query\n          required: false\n          schema:\n            type: string\n            enum:\n              - all\n              - authorized\n              - denied\n              - permanentSticker\n              - unsuccessful\n        - name: page\n          in: query\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n      responses:\n        \"200\":\n          description: Entrance verification activity page\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/EntryCheckPage\"\n              example:\n                id: 1\n                page: 1\n                pages: 4\n                checks:\n                  - id: 601\n                    officeDate: \"2026-06-16\"\n                    officeTime: \"08:12\"\n                    plate: \"KLG-4821\"\n                    verificationResult: \"Authorized\"\n                    entryStatus: \"Green requested\"\n                    detail: \"Active temporary allocation\"\n                  - id: 602\n                    officeDate: \"2026-06-16\"\n                    officeTime: \"07:54\"\n                    plate: \"ICT-6612\"\n                    verificationResult: \"Permanent sticker\"\n                    entryStatus: \"Not blocked\"\n                    detail: \"Utilization recorded\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n  /entrance/verify:\n    post:\n      operationId: verifyEntranceDetection\n      summary: Verify an entrance LPR detection and record its outcome\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/EntranceDetection\"\n            example:\n              id: 1001\n              detectedAt: \"2026-06-16T08:12:00+05:00\"\n              objectType: \"car\"\n              plate: \"KLG-4821\"\n              failure: \"none\"\n      responses:\n        \"200\":\n          description: Detection processed, including non-car and fail-closed outcomes\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/EntranceVerification\"\n              examples:\n                authorized:\n                  value:\n                    id: 701\n                    officeDate: \"2026-06-16\"\n                    officeTime: \"08:12\"\n                    plate: \"KLG-4821\"\n                    verificationResult: \"Authorized\"\n                    entryStatus: \"Green requested\"\n                    indicatorCommand: \"Green\"\n                    detail: \"Active temporary allocation\"\n                nonCar:\n                  value:\n                    id: 702\n                    officeDate: \"2026-06-16\"\n                    officeTime: \"08:13\"\n                    plate: null\n                    verificationResult: null\n                    entryStatus: \"Not blocked\"\n                    indicatorCommand: \"None\"\n                    detail: \"Non-car object\"\n                unsuccessful:\n                  value:\n                    id: 703\n                    officeDate: \"2026-06-16\"\n                    officeTime: \"07:43\"\n                    plate: null\n                    verificationResult: \"Unsuccessful\"\n                    entryStatus: \"Denied\"\n                    indicatorCommand: \"None\"\n                    detail: \"Plate unreadable\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"503\":\n          description: Entrance service unavailable and entry denied\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/EntranceVerification\"\n              example:\n                id: 704\n                officeDate: \"2026-06-16\"\n                officeTime: \"07:02\"\n                plate: \"KLG-1093\"\n                verificationResult: \"Unsuccessful\"\n                entryStatus: \"Denied\"\n                indicatorCommand: \"None\"\n                detail: \"Camera connection unavailable\"\n  /admin/utilization:\n    get:\n      operationId: getWeeklyUtilizationReport\n      summary: Get a weekly utilization report\n      parameters:\n        - name: weekStart\n          in: query\n          required: false\n          schema:\n            type: string\n            format: date\n      responses:\n        \"200\":\n          description: Weekly utilization report\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/UtilizationReport\"\n              example:\n                id: 801\n                weekStart: \"2026-06-08\"\n                weekEnd: \"2026-06-12\"\n                generatedAt: \"2026-06-15T08:05:00+05:00\"\n                releasedSpaces: 14\n                temporaryClaims: 21\n                overallUtilizationPercent: 83.6\n                dailyStatistics:\n                  - id: 1\n                    officeDate: \"2026-06-08\"\n                    label: \"Mon 8\"\n                    utilizationPercent: 82\n                  - id: 2\n                    officeDate: \"2026-06-09\"\n                    label: \"Tue 9\"\n                    utilizationPercent: 86\n                unusedParking:\n                  - id: 901\n                    employeeName: \"Bilal Ahmed\"\n                    parkingType: \"Temporary\"\n                    eventType: \"Unused Temporary Parking\"\n                    officeDate: \"2026-06-08\"\n                  - id: 902\n                    employeeName: \"Aisha Rahman\"\n                    parkingType: \"Dedicated\"\n                    eventType: \"Unused Dedicated Parking\"\n                    officeDate: \"2026-06-09\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n  /admin/office-settings:\n    get:\n      operationId: getOfficeParkingSettings\n      summary: Get office timezone, release time, and report recipients\n      responses:\n        \"200\":\n          description: Saved office parking settings\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/OfficeSettings\"\n              example:\n                id: 1\n                timezone: \"Asia/Karachi\"\n                releaseTime: \"08:00\"\n                schedulingWindowDays: 30\n                reportRecipients:\n                  - \"ops@folio3.com\"\n                  - \"fac@folio3.com\"\n                nextReportDelivery: \"2026-06-22T08:15:00+05:00\"\n                reportSchedule: \"Every Monday · office-local time\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n    put:\n      operationId: updateOfficeParkingSettings\n      summary: Update office timezone, daily release time, and report recipients\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/OfficeSettingsInput\"\n            example:\n              timezone: \"Asia/Karachi\"\n              releaseTime: \"08:00\"\n              reportRecipients:\n                - \"ops@folio3.com\"\n                - \"fac@folio3.com\"\n      responses:\n        \"200\":\n          description: Updated office parking settings\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/OfficeSettings\"\n              example:\n                id: 1\n                timezone: \"Asia/Karachi\"\n                releaseTime: \"08:00\"\n                schedulingWindowDays: 30\n                reportRecipients:\n                  - \"ops@folio3.com\"\n                  - \"fac@folio3.com\"\n                nextReportDelivery: \"2026-06-22T08:15:00+05:00\"\n                reportSchedule: \"Every Monday · office-local time\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n  /admin/activity:\n    get:\n      operationId: getParkingActivity\n      summary: Search and filter retained parking activity history\n      parameters:\n        - name: search\n          in: query\n          required: false\n          schema:\n            type: string\n        - name: eventType\n          in: query\n          required: false\n          schema:\n            type: string\n            enum:\n              - all\n              - release\n              - claim\n              - entranceVerification\n              - utilization\n        - name: page\n          in: query\n          required: false\n          schema:\n            type: integer\n            minimum: 1\n      responses:\n        \"200\":\n          description: Retained parking activity page\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/ParkingActivityPage\"\n              example:\n                id: 1\n                page: 1\n                pages: 12\n                events:\n                  - id: 1001\n                    occurredAt: \"2026-06-16T08:04:00+05:00\"\n                    employeeName: \"Aisha Rahman\"\n                    event: \"Same-day release\"\n                    spaceOrPlate: \"B2-114\"\n                    outcome: \"Released\"\n                  - id: 1002\n                    occurredAt: \"2026-06-16T08:07:00+05:00\"\n                    employeeName: \"Bilal Ahmed\"\n                    event: \"Temporary claim\"\n                    spaceOrPlate: \"B2-08 · KLG-4821\"\n                    outcome: \"Claimed\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"403\":\n          $ref: \"#/components/responses/Forbidden\"\n  /notifications/availability:\n    post:\n      operationId: sendAvailabilityNotification\n      summary: Send the fixed-template email to eligible non-dedicated employees when spaces become available\n      security: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/AvailabilityNotificationRequest\"\n            example:\n              id: 1201\n              officeDate: \"2026-06-16\"\n              availableSpaces: 3\n      responses:\n        \"202\":\n          description: Availability email dispatch accepted\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/NotificationDispatch\"\n              example:\n                id: 1201\n                status: \"accepted\"\n                recipientCount: 42\n                template: \"parking-availability\"\n        \"400\":\n          $ref: \"#/components/responses/BadRequest\"\n        \"503\":\n          $ref: \"#/components/responses/ServiceUnavailable\"\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n  parameters:\n    ReleaseId:\n      name: releaseId\n      in: path\n      required: true\n      schema:\n        type: integer\n    ClaimId:\n      name: claimId\n      in: path\n      required: true\n      schema:\n        type: integer\n  responses:\n    BadRequest:\n      description: Request is invalid\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"bad_request\"\n            message: \"The request is invalid.\"\n            field: \"officeDate\"\n    Unauthorized:\n      description: Authentication is required or the identity is not an eligible Folio3 account\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"unauthorized\"\n            message: \"A valid Folio3 Workspace session is required.\"\n            field: null\n    Forbidden:\n      description: The signed-in user is not authorized for this resource\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"forbidden\"\n            message: \"You are not authorized to access this resource.\"\n            field: null\n    NotFound:\n      description: Requested record was not found\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"not_found\"\n            message: \"The requested parking record was not found.\"\n            field: null\n    Conflict:\n      description: Request conflicts with the current parking state\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"conflict\"\n            message: \"The parking record has already changed state.\"\n            field: \"status\"\n    UnprocessableEntity:\n      description: Request is well formed but violates parking eligibility or date rules\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"vehicle_required\"\n            message: \"Register and select a vehicle before claiming parking.\"\n            field: \"vehicleId\"\n    ServiceUnavailable:\n      description: A required service is unavailable\n      content:\n        application/json:\n          schema:\n            $ref: \"#/components/schemas/ApiError\"\n          example:\n            code: \"service_unavailable\"\n            message: \"The service is temporarily unavailable.\"\n            field: null\n  schemas:\n    ApiError:\n      type: object\n      required:\n        - code\n        - message\n        - field\n      properties:\n        code:\n          type: string\n        message:\n          type: string\n        field:\n          type: string\n          nullable: true\n    AuthorizationStart:\n      type: object\n      required:\n        - authorizationUrl\n        - state\n      properties:\n        authorizationUrl:\n          type: string\n          format: uri\n        state:\n          type: string\n    SignInRequest:\n      type: object\n      required:\n        - authorizationCode\n        - state\n      properties:\n        authorizationCode:\n          type: string\n        state:\n          type: string\n    Session:\n      type: object\n      required:\n        - id\n        - employeeId\n        - employeeName\n        - corporateEmail\n        - role\n        - accessToken\n      properties:\n        id:\n          type: integer\n        employeeId:\n          type: string\n        employeeName:\n          type: string\n        corporateEmail:\n          type: string\n          format: email\n        role:\n          type: string\n          enum:\n            - employee\n            - administrator\n        accessToken:\n          type: string\n    EmployeeProfile:\n      type: object\n      required:\n        - id\n        - employeeId\n        - employeeName\n        - corporateEmail\n        - dedicatedParking\n        - assignedFloor\n        - assignedSpace\n        - vehicles\n      properties:\n        id:\n          type: integer\n        employeeId:\n          type: string\n        employeeName:\n          type: string\n        corporateEmail:\n          type: string\n          format: email\n        dedicatedParking:\n          type: boolean\n        assignedFloor:\n          type: string\n          nullable: true\n        assignedSpace:\n          type: string\n          nullable: true\n        vehicles:\n          type: array\n          items:\n            $ref: \"#/components/schemas/Vehicle\"\n    VehicleInput:\n      type: object\n      required:\n        - plate\n      properties:\n        plate:\n          type: string\n        make:\n          type: string\n          nullable: true\n        model:\n          type: string\n          nullable: true\n        color:\n          type: string\n          nullable: true\n    Vehicle:\n      type: object\n      required:\n        - id\n        - plate\n        - make\n        - model\n        - color\n        - active\n      properties:\n        id:\n          type: integer\n        plate:\n          type: string\n        make:\n          type: string\n          nullable: true\n        model:\n          type: string\n          nullable: true\n        color:\n          type: string\n          nullable: true\n        active:\n          type: boolean\n    VehicleCollection:\n      type: object\n      required:\n        - vehicles\n      properties:\n        vehicles:\n          type: array\n          items:\n            $ref: \"#/components/schemas/Vehicle\"\n    ParkingDashboard:\n      type: object\n      required:\n        - id\n        - officeDate\n        - timezone\n        - releaseTime\n        - assignedSpace\n        - spaceStatus\n        - availableSpaces\n        - registeredVehicle\n        - workingDays\n        - workingDayRule\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        timezone:\n          type: string\n        releaseTime:\n          type: string\n          format: time\n        assignedSpace:\n          type: string\n          nullable: true\n        spaceStatus:\n          type: string\n          enum:\n            - Reserved\n            - Released\n            - Claimed\n        availableSpaces:\n          type: integer\n        registeredVehicle:\n          type: string\n          nullable: true\n        workingDays:\n          type: array\n          items:\n            type: string\n        workingDayRule:\n          type: string\n    TodayReleaseRequest:\n      type: object\n      required:\n        - officeDate\n      properties:\n        officeDate:\n          type: string\n          format: date\n    AuditEvent:\n      type: object\n      required:\n        - id\n        - action\n        - occurredAt\n      properties:\n        id:\n          type: integer\n        action:\n          type: string\n        occurredAt:\n          type: string\n          format: date-time\n    Release:\n      type: object\n      required:\n        - id\n        - officeDate\n        - space\n        - status\n        - claimableAt\n        - auditEvents\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        space:\n          type: string\n        status:\n          type: string\n          enum:\n            - Reserved\n            - Released\n            - Claimed\n            - Cancelled\n        claimableAt:\n          type: string\n          format: date-time\n        auditEvents:\n          type: array\n          items:\n            $ref: \"#/components/schemas/AuditEvent\"\n    ReleaseCollection:\n      type: object\n      required:\n        - releases\n      properties:\n        releases:\n          type: array\n          items:\n            $ref: \"#/components/schemas/Release\"\n    ReleaseScheduleRequest:\n      type: object\n      required:\n        - officeDates\n      properties:\n        officeDates:\n          type: array\n          minItems: 1\n          items:\n            type: string\n            format: date\n    FloorCapacity:\n      type: object\n      required:\n        - floor\n        - freeSpaces\n        - totalSpaces\n      properties:\n        floor:\n          type: string\n        freeSpaces:\n          type: integer\n        totalSpaces:\n          type: integer\n    ParkingAvailability:\n      type: object\n      required:\n        - id\n        - officeDate\n        - timezone\n        - availableSpaces\n        - releaseTime\n        - floors\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        timezone:\n          type: string\n        availableSpaces:\n          type: integer\n        releaseTime:\n          type: string\n          format: time\n        floors:\n          type: array\n          items:\n            $ref: \"#/components/schemas/FloorCapacity\"\n    ClaimRequest:\n      type: object\n      required:\n        - vehicleId\n        - officeDate\n      properties:\n        vehicleId:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n    ParkingClaim:\n      type: object\n      required:\n        - id\n        - floor\n        - space\n        - plate\n        - officeDate\n        - status\n        - entryStatus\n        - floorCapacity\n        - allocationRule\n        - authorizationScope\n      properties:\n        id:\n          type: integer\n        floor:\n          type: string\n        space:\n          type: string\n        plate:\n          type: string\n        officeDate:\n          type: string\n          format: date\n        status:\n          type: string\n          enum:\n            - Active\n            - Cancelled\n        entryStatus:\n          type: string\n        floorCapacity:\n          type: array\n          items:\n            $ref: \"#/components/schemas/FloorCapacity\"\n        allocationRule:\n          type: string\n        authorizationScope:\n          type: string\n    RosterEmployee:\n      type: object\n      required:\n        - id\n        - employeeName\n        - corporateEmail\n        - assignment\n        - vehiclePlate\n        - access\n      properties:\n        id:\n          type: integer\n        employeeName:\n          type: string\n        corporateEmail:\n          type: string\n          format: email\n        assignment:\n          type: string\n        vehiclePlate:\n          type: string\n        access:\n          type: string\n    RosterPage:\n      type: object\n      required:\n        - id\n        - page\n        - pages\n        - employees\n      properties:\n        id:\n          type: integer\n        page:\n          type: integer\n        pages:\n          type: integer\n        employees:\n          type: array\n          items:\n            $ref: \"#/components/schemas/RosterEmployee\"\n    EntryCheck:\n      type: object\n      required:\n        - id\n        - officeDate\n        - officeTime\n        - plate\n        - verificationResult\n        - entryStatus\n        - detail\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        officeTime:\n          type: string\n          format: time\n        plate:\n          type: string\n        verificationResult:\n          type: string\n        entryStatus:\n          type: string\n        detail:\n          type: string\n    EntryCheckPage:\n      type: object\n      required:\n        - id\n        - page\n        - pages\n        - checks\n      properties:\n        id:\n          type: integer\n        page:\n          type: integer\n        pages:\n          type: integer\n        checks:\n          type: array\n          items:\n            $ref: \"#/components/schemas/EntryCheck\"\n    EntranceDetection:\n      type: object\n      required:\n        - id\n        - detectedAt\n        - objectType\n        - plate\n        - failure\n      properties:\n        id:\n          type: integer\n        detectedAt:\n          type: string\n          format: date-time\n        objectType:\n          type: string\n          enum:\n            - car\n            - pedestrian\n            - motorcycle\n            - other\n        plate:\n          type: string\n          nullable: true\n        failure:\n          type: string\n          enum:\n            - none\n            - camera\n            - recognition\n            - network\n            - indicator\n            - unreadablePlate\n    EntranceVerification:\n      type: object\n      required:\n        - id\n        - officeDate\n        - officeTime\n        - plate\n        - verificationResult\n        - entryStatus\n        - indicatorCommand\n        - detail\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        officeTime:\n          type: string\n          format: time\n        plate:\n          type: string\n          nullable: true\n        verificationResult:\n          type: string\n          nullable: true\n          enum:\n            - Authorized\n            - Denied\n            - Permanent sticker\n            - Unsuccessful\n            - Allocation cancelled\n        entryStatus:\n          type: string\n        indicatorCommand:\n          type: string\n          enum:\n            - Green\n            - None\n        detail:\n          type: string\n    DailyUtilization:\n      type: object\n      required:\n        - id\n        - officeDate\n        - label\n        - utilizationPercent\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        label:\n          type: string\n        utilizationPercent:\n          type: number\n          format: float\n    UnusedParking:\n      type: object\n      required:\n        - id\n        - employeeName\n        - parkingType\n        - eventType\n        - officeDate\n      properties:\n        id:\n          type: integer\n        employeeName:\n          type: string\n        parkingType:\n          type: string\n          enum:\n            - Dedicated\n            - Temporary\n        eventType:\n          type: string\n          enum:\n            - Unused Dedicated Parking\n            - Unused Temporary Parking\n        officeDate:\n          type: string\n          format: date\n    UtilizationReport:\n      type: object\n      required:\n        - id\n        - weekStart\n        - weekEnd\n        - generatedAt\n        - releasedSpaces\n        - temporaryClaims\n        - overallUtilizationPercent\n        - dailyStatistics\n        - unusedParking\n      properties:\n        id:\n          type: integer\n        weekStart:\n          type: string\n          format: date\n        weekEnd:\n          type: string\n          format: date\n        generatedAt:\n          type: string\n          format: date-time\n        releasedSpaces:\n          type: integer\n        temporaryClaims:\n          type: integer\n        overallUtilizationPercent:\n          type: number\n          format: float\n        dailyStatistics:\n          type: array\n          items:\n            $ref: \"#/components/schemas/DailyUtilization\"\n        unusedParking:\n          type: array\n          items:\n            $ref: \"#/components/schemas/UnusedParking\"\n    OfficeSettingsInput:\n      type: object\n      required:\n        - timezone\n        - releaseTime\n        - reportRecipients\n      properties:\n        timezone:\n          type: string\n        releaseTime:\n          type: string\n          format: time\n        reportRecipients:\n          type: array\n          minItems: 1\n          items:\n            type: string\n            format: email\n    OfficeSettings:\n      type: object\n      required:\n        - id\n        - timezone\n        - releaseTime\n        - schedulingWindowDays\n        - reportRecipients\n        - nextReportDelivery\n        - reportSchedule\n      properties:\n        id:\n          type: integer\n        timezone:\n          type: string\n        releaseTime:\n          type: string\n          format: time\n        schedulingWindowDays:\n          type: integer\n        reportRecipients:\n          type: array\n          items:\n            type: string\n            format: email\n        nextReportDelivery:\n          type: string\n          format: date-time\n        reportSchedule:\n          type: string\n    ParkingActivity:\n      type: object\n      required:\n        - id\n        - occurredAt\n        - employeeName\n        - event\n        - spaceOrPlate\n        - outcome\n      properties:\n        id:\n          type: integer\n        occurredAt:\n          type: string\n          format: date-time\n        employeeName:\n          type: string\n        event:\n          type: string\n        spaceOrPlate:\n          type: string\n        outcome:\n          type: string\n    ParkingActivityPage:\n      type: object\n      required:\n        - id\n        - page\n        - pages\n        - events\n      properties:\n        id:\n          type: integer\n        page:\n          type: integer\n        pages:\n          type: integer\n        events:\n          type: array\n          items:\n            $ref: \"#/components/schemas/ParkingActivity\"\n    AvailabilityNotificationRequest:\n      type: object\n      required:\n        - id\n        - officeDate\n        - availableSpaces\n      properties:\n        id:\n          type: integer\n        officeDate:\n          type: string\n          format: date\n        availableSpaces:\n          type: integer\n          minimum: 1\n    NotificationDispatch:\n      type: object\n      required:\n        - id\n        - status\n        - recipientCount\n        - template\n      properties:\n        id:\n          type: integer\n        status:\n          type: string\n          enum:\n            - accepted\n        recipientCount:\n          type: integer\n        template:\n          type: string\n"
+     }
+    ]
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

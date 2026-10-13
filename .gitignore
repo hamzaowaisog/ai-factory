@@ -5,7 +5,6 @@ coverage/
 .env.*
 !.env.example
 *.log
-!ledgers/**/*.log
 test-results/
 playwright-report/
 

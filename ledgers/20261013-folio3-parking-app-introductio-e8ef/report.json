@@ -1,0 +1,406 @@
+{
+  "runId": "20261013-folio3-parking-app-introductio-e8ef",
+  "status": "waiting",
+  "request": "Folio3 Parking App\n\nIntroduction\n\nFolio3 has a fixed number of parking spaces available at its office premises, while the number of\nemployees commuting to the office by car is greater than the availab",
+  "costUsd": 0.28908214,
+  "activeMin": 13.9841,
+  "firstTimePassRate": 0.8,
+  "topCost": [
+    {
+      "step": "specify",
+      "costUsd": 0.21607413999999997
+    },
+    {
+      "step": "drafts",
+      "costUsd": 0.03439837
+    },
+    {
+      "step": "merge",
+      "costUsd": 0.0139846
+    }
+  ],
+  "steps": [
+    {
+      "step": "discover",
+      "stage": "discover",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 35.785,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 0,
+        "labSec": 35
+      }
+    },
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 3446,
+        "output": 215,
+        "cached": 0
+      },
+      "costUsd": 0.00045210000000000004,
+      "activeSec": 2.296,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 2,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 11210,
+        "output": 5438,
+        "cached": 13163
+      },
+      "costUsd": 0.00397163,
+      "activeSec": 50.614,
+      "gates": {
+        "passed": 1,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 51,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 23623,
+        "output": 8282,
+        "cached": 0
+      },
+      "costUsd": 0.0065033,
+      "activeSec": 63.172,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ],
+        "questionsAsked": 3,
+        "answersChanged": 0
+      },
+      "time": {
+        "modelSec": 81,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 6964,
+        "output": 2372,
+        "cached": 0
+      },
+      "costUsd": 0.0018824,
+      "activeSec": 24.834,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ],
+        "questionsAsked": 1,
+        "answersChanged": 0
+      },
+      "time": {
+        "modelSec": 25,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "drafts",
+      "stage": "drafts",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 65018,
+        "output": 53853,
+        "cached": 97007
+      },
+      "costUsd": 0.03439837,
+      "activeSec": 170.471,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 472,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "merge",
+      "stage": "merge",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures"
+      ],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 44661,
+        "output": 19037,
+        "cached": 0
+      },
+      "costUsd": 0.0139846,
+      "activeSec": 125.72399999999999,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 126,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "specify",
+      "stage": "specify",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 4,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Same failure again; escalating",
+        "Same failure again; escalating"
+      ],
+      "highestRung": 2,
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-sol"
+      ],
+      "tokens": {
+        "input": 159628,
+        "output": 34492,
+        "cached": 83223
+      },
+      "costUsd": 0.21607413999999997,
+      "activeSec": 332.328,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 331,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "impact",
+      "stage": "impact",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.023,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "plan",
+      "stage": "plan",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 26049,
+        "output": 17931,
+        "cached": 24520
+      },
+      "costUsd": 0.0118156,
+      "activeSec": 149.151,
+      "gates": {
+        "passed": 1,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 141,
+        "agentSec": 0,
+        "labSec": 8
+      }
+    },
+    {
+      "step": "approve",
+      "stage": "approve",
+      "outcome": "interrupted",
+      "firstTimePass": false,
+      "attempts": 0,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.06,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": []
+      }
+    }
+  ],
+  "createdAt": "2026-10-13T22:54:39.198Z",
+  "humanCards": [
+    "question",
+    "question",
+    "question",
+    "approval"
+  ]
+}

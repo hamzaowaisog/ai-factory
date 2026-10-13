@@ -1,0 +1,678 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When a client requests `GET /api/auth/google/authorization`, the Folio3 Parking API shall implement `getGoogleAuthorization` with the response schema and status codes defined in `contracts/openapi.yaml`, building the Google Workspace authorization URL from the deployment-configured client ID and redirect URI.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "Google Workspace OAuth client ID and redirect URI are set in deployment configuration",
+        "when": "a client sends `GET /api/auth/google/authorization`",
+        "then": "the response status is 200 and the response fields `authorizationUrl` and `state` are present, with the configured client ID and redirect URI in the authorization URL",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "Google Workspace OAuth configuration is unavailable",
+        "when": "a client sends `GET /api/auth/google/authorization`",
+        "then": "the response status is 503 and the response field `code` identifies the service-unavailable error",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When a client sends `POST /api/auth/sign-in`, the Folio3 Parking API shall implement `signIn` with the request, response, and status codes defined in `contracts/openapi.yaml`, exchanging the authorization code with Google Workspace using the deployment-configured client ID, client secret, and redirect URI and accepting only eligible Folio3 Workspace identities.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A valid Google Workspace authorization code and matching state identify an eligible Folio3 employee",
+        "when": "the client posts the sign-in request",
+        "then": "the response status is 200 and the response fields `employeeId`, `corporateEmail`, `role`, and `accessToken` are present",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "Google Workspace OAuth values are set in deployment configuration and a valid authorization code is submitted",
+        "when": "the API exchanges the code",
+        "then": "the request sent to Google Workspace's token endpoint contains the configured client ID, client secret, redirect URI, authorization code, and state",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.3",
+        "given": "Google Workspace identifies the account as a non-Folio3 account or the submitted state is invalid",
+        "when": "the client posts the sign-in request",
+        "then": "the response status is 401 for an ineligible identity or 400 for an invalid request, and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When an authenticated employee requests `GET /api/employees/me`, the Folio3 Parking API shall implement `getMyEmployeeProfile` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "An authenticated employee has a profile and registered vehicles in App",
+        "when": "the employee requests `GET /api/employees/me`",
+        "then": "the response status is 200 and the response fields `employeeId`, `corporateEmail`, `dedicatedParking`, and `vehicles` match that employee's records",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "The request has no valid bearer token",
+        "when": "the client requests `GET /api/employees/me`",
+        "then": "the response status is 401 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When an authenticated employee requests `GET /api/parking/dashboard`, the Folio3 Parking API shall implement `getParkingDashboard` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "An authenticated employee has an assigned parking record and office settings",
+        "when": "the employee requests `GET /api/parking/dashboard`",
+        "then": "the response status is 200 and the response fields `officeDate`, `timezone`, `releaseTime`, `spaceStatus`, and `availableSpaces` are present",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "The request has no valid bearer token",
+        "when": "the client requests `GET /api/parking/dashboard`",
+        "then": "the response status is 401 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When an authenticated employee submits `POST /api/parking/releases/today`, the Folio3 Parking API shall implement `releaseTodaysSpace` with the request, response, and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "The authenticated employee has dedicated parking and the submitted `officeDate` is today in the office timezone",
+        "when": "the employee posts the today-release request",
+        "then": "the response status is 200 and the returned `status`, `space`, `claimableAt`, and `auditEvents` fields describe the release",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "The employee is not eligible to release dedicated parking or the same release already conflicts with parking state",
+        "when": "the employee posts the today-release request",
+        "then": "the response status is 403 or 409 respectively and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When an authenticated employee requests `GET /api/vehicles`, the Folio3 Parking API shall implement `listMyVehicles` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "An authenticated employee has registered vehicles in App",
+        "when": "the employee requests `GET /api/vehicles`",
+        "then": "the response status is 200 and the `vehicles` list contains that employee's vehicle fields, including `plate` and `active`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "The request has no valid bearer token",
+        "when": "the client requests `GET /api/vehicles`",
+        "then": "the response status is 401 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When an authenticated employee submits `POST /api/vehicles`, the Folio3 Parking API shall implement `registerVehicle` with the request, response, and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "The request contains a valid plate not already registered to the employee",
+        "when": "the employee posts the vehicle input",
+        "then": "the response status is 201 and the returned vehicle fields include the submitted `plate` and `active` set to true",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "The request has an invalid vehicle input or a plate that conflicts with an existing record",
+        "when": "the employee posts the vehicle input",
+        "then": "the response status is 400 or 409 respectively and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When an authenticated employee requests `GET /api/parking/releases`, the Folio3 Parking API shall implement `listMyReleases` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "An authenticated employee has saved parking releases with audit events in App",
+        "when": "the employee requests `GET /api/parking/releases`",
+        "then": "the response status is 200 and the `releases` list contains the employee's release fields and `auditEvents`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-8.2",
+        "given": "The request has no valid bearer token",
+        "when": "the client requests `GET /api/parking/releases`",
+        "then": "the response status is 401 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When an authenticated employee submits `POST /api/parking/releases`, the Folio3 Parking API shall implement `scheduleParkingReleases` for one or more dates within the next 30 calendar days, with the request, response, and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "A dedicated-parking employee submits one or more valid dates within the scheduling window",
+        "when": "the employee posts the release schedule request",
+        "then": "the response status is 201 and the returned `releases` list contains the saved dates and `Scheduled` audit events",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "The request contains an invalid date, a date outside the 30-calendar-day window, or the employee is not eligible",
+        "when": "the employee posts the release schedule request",
+        "then": "the response status is 400, 422, or 403 for the corresponding invalidity, date-rule, or eligibility case, and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When an authenticated employee submits `DELETE /api/parking/releases/{releaseId}`, the Folio3 Parking API shall implement `cancelParkingRelease` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "The authenticated employee owns an unclaimed scheduled release",
+        "when": "the employee deletes that release",
+        "then": "the response status is 200 and the returned `status` is `Cancelled` with both scheduling and cancellation records in `auditEvents`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "The release does not exist, belongs to another employee, or has already been claimed",
+        "when": "the employee deletes that release",
+        "then": "the response status is 404, 403, or 409 for the corresponding case and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "When an authenticated employee requests `GET /api/parking/availability`, the Folio3 Parking API shall implement `getParkingAvailability` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "Office capacity, release time, and current parking allocations are configured",
+        "when": "the employee requests `GET /api/parking/availability`",
+        "then": "the response status is 200 and the response fields `officeDate`, `timezone`, `availableSpaces`, `releaseTime`, and `floors` report the office-local availability",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-11.2",
+        "given": "The request has no valid bearer token",
+        "when": "the client requests `GET /api/parking/availability`",
+        "then": "the response status is 401 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When an authenticated employee submits `POST /api/parking/claims`, the Folio3 Parking API shall implement `claimParkingSpace` to allocate the next available temporary space using the submitted registered vehicle, with the request, response, and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "An eligible employee has a registered vehicle and a claimable space exists",
+        "when": "the employee posts a claim with that `vehicleId` and `officeDate`",
+        "then": "the response status is 201 and the returned fields `floor`, `space`, `plate`, `status`, `floorCapacity`, and `authorizationScope` describe the allocation",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "The employee is ineligible, the vehicle is unavailable, or no space can be claimed",
+        "when": "the employee posts the claim request",
+        "then": "the response status is 403, 422, or 409 for the corresponding case and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When an authenticated employee requests `GET /api/parking/claims/today`, the Folio3 Parking API shall implement `getTodaysParkingClaim` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "The authenticated employee has a temporary allocation for today",
+        "when": "the employee requests `GET /api/parking/claims/today`",
+        "then": "the response status is 200 and the response fields `floor`, `space`, `plate`, `officeDate`, and `entryStatus` match the allocation record",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-13.2",
+        "given": "The authenticated employee has no temporary allocation for today",
+        "when": "the employee requests `GET /api/parking/claims/today`",
+        "then": "the response status is 404 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When an authenticated employee submits `DELETE /api/parking/claims/{claimId}`, the Folio3 Parking API shall implement `cancelParkingClaim` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "The authenticated employee owns the identified temporary claim",
+        "when": "the employee deletes that claim",
+        "then": "the response status is 200 and the response fields `id` and `status` describe the cancellation outcome using a contract-defined status value",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-14.2",
+        "given": "The claim does not exist, belongs to another employee, or cannot be cancelled in its current state",
+        "when": "the employee deletes that claim",
+        "then": "the response status is 404, 403, or 409 for the corresponding case and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When an authorized administrator requests `GET /api/admin/roster`, the Folio3 Parking API shall implement `getParkingRoster` with the documented search, assignment, pagination parameters, response schema, and status codes in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "App contains dedicated and non-dedicated employee records",
+        "when": "an authorized administrator requests the roster with search, assignment, page, and pageSize filters",
+        "then": "the response status is 200 and the response fields `page`, `pages`, and `employees` contain only records matching the supplied filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-15.2",
+        "given": "The caller is not an authorized administrator",
+        "when": "the caller requests `GET /api/admin/roster`",
+        "then": "the response status is 403 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "When an authorized administrator requests `GET /api/admin/entry-checks`, the Folio3 Parking API shall implement `getEntranceChecks` with the documented search, result, pagination parameters, response schema, and status codes in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "App contains entrance verification records with different results",
+        "when": "an authorized administrator requests entry checks using search, result, and page filters",
+        "then": "the response status is 200 and the response fields `page`, `pages`, and `checks` contain records matching the supplied filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-16.2",
+        "given": "The caller is not an authorized administrator",
+        "when": "the caller requests `GET /api/admin/entry-checks`",
+        "then": "the response status is 403 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "ears": "When a client submits `POST /api/entrance/verify`, the Folio3 Parking API shall implement `verifyEntranceDetection` with the detection request, verification response, and status codes defined in `contracts/openapi.yaml`, recording each verification outcome in App.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "A car detection has a readable plate with an active temporary allocation for the office date",
+        "when": "the client posts the detection",
+        "then": "the response status is 200 and the response fields `verificationResult`, `entryStatus`, and `indicatorCommand` report authorization and the `indicatorCommand` value is `Green`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "The submitted detection is a non-car object or has an unreadable plate",
+        "when": "the client posts the detection",
+        "then": "the response status is 200 and the response fields `entryStatus` and `indicatorCommand` report a non-blocking or denied outcome as defined by the contract",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-17.3",
+        "given": "A detection is processed, including a non-car or unsuccessful detection",
+        "when": "the client posts the detection",
+        "then": "a database row records the detection time, plate where available, verification result, and entry status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When an authorized administrator requests `GET /api/admin/utilization`, the Folio3 Parking API shall implement `getWeeklyUtilizationReport` with the documented `weekStart` parameter, response schema, and status codes in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "Parking activity exists for the requested week",
+        "when": "an authorized administrator requests the utilization report with `weekStart`",
+        "then": "the response status is 200 and the response fields `weekStart`, `weekEnd`, `releasedSpaces`, `temporaryClaims`, `overallUtilizationPercent`, `dailyStatistics`, and `unusedParking` are present",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-18.2",
+        "given": "The supplied `weekStart` is not a valid date or the caller is not an authorized administrator",
+        "when": "the caller requests the utilization report",
+        "then": "the response status is 400 or 403 for the corresponding case and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "When an authorized administrator requests `GET /api/admin/office-settings`, the Folio3 Parking API shall implement `getOfficeParkingSettings` with the response schema and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-19.1",
+        "given": "Office parking settings are stored in App",
+        "when": "an authorized administrator requests `GET /api/admin/office-settings`",
+        "then": "the response status is 200 and the response fields `timezone`, `releaseTime`, `schedulingWindowDays`, `reportRecipients`, `nextReportDelivery`, and `reportSchedule` match the stored settings",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-19.2",
+        "given": "The caller is not an authorized administrator",
+        "when": "the caller requests `GET /api/admin/office-settings`",
+        "then": "the response status is 403 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "ears": "When an authorized administrator submits `PUT /api/admin/office-settings`, the Folio3 Parking API shall implement `updateOfficeParkingSettings` with the request, response, validation, and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-20.1",
+        "given": "The request contains a valid timezone, release time, and at least one report recipient",
+        "when": "an authorized administrator updates office settings",
+        "then": "the response status is 200 and the response fields `timezone`, `releaseTime`, and `reportRecipients` contain the submitted values",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-20.2",
+        "given": "The update request is invalid or the caller is not an authorized administrator",
+        "when": "the caller submits the office-settings update",
+        "then": "the response status is 400 or 403 for the corresponding case and the response field `code` is present",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-20.3",
+        "given": "An administrator has updated valid office settings",
+        "when": "the administrator requests `GET /api/admin/office-settings` after the update",
+        "then": "the response status is 200 and the returned settings fields retain the values submitted by the `PUT` request",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "When an authorized administrator requests `GET /api/admin/activity`, the Folio3 Parking API shall implement `getParkingActivity` with the documented search, eventType, pagination parameters, response schema, and status codes in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-21.1",
+        "given": "App contains retained release, claim, entrance-verification, and utilization activity",
+        "when": "an authorized administrator requests activity with search, eventType, and page filters",
+        "then": "the response status is 200 and the response fields `page`, `pages`, and `activity` contain records matching the supplied filters",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-21.2",
+        "given": "The caller is not an authorized administrator",
+        "when": "the caller requests `GET /api/admin/activity`",
+        "then": "the response status is 403 and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "ears": "When a client submits `POST /api/notifications/availability`, the Folio3 Parking API shall implement `sendAvailabilityNotification` to dispatch the contract's fixed-template email to eligible non-dedicated employees, with the request, response, and status codes defined in `contracts/openapi.yaml`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-22.1",
+        "given": "Eligible non-dedicated employees and an email delivery service are available for the submitted office date",
+        "when": "the client posts the availability-notification request",
+        "then": "the response status is 202 and the response fields `status`, `recipientCount`, and `template` report accepted dispatch using `parking-availability`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-22.2",
+        "given": "A valid availability-notification request is submitted",
+        "when": "the API dispatches the notification",
+        "then": "a call is sent to the email delivery service using the fixed `parking-availability` template for eligible non-dedicated recipients",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-22.3",
+        "given": "The request is invalid or the email delivery service is unavailable",
+        "when": "the client posts the availability-notification request",
+        "then": "the response status is 400 or 503 for the corresponding case and the response field `code` is present",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-23",
+      "ears": "The Folio3 Parking API shall store application data in the PostgreSQL database configured by the existing `ConnectionStrings:App` setting and create the application schema on startup using the fresh-database `EnsureCreated` behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-4",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-23.1",
+        "given": "`ConnectionStrings__App` points to a fresh PostgreSQL database",
+        "when": "the API starts",
+        "then": "a row in PostgreSQL `information_schema.tables` identifies the created application tables",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-23.2",
+        "given": "A vehicle is registered through the API using the fresh App database",
+        "when": "the API is restarted and the employee requests `GET /api/vehicles`",
+        "then": "the response status is 200 and the returned `vehicles` list contains the previously registered vehicle record",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-24",
+      "ears": "When the API starts with `Seed:Demo=true`, the Folio3 Parking API shall run `App.Api/SeedData.cs` to insert between two and five schema-valid sample rows in every application table, using contract example values where available and plausible values for tables without examples.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-24.1",
+        "given": "A fresh App PostgreSQL database and `Seed:Demo=true`",
+        "when": "the API starts and runs `SeedData.Run`",
+        "then": "the row count is between two and five in every application table, and fields with contract examples contain corresponding example values such as Aisha Rahman's employee and Toyota Corolla vehicle details",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-24.2",
+        "given": "An empty App database is available",
+        "when": "a test calls the public `SeedData.Run` method directly",
+        "then": "database rows are present in every application table and every seeded row is schema-valid",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The Folio3 Parking API shall serve documented operations without requiring demo-seed rows, so black-box checks can use a fresh App database with `Seed:Demo=false` and explicitly arranged records.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-2",
+       "Q-4",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-25.1",
+        "given": "A fresh App database has `Seed:Demo=false` and an explicitly provisioned administrator identity but no demo rows",
+        "when": "the administrator requests `GET /api/admin/roster`",
+        "then": "the response status is 200 and the `employees` list count is 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-26",
+      "ears": "The Folio3 backend API shall not provide employee, administrator, or security-guard product screens in this repository.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-26.1",
+        "given": "The API deployment is available for inspection",
+        "when": "a person manually inspects the pages it serves",
+        "then": "no employee, administrator, or security-guard product screen is shown",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "Native iOS and Android client applications (Q-1).",
+     "Physical license-plate-recognition cameras, indicator hardware, and their device integrations beyond the documented `POST /api/entrance/verify` operation (Q-1).",
+     "Corporate-directory synchronization beyond the identity and profile behavior defined by the OpenAPI contract (Q-1).",
+     "Automated weekly report generation and scheduled stakeholder email delivery beyond the documented report and notification API operations (Q-1).",
+     "Parking policies and external workflows not explicitly defined by `contracts/openapi.yaml` (Q-1)."
+    ],
+    "assumptions": [
+     "ASM-1: The App PostgreSQL database is fresh and empty; startup `EnsureCreated` creates the schema, and no migration or backfill is required (Q-4)."
+    ],
+    "suggestions": []
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

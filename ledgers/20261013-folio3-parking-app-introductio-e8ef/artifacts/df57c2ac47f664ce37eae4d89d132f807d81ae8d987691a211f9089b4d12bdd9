@@ -1,0 +1,104 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat the locked OpenAPI document as the complete source of API scope and exact HTTP contract; implement its operations, not additional features inferred only from the product narrative.",
+      "behaviours": [
+       {
+        "text": "For every operation in contracts/openapi.yaml, accept the documented method, path, parameters, headers, and request body; return the documented success status and response shape, and reject invalid or missing inputs using the documented error responses.",
+        "kind": "data"
+       },
+       {
+        "text": "Implement the contract's Google authorization and signed-in employee-profile operations: successful authorized sign-in identifies the employee by corporate email and returns the documented profile; unauthorized or non-Folio3 sign-in is denied using the contract's error response.",
+        "kind": "permission"
+       },
+       {
+        "text": "Where the contract defines parking operations, enforce the documented roles and state transitions: only dedicated holders can release or schedule their parking, releases cannot be duplicated for a date, and only employees without dedicated parking can claim an available space; conflicting, unavailable, or already-claimed parking requests fail rather than creating a second allocation.",
+        "kind": "permission"
+       },
+       {
+        "text": "Where the contract defines vehicle, parking verification, administration, or reporting operations, expose the documented inputs and outputs and enforce the documented authorization and validation rules; do not report a vehicle as authorized unless the contract's current-day allocation rules say it is authorized.",
+        "kind": "data"
+       },
+       {
+        "text": "Return the documented not-found, validation, authorization, and conflict outcomes when a requested employee, vehicle, parking record, or operation is missing, invalid, or not permitted; do not silently treat a failed operation as successful.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "Interpret “keep the data” to mean the API's application records are persisted in the existing PostgreSQL database configured by connection string App, rather than held only in process memory.",
+      "behaviours": [
+       {
+        "text": "Create, update, and read application data through the PostgreSQL database configured by ConnectionStrings:App, so records written by an API operation remain available to later requests and after an application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "If the App connection string is absent or PostgreSQL cannot be reached for a database-backed operation, do not return a successful result that implies data was saved or retrieved; surface a failure.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Interpret “each table” as each application data table represented by the implemented contract/domain model; seed only demonstration data and use contract example values where available.",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, insert a small, plausible set of sample records for each application table, including contract-example records such as Aisha Rahman's employee profile and a Toyota Corolla vehicle, so list operations have sample results.",
+        "kind": "data"
+       },
+       {
+        "text": "Running the seed routine when demo rows already exist must not create duplicate copies of those sample records.",
+        "kind": "data"
+       },
+       {
+        "text": "When demo seeding is disabled, do not add demonstration rows; an empty database/list remains empty unless data has been created through other means.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "readingChosen": "Interpret this as a requirement on automated tests: tests must pass without demo seeding and must not assert the presence or particular values of demo rows.",
+      "behaviours": [
+       {
+        "text": "Tests run with Seed:Demo unset or false must not rely on seeded employees, vehicles, or other sample records; tests that need records create their own fixtures and clean up or isolate their data.",
+        "kind": "data"
+       },
+       {
+        "text": "With demo seeding disabled and no fixtures created, tests of list operations accept an empty result rather than expecting demonstration rows.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "readingChosen": "Interpret this as excluding product screens from this API repository while retaining API endpoints and developer documentation already exposed by the project.",
+      "behaviours": [
+       {
+        "text": "Do not add employee, security, or administrator product screens or a frontend navigation flow in this project; clients use the API for product interactions.",
+        "kind": "data"
+       },
+       {
+        "text": "Keep the API and its existing OpenAPI/Swagger documentation surface available without presenting it as a replacement for the separately built web application.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

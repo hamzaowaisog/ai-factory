@@ -1,0 +1,360 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, the configured client ID and redirect URI in the authorization URL, and a non-empty state that matches the URL query."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_ReturnsContractServiceUnavailableWhenOAuthConfigurationIsMissing",
+      "verdict": "weak",
+      "why": "The test checks the missing-configuration case but does not simulate an unavailable authorization service."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200 and the required session fields, including the returned employee values, role, and non-empty access token."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_SendsConfiguredOAuthValuesToGoogleTokenEndpoint",
+      "verdict": "weak",
+      "why": "The test only checks that the token request state is non-empty, not that it matches the state sent by the client."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "AC_2_3_RejectsInvalidOAuthRequestsIdentitiesAndUnavailableGoogleService",
+      "verdict": "weak",
+      "why": "The test does not separately exercise missing state, invalid code, or invalid state cases and therefore does not verify their contract errors."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, all named profile fields, and that the returned vehicle list contains the signed-in employee's vehicle but not another employee's."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession",
+      "verdict": "weak",
+      "why": "The test checks only the absent-token 401 case and does not verify invalid-token, forbidden-access, or missing-profile responses."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200 and the presence of every dashboard field named in the criterion."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 401 status and the exact contract error code, message, and field."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, all named release fields, the submitted office date, Released status, and a Released audit action."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test exercises unauthenticated, ineligible-employee, and conflicting-state cases and checks each status and exact contract error values."
+     },
+     {
+      "acId": "AC-6.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, the required vehicle fields, and that only the signed-in employee's seeded vehicle is returned."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 401 status and the exact contract error code, message, and field."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 201, the required vehicle fields, the supplied make, model, and color, and that active is true."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test exercises invalid input, unauthenticated access, and duplicate-plate conflict and checks each status and exact contract error values."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, the required release fields, a Scheduled audit action, and that another employee's release is not returned."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 401 status and the exact contract error code, message, and field."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_SchedulesEligibleDatesAndReturnsScheduledAuditEvents",
+      "verdict": "weak",
+      "why": "The test schedules only one date, so it does not verify that every date in a multi-date schedule is saved with its own Scheduled audit event."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "AC_9_2_ReturnsContractErrorForAnInvalidSchedule",
+      "verdict": "weak",
+      "why": "The test checks only an empty schedule returning 400, not ineligibility returning 403 or date-rule violations returning 422."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, Cancelled status, and both Scheduled and Cancelled audit events in the response."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "AC_10_2_RequiresAuthenticationToCancelARelease",
+      "verdict": "weak",
+      "why": "The test checks only the unauthenticated 401 case and not missing, other-owner, or already-claimed release outcomes."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, all named availability fields, and the configured floor's free and total capacity."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 401 status and the exact contract error code, message, and field."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 201 and each named allocation response field, including the selected vehicle's plate and the allocation metadata."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits two claims concurrently, asserts exactly one 201 and one 409, and checks that the successful response has an allocated space."
+     },
+     {
+      "acId": "AC-12.3",
+      "testId": "AC_12_3_RequiresAuthenticationToCreateAClaim",
+      "verdict": "weak",
+      "why": "The test checks only unauthenticated access and does not exercise invalid input, ineligibility, invalid vehicle or date, or full-capacity outcomes."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200 and the claim's ID, floor, space, plate, office date, and entry status named by the criterion."
+     },
+     {
+      "acId": "AC-13.2",
+      "testId": "AC_13_2_RequiresAuthenticationToReadTodaysClaim",
+      "verdict": "weak",
+      "why": "The test checks only the unauthenticated 401 case and does not verify the 404 response when no claim exists for today."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, the claim ID and cancellation status, and the returned claim fields."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "AC_14_2_RequiresAuthenticationToCancelAClaim",
+      "verdict": "weak",
+      "why": "The test checks only the unauthenticated 401 case and does not exercise nonexistent, other-owner, or non-cancellable claims."
+     },
+     {
+      "acId": "AC-15.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the page fields and a roster result matching the supplied search and assignment filters, including its returned roster values."
+     },
+     {
+      "acId": "AC-15.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both unauthenticated 401 and non-administrator 403 responses with their exact contract error values."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_AdminEntryChecksReturnsFilteredPagedChecks",
+      "verdict": "weak",
+      "why": "The test checks only a subset of the entry-check record fields, leaving other contract entry-check fields unasserted."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both unauthenticated 401 and non-administrator 403 responses with their exact contract error values."
+     },
+     {
+      "acId": "AC-17.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200 and the detected plate, Authorized result, entry status, and Green indicator command."
+     },
+     {
+      "acId": "AC-17.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status 200, null plate, None indicator command, and the contract non-car outcome fields."
+     },
+     {
+      "acId": "AC-17.3",
+      "testId": "AC_17_3_UnauthorizedCarDetectionFailsClosed",
+      "verdict": "weak",
+      "why": "The test covers only a readable unauthorized car and does not check unreadable-plate or unavailable-service outcomes and their applicable statuses."
+     },
+     {
+      "acId": "AC-17.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies the processed detection's required data in PostgreSQL and confirms the corresponding record appears in the administrator's checks list."
+     },
+     {
+      "acId": "AC-17.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 400 status and the exact contract error code, message, and field for malformed input."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "AC_18_1_AdminUtilizationReturnsWeeklyReport",
+      "verdict": "weak",
+      "why": "The test checks a valid explicit weekStart but does not verify the report behavior when weekStart is omitted."
+     },
+     {
+      "acId": "AC-18.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks unauthenticated 401, non-administrator 403, and invalid-weekStart 400 with exact contract error values."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "AC_19_1_AdminOfficeSettingsReturnsStoredSettings",
+      "verdict": "weak",
+      "why": "The test checks nextReportDelivery and reportSchedule only for parseability or non-emptiness rather than asserting their values match the stored settings."
+     },
+     {
+      "acId": "AC-19.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both unauthenticated 401 and non-administrator 403 responses with their exact contract error values."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the updated settings values in the PUT response and confirms the subsequent GET returns those same values."
+     },
+     {
+      "acId": "AC-20.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks invalid-input 400, unauthenticated 401, and non-administrator 403 responses with exact contract error values."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "AC_21_1_ReturnsFilteredActivityWithContractFields",
+      "verdict": "weak",
+      "why": "The criterion requires an `activity` list, but the test reads `events` and does not assert the contract activity fields for matching records."
+     },
+     {
+      "acId": "AC-21.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both unauthenticated 401 and non-administrator 403 responses with their exact contract error values."
+     },
+     {
+      "acId": "AC-22.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the page fields and a matching events record with the contract activity fields."
+     },
+     {
+      "acId": "AC-22.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both unauthenticated 401 and non-administrator 403 responses with their exact contract error values."
+     },
+     {
+      "acId": "AC-23.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 202 dispatch fields and records an outbound dispatcher call with the expected date, space count, and eligible recipient."
+     },
+     {
+      "acId": "AC-23.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks invalid-input 400 and unavailable-service 503 responses with the exact contract error values."
+     },
+     {
+      "acId": "AC-24.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test queries PostgreSQL information_schema and verifies every named application table exists."
+     },
+     {
+      "acId": "AC-24.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the 201 registration, confirms the vehicle row in the configured database, restarts the API against that database, and verifies the saved vehicle is listed."
+     },
+     {
+      "acId": "AC-25.1",
+      "testId": "AC_25_1_SeedsSchemaValidDemoRowsAcrossApplicationTables",
+      "verdict": "weak",
+      "why": "The test checks table row counts and two example values but does not verify that every seeded row has schema-valid field values."
+     },
+     {
+      "acId": "AC-25.2",
+      "testId": "AC_25_2_SeedDataRunPopulatesEveryApplicationTable",
+      "verdict": "weak",
+      "why": "The test checks only that each table has a row and does not verify that every seeded row is schema-valid."
+     },
+     {
+      "acId": "AC-25.3",
+      "testId": "AC_25_3_DoesNotAddDemoOnlyRowsWhenDemoSeedingIsDisabled",
+      "verdict": "weak",
+      "why": "The test checks only selected employee and vehicle examples rather than asserting that demo-only rows remain absent across the application tables."
+     },
+     {
+      "acId": "AC-26.1",
+      "testId": "AC_26_1_UsesProvisionedIdentityWithoutDemoRowsAndEmptyRosterHasZeroEmployees",
+      "verdict": "weak",
+      "why": "The test verifies one empty roster response but does not run the contract scenarios as a suite to prove they complete without any demo-seed row."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

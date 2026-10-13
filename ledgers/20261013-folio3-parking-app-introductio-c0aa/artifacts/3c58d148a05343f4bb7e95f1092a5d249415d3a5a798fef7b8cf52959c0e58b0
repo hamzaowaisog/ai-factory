@@ -1,0 +1,1 @@
+{"details":"plan task TASK-1 delivers NFR-1, which the approved design's spec does not have","failures":[{"check":"b1-unknown","frames":[],"message":"plan task TASK-1 delivers NFR-1, which the approved design's spec does not have"}],"gateId":"build.b1-design-scope","inputsHash":"8cd045f01bde09eb73f5b9c8eb4e14194b6a026811d1bb58e2d71ec47e2f3d13","passed":false,"safety":false}
