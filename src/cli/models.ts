@@ -98,3 +98,11 @@ export function registerModels(program: Command, log: (s: string) => void, openR
       if (!o.mode && [...CODING_STEPS].some((s) => choice.picks?.[s])) log("note a coding pick applies to every task of the run");
     });
 }
+
+export const GUIDED_HELP = "a person also checks what the factory understood and the spec, each on its own card, before the design and the plan (the project's `autonomous: false` does it for every run)";
+export const AUTONOMOUS_HELP = "the factory decides and you see the final plan (the default, unless the project sets autonomous: false)";
+/** --guided / --autonomous as createRun's `autonomous`: undefined when neither was given, so the project decides. */
+export function autonomousOption(o: { guided?: boolean; autonomous?: boolean }): boolean | undefined {
+  if (o.guided && o.autonomous) throw new Error("Use --guided or --autonomous, not both.");
+  return o.guided ? false : o.autonomous ? true : undefined;
+}
