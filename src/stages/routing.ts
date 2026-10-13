@@ -88,7 +88,8 @@ function fromTier(stage: string, spec: StepSpec, tier: Tier): Pick<Resolved, "ru
 
 /**
  * Which model a step runs on and why, in this order: a fixed step's own model; the person's pick; their preset;
- * the project file; a suggested tier; the built-in default. Read once, when a run is created.
+ * the project file; a suggested tier; the built-in default. An optional step (the critic) is off unless a pick or the
+ * project file names its model. Read once, when a run is created.
  */
 export function resolveRoute(project: ProjectConfig, stage: string, choice: Choice = {}, suggest?: Suggestion): Resolved {
   const spec = STEPS[stage];
@@ -109,6 +110,8 @@ export function resolveRoute(project: ProjectConfig, stage: string, choice: Choi
     return { ...route, source: "design engine", engine: stitch.engine };
   }
   if (pick) return { runner: runnerFor(stage, pick), model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
+  // an optional step nobody picked a model for does not run: the route is kept for the record, and a preset does not turn it on
+  if (spec.optional && !own) { const { tier: _tier, ...route } = fromTier(stage, spec, spec.tier); return { ...route, source: "off" }; }
   // a design engine or tier the project pinned is not undone by a preset: only a pick for the step itself changes it
   if (stage === "design" && !own && (project.design?.engine || project.design?.tier)) return { ...designRoute(project).route, source: "design engine" };
   const preset = choice.preset ? presetTier(stage, choice.preset) : undefined;
@@ -167,8 +170,12 @@ export function routeSource(project: ProjectConfig, stage: string): { source: st
   if (saved) return saved;
   if (STEPS[stage]?.fixed) return { source: "fixed" };
   if (project.steps[stage]) return { source: "config" };
+  if (STEPS[stage]?.optional) return { source: "off" };
   return { source: "default", ...(STEPS[stage] ? { tier: STEPS[stage]!.tier } : {}) };
 }
+
+/** Whether an optional step (the critic) is off for this run: nobody picked a model for it and the project file does not route it. */
+export const stepOff = (project: ProjectConfig, stage: string): boolean => routeSource(project, stage).source === "off";
 
 /**
  * A light-lane step left on its default runs on the standard tier, not the heavy one: the work is small. A pick,
@@ -197,12 +204,12 @@ export function stepsOf(mode: string | undefined): string[] {
 }
 
 /** What the start form shows: every step with its default, the models it can be given, and what each preset puts it on. */
-export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; engines?: { id: string; name: string; note: string; planner: string }[]; presets: Record<Preset, string>; /** the step whose model it is warned about sharing */ apart?: string }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
+export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; /** it does not run unless a model is picked for it */ off?: boolean; offered: string[]; engines?: { id: string; name: string; note: string; planner: string }[]; presets: Record<Preset, string>; /** the step whose model it is warned about sharing */ apart?: string }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
   const none = { steps: {} } as unknown as ProjectConfig;
   const steps = stepsOf(mode).map((step) => {
     const spec = STEPS[step]!, r = resolveRoute(none, step);
     return {
-      step, group: spec.group, model: r.model, effort: r.effort ?? "high", fixed: !!spec.fixed, offered: offeredFor(step).map((m) => m.id),
+      step, group: spec.group, model: r.model, effort: r.effort ?? "high", fixed: !!spec.fixed, ...(r.source === "off" ? { off: true } : {}), offered: offeredFor(step).map((m) => m.id),
       // an engine's planner: the model that plans for it unless a person names another (step=engine:model)
       ...(enginesFor(step).length ? { engines: enginesFor(step).map((e) => ({ ...e, planner: resolveRoute(none, step, { picks: { [step]: e.id } }).model })) } : {}),
       presets: Object.fromEntries(PRESETS.map((p) => [p, resolveRoute(none, step, { preset: p }).model])) as Record<Preset, string>,
@@ -324,8 +331,9 @@ function refusal(stage: string, model: string, by: "pick" | "config"): string | 
 }
 
 /**
- * What a choice is allowed but warned about: a spec written by the same model that criticises it. The defaults are left
- * alone; the warning is for a run where the spec step or the critic was moved (a pick, a preset, the project file).
+ * What a choice is allowed but warned about: a spec written by the same model that criticises it. The default models are
+ * left alone; the warning is for a run where the spec step or the critic is on another model than its default (a pick, a
+ * preset, the project file). There is none while the critic is off.
  */
 export function routeWarnings(project: ProjectConfig, choice: Choice = {}, only?: readonly string[]): string[] {
   const out: string[] = [];
@@ -333,7 +341,10 @@ export function routeWarnings(project: ProjectConfig, choice: Choice = {}, only?
     const other = STEPS[stage]?.apart;
     if (!other || (only && !only.includes(other))) continue;
     const r = resolveRoute(project, stage, choice), o = resolveRoute(project, other, choice);
-    if (r.model === o.model && (r.source !== "default" || o.source !== "default")) out.push(`${stage} on ${modelName(r.model)}: ${sameAsCritic(o.model)}`);
+    if (r.source === "off" || o.source === "off") continue;
+    // moved: on another model than its own default (the critic picked onto its default model is the arrangement the defaults had)
+    const moved = (s: string, x: Resolved): boolean => x.model !== DEFAULT_ROUTES[s]?.model;
+    if (r.model === o.model && (moved(stage, r) || moved(other, o))) out.push(`${stage} on ${modelName(r.model)}: ${sameAsCritic(o.model)}`);
   }
   return out;
 }
@@ -354,6 +365,8 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[], ch
   for (const stage of only ?? Object.keys(DEFAULT_ROUTES)) {
     let r: Resolved;
     try { r = resolveRoute(project, stage, choice); } catch (e) { problems.push((e as Error).message); continue; }
+    // a step that is off calls no model: it needs no key
+    if (r.source === "off") continue;
     if (r.source === "config") {
       const why = refusal(stage, r.model, "config");
       if (why) problems.push(`${why} (set in the project file)`);
@@ -411,6 +424,7 @@ export function runModels(events: { type: string; key?: string; data?: Record<st
   const info = (events[0]?.data ?? {}) as { routes?: Record<string, Resolved>; models?: Choice; mode?: string };
   const rows = info.routes ? stepsOf(info.mode).filter((s) => info.routes![s]).map((s) => {
     const r = info.routes![s]!;
+    if (r.source === "off") return { step: s, model: r.model, name: "Off", effort: "-", source: r.source };
     return { step: s, model: r.model, name: r.engine === STITCH ? `${STITCH_NAME}, planned by ${modelName(r.model)}` : r.engine === PAGES ? `Pages drawn by ${modelName(r.model)}` : modelName(r.model), effort: r.effort ?? "high", source: r.source, ...(r.tier ? { tier: r.tier } : {}), ...(r.preset ? { preset: r.preset } : {}), ...(r.escalate[0] ? { next: r.escalate[0] } : {}) };
   }) : [];
   const by = new Map<string, RunModels["calls"][number]>();

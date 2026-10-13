@@ -52,7 +52,7 @@ export function runModels(events: LedgerEvent[], log: (s: string) => void): void
   if (!m.saved) log("This run began before routes were saved with a run: it uses the routing table of that time. Its calls are listed by step.");
   else {
     if (m.preset) log(`preset: ${m.preset}`);
-    table(["step", "model", "effort", "from", "retry moves to"], m.rows.map((r) => [r.step, r.model, r.effort, r.source + (r.preset ? ` (${r.preset})` : r.tier ? ` (${r.tier})` : ""), r.next ?? "-"]), log);
+    table(["step", "model", "effort", "from", "retry moves to"], m.rows.map((r) => r.source === "off" ? [r.step, "off", "-", "not picked", "-"] : [r.step, r.model, r.effort, r.source + (r.preset ? ` (${r.preset})` : r.tier ? ` (${r.tier})` : ""), r.next ?? "-"]), log);
   }
   log("");
   if (!m.calls.length) { log("No model has been called yet."); return; }
@@ -81,13 +81,14 @@ export function registerModels(program: Command, log: (s: string) => void, openR
         const r = resolveRoute(project, stage, choice);
         // an engine takes a planner too: stitch, or stitch:<model>
         const offered = [...offeredFor(stage).map((m) => m.id), ...enginesFor(stage).flatMap((e) => [e.id, `${e.id}:<model>`])];
+        if (r.source === "off") return [stage, STEPS[stage]!.group, "off", "-", "not picked", "-", offered.join(", ")];
         return [stage, STEPS[stage]!.group, r.engine ? `${r.engine} (${r.model})` : r.model, r.effort ?? "high", r.source + (r.preset ? ` (${r.preset})` : r.tier ? ` (${r.tier})` : ""), r.escalate[0] ?? "-", offered.length ? offered.join(", ") : "not asked"];
       });
       table(["step", "group", "model", "effort", "from", "retry moves to", "can be given"], rows, log);
       log("");
       log("Prices, USD per million tokens (input / output):");
       // a design engine is not a model: it has no token price of its own (its planner's is listed)
-      const priced = steps.flatMap((stage) => [resolveRoute(project, stage, choice).model, ...offeredFor(stage).map((m) => m.id)]);
+      const priced = steps.flatMap((stage) => { const r = resolveRoute(project, stage, choice); return [...(r.source === "off" ? [] : [r.model]), ...offeredFor(stage).map((m) => m.id)]; });
       for (const id of [...new Set(priced)].sort()) {
         const p = priceOf(id);
         log(`  ${id.padEnd(18)} ${modelName(id).padEnd(18)} ${hasPrice(id) ? `${usd(p.input)} / ${usd(p.output)}` : "no price: costed at the highest rate"}${UNCONFIRMED_PRICES.includes(id) ? "  (not confirmed on OpenAI's price page)" : ""}`);

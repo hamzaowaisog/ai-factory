@@ -151,7 +151,7 @@ let tunes = 0;
 beforeEach(() => {
   const home = mkdtempSync(join(tmpdir(), "factory-est-e2e-"));
   process.env.FACTORY_HOME = home;
-  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
+  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
   _resetEnvCache();
   mkdirSync(join(home, "projects"), { recursive: true });
   writeFileSync(join(home, "projects", "demo.yaml"), stringify({ project: "demo", repo: mkdtempSync(join(tmpdir(), "factory-est-repo-")), stack: "dotnet" }));
@@ -177,10 +177,13 @@ beforeEach(() => {
   gateAsks = [];
 });
 
+/** the critic is off unless its model is picked: the runs that read its findings pick it */
+const CRITIC_ON = { models: { picks: { critic: "claude-opus-5-5" } } };
+
 describe("estimate mode end to end (requirements only, scripted model)", () => {
   it("runs from requirements to an approved estimate and two workbooks", async () => {
     const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", {
-      mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, client: "Acme", projectName: "Portal", pm: "A. Lead", rates: { backend: 50, default: 40 } },
+      mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, client: "Acme", projectName: "Portal", pm: "A. Lead", rates: { backend: 50, default: 40 } }, ...CRITIC_ON,
     });
     const r1 = await execute(runId);
     expect(r1.status, r1.message).toBe("waiting");
@@ -339,7 +342,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
 
   it("writes one spec draft, repairs it once and runs a medium critic, on a full-rigor request", async () => {
     fullRigor = true;
-    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } , ...CRITIC_ON });
     const r = await execute(runId);
     expect(r.status, r.message).not.toBe("waiting");
     const s = replay(Ledger.open(runId).events());
@@ -369,7 +372,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
 
   it("asks a person the spec questions on a card, round by round, and fixes the spec with their answers", async () => {
     fullRigor = true;
-    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } , ...CRITIC_ON });
     const ledger = Ledger.open(runId);
     expect((await execute(runId)).status).toBe("waiting");
     const q = replay(ledger.events()).openCard!;
@@ -408,7 +411,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
 
   it("sends a run whose spec was written before settling back to the spec step, which settles it, and estimates", async () => {
     fullRigor = true;
-    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } , ...CRITIC_ON });
     const ledger = Ledger.open(runId);
     expect((await execute(runId, () => undefined, { until: "specify" })).status).toBe("until");
     // the spec as an older factory wrote it: the same step, its open problem not settled

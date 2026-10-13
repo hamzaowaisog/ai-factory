@@ -17,7 +17,7 @@ import { hashJson } from "../util/hash.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { testsScreens } from "./stack-text.js";
 import { apiElsewhere } from "./contract.js";
-import { lightLaneModel } from "./routing.js";
+import { lightLaneModel, stepOff } from "./routing.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -311,6 +311,9 @@ ${OBSERVABLE_RULE} Reword a draft's Then that doesn't, without changing what it 
   },
 };
 
+/** What the cards say in place of findings when the critic did not run. */
+export const CRITIC_OFF = "The critic was off for this run: pick a model for the critic step at the start to turn it on.";
+
 export interface Checks { lint: LintResult[]; critic: z.infer<typeof CriticOut>["findings"]; roundTrip: { droppedSpans: string[]; inventedCapabilities: string[] }; criticNote?: string }
 
 async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inputsOf>, criticEffort?: "low" | "medium" | "high"): Promise<{ ok: true; checks: Checks } | { ok: false; outcome: StepOutcome }> {
@@ -322,8 +325,10 @@ async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inpu
     spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, decisions, excluded, estimate: ctx.state.info.mode === "estimate",
     anchorOk: (id) => (spec.requirements.find((q) => q.id === id)?.anchors ?? []).every((a) => checkEvidence(snap, a).ok),
   });
+  // the critic runs only when a model was picked for it at the start (or the project file routes it)
+  const criticOff = stepOff(ctx.project, "critic");
   const [critic, restate] = await Promise.all([
-    think(ctx, {
+    criticOff ? { ok: true as const, output: { findings: [] }, note: CRITIC_OFF } : think(ctx, {
       stage: "critic", route: "critic", cls: "read-large", budgetTokens: 30000, tools: [], schema: CriticOut, effort: criticEffort,
       sections: [
         S.template("tpl", criticTemplate(hasRepo(ctx), webSide(ctx))),

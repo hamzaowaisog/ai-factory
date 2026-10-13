@@ -7,7 +7,7 @@ export type Vendor = "anthropic" | "openai";
 export type Tier = "light" | "standard" | "heavy";
 export const TIERS: readonly Tier[] = ["light", "standard", "heavy"];
 /** Where a step's model came from, as written to the ledger. */
-export type RouteSource = "pick" | "config" | "recommended" | "plan size" | "rule" | "default" | "fixed" | "before the picker" | "design engine";
+export type RouteSource = "pick" | "config" | "recommended" | "plan size" | "rule" | "default" | "fixed" | "before the picker" | "design engine" | "off";
 export type StepGroup = "thinking" | "design" | "coding" | "review";
 
 export interface ModelInfo {
@@ -55,6 +55,8 @@ export interface StepSpec {
   effort?: Effort;
   /** the lowest tier a preset or a suggestion may put it on */
   floor?: Tier;
+  /** off unless a person picks a model for it at the start, or the project file routes it: a preset does not turn it on */
+  optional?: boolean;
   /** never asked and never changed: the model it always runs on */
   fixed?: string;
   /** only these vendors may run it; a pick from another is refused */
@@ -70,7 +72,7 @@ export const sameAsCritic = (model: string): string => `the critic is ${modelNam
 
 /**
  * Every model step. Thinking steps stay on Claude until the paid GPT-6 proving run; the second spec draft and the
- * pre-PR reviewer are on GPT-6 so they differ from the critic's default and from the implementer.
+ * pre-PR reviewer are on GPT-6 so they differ from the implementer. The critic is off until a person picks its model.
  */
 export const STEPS: Record<string, StepSpec> = {
   intake: { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
@@ -83,8 +85,8 @@ export const STEPS: Record<string, StepSpec> = {
   merge: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium", apart: "critic" },
   restater: { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "low" },
   "rt-align": { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
-  // the critic is the spec's last check before a person reads it: a preset never moves it off the heavy tier, a pick may
-  critic: { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high", floor: "heavy" },
+  // the critic is off unless a model is picked for it (or the project file routes it); once on, a preset never moves it off the heavy tier
+  critic: { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high", floor: "heavy", optional: true },
   breakdown: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   estimate: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   design: { runner: "api", group: "design", vendor: "anthropic", tier: "heavy", effort: "high" },

@@ -796,7 +796,7 @@ function modelsPanel(r) {
     h("div", { class: "panel-head" }, h("h2", {}, icon("gauge"), "Models"), h("span", { class: "small muted" }, head)),
     m.saved ? h("table", { class: "models used" }, th("Step", "Model", "From", "Calls", "Cost"), h("tbody", {}, m.rows.map((x) => {
       const a = spent.get(x.step);
-      return h("tr", {}, h("td", { class: "mono" }, x.step), h("td", {}, x.name, h("span", { class: "faint small" }, ` ${x.effort}`)), h("td", { class: "small" }, x.source === "pick" && !x.preset ? h("span", { class: "chip" }, "chosen") : from(x)),
+      return h("tr", {}, h("td", { class: "mono" }, x.step), h("td", {}, x.source === "off" ? h("span", { class: "faint" }, x.name) : [x.name, h("span", { class: "faint small" }, ` ${x.effort}`)]), h("td", { class: "small" }, x.source === "pick" && !x.preset ? h("span", { class: "chip" }, "chosen") : x.source === "off" ? "not picked" : from(x)),
         h("td", { class: "num" }, a ? String(a.calls) : ""), h("td", { class: "num" }, a ? money(a.usd) : ""));
     })))
       : h("p", { class: "small muted" }, "This run began before the models were saved with a run: it uses the routing table of that time."),
@@ -2560,12 +2560,13 @@ function modelPicker(catalogue, id, also = "") {
     const plannerLabel = planner ? h("span", { class: "faint small", hidden: true }, " planned by ") : null;
     const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
       h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, plannerLabel, planner, " ", tag, note));
-    // the model the row would run on, and whether a person moved it off its default (a pick, or a preset)
-    const on = () => (pick && pick.value) || (preset.value ? s.presets[preset.value] : s.model);
-    const moved = () => !!((pick && pick.value) || preset.value);
+    // the model the row would run on, and whether that is another model than its default (a pick, or a preset)
+    // a step that is off until picked (the critic) runs on nothing, and a preset does not turn it on
+    const on = () => (pick && pick.value) || (s.off ? "" : preset.value ? s.presets[preset.value] : s.model);
+    const moved = () => !!on() && on() !== s.model;
     const sync = () => {
       if (!pick) return;
-      auto.textContent = `${mName(preset.value ? s.presets[preset.value] : s.model)} (${preset.value || "default"})`;
+      auto.textContent = s.off ? "Off (default)" : `${mName(preset.value ? s.presets[preset.value] : s.model)} (${preset.value || "default"})`;
       tag.hidden = !pick.value;
       const engine = (s.engines ?? []).find((e) => e.id === pick.value);
       if (planner) {
@@ -2574,7 +2575,7 @@ function modelPicker(catalogue, id, also = "") {
       }
       // a spec step on the model its critic runs on: allowed, and said here as the start check says it
       const other = s.apart ? rows.find((r) => r.step === s.apart) : undefined;
-      const same = !!other && on() === other.on() && (moved() || other.moved());
+      const same = !!other && !!on() && on() === other.on() && (moved() || other.moved());
       note.hidden = !engine && !same;
       if (!note.hidden) note.textContent = engine ? engine.note : `the ${other.step} is ${mName(on())} too, so it reads a spec its own model wrote`;
     };
@@ -2591,7 +2592,7 @@ function modelPicker(catalogue, id, also = "") {
     const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.value()]));
     return preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {};
   };
-  const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
+  const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. The critic is off unless you pick a model for it. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
     catalogue.models.map((m) => `${m.name} $${m.input}/$${m.output}${m.unconfirmed ? " (not confirmed)" : ""}`).join(" · "), " per million tokens in/out.");
   return { preset, table: h("table", { class: "models" }, h("tbody", {}, rows.map((r) => r.row))), hint, picked };
 }

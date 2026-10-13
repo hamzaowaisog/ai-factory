@@ -424,12 +424,11 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(modelCalls).toContain("claude-opus-5-5");
     // the ledger says which model each step was given and why: saved once with the run, then on every step and every call
     const evs = ledger.events();
-    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "default", tier: "heavy" });
+    // nobody picked a model for the critic: it is off, and no call is made on its route
+    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ source: "off" });
     expect((evs[0]!.data!.routes as Record<string, unknown>).implement).toMatchObject({ model: "claude-sonnet-5-5", source: "default", tier: "standard" });
     expect(evs.find((e) => e.type === "step.started" && e.key?.startsWith("intake"))!.data!.route).toMatchObject({ model: "claude-haiku-5-5", effort: "low", source: "default", tier: "light" });
-    const criticCalls = evs.filter((e) => e.type === "usage" && e.data!["factory.route"] === "critic");
-    expect(criticCalls.length).toBeGreaterThan(0);
-    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "default" });
+    expect(evs.filter((e) => e.type === "usage" && e.data!["factory.route"] === "critic")).toEqual([]);
     expect(ledger.readCard(`pr-${runId}`)).toContain("AC-1.1");
     expect(ledger.readCard(`pr-${runId}`)).toContain("Security review (OWASP Top 10): nothing found");
     // the trace shows every level: steps, model turns, lab phases, containers, gates, the coding agent's actions
@@ -1409,11 +1408,13 @@ describe("light and full lanes (fakes)", () => {
 });
 
 describe("spec repairs", () => {
+  // the repairs answer the critic: these runs pick its model, which turns it on
+  const CRITIC_ON = { models: { picks: { critic: "claude-opus-5-5" } } };
   const finding = { rubric: 2, reqId: "REQ-1", severity: "high", finding: "No path for an empty name." };
   it("stops repairing when a repair leaves the same findings, instead of paying for all 3", async () => {
     intakeRisk = "medium";
     criticFindings = [finding];
-    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester", CRITIC_ON));
     const s = replay(ledger.events());
     expect(s.steps.get("specify")!.data).toMatchObject({ repairs: 1, lane: "full" });
     expect(repairCalls).toBe(1);
@@ -1433,7 +1434,7 @@ describe("spec repairs", () => {
     criticFindings = [finding];
     const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
     writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), brownfield: { questions: true } }));
-    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester", CRITIC_ON));
     const s = replay(ledger.events());
     expect(s.info.asks).toBe(true);
     // with none to ask, the finding is carried as an open risk and the plan approval card states it
@@ -1451,7 +1452,7 @@ describe("spec repairs", () => {
     settleAsks = true;
     const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
     writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), brownfield: { questions: true } }));
-    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester", CRITIC_ON));
     const q = replay(ledger.events()).openCard!;
     expect(q.cardId).toMatch(/^spec-questions-1-/);
     criticFindings = [];
@@ -1474,7 +1475,7 @@ describe("spec repairs", () => {
     const base = answerFor("Senior engineer writing a behaviour spec") as { requirements: { acceptance: { then: string }[] }[] };
     // the repair returns one changed requirement (no nfrs, no lists) whose Then fails the observable check
     repairSpec = { requirements: base.requirements.map((r) => ({ ...r, acceptance: r.acceptance.map((a) => ({ ...a, then: "it works" })) })) };
-    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester", CRITIC_ON);
     await execute(runId);
     const ledger = Ledger.open(runId);
     const q = replay(ledger.events()).openCard!;
@@ -1495,7 +1496,7 @@ describe("spec repairs", () => {
     criticFindings = [finding];
     const base = answerFor("Senior engineer writing a behaviour spec") as { requirements: { sources: string[] }[]; outOfScope: string[] };
     repairSpec = { ...base, requirements: base.requirements.map((r) => ({ ...r, sources: ["Q-1"] })), outOfScope: ["I-1 greeting change, deferred to run 2"] };
-    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester", CRITIC_ON));
     const s = replay(ledger.events());
     expect(s.steps.get("specify")!.data).toMatchObject({ repairs: 1, rejectedRepair: ["I-1"] });
     expect(repairCalls).toBe(1);
