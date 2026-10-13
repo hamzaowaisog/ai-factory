@@ -221,6 +221,14 @@ describe("Node producer (fake runtime)", () => {
     expect(testExpectations.predicate({ run: out.testRun, baseline: out.testRun }, DEFAULT_POLICY).passed).toBe(true);
   });
 
+  it("stops after the build when only the build is asked for (the plan's stubs)", async () => {
+    const { repo, commit } = repoWithCommit(app);
+    const rt = new FakeRuntime({ reports: [] });
+    const out = await produceNodeTests({ runId: "r1", key: "k", repo, commit, stage: "author-tests-on-base", project, rt, buildOnly: true, exp: { expectPass: [], expectFail: [], compareToBaseline: [] } });
+    expect(out.build.ok).toBe(true);
+    expect([...rt.specs.values()].some((s) => s.cmd.includes("vitest"))).toBe(false);
+  });
+
   it("reports build errors from the log", async () => {
     const { repo, commit } = repoWithCommit(app);
     const rt = new FakeRuntime({ build: 1, buildLog: "src/lib/a.ts(3,7): error TS2304: Cannot find name 'x'." });

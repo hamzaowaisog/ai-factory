@@ -18,8 +18,25 @@ const RULES: { id: string; re: RegExp }[] = [
 export interface Redaction { text: string; hits: { rule: string; placeholder: string }[] }
 
 /** Redact with placeholders that stay stable across calls within one run (same value → same n). */
+/** Source files, where `password: passphrase` is code and not a secret (config, env and data files are read as before). */
+const CODE_FILE = /\.(?:[cm]?[jt]sx?|cs|cshtml|razor)$/i;
+
+/**
+ * In a source file: the value is a name, a member, a call or a type, written bare and outside any string (`password: passphrase`,
+ * `accessToken: response.data.accessToken`, `accessToken: string;`, `password={password}`). A secret in code is a quoted literal or
+ * sits inside a string (a connection string), and both are still caught. Run 1679 parked a sign-in screen on lines like these.
+ */
+function isCodeValue(prefix: string, value: string, before: string): boolean {
+  if (/["']$/.test(prefix)) return false;
+  if (((before.match(/["'`]/g) ?? []).length) % 2) return false;
+  return /^[{(]*[A-Za-z_$][\w$.?!()[\]<>|&{]*$/.test(value);
+}
+
 export class Redactor {
   private readonly seen = new Map<string, string>();
+
+  /** code: the text is a source file's (see isCodeValue). */
+  constructor(private readonly opts: { code?: boolean } = {}) {}
 
   redact(text: string): Redaction {
     const hits: Redaction["hits"] = [];
@@ -29,6 +46,7 @@ export class Redactor {
         const isAssign = rule.id === "password-assignment";
         const value = isAssign ? m[2]! : m[0]!;
         if (isAssign && /^(«SECRET_\d+»|\*+|x+|dummy|changeme|placeholder|your[_-].*|<.*>|\{\{.*)$/i.test(value)) return m[0]!;
+        if (isAssign && this.opts.code && isCodeValue(m[1]!, value, String(m[m.length - 1]).slice(0, Number(m[m.length - 2])))) return m[0]!;
         let ph = this.seen.get(value);
         if (!ph) {
           ph = `«SECRET_${this.seen.size + 1}»`;
@@ -53,8 +71,9 @@ const LOOPBACK_DB = /\b(?:host|server|data source)\s*=\s*(?:127\.0\.0\.1|localho
 export function scanText(file: string, text: string): { file: string; line: number; rule: string }[] {
   const hits: { file: string; line: number; rule: string }[] = [];
   const lines = text.split("\n");
+  const code = CODE_FILE.test(file);
   lines.forEach((line, i) => {
-    const r = new Redactor().redact(line);
+    const r = new Redactor({ code }).redact(line);
     // a database on this machine: its password opens nothing anyone else can reach (run e1b5: a test's unreachable 127.0.0.1 string)
     const local = LOOPBACK_DB.test(line);
     for (const h of r.hits) if (!(local && h.rule === "password-assignment")) hits.push({ file, line: i + 1, rule: h.rule });

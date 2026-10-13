@@ -76,6 +76,14 @@ export const ProjectConfig = z.object({
   webOnly: z.boolean().default(true),
   /** dotnet: built and tested in the .NET lab; node: a TypeScript app (a new product's kit app), built and tested with npm and vitest */
   stack: z.enum(["dotnet", "node"]).default("dotnet"),
+  /**
+   * A web app's "ui" acceptance criteria get screen tests (the page rendered in vitest and used as a person does). Off unless set:
+   * they were the slowest part of a web run (run 1679: 55 minutes writing them, then every retry of a screen's task was one of
+   * them). Off, a ui criterion is a person's check on the Tests tab before delivery, and the spec keeps behaviour at unit or api
+   * level where it can. Not set, they stay on for the web side of a product whose API is a separate service (a `contract`):
+   * every criterion there is about a screen, so off would leave no test at all and test writing stops on that (run 1679: 85 of 85).
+   */
+  screenTests: z.boolean().optional(),
   forge: z.object({
     kind: z.enum(["github", "bitbucket"]), repo: z.string(), tokenEnv: z.string().default("GITHUB_TOKEN"),
     /** GitHub API and git push URLs; set only for GitHub Enterprise or tests (a local fake) */

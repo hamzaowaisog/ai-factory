@@ -21,8 +21,8 @@ export function dependencyKind(stack: Stack): string {
   return stack === "node" ? "npm" : "NuGet";
 }
 
-/** The stacks whose lab can run a test of a screen: a "ui" criterion stays one there, and is a person's check elsewhere. */
-export const testsScreens = (stack: Stack): boolean => stack === "node";
+/** The projects that test screens: a web app with screen tests turned on (the project's `screenTests`). A "ui" criterion stays one there, and is a person's check elsewhere. */
+export const testsScreens = (project: { stack: Stack; screenTests?: boolean; contract?: unknown }): boolean => project.stack === "node" && (project.screenTests ?? !!project.contract);
 
 const SCREEN_TEST_RULES = `- A "ui" criterion gets a screen test: a tests/*.test.tsx file whose FIRST line is "// @vitest-environment jsdom". Render the screen's container (components/screens/<s-id>/container.tsx, the page with its data and behaviour) with render() from "@testing-library/react", and act as a person does with userEvent from "@testing-library/user-event".
 - Assert what a person sees and can do: find things by role and name (screen.getByRole("button", { name: "Save" })), by label (getByLabelText) or by the words on the page, never by class name, test id or component internals. Use findBy... for what appears after data loads.
@@ -61,7 +61,7 @@ Rules:
 - New APIs exist as stubs that throw NotImplementedException; tests must compile against them and fail for now.
 - Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today.
 - Don't change production code. Don't change test project files unless a package reference is missing and already restored.
-- You may run "dotnet build" to check the tests compile. There's no database in this container; don't try to make tests pass. Don't run "dotnet test": the factory runs the tests itself in its test lab.
+- You may run "dotnet build <the test project's .csproj>" to check the tests compile. Run it plainly: never with --no-restore (nothing is restored in this checkout yet, so that build fails on every file) and never with --no-build. The packages are already on this machine, so the restore needs no network. If the errors are in files outside the test project (a stub that does not compile), do not try to work around them: say so in "notes" and return. There's no database in this container; don't try to make tests pass. Don't run "dotnet test": the factory runs the tests itself in its test lab.
 - Test each criterion at its level: "unit" criteria call the class's public method directly (no web host, no database, no job run); "api" criteria call the endpoint. Skip "manual" criteria: a person checks those.
 ${outsideSystemsTestRule(stack)}`;
 }

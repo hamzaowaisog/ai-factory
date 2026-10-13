@@ -244,7 +244,7 @@ ${UNTRUSTED_NOTE}`;
 
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
-    S.template("tpl", draftRules(testsScreens(ctx.project.stack), newWork(ctx), webSide(ctx))),
+    S.template("tpl", draftRules(testsScreens(ctx.project), newWork(ctx), webSide(ctx))),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
     S.artifact("assumptions", "assumptions", i.assumptions),
@@ -453,7 +453,7 @@ export const specifyStep: StepDef = {
     const fresh = newWork(ctx);
     let before: string[] | undefined;
     for (;;) {
-      const d = downgradeUi(fresh ? allAdded(spec) : spec, testsScreens(ctx.project.stack));
+      const d = downgradeUi(fresh ? allAdded(spec) : spec, testsScreens(ctx.project));
       spec = here(d.spec);
       for (const id of d.downgraded) manualUi.add(id);
       const c = await checkSpec(ctx, spec, i, lane.criticEffort);
@@ -510,7 +510,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
             if (!r.ok) return r;
             const stab = Object.fromEntries(before.requirements.map((q) => [q.id, q.stability]));
             const draft = newWork(ctx) ? allAdded(applyRepair(before, r.output)) : applyRepair(before, r.output);
-            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, testsScreens(ctx.project.stack));
+            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, testsScreens(ctx.project));
             for (const id of d.downgraded) manualUi.add(id);
             return { ok: true, spec: here(d.spec) };
           },

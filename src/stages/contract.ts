@@ -3,6 +3,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
+import type { LedgerEvent } from "../contracts/index.js";
 import { DATA_MODEL_FILE } from "../gates/data-model.js";
 import { basePath, readContract } from "../gates/contract.js";
 
@@ -26,9 +27,13 @@ export function contractLockFiles(project: Pick<ProjectConfig, "contract">, wt: 
   return [c.file, ...generated, ...(existsSync(join(wt, CLIENT_CONFIG)) ? [CLIENT_CONFIG] : []), ...model];
 }
 
-/** The generator's settings: the client in one file, the test handlers (MSW) beside it, answering with the contract's examples. */
+/**
+ * The generator's settings: the client in one file, the test handlers (MSW) beside it, answering with the contract's examples.
+ * delay 0: left out, every handler waits one second, which is the whole time a screen test waits for text to appear, so a test
+ * that reads an answer failed however the screen was built (run 1679, the import screen's tests).
+ */
 export const clientConfig = (file: string, apiUrl: string): string =>
-  `// Written by the factory: the API client and its test handlers are generated from the locked contract (${file}).\nmodule.exports = { api: { input: ${JSON.stringify(`./${file}`)}, output: { mode: "split", target: ${JSON.stringify(`./${CLIENT_DIR}/client.ts`)}, client: "fetch", baseUrl: ${JSON.stringify(apiUrl)}, mock: { type: "msw", useExamples: true } } } };\n`;
+  `// Written by the factory: the API client and its test handlers are generated from the locked contract (${file}).\nmodule.exports = { api: { input: ${JSON.stringify(`./${file}`)}, output: { mode: "split", target: ${JSON.stringify(`./${CLIENT_DIR}/client.ts`)}, client: "fetch", baseUrl: ${JSON.stringify(apiUrl)}, mock: { type: "msw", useExamples: true, delay: 0 } } } };\n`;
 
 /**
  * The address the client calls: where the API answers, plus the path the contract puts every operation under (its first
@@ -51,4 +56,35 @@ export function prepareClient(wt: string, file: string, apiUrl: string): boolean
   if (JSON.stringify(dev) === JSON.stringify(pkg.devDependencies)) return false;
   writeFileSync(p, `${JSON.stringify({ ...pkg, devDependencies: Object.fromEntries(Object.entries(dev).sort(([a], [b]) => a.localeCompare(b))) }, null, 2)}\n`);
   return true;
+}
+
+const MOCK_BEFORE = 'mock: { type: "msw", useExamples: true }';
+
+/**
+ * The settings of a client generated before the handlers' wait was set to 0, with it set; undefined for settings that have it
+ * (or that the factory did not write this way). A run that was already under way gets its handlers generated again from these.
+ */
+export const withoutMockDelay = (config: string): string | undefined =>
+  /\bdelay\s*:/.test(config) || !config.includes(MOCK_BEFORE) ? undefined : config.replace(MOCK_BEFORE, 'mock: { type: "msw", useExamples: true, delay: 0 }');
+
+/** One generated file the factory wrote again in a run, as its `client.refreshed` event records it. */
+export interface Refreshed { step: string; file: string; sha: string; was: string; why: string }
+
+/** The generated files written again in this run: the newest content of each. */
+export function refreshedClient(events: LedgerEvent[]): Refreshed[] {
+  const by = new Map<string, Refreshed>();
+  for (const e of events) if (e.type === "client.refreshed") { const r = e.data as unknown as Refreshed; by.set(r.file, r); }
+  return [...by.values()];
+}
+
+/** A lock with the files the factory generated again at the hash they have now, each named beside the unlocks. */
+export function withRefreshed<L extends { lock: { file: string; sha: string }[]; unlocks?: unknown[] }>(lock: L, events: LedgerEvent[], boundTo: string): L {
+  const rf = refreshedClient(events).filter((r) => lock.lock.some((l) => l.file === r.file));
+  if (!rf.length) return lock;
+  const sha = new Map(rf.map((r) => [r.file, r.sha]));
+  return {
+    ...lock,
+    lock: lock.lock.map((l) => (sha.has(l.file) ? { ...l, sha: sha.get(l.file)! } : l)),
+    unlocks: [...(lock.unlocks ?? []), ...rf.map((r) => ({ what: r.file, human: "factory (generated again)", reason: r.why, boundTo }))],
+  };
 }

@@ -40,6 +40,21 @@ public class OrderSync
 `;
 
 describe("secrets", () => {
+  it("does not take a sign-in form's own code for a secret, and still reports a literal (run 1679)", () => {
+    for (const line of [
+      "const response = await signIn({ email: normalizedEmail, password: passphrase });",
+      "writeSession({ accessToken: response.data.accessToken, ...response.data.user });",
+      "  accessToken: string;",
+      "<PasswordField password={password} onChange={setPassword} />",
+      "const schema = z.object({ password: z.string().min(8) });",
+      "var request = new SignIn { Password = model.Password };",
+    ]) expect(scanText(line.includes("var ") ? "a.cs" : "a.tsx", line), line).toEqual([]);
+    expect(scanText("a.ts", 'const password = "hunter2222";').map((h) => h.rule)).toEqual(["password-assignment"]);
+    expect(scanText("a.ts", "const conn = `Host=db.example.com;Password=hunter2222`;").map((h) => h.rule)).toEqual(["password-assignment"]);
+    // outside source files nothing changes: a bare value in a config file is a secret
+    expect(scanText(".env", "PASSWORD=hunter2222").map((h) => h.rule)).toEqual(["password-assignment"]);
+    expect(scanText("a.yaml", "password: hunter2222").map((h) => h.rule)).toEqual(["password-assignment"]);
+  });
   it("does not report the password of a database on this machine, and still reports any other (run e1b5)", () => {
     expect(scanText("a.cs", "const string c = \"Host=127.0.0.1;Port=1;Database=x;Username=nobody;Password=nobody;Timeout=3\";")).toEqual([]);
     expect(scanText("a.json", "\"App\": \"Server=localhost;Database=x;Password=postgres1\"")).toEqual([]);

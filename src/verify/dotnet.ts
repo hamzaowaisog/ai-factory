@@ -60,6 +60,8 @@ export interface ProduceInput {
   schemaOnly?: boolean;
   /** Only restore packages into packagesDir (for the coding container); no build or tests. */
   restoreOnly?: boolean;
+  /** Stop once the commit is built: no database, no accept, no tests. For the plan's stubs, which only have to compile. */
+  buildOnly?: boolean;
   /** Accept: boot the app in the db's namespace and send these probes before the tests run. */
   accept?: { probes: Probe[] };
   /** For the run trace: one call per finished phase. */
@@ -219,7 +221,7 @@ export function buildCachePath(dir: string, commit: string, project: ProjectConf
 export const KEEP_BUILDS = 2;
 
 /** Copy a folder's contents: a cheap clone where the file system supports it, a plain copy otherwise. */
-function copyDir(from: string, to: string): void {
+export function copyDir(from: string, to: string): void {
   mkdirSync(to, { recursive: true });
   const clone = process.platform === "darwin" ? ["-c", "-a"] : ["-a", "--reflink=auto"];
   try {
@@ -310,7 +312,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       logs.restore = await rt.logs(r);
       await finish(r);
       // a backend with EF Core migrations: fetch the tool that runs them, once per packages folder, for the schema read below
-      const ef = rCode === 0 && !inp.restoreOnly && wantsSchema() && !migrateConfigured(project) ? efMigrations(src) : undefined;
+      const ef = rCode === 0 && !inp.restoreOnly && !inp.buildOnly && wantsSchema() && !migrateConfigured(project) ? efMigrations(src) : undefined;
       if (ef && !existsSync(join(nuget, EF_TOOLS, "dotnet-ef"))) {
         const t = await launch({
           role: "restore", image: project.dotnet.sdkImage, network: FEEDS_NET, workdir: "/src",
@@ -344,7 +346,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         lint = { kind: "lint", tool: "dotnet-build", version: toolVersions["dotnet"] ?? "unknown", findings: parseBuildWarnings(logs.build) };
         // a backend with an approved data model: start the app once so it creates its database, and keep what the database has
         // (a backend on PostgreSQL is read further down, once its database server is up)
-        if (build.ok && !project.database && wantsSchema()) {
+        if (build.ok && !inp.buildOnly && !project.database && wantsSchema()) {
           const tSchema = Date.now();
           const built = schema = await readBuiltSchema(inp, src, nuget, launch, finish);
           mkdirSync(join(src, BUILT_SCHEMA_FILE, ".."), { recursive: true });
@@ -365,6 +367,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       });
       return { testRun, build, lint, reports: [], logs };
     }
+    if (inp.buildOnly) return { testRun: noTests(), build, lint, reports: [], logs };
     // nothing more to read for a backend on SQLite: skip the database server and the tests
     if (inp.schemaOnly && !project.database) return { testRun: noTests(), build, lint, reports: [], logs, schema };
 

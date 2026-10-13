@@ -141,7 +141,7 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("plan the implementation")) return {
     tasks: [{ id: "TASK-1", title: "Say Hello", reqs: ["REQ-1"], fileScope: ["src/Api/Greeter.cs"], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 3, approach: "change the literal" }],
     options: [{ id: "O-1", summary: "change the literal", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "make it configurable", simplest: false, tradeoffs: "more code" }],
-    chosen: "O-1", adr: "Change the literal; configuration isn't asked for.", protectedPathsDeclared: [], newDependencies: [], stubs: [],
+    chosen: "O-1", adr: "Change the literal; configuration isn't asked for.", protectedPathsDeclared: [], newDependencies: [], stubs: planStubs.length > 1 ? planStubs.shift()! : planStubs[0] ?? [],
     // a backend that must give its data model (a new product's API) gets one
     ...(!planGivesNoModel && (system.includes("DATA MODEL. Give") || system.includes("The database as it is now")) ? { dataModel: { tables: [{ name: "Greetings", purpose: "the greeting text", columns: [{ name: "Id", type: "int", required: true, pk: true }, { name: "Text", type: "string", required: true }] }] } } : {}),
   };
@@ -161,6 +161,8 @@ const modelCalls: string[] = [];
 let planPrompt = "";
 /** the plan changes no stored data: it gives no data model even where it is shown a database */
 let planGivesNoModel = false;
+/** the stubs each plan answer gives, in order (the last repeats) */
+let planStubs: { path: string; content: string }[][] = [];
 const provider: Provider = {
   start(model, _e, system, user): Conversation {
     modelCalls.push(model);
@@ -264,6 +266,7 @@ class Lab implements ContainerRuntime {
       mkdirSync(join(src, "src/Api/openapi"), { recursive: true });
       writeFileSync(join(src, "src/Api/openapi/built.json"), this.builtDoc(src));
     }
+    if (s.cmd[1] === "build" && this.buildLog && readFileSync(join(mount("/src")!, "src/Api/Greeter.cs"), "utf8").includes("IMissing")) { this.failedBuilds++; return 1; }
     if (multi && s.cmd[1] === "build") {
       const src = mount("/src")!;
       return MULTI_FILES.some((f) => existsSync(join(src, f)) && readFileSync(join(src, f), "utf8").includes("SYNTAX")) ? 1 : 0;
@@ -306,7 +309,10 @@ class Lab implements ContainerRuntime {
     return { code: 0, stdout: "", stderr: "" };
   }
   async isRunning() { return true; }
-  async logs() { return "info: Now listening on: http://127.0.0.1:5080"; }
+  /** what a build that fails on an undeclared type prints */
+  buildLog?: string;
+  failedBuilds = 0;
+  async logs(id: string) { return this.buildLog && this.specs.get(id)?.cmd[1] === "build" ? this.buildLog : "info: Now listening on: http://127.0.0.1:5080"; }
   async stop() {}
   async remove() {}
   async listByLabel() { return []; }
@@ -330,6 +336,7 @@ async function toApproval(runId: string) {
 let lab: Lab;
 beforeEach(() => {
   planGivesNoModel = false;
+  planStubs = [];
   const home = mkdtempSync(join(tmpdir(), "factory-e2e-"));
   process.env.FACTORY_HOME = home;
   writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
@@ -1652,4 +1659,26 @@ describe("from a Jira label to a reviewed pull request (fakes: models, container
     expect(err).not.toContain(auth);
     expect(err).not.toContain(token);
   });
+});
+
+describe("the plan's stubs are built before approval", () => {
+  it("a stub that does not compile goes back to the planner, not on to the test writer (run 2bf7)", async () => {
+    const broken = "namespace Api; public class Greeter : IMissing { public string Greet(string name) => throw new System.NotImplementedException(); }\n";
+    planStubs = [[{ path: "src/Api/Greeter.cs", content: broken }], [{ path: "src/Api/Greeter.cs", content: GREETER }]];
+    lab.buildLog = "/src/src/Api/Greeter.cs(1,37): error CS0246: The type or namespace name 'IMissing' could not be found (are you missing a using directive or an assembly reference?) [/src/src/Api/Api.csproj]";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    const failed = ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("plan"));
+    expect(failed).toHaveLength(1);
+    const said = JSON.stringify(ledger.getJson(failed[0]!.outputs![0]!));
+    expect(said).toContain("plan-stub-build");
+    expect(said).toContain("CS0246");
+    expect(said).toContain("src/Api/Greeter.cs:1");
+    expect(lab.failedBuilds).toBe(1);
+    // the plan that reached the approval card is the one whose stubs compile
+    const s = replay(ledger.events());
+    expect(s.openCard!.kind).toBe("approval");
+    const plan = ledger.getJson<{ stubs: { content: string }[] }>(s.steps.get("plan")!.outputs[0]!);
+    expect(plan.stubs.map((x) => x.content)).toEqual([GREETER]);
+  }, 30_000);
 });

@@ -61,10 +61,17 @@ describe("ui criteria become manual checks", () => {
   it("leaves them alone where the lab tests screens: the test writer gives each a screen test", () => {
     const ac = (id: string, level: "unit" | "ui" | "manual") => ({ id, given: "g", when: "w", then: "the value is shown", level });
     const spec = { requirements: [{ id: "REQ-1", ears: "e", op: "ADDED" as const, sources: ["I-1"], acceptance: [ac("AC-1.1", "ui"), ac("AC-1.2", "manual")] }], nfrs: [], outOfScope: [], assumptions: [] };
-    const d = downgradeUi(spec as never, testsScreens("node"));
+    const d = downgradeUi(spec as never, testsScreens({ stack: "node", screenTests: true }));
     expect(d.downgraded).toEqual([]);
     expect(d.spec).toBe(spec);
-    expect(testsScreens("dotnet")).toBe(false);
+    expect(testsScreens({ stack: "dotnet", screenTests: true })).toBe(false);
+    // off unless the project turns them on: a web app's ui criteria are a person's check
+    expect(testsScreens({ stack: "node" })).toBe(false);
+    expect(downgradeUi(spec as never, testsScreens({ stack: "node" })).downgraded).toEqual(["AC-1.1"]);
+    // the web side of a product with a separate API has nothing but screens to test: on unless the project turns them off
+    expect(testsScreens({ stack: "node", contract: { file: "contracts/openapi.yaml" } })).toBe(true);
+    expect(testsScreens({ stack: "node", contract: { file: "contracts/openapi.yaml" }, screenTests: false })).toBe(false);
+    expect(testsScreens({ stack: "dotnet", contract: { file: "contracts/openapi.yaml" } })).toBe(false);
   });
 
   it("gives the test writer the longer turn limit for a screen test, and its rules only when the checkout can run one", () => {

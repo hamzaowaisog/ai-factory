@@ -207,6 +207,14 @@ describe(".NET producer (fake runtime)", () => {
     expect(cmds).toEqual([["dotnet", "restore", "backend/Api/Api.csproj"], ["dotnet", "build", "backend/Api/Api.csproj"], ["dotnet", "test", "backend/Api/Api.csproj"]]);
   });
 
+  it("stops after the build when only the build is asked for (the plan's stubs)", async () => {
+    const { repo, commit } = repoWithCommit();
+    const rt = new FakeRuntime({ trx: trx([{ name: "A", outcome: "Passed" }]) });
+    const out = await produceDotnetTests({ runId: "r1", key: "k", repo, commit, stage: "author-tests-on-base", project, rt, buildOnly: true, exp: { expectPass: [], expectFail: [], compareToBaseline: [] } });
+    expect(out.build.ok).toBe(true);
+    expect([...rt.specs.values()].map((s) => s.cmd[1])).toEqual(["restore", "build"]);
+  });
+
   it("reports a failed build as compile failures", async () => {
     const { repo, commit } = repoWithCommit();
     const rt = new FakeRuntime({ build: 1 });

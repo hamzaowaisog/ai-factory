@@ -320,6 +320,8 @@ describe("design: fidelity lint", () => {
       expect(by["lint: existing components only"]!.status).toBe("FAIL");
       expect(by["lint: no new building blocks"]!.items).toEqual([`${root}components/ui/fancy.tsx`]);
       expect(overall(results)).toBe("fail");
+      // the implementer is told which values, not only how many (run 1679)
+      expect(designFidelityLint.predicate({ lint: results }, DEFAULT_POLICY).failures!.map((f) => f.message).join(" ")).toContain(`${root}components/ui/fancy.tsx: p-[13px]`);
     });
   }
 

@@ -14,6 +14,8 @@ export const EventType = z.enum([
   "scaffold.copied",
   // a locked test that failed twice, read against its criterion: the code is wrong, the test is wrong (and rewritten), or unclear
   "test.judged",
+  // a generated, locked file the factory wrote again in a run that was already under way (the API client's test handlers)
+  "client.refreshed",
 ]);
 export type EventType = z.infer<typeof EventType>;
 

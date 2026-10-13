@@ -18,7 +18,7 @@ import { apiSide } from "../config/platform.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { guided, header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { acOwners, slicesProblem } from "./build.js";
+import { acOwners, slicesProblem, stubBuildProblems } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { requirementSummary, riskLines, spendLine, taskSummary, withSummary } from "./card-summary.js";
 import { gateNotes } from "./gate-questions.js";
@@ -239,7 +239,7 @@ export const planStep: StepDef = {
 - dependsOn: only the tasks whose code this task really needs.
 - complexity, on every task: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack. Most tasks are standard. rules-or-algorithm is a task whose work is mostly business rules, validations, allowed state changes or calculations.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
-- stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
+- stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. The stubs are built as they are, on the untouched code, before anything is implemented: a stub may only use types the repo already has or that another stub declares (an interface the endpoint classes share is a stub of its own). Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
 ${outsideSystemsPlanRule(ctx.project.stack)}
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
 - newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.`),
@@ -360,6 +360,9 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
       if (w?.kind === "waived") waivers = w.waivers;
       else fs.push(...waivable.flatMap((x) => x.failures));
     }
+    // last, and only for a plan that passed everything else: the stubs are built on the untouched code (not where a scaffold is
+    // written under them first), so a stub that cannot compile goes back to the planner and not on to the test writer
+    if (!g.failures?.length && !fs.length && !scaf?.layout) fs.push(...await stubBuildProblems(ctx, plan.stubs.filter((st) => st.path !== cfile && st.path !== DATA_MODEL_FILE)));
     const all = [...(g.failures ?? []), ...fs];
     if (all.length) {
       r.forget?.();

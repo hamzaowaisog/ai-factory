@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, authEnv, changedFiles, commitAll, commitWith, diffIncludingUntracked, excludeLocally, fetchForGate, freshWorktree, git, headSha, pathChangedSince, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
+import { addWorktree, authEnv, changedFiles, commitAll, commitFiles, commitWith, diffIncludingUntracked, excludeLocally, fetchForGate, freshWorktree, git, headSha, pathChangedSince, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -36,6 +36,16 @@ describe("hardened git", () => {
     await commitAll(repo, "change");
     expect(await pathChangedSince(repo, base, "a.txt")).toBe(true);
     expect(await pathChangedSince(repo, await headSha(repo), "a.txt")).toBe(false);
+  });
+
+  it("commits files from their text on top of a commit, with no checkout involved", async () => {
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    const at = await commitFiles(repo, base, [{ path: "src/New.cs", content: "class New { }\n" }, { path: "a.txt", content: "two\n" }], "stubs");
+    expect(await changedFiles(repo, base, at)).toEqual([{ status: "M", path: "a.txt" }, { status: "A", path: "src/New.cs" }]);
+    expect((await git(repo, ["show", `${at}:src/New.cs`])).stdout).toBe("class New { }\n");
+    expect(await headSha(repo)).toBe(base);
+    expect((await git(repo, ["status", "--porcelain"])).stdout).toBe("");
   });
 
   it("commits named files on top of a commit without moving the checkout", async () => {

@@ -2,13 +2,13 @@
 // copy → install (npm registry only, through the feed proxy, no install scripts) → build (no network) → vitest (no network)
 // → stop everything → read the JSON report. Accept starts the built app (npm start, or vite preview) and sends the probes.
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import type { BuildRun, TestResult } from "../contracts/index.js";
 import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { FEED_PROXY_URL, FEEDS_NET } from "../runners/netinfra.js";
-import { copyTree, hostUser, splitCurl, type AcceptResult, type ProduceInput, type ProduceOutput } from "./dotnet.js";
+import { copyDir, copyTree, hostUser, saveBuild, splitCurl, type AcceptResult, type ProduceInput, type ProduceOutput } from "./dotnet.js";
 import { type ContainerSpec, stopAndRemove } from "./runtime.js";
 import { buildTestRun, markFlaky, rerunCandidates, type Expectations } from "./validate.js";
 import { isLoadError, loadFailures, parseVitestJson, titleOf, titlePattern } from "./vitest.js";
@@ -77,6 +77,16 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
   try {
     const t0 = Date.now();
     const toolVersions: Record<string, string> = { nodeImage: await rt.imageDigest(project.node.image) };
+    // an earlier lab run in this run already installed and built this exact commit: start from a copy of it (the new tests are
+    // run twice on one commit, and each run paid for npm install and the build again: run 1679, 47 seconds a time)
+    const cached = !inp.restoreOnly && inp.buildCache ? join(inp.buildCache, sha256(JSON.stringify([inp.commit, project.node.image])).slice(0, 24)) : undefined;
+    const reuse = !!cached && existsSync(cached);
+    if (reuse) {
+      copyDir(cached!, src);
+      utimesSync(cached!, new Date(), new Date()); // most recently used: pruned last
+      phase("build-reused", `lab: reused the install and build of ${inp.commit.slice(0, 10)} from an earlier lab run (${secs(t0)})`);
+    }
+    if (!reuse) {
     copyTree(inp.repo, inp.commit, src);
     phase("copy", `lab: copied ${inp.commit.slice(0, 10)} (${secs(t0)})`);
     if (!existsSync(join(src, "package.json"))) {
@@ -110,7 +120,12 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
       const errors = parseNodeBuildErrors(logs.build);
       return failedRun({ kind: "build", ok: false, errors: errors.length ? errors : [{ file: "", line: 0, code: "BUILD", msg: `npm run build failed (exit ${bCode ?? "timeout"}): ${logs.build.split("\n").filter(Boolean).slice(-3).join(" ").slice(0, 400)}` }] }, toolVersions);
     }
+    if (cached) saveBuild(src, inp.buildCache!, cached);
+    }
     const build: BuildRun = { kind: "build", ok: true, errors: [] };
+    if (inp.buildOnly) {
+      return { testRun: { ...buildTestRun({ treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp, raw: { reports: [], results: [], discovered: [], exitCode: 0 }, probeOk: () => true }), runner: "vitest" }, build, reports: [], logs };
+    }
 
     let accept: AcceptResult | undefined;
     if (inp.accept) {

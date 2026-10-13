@@ -34,7 +34,8 @@ export const designFidelityLint = defineGate<{ lint: CheckResult[] }>({
   id: "design.fidelity-lint", after: "implement", safety: false, waiver: "human",
   predicate: ({ lint }) => verdict(
     lint.filter((r) => r.status === "FAIL" || r.status === "UNCHECKED")
-      .map((r) => failure("design-fidelity", `${r.check}: ${r.status === "UNCHECKED" ? "could not check: " : ""}${r.detail}`)),
+      // with what was found: "1 arbitrary value(s)" alone left the implementer guessing which one (run 1679, twice)
+      .map((r) => failure("design-fidelity", `${r.check}: ${r.status === "UNCHECKED" ? "could not check: " : ""}${r.detail}${r.items?.length ? `: ${r.items.slice(0, 8).join("; ")}${r.items.length > 8 ? `; and ${r.items.length - 8} more` : ""}` : ""}`)),
     lint.map((r) => `${r.check} ${r.status}`).join("; ") || "nothing to check",
   ),
 });

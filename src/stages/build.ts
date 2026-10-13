@@ -1,6 +1,6 @@
 // Build side of the brownfield slice (stages-aligned §1): discover/baseline → stub commit →
 // author-tests (fails on base twice → lock) → implement ⟲ task verify → integrate → accept.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult, TestRun } from "../contracts/index.js";
@@ -13,7 +13,7 @@ import {
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
 import { failureSignature, RUNGS } from "../gates/ladder.js";
-import { changedFiles, commitAll, commitWith, diffIncludingUntracked, git, headSha, pathChangedSince, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
+import { changedFiles, commitAll, commitFiles, commitWith, diffIncludingUntracked, git, headSha, pathChangedSince, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
 import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
 import { codingRunner } from "../runners/codex.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
@@ -24,7 +24,7 @@ import type { Ledger } from "../ledger/ledger.js";
 import { unlockedFiles } from "../ledger/human.js";
 import { parseTrx } from "../verify/trx.js";
 import { factoryHome } from "../util/paths.js";
-import { BUILT_SCHEMA_FILE, buildCachePath, produceDotnetTests, skippableKnownFailures, type BuiltSchema, type Probe, type ProduceOutput } from "../verify/dotnet.js";
+import { BUILT_SCHEMA_FILE, buildCachePath, copyDir, produceDotnetTests, skippableKnownFailures, type BuiltSchema, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { ProjectConfig } from "../config/project.js";
 import { installIsCurrent, installNodeModules, labFor, LOCK_SYNC_CMD, markInstalled, runNodeOffline } from "../verify/lab.js";
 import { contractGap, contractMatches, dataModelMatches } from "../gates/contract.js";
@@ -32,8 +32,8 @@ import { changedPackages, isPackageManifest, packagesPlanned, type PackageChange
 import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-model.js";
 import { parse } from "yaml";
 import { DataModel, ReviewCoverage } from "../contracts/index.js";
-import { apiElsewhere, CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
-import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
+import { apiElsewhere, CLIENT_CMD, CLIENT_CONFIG, CLIENT_DIR, contractLockFiles, prepareClient, refreshedClient, withoutMockDelay, withRefreshed } from "./contract.js";
+import { authorIntro, implementIntro, notFoundHint, testsScreens } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { readApproved } from "../conventions/store.js";
 import { guidelinesBrief } from "../conventions/brief.js";
@@ -101,7 +101,7 @@ export function lockOf(state: RunState, ledger: Ledger): { lock: Lock; sha: stri
   const freed = unlockedFiles(ledger.events());
   const cut = freed.length ? { ...written, lock: written.lock.filter((l) => !freed.some((u) => u.file === l.file)), unlocks: freed.map((u) => ({ what: u.file, human: u.by, reason: u.reason, boundTo: sha })) } : written;
   // a test the test-or-code check rewrote is locked at its new content (test-defect.ts)
-  const lock = relocked(cut, ledger.events(), sha);
+  const lock = withRefreshed(relocked(cut, ledger.events(), sha), ledger.events(), sha);
   return lock === written ? { lock, sha } : { lock, sha: ledger.putJson(lock) };
 }
 
@@ -120,7 +120,7 @@ const packagesDir = (runId: string, stack: ProjectConfig["stack"] = "dotnet") =>
   return d;
 };
 
-async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { readSchema?: boolean; schemaOnly?: boolean }): Promise<ProduceOutput> {
+async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { readSchema?: boolean; schemaOnly?: boolean; buildOnly?: boolean }): Promise<ProduceOutput> {
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
   // full-suite runs (task, integrate) leave out tests that already fail on the base branch
@@ -138,6 +138,32 @@ async function produce(ctx: StepContext, key: string, commit: string, stage: Tes
     onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
     onPhase: phaseTracer(ctx),
   });
+}
+
+/**
+ * The plan's stubs, built in the test lab on the untouched code, before anyone approves the plan: a stub that does not compile
+ * (a base type nobody declares, a missing using) stops every later build, and the test writer may not touch it (run 2bf7 parked
+ * at author-tests five times on one undeclared interface). The errors go back to the planner. Not checked where the stubs sit on
+ * code the stub commit writes first (a scaffold, a new product's empty repo); a lab that cannot run never fails a plan.
+ */
+export async function stubBuildProblems(ctx: StepContext, stubs: { path: string; content: string }[]): Promise<Failure[]> {
+  const repo = ctx.state.info.repoPath, base = ctx.state.info.baseCommit;
+  if (!stubs.length || !repo || !base) return [];
+  try {
+    if (repoIsEmpty(repo, base)) return [];
+    const commit = await commitFiles(repo, base, stubs, `factory: the plan's stubs, built before approval, for ${ctx.runId}`);
+    ctx.log(`plan: building the ${stubs.length} stub file(s) on the untouched code`);
+    const out = await produce(ctx, `plan/stubs-${ctx.attempt}`, commit, "author-tests-on-base", { expectPass: [], expectFail: [], compareToBaseline: [] }, undefined, undefined, undefined, undefined, { buildOnly: true });
+    if (out.build.ok) return [];
+    if (out.build.errors.some((e) => e.code === "RESTORE")) { ctx.log("plan: the stubs were not built (the packages could not be restored); going on without that check"); return []; }
+    // a failed build whose log names no error line still fails the plan, with the end of the log
+    const errors = out.build.errors.length ? out.build.errors : [{ file: "", line: 0, code: "BUILD", msg: out.logs.build.split("\n").filter(Boolean).slice(-3).join(" ").slice(0, 400) }];
+    const fix = "A stub may only use types the repo already has or that a stub in this plan declares: declare the missing type in a stub of its own, inside a task's file scope, or write the stub without it.";
+    return errors.slice(0, 10).map((e, i) => failure("plan-stub-build", `The stubs do not compile on the untouched code: ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
+  } catch (e) {
+    ctx.log(`plan: the stubs were not built (${e instanceof Error ? e.message.split("\n")[0] : String(e)}); going on without that check`);
+    return [];
+  }
 }
 
 /** This run's baseline results (empty before discover has finished). */
@@ -625,6 +651,48 @@ async function dirtyPaths(wt: string): Promise<string[]> {
   return (await git(wt, ["status", "--porcelain", "-uall"])).stdout.split("\n").filter(Boolean).map((l) => l.slice(3).replace(/^"|"$/g, ""));
 }
 
+/** A build error's file is in the tests, wherever the lab's checkout sits (the path can be absolute there). */
+export function inTests(file: string): boolean {
+  const segs = file.replace(/\\/g, "/").split("/").filter(Boolean);
+  return segs.some((_, i) => matchesAny(segs.slice(i).join("/"), TEST_SCOPE));
+}
+
+/** One of several test writers working at the same time: its number and the criteria it writes tests for. */
+export interface WriterPart { index: number; of: number; ids: string[] }
+const WRITERS_MAX = 4, WRITER_CRITERIA = 12;
+
+/**
+ * The criteria split among test writers that work at the same time: whole requirements, in order, about twelve criteria a
+ * writer and four writers at most. One writer wrote 30 criteria in one session and was cut off at its turn limit after 16
+ * minutes with nothing returned (run 4cda). A short list gives one group: it stays with one writer.
+ */
+export function writerGroups(acs: { id: string; req: string }[], max = WRITERS_MAX, per = WRITER_CRITERIA): string[][] {
+  const reqs = [...new Set(acs.map((a) => a.req))];
+  const n = Math.min(max, reqs.length, Math.round(acs.length / per));
+  if (n < 2) return acs.length ? [acs.map((a) => a.id)] : [];
+  const groups: string[][] = [];
+  let cur: string[] = [], left = acs.length;
+  for (const req of reqs) {
+    const ids = acs.filter((a) => a.req === req).map((a) => a.id);
+    cur.push(...ids);
+    if (groups.length < n - 1 && cur.length >= left / (n - groups.length)) { groups.push(cur); left -= cur.length; cur = []; }
+  }
+  if (cur.length) groups.push(cur);
+  return groups;
+}
+
+/** The one file a parallel test writer may write: its name carries the writer's number. */
+export const writerScope = (index: number): string[] => [`**/*Part${index}*`, `**/*part${index}*`, `*Part${index}*`, `*part${index}*`];
+
+function writerPartNote(p: WriterPart, stack: ProjectConfig["stack"]): string {
+  const file = stack === "node" ? `acceptance.part${p.index}.test.tsx (or .test.ts), in the folder the rules above give for tests` : `AcceptancePart${p.index}Tests.cs, in the existing test project`;
+  return `You are test writer ${p.index} of ${p.of}. The others work at the same time, each on its own copy of this checkout and its own criteria. Yours are: ${p.ids.join(", ")}. Write tests for these only.
+- Put ALL your tests in ONE new file: ${file}. Its name must contain "${stack === "node" ? "part" : "Part"}${p.index}".
+- Every helper, fixture or fake you need goes inside that same file${stack === "node" ? "" : `, and everything in the file sits in a namespace ending ".Part${p.index}"`}, so nothing clashes with another writer's file.
+- Create or change no other file: only that one file is taken from your checkout.
+- ${p.index === 1 ? "You also write the characterisation tests, in that same file." : "Write no characterisation tests and return an empty list for them: writer 1 writes those."}`;
+}
+
 export const authorTestsStep: StepDef = {
   key: "author-tests", stage: "author-tests", templateVersion: "4", coding: true, needsUsd: AGENT_START_USD,
   inputs: (s) => (s.steps.get("stub-commit")?.status === "completed" ? { stubs: s.steps.get("stub-commit")!.outputs[0], spec: s.steps.get("specify")!.outputs[0] } : undefined),
@@ -681,10 +749,11 @@ export const authorTestsStep: StepDef = {
       ...(contractFile && plan.stubs.some((s) => s.path === contractFile) ? [{ path: contractFile, reason: `the locked API contract; the client and test handlers in ${CLIENT_DIR} are generated from it` }] : [])];
     const room = testWriterRoom(needTest.length);
     const limits = { maxTurns: Math.round(testWriterTurns(light, needTest.map((a) => a.level)) * room), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: Math.round(45 * 60 * room) };
-    const pack = buildPack({
+    // one briefing for the whole list, or one per writer when the list is split (part: that writer's share)
+    const packFor = (part?: WriterPart, lim = limits) => { const mine = part ? needTest.filter((a) => part.ids.includes(a.id)) : needTest; const reqs = new Set(mine.map((a) => a.req)); return buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
-        S.template("tpl", authorIntro(ctx.project.stack, screenTestsReady(wt), apiElsewhere(ctx.project))),
+        S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(wt), apiElsewhere(ctx.project))),
         ...(light ? [S.template("light", `This is a small, low-risk change. Keep the tests small:
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.
@@ -695,21 +764,30 @@ Return the list of tests you wrote (acId, file, method name).` : `
 - For each "api" criterion whose endpoint needs NO login, also give one HTTP probe: method, path, optional JSON body, and the status code the criterion expects once implemented. The factory sends it to the running app (with an empty test database) as evidence. Skip criteria that need a login or seeded data.
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(pointers.length ? [S.pointers(pointers)] : []),
-        S.artifact("acs", "acceptance-criteria", acs),
-        ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before. For each test that opens one of the approved screens, also return that screen's id as "screen" (the screen the test renders, which can be another than the one its requirement is listed under): the test is then held at the task that builds that screen. Leave it out for a test that opens no screen.`)] : []),
+        ...(part ? [S.template("writer-part", writerPartNote(part, ctx.project.stack))] : []),
+        S.artifact("acs", "acceptance-criteria", part ? acs.filter((a) => reqs.has(a.req)) : acs),
+        ...(screens.length ? [S.artifact("approved-screens", "approved-screens", part ? screens.filter((x) => x.reqs.some((q) => reqs.has(q))) : screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before. For each test that opens one of the approved screens, also return that screen's id as "screen" (the screen the test renders, which can be another than the one its requirement is listed under): the test is then held at the task that builds that screen. Leave it out for a test that opens no screen.`)] : []),
         // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over
         S.files("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
         ...contractNote(ctx.project, wt, "tests"),
         ...dataModelNote(ctx.project, wt, "tests", !!databaseBefore(ctx)),
         ...(keptFiles.length ? [S.artifact("previous-tests", "previous-tests", { files: keptFiles, ...(prevOut ? { tests: prevOut.tests, characterisation: prevOut.characterisation, probes: prevOut.probes } : {}) })] : []),
-        ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
+        ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + shownFailures(priorFailures).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${keptFiles.length
           ? ` The previous attempt failed for the reasons above. Its test files are still in the checkout (previous-tests lists them${prevOut ? " and the tests it returned" : ""}): keep them, change only what the failures name, and write the tests that are missing.${prevOut ? "" : " It stopped before it finished, so read those files first and finish them."} Return the full list: the tests you kept and the new ones.`
           : priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}
-Before you return, check your list against the criteria: each of these needs at least one test in it: ${needTest.map((a) => a.id).join(", ")}.${limitsNote(limits, "Write every test first, then check them.")}`),
+Before you return, check your list against the criteria: each of these needs at least one test in it: ${mine.map((a) => a.id).join(", ")}.${limitsNote(lim, "Write every test first, then check them.")}`),
         S.recap(["one test per AC", "tests fail now for the right reason", "characterisation tests pass today", "don't touch production code"]),
       ],
-    });
+    }); };
+    // a long list written from nothing is split among writers that work at the same time, each on a copy of the checkout
+    const groups = mode.mode === "reset" && !light ? writerGroups(needTest) : [];
+    const parts: (WriterPart & { limits: typeof limits })[] = groups.length > 1 ? groups.map((ids, i) => {
+      const r = testWriterRoom(ids.length);
+      return { index: i + 1, of: groups.length, ids, limits: { maxTurns: Math.round(testWriterTurns(false, needTest.filter((a) => ids.includes(a.id)).map((a) => a.level)) * r), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * r, groups.length), timeoutSec: Math.round(45 * 60 * r) } };
+    }) : [];
+    const packs = parts.map((p) => packFor(p, p.limits));
+    const pack = packFor();
     // the briefing is built first: one that doesn't fit stops the step before any container starts
     tracePack(ctx.trace, "test writer", pack);
     const rt = runtime();
@@ -723,14 +801,55 @@ Before you return, check your list against the criteria: each of these needs at 
       ctx.log(`author-tests: the previous attempt's ${ctx.priorFailures.length} rejected test${ctx.priorFailures.length === 1 ? "" : "s"} fail for an accepted reason when its reports are read again; checking its tests again without the test writer`);
       out = prevOut!;
     } else {
-      tracePack(ctx.trace, "test writer", pack, ctx.ledger.putJson(pack));
-      const r = await codingRunner(rt, {
-        runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
+      const session = (who: string, key: string, fileScope: string[], workdir: string, pk: typeof pack, lim: typeof limits) => codingRunner(rt, {
+        runId: ctx.runId, key, fileScope, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, who),
         protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
         onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
         onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-      }, model).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits, workdir: wt });
-      await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
+      }, model).run({ step: "author-tests", model, effort, pack: pk, schema: AuthorOut, limits: lim, workdir });
+      let r: Awaited<ReturnType<typeof session>>;
+      if (parts.length) {
+        ctx.log(`author-tests: ${parts.length} test writers at the same time, ${parts.map((p) => p.ids.length).join(" + ")} criteria`);
+        const root = join(factoryHome(), "tmp", ctx.runId, "writers");
+        // the checkouts are made one after the other (git locks the repo for each), the writers then run together
+        for (const p of parts) {
+          const dir = join(root, `w${p.index}`);
+          rmSync(dir, { recursive: true, force: true });
+          await git(wt, ["worktree", "prune"]);
+          await git(wt, ["worktree", "add", "--detach", "--force", dir, start]);
+          for (const k of keptOnReset(ctx.project)) if (existsSync(join(wt, k))) copyDir(join(wt, k), join(dir, k));
+        }
+        const done = await Promise.all(parts.map(async (p, i) => {
+          const dir = join(root, `w${p.index}`);
+          try {
+            tracePack(ctx.trace, `test writer ${p.index}`, packs[i]!, ctx.ledger.putJson(packs[i]!));
+            const res = await session(`test writer ${p.index}`, `author-tests/${ctx.attempt}-w${p.index}`, writerScope(p.index), dir, packs[i]!, p.limits);
+            // only the writer's own test file comes back; anything else it left is dropped
+            const left = UNFINISHED.has(res.status) || res.status === "ok" || res.error === NO_CREDIT_TEXT ? (await dirtyPaths(dir)).filter((f) => existsSync(join(dir, f))) : [];
+            const mine = left.filter((f) => matchesAny(f, writerScope(p.index)) && matchesAny(f, TEST_SCOPE));
+            const dropped = left.filter((f) => !mine.includes(f));
+            if (dropped.length) ctx.log(`author-tests: test writer ${p.index} left ${dropped.length} file(s) outside its own test file; not taken: ${dropped.slice(0, 5).join(", ")}`);
+            for (const f of mine) { mkdirSync(dirname(join(wt, f)), { recursive: true }); copyFileSync(join(dir, f), join(wt, f)); }
+            return res;
+          } catch (e) {
+            return { status: "error", error: e instanceof Error ? e.message.split("\n")[0]! : String(e), usage: { inputTokens: 0, outputTokens: 0, cacheRead: 0, cacheWrite: 0, turns: 0, wallMs: 0, estUsd: 0 }, output: undefined } as unknown as Awaited<ReturnType<typeof session>>;
+          } finally {
+            await git(wt, ["worktree", "remove", "--force", dir]).catch(() => undefined);
+            rmSync(dir, { recursive: true, force: true });
+          }
+        }));
+        for (const d of done) await ctx.usage({ model, inputTokens: d.usage.inputTokens, outputTokens: d.usage.outputTokens, cacheRead: d.usage.cacheRead, cacheWrite: d.usage.cacheWrite, turns: d.usage.turns, wallMs: d.usage.wallMs, estUsd: d.usage.estUsd });
+        const good = done.filter((d) => d.status === "ok").map((d) => d.output as z.infer<typeof AuthorOut>);
+        const stopped = done.find((d) => d.status === "config-error") ?? done.find((d) => d.status !== "ok");
+        done.forEach((d, i) => { if (d.status !== "ok") ctx.log(`author-tests: test writer ${i + 1} did not finish (${d.error ?? d.status})`); });
+        // one writer short: the others' tests stand, and the missing criteria go back as "no test" for a retry that keeps the files
+        r = stopped && (stopped.status === "config-error" || !good.length) ? stopped
+          : { ...done.find((d) => d.status === "ok")!, output: { tests: good.flatMap((o) => o.tests), characterisation: good.flatMap((o) => o.characterisation), probes: good.flatMap((o) => o.probes), notes: good.map((o) => o.notes).filter(Boolean).join("\n") } };
+      } else {
+        tracePack(ctx.trace, "test writer", pack, ctx.ledger.putJson(pack));
+        r = await session("test writer", `author-tests/${ctx.attempt}`, TEST_SCOPE, wt, pack, limits);
+        await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
+      }
       if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
         // the tests so far are paid for: committed, and the next attempt carries on from them (run b497 lost $1.91 of tests this way)
         const left = await dirtyPaths(wt);
@@ -747,16 +866,28 @@ Before you return, check your list against the criteria: each of these needs at 
       out = r.output as z.infer<typeof AuthorOut>;
     }
 
-    const commit = await commitAll(wt, `factory: acceptance tests for ${ctx.runId}`);
-    // what a retry needs to carry on from here: the commit and the tests the writer listed
-    const keep = { ...retry, ...(recheck ? { recheck: true } : {}), commit, out: ctx.ledger.putJson(out) };
-    const changed = await changedFiles(wt, start, commit);
+    let commit = await commitAll(wt, `factory: acceptance tests for ${ctx.runId}`);
+    let changed = await changedFiles(wt, start, commit);
     const notTests = changed.filter((c) => !matchesAny(c.path, TEST_SCOPE));
     if (notTests.length) return { kind: "fail", category: "safety", failures: notTests.map((c) => failure("author-tests-scope", `Test author changed a non-test file: ${c.path}`)), signature: "author-tests:scope" };
-    const tampered = testWriterTampering(await Promise.all(changed.map(async (c) => {
+    const tampering = async () => testWriterTampering(await Promise.all(changed.map(async (c) => {
       const patch = c.status === "D" ? "" : (await git(wt, ["diff", "--no-color", "-U0", start, commit, "--", c.path])).stdout;
       return { ...c, ...patchLines(patch) };
     })));
+    let tampered = await tampering();
+    // an existing test file the writer deleted or rewrote is put back as it was, and the new tests go on: starting every test
+    // again for one changed line cost a whole attempt (run 4cda). An added skip marker still stops the step.
+    const back = [...new Set(tampered.filter((f) => f.check !== "author-tests-skip" && f.location).map((f) => f.location!))];
+    if (back.length) {
+      ctx.log(`author-tests: the test writer changed or deleted ${back.length} existing test file(s); put back as they were: ${back.slice(0, 5).join(", ")}`);
+      await git(wt, ["checkout", start, "--", ...back]);
+      await git(wt, ["reset", "--mixed", "-q", start]);
+      commit = await commitAll(wt, `factory: acceptance tests for ${ctx.runId}`);
+      changed = await changedFiles(wt, start, commit);
+      tampered = await tampering();
+    }
+    // what a retry needs to carry on from here: the commit and the tests the writer listed
+    const keep = { ...retry, ...(recheck ? { recheck: true } : {}), commit, out: ctx.ledger.putJson(out) };
     if (tampered.length) return { kind: "fail", category: "safety", failures: tampered, signature: "author-tests:tamper" };
     const missingAc = needTest.filter((a) => !out.tests.some((t) => t.acId === a.id));
     if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage", data: keep };
@@ -790,6 +921,11 @@ Before you return, check your list against the criteria: each of these needs at 
     const found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
       labFor(ctx.project).nameFilter(names), undefined, fromResults);
     keepSchemaBefore(ctx, commit);
+    // a build that breaks only in files the test writer may not change is not sent back to it: no rewrite of the tests fixes it
+    const outside = found.build.ok ? [] : found.build.errors.filter((e) => e.code !== "RESTORE");
+    if (outside.length && outside.every((e) => !!e.file && !inTests(e.file))) {
+      return { kind: "park", reason: `The code the tests are built on does not compile, and the test writer may not change it: ${outside.slice(0, 3).map((e) => `${e.file}:${e.line} ${e.code} ${e.msg}`).join("; ").slice(0, 600)}. Fix the stub or the plan, then resume.`, data: { ...keep, rung: ctx.rung } };
+    }
     if (!found.build.ok || missing.length) {
       const why = !found.build.ok
         ? found.build.errors.slice(0, 10).map((e) => failure("tests-compile", `${e.file}:${e.line} ${e.code} ${e.msg}`))
@@ -818,7 +954,10 @@ Before you return, check your list against the criteria: each of these needs at 
     if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
     // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,
     // since after the lock nothing in the run can change it
-    const weak = await weakTests(ctx, commit, needTest, tests);
+    // after a rewrite only the criteria it was sent back for are read again: the others were read and found proven
+    const reread = mode.mode === "keep" ? proofNamed(ctx.priorFailures) : [];
+    const toRead = reread.length ? needTest.filter((a) => reread.includes(a.id)) : needTest;
+    const weak = await weakTests(ctx, commit, toRead.length ? toRead : needTest, tests);
     if ("outcome" in weak) return weak.outcome;
     if (weak.failures.length) {
       const sent = ctx.ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("author-tests/") && (e.data as { signature?: string } | undefined)?.signature === PROOF_SIGNATURE).length;
@@ -854,8 +993,23 @@ async function heldTests(ctx: StepContext, wt: string): Promise<StepOutcome | un
 }
 
 const PROOF_SIGNATURE = "author-tests:proof";
-/** How many times the test writer is sent back for tests that do not prove their criteria, before they are locked as they are. */
-const PROOF_REWRITES = 3;
+/** The criteria a test check named as not proven ("AC-1.2: its test … does not prove the criterion"). */
+export function proofNamed(failures: { check: string; message: string }[]): string[] {
+  return [...new Set(failures.filter((f) => f.check === "test-proof").map((f) => f.message.split(":")[0]!.trim()).filter(Boolean))];
+}
+/**
+ * The failures the test writer is shown. A test check's findings all go in, one per criterion: with only the first twenty of
+ * 37 shown, the rewrite fixed twenty and the check sent the rest back again. Anything else stays at twenty (compile errors repeat).
+ */
+export function shownFailures<F extends { check: string }>(failures: F[]): F[] {
+  const proof = failures.filter((f) => f.check === "test-proof");
+  return [...failures.filter((f) => f.check !== "test-proof").slice(0, 20), ...proof.slice(0, 120)];
+}
+/**
+ * How many times the test writer is sent back for tests that do not prove their criteria, before they are locked as they are.
+ * Once: three rounds on a real run each wrote, ran and read every test again and locked the same tests in the end.
+ */
+const PROOF_REWRITES = 1;
 
 /**
  * Whether the ladder gives the test writer another attempt after a failure now. The same failure twice moves it up a rung
@@ -1158,10 +1312,16 @@ async function gateAll(ctx: StepContext, step: string, treeSha: string, gates: [
 }
 
 /** Failures that leave the previous attempt's code worth building on: only behaviour (or the build) was wrong. */
-const KEEPABLE = new Set(["build", "locked-failed", "locked-flaky", "regression", "new-failure"]);
+const KEEPABLE = new Set(["build", "locked-failed", "locked-flaky", "regression", "new-failure", "secret", "design-fidelity"]);
+/**
+ * Findings that name their own lines: a flagged value, a colour or style the design lint refused. The fix is a few
+ * lines of the change, so it is kept and the findings go back (run 1679: TASK-2 wrote its screen five times for them).
+ */
+const FIXABLE = new Set(["secret", "design-fidelity"]);
 
 export interface PrevAttempt {
   checks: string[]; rung: number; interrupted: boolean; commit?: string;
+  /** the attempt parked the run with its code committed (a check failed twice), and a person resumed it */ parked?: boolean;
   /** the attempt stopped when the model account ran out of credit, with its code committed */ noCredit?: boolean;
   /** author-tests: the stored answer of the attempt */ out?: string;
   /** every failure of the attempt was a locked test that fails as it did before the task (failsAsBefore) */ untouched?: boolean;
@@ -1173,11 +1333,13 @@ export interface PrevAttempt {
  * Keep the previous attempt's code for this retry, or start again from the task's start commit.
  * Keep after a recorded failure of keepable checks, at the same rung or after a move up the ladder: the stronger
  * model is told it may replace what cannot work, instead of paying to write all of it again (run 31fe: a reset on
- * each move, $5 a time). Anything else wrong (a safety check, an agent error) starts fresh.
+ * each move, $5 a time). A flagged secret or a design lint finding is kept too, also after it parked the run.
+ * Anything else wrong (another safety check, an agent error) starts fresh.
  */
 export function retryMode(prev: PrevAttempt | undefined, rung: number): { mode: "keep" | "reset"; reason: string } {
   if (!prev) return { mode: "reset", reason: "no previous attempt" };
-  if (prev.interrupted) return { mode: "reset", reason: "the previous attempt didn't finish" };
+  const fixable = !!prev.parked && prev.checks.some((c) => FIXABLE.has(c)) && prev.checks.every((c) => KEEPABLE.has(c));
+  if (prev.interrupted && !fixable) return { mode: "reset", reason: "the previous attempt didn't finish" };
   if (prev.noCredit) return { mode: "keep", reason: "the previous attempt stopped when the model account ran out of credit" };
   // out of budget or turns is unfinished work, not a wrong approach: it is kept at any rung
   if (prev.checks.length && prev.checks.every((c) => c === "agent-over-budget" || c === "agent-timeout")) return { mode: "keep", reason: "the previous attempt ran out of budget or turns" };
@@ -1207,6 +1369,7 @@ export function previousAttempt(events: LedgerEvent[], step: string, checks: str
   const now = locked(end), before = locked(ends.at(-2));
   return {
     checks, rung: Number(d.rung ?? 0), interrupted: end.type === "step.interrupted" || (!!d.parked && !noCredit), commit: d.commit, ...(d.out ? { out: d.out } : {}), ...(noCredit ? { noCredit } : {}),
+    ...(d.parked && d.commit && end.type === "step.failed" && !noCredit ? { parked: true } : {}),
     ...(d.untouched ? { untouched: true } : {}), ...(now !== undefined ? { locked: now } : {}), ...(before !== undefined ? { lockedBefore: before } : {}),
   };
 }
@@ -1222,6 +1385,48 @@ async function restoreRewritten(ctx: StepContext, wt: string): Promise<void> {
     writeFileSync(p, ctx.ledger.getArtifact(j.rewritten.sha));
     ctx.log(`${j.step}: put back the rewritten test ${j.file}`);
   }
+  // the same for a generated file the factory wrote again in this run (refreshClient)
+  for (const r of refreshedClient(ctx.ledger.events())) {
+    const p = join(wt, r.file);
+    if (existsSync(p) && sha256(readFileSync(p)) === r.sha) continue;
+    mkdirSync(dirname(p), { recursive: true });
+    writeFileSync(p, ctx.ledger.getArtifact(r.sha));
+    ctx.log(`${r.step}: put back the regenerated ${r.file}`);
+  }
+}
+
+/**
+ * A web run whose client was generated with handlers that wait one second before they answer: that is the whole time a screen
+ * test waits for text, so a locked test that reads an answer failed however the screen was built (run 1679 parked at its import
+ * screen on it). The handlers are generated again without the wait, here in the run, and locked at what they are now; the
+ * steps before this one stay as they are. True when files changed. A generator that fails leaves the checkout as it was.
+ */
+async function refreshClient(ctx: StepContext, key: string, start: string, wt: string, lock: Lock): Promise<boolean> {
+  const cfg = join(wt, CLIENT_CONFIG);
+  if (ctx.project.stack !== "node" || !ctx.project.contract || !existsSync(cfg)) return false;
+  const fixed = withoutMockDelay(readFileSync(cfg, "utf8"));
+  if (!fixed) return false;
+  const lockedAt = new Map(lock.lock.map((l) => [l.file, l.sha]));
+  const mine = contractLockFiles(ctx.project, wt).filter((f) => f === CLIENT_CONFIG || f.startsWith(`${CLIENT_DIR}/`));
+  const before = new Map(mine.map((f) => [f, readFileSync(join(wt, f))]));
+  await ensurePackages(ctx, start, wt);
+  ctx.log(`${key}: generating the API test handlers again without their one-second wait`);
+  writeFileSync(cfg, fixed);
+  const g = await runNodeOffline(runtime(), {
+    runId: ctx.runId, key: "client", dir: wt, image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec, cmd: CLIENT_CMD,
+    onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "client", data: { id, role: "producer" } }, ctx.writer); },
+    onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "client", data: { id } }, ctx.writer); },
+  });
+  const changed = mine.filter((f) => lockedAt.has(f) && existsSync(join(wt, f)) && sha256(readFileSync(join(wt, f))) !== lockedAt.get(f));
+  if (!g.ok || mine.some((f) => !existsSync(join(wt, f)))) {
+    for (const [f, was] of before) writeFileSync(join(wt, f), was);
+    ctx.log(`${key}: the handlers were not generated again (${g.log.split("\n").filter(Boolean).slice(-2).join(" ").slice(0, 300)}); going on with the ones the run has`);
+    return false;
+  }
+  for (const f of changed) {
+    await ctx.ledger.append({ type: "client.refreshed", key, data: { step: key, file: f, sha: ctx.ledger.putArtifact(readFileSync(join(wt, f))), was: lockedAt.get(f)!, why: "generated again without the handlers' one-second wait" } }, ctx.writer);
+  }
+  return changed.length > 0;
 }
 
 /** The files in the checkout that differ from HEAD, each with the hash of its content (a deleted one: ""). */
@@ -1289,7 +1494,7 @@ async function settleTests(ctx: StepContext, a: {
   const pack = buildPack({
     stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
     sections: [
-      S.template("tpl", authorIntro(ctx.project.stack, screenTestsReady(a.wt), apiElsewhere(ctx.project))),
+      S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(a.wt), apiElsewhere(ctx.project))),
       S.template("rewrite", REWRITE_RULES),
       S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => wrong.some((j) => j.acId === c.id))),
       S.artifact("tests-to-fix", "locked-tests", wrong.map((j) => ({ testId: j.testId, acId: j.acId, file: j.file, name: a.own.find((t) => t.testId === j.testId)?.name, why: j.why }))),
@@ -1431,6 +1636,7 @@ export function implementStep(taskId: string): StepDef {
       const freed = unlockedFiles(ctx.ledger.events()).map((u) => u.file).filter((f) => matchesAny(f, fileScope));
       // the same locked test failed twice: is the test wrong, or the code? (test-defect.ts) Settled before the coding agent is paid again
       await restoreRewritten(ctx, wt);
+      if (await refreshClient(ctx, key, start, wt, lock)) ({ lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger));
       const asked = testsToJudge(ctx.ledger.events(), key);
       let retest = false;
       if (asked.length) {
@@ -1444,7 +1650,7 @@ export function implementStep(taskId: string): StepDef {
       }
       const checked = verdictNote(judgedTests(ctx.ledger.events()).filter((j) => j.step === key));
       // a test rewritten at this task is part of its commit
-      const rewrittenHere = rewrittenTests(ctx.ledger.events()).filter((j) => j.step === key).map((j) => j.file);
+      const rewrittenHere = [...rewrittenTests(ctx.ledger.events()).filter((j) => j.step === key).map((j) => j.file), ...refreshedClient(ctx.ledger.events()).filter((r) => r.step === key).map((r) => r.file)];
       const sharesBuiltDir = sharesFolder(fileScope, builtDoc[0]);
       // what the last build's API document still lacks against the contract, so the agent starts from the list instead of finding it by hand
       const gap = writesEntry(fileScope, ctx.project.stack) || fileScope.some((f) => builtDoc.includes(f)) ? contractGapAt(ctx, wt, [prev?.commit, start]) : undefined;
