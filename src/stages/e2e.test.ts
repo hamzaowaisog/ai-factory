@@ -1,4 +1,7 @@
 // End to end: the brownfield slice with a scripted model and a fake container runtime.
+import { cardView } from "./card-summary.js";
+import { stepsFor } from "./modes.js";
+import { decideCard } from "../ui/start.js";
 import { testsView } from "../ui/tests.js";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
@@ -65,6 +68,11 @@ let intakeRisk = "low";
 let criticFindings: unknown[] = [];
 let repairSpec: unknown;
 let repairCalls = 0;
+/** the spec-question writer asks one question about the first open problem */
+let settleAsks = false;
+let reviseCalls = 0;
+/** the spec drafters' whole prompt, as last sent */
+let draftPrompt = "";
 const MULTI_FILES = ["src/Api/Greeter.cs", "src/Api/Farewell.cs", "src/Api/Third.cs"];
 const MULTI_TESTS = ["AC_1_1_GreetsWithHello", "AC_2_1_SaysBye", "AC_3_1_CountsThree"];
 function multiAnswer(system: string): unknown {
@@ -115,7 +123,7 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: system.length % 2 ? "Hello Ann" : "Hello, Ann!", kind: "happy" }, { text: "empty name returns Hello", kind: "error" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [{ id: "D-1", span: "I-1", topic: "punctuation", readings: [{ sketch: 1, behaviour: 0, summary: "Hello Ann" }, { sketch: 2, behaviour: 0, summary: "Hello, Ann!" }] }] };
   // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
-  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
+  if (system.includes("these problems are still open")) return { questions: settleAsks ? [{ problems: [1], text: "What does an empty name return?", options: ["Hello", "An error"], recommended: "Hello", reason: "simplest", impact: 2, impactReason: "visible text" }] : [], inRequest: [] };
   if (system.includes("Requirements analyst")) clarifierPrompt = system;
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
     questions: [{ id: "q1", category: "scope", text: "Keep the comma?", options: ["Hello Ann", "Hello, Ann!"], recommended: "Hello Ann", reason: "shortest", spans: ["I-1"], impact: 2, impactReason: "visible text", difference: "D-1" }], conflicts: [] };
@@ -159,6 +167,8 @@ const provider: Provider = {
     if (system.includes("plan the implementation")) planPrompt = `${system}\n${user}`;
     const repair = user.includes("Repair this spec");
     if (repair) repairCalls++;
+    if (user.includes("Revise this spec so it addresses")) reviseCalls++;
+    if (system.includes("Senior engineer writing a behaviour spec") && !repair && !user.includes("Revise this spec")) draftPrompt = `${system}\n${user}`;
     return {
       async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: repair && repairSpec ? repairSpec : answerFor(system, true, user) }], text: "", stop: "tool_use", usage: U }; },
       toolResults() {}, say() {},
@@ -346,6 +356,9 @@ beforeEach(() => {
   criticFindings = [];
   repairSpec = undefined;
   repairCalls = 0;
+  settleAsks = false;
+  reviseCalls = 0;
+  draftPrompt = "";
 });
 
 describe("brownfield slice end to end (fakes)", () => {
@@ -717,6 +730,141 @@ describe("brownfield slice end to end (fakes)", () => {
 });
 
 // a full-stack product's API repo: the contract file is in the repo (approved with the web app's plan), and the API is held to it
+describe("a guided run: autonomous off (fakes)", () => {
+  const REQ = "Greet people with Hello instead of Hi";
+  /** Runs on and returns the card it stops at. */
+  const stop = async (ledger: Ledger) => {
+    const r = await execute(ledger.runId);
+    expect(r.status, r.message).toBe("waiting");
+    return replay(ledger.events()).openCard!;
+  };
+  const answer = (ledger: Ledger, card: { artifactSha: string }, decision: "approve" | "reject", reason = "") =>
+    decide(ledger, { decision, hashPrefix: card.artifactSha.slice(0, 8), by: "ahsan", data: decision === "reject" ? { reason } : { note: "" } });
+  /** A guided run answered up to its "what I understood" card. */
+  const toUnderstood = async () => {
+    const ledger = Ledger.open(await createRun(REQ, "demo", "tester", { autonomous: false }));
+    const q = await stop(ledger);
+    expect(q.kind).toBe("question");
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "ahsan", data: { answers: { "Q-1": "A" } } });
+    const card = await stop(ledger);
+    expect(card.kind).toBe("understood");
+    return { ledger, card };
+  };
+
+  it("stops at what was understood, then the spec, then the plan; each card has a plain top and its detail below", async () => {
+    const { ledger, card: u } = await toUnderstood();
+    expect(replay(ledger.events()).info.autonomous).toBe(false);
+    const understood = ledger.readCard(u.cardId);
+    expect(understood).toContain("- greet with Hello");
+    expect(understood).toContain("Keep the comma? → **Hello Ann**");
+    // nothing of the spec exists while this card waits
+    expect(replay(ledger.events()).steps.has("drafts")).toBe(false);
+    await answer(ledger, u, "approve");
+    const sc = await stop(ledger);
+    expect(sc.kind).toBe("spec-review");
+    const s1 = replay(ledger.events());
+    expect(s1.steps.has("impact")).toBe(false);
+    expect(s1.steps.has("plan")).toBe(false);
+    const spec = ledger.readCard(sc.cardId);
+    expect(spec).toContain("- When a name is given, the Greeter shall return a greeting that starts with Hello. Checked by: an API test. (REQ-1)");
+    expect(spec).toContain("- other greetings");
+    expect(spec).toMatch(/Spent so far: \$\d+\.\d\d of a \$\d+\.\d\d limit\./);
+    // the technical part is one step away: left out of the short view, kept with the commands in the full one
+    expect(cardView(spec, false)).not.toContain("AC-1.1 [api]");
+    expect(cardView(spec, false)).toContain(`factory approve ${ledger.runId}`);
+    expect(cardView(spec, true)).toContain("AC-1.1 [api] Given a name Ann");
+    await answer(ledger, sc, "approve");
+    const pc = await stop(ledger);
+    expect(pc.kind).toBe("approval");
+    const plan = ledger.readCard(pc.cardId);
+    expect(plan).toMatch(/- \*\*Say Hello\*\* \(TASK-1\)\n {2}- When a name is given, the Greeter shall/);
+    expect(cardView(plan, false)).not.toContain("## Files the plan will touch");
+    expect(cardView(plan, true)).toContain("## Files the plan will touch");
+    await answer(ledger, pc, "approve");
+    const r = await execute(ledger.runId);
+    expect(r.status, r.message).toBe("delivered");
+    expect(replay(ledger.events()).decisions.map((d) => d.cardId.replace(/-[0-9a-f]+$/, ""))).toEqual(["questions-1", "understood", "spec-review", "approval"]);
+  });
+
+  it("a correction on what was understood reaches the spec writers and runs nothing again; the page can send it", async () => {
+    const { ledger, card } = await toUnderstood();
+    const before = modelCalls.length;
+    // from the run page, as the terminal's reject does
+    await decideCard(ledger, { hash: card.artifactSha.slice(0, 8), decision: "reject", by: "Ahsan", reason: "Admins keep Hi" }, { execute: () => undefined });
+    expect((await stop(ledger)).kind).toBe("spec-review");
+    expect(draftPrompt).toContain("Admins keep Hi");
+    const s = replay(ledger.events());
+    expect(s.steps.get("clarify")!.attempts).toBe(1);
+    expect(s.steps.get("drafts")!.attempts).toBe(1);
+    expect(modelCalls.length).toBeGreaterThan(before);
+  });
+
+  it("the spec sent back is revised alone and shown again; the plan never sees the reason; a second time parks", async () => {
+    const { ledger, card: u } = await toUnderstood();
+    await answer(ledger, u, "approve");
+    const c1 = await stop(ledger);
+    await answer(ledger, c1, "reject", "Admins keep Hi");
+    const c2 = await stop(ledger);
+    expect(c2.kind).toBe("spec-review");
+    expect(c2.artifactSha).not.toBe(c1.artifactSha);
+    expect(reviseCalls).toBe(1);
+    const s = replay(ledger.events());
+    expect(s.steps.get("specify")!.attempts).toBe(2);
+    expect(s.steps.get("drafts")!.attempts).toBe(1);
+    expect(s.steps.has("plan")).toBe(false);
+    await answer(ledger, c2, "approve");
+    expect((await stop(ledger)).kind).toBe("approval");
+    expect(planPrompt).not.toContain("Admins keep Hi");
+    expect(replay(ledger.events()).steps.get("plan")!.attempts).toBe(1);
+
+    const other = await toUnderstood();
+    await answer(other.ledger, other.card, "approve");
+    await answer(other.ledger, await stop(other.ledger), "reject", "one");
+    await answer(other.ledger, await stop(other.ledger), "reject", "two");
+    const r = await execute(other.ledger.runId);
+    expect(r.status).toBe("parked");
+    expect(r.message).toMatch(/Rejected 2 times/);
+  });
+
+  it("each card can be sent back once: a rejected plan after a rejected spec does not park, and the spec is reviewed on the plan card", async () => {
+    const { ledger, card: u } = await toUnderstood();
+    await answer(ledger, u, "approve");
+    await answer(ledger, await stop(ledger), "reject", "Admins keep Hi");
+    await answer(ledger, await stop(ledger), "approve");
+    const p1 = await stop(ledger);
+    expect(p1.kind).toBe("approval");
+    await answer(ledger, p1, "reject", "Keep it to one task");
+    // the spec and plan are revised as a rejected plan always was; the spec card is not shown a third time
+    const p2 = await stop(ledger);
+    expect(p2.kind).toBe("approval");
+    expect(p2.artifactSha).not.toBe(p1.artifactSha);
+    expect(planPrompt).toContain("Keep it to one task");
+    expect(replay(ledger.events()).steps.get("spec-review")!.status).toBe("completed");
+  });
+
+  it("the project's autonomous: false guides every run, and --autonomous on one run overrides it", async () => {
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), autonomous: false }));
+    expect(replay(Ledger.open(await createRun(REQ, "demo", "tester")).events()).info.autonomous).toBe(false);
+    const own = Ledger.open(await createRun(`${REQ}.`, "demo", "tester", { autonomous: true }));
+    expect(own.events()[0]!.data).not.toHaveProperty("autonomous");
+  });
+
+  it("an autonomous run is as it was: no new step, no new input, no summary on its card", async () => {
+    const ledger = await toApproval(await createRun(REQ, "demo", "tester"));
+    const s = replay(ledger.events());
+    expect(ledger.events()[0]!.data).not.toHaveProperty("autonomous");
+    expect(stepsFor(s).map((x) => x.key)).toEqual(["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "impact", "plan", "approve", "stub-commit", "author-tests", "implement/TASK-1", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+    const inputs = (key: string) => Object.keys(stepsFor(s).find((x) => x.key === key)!.inputs(s, ledger)!);
+    expect(inputs("drafts")).toEqual(["intent", "cb", "c1", "c2"]);
+    expect(inputs("specify")).toEqual(["merged", "rejections"]);
+    expect(inputs("approve")).toEqual(["spec", "plan", "rejections"]);
+    const card = ledger.readCard(s.openCard!.cardId);
+    expect(card).not.toContain("## Technical detail");
+    expect(cardView(card, false)).toBe(card);
+  });
+});
+
 describe("a .NET API held to a locked API contract (fakes)", () => {
   // the document a real .NET 9 build wrote (the spike); the contract says the same
   const doc = readFileSync(new URL("../gates/fixtures/dotnet9-built.json", import.meta.url), "utf8");
@@ -1295,6 +1443,29 @@ describe("spec repairs", () => {
     await decide(ledger, { decision: "approve", hashPrefix: s.openCard!.artifactSha.slice(0, 6), by: "ahsan" });
     const r = await execute(s.info.runId);
     expect(r.status, r.message).toBe("delivered");
+  });
+
+  it("a rejection after the spec's own questions revises the spec with the reason, and does not pay for the answered round again", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    settleAsks = true;
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), brownfield: { questions: true } }));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const q = replay(ledger.events()).openCard!;
+    expect(q.cardId).toMatch(/^spec-questions-1-/);
+    criticFindings = [];
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "ahsan", data: { answers: { "Q-2": "A" } } });
+    expect((await execute(ledger.runId)).status).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(card.kind).toBe("approval");
+    const repairs = repairCalls;
+    await decide(ledger, { decision: "reject", hashPrefix: card.artifactSha.slice(0, 6), by: "ahsan", data: { reason: "Keep 'Hi' for admins" } });
+    expect((await execute(ledger.runId)).status).toBe("waiting");
+    expect(reviseCalls).toBe(1);
+    expect(repairCalls).toBe(repairs);
+    // what the questions settled stays on the revised spec
+    expect(ledger.getJson<{ settled?: unknown[] }>(replay(ledger.events()).steps.get("specify")!.outputs[0]!)!.settled).toHaveLength(1);
   });
 
   it("a retry goes on from the failed attempt's repaired spec, and a repair answers with changes only", async () => {

@@ -5,7 +5,7 @@ import type { Failure, Usage } from "../contracts/index.js";
 import type { ProjectConfig } from "../config/project.js";
 import type { Policy } from "../gates/policy.js";
 import type { Ledger, Writer } from "../ledger/ledger.js";
-import { splitKey, type RunState, type StepKey } from "../ledger/state.js";
+import { splitKey, type RunInfo, type RunState, type StepKey } from "../ledger/state.js";
 import type { FailureCategory } from "../gates/ladder.js";
 import type { Trace } from "../util/trace.js";
 import type { GateAnswer } from "./gate-questions.js";
@@ -110,10 +110,31 @@ export function lastFailureData(ledger: Ledger, step: StepKey): Record<string, u
   return last?.type === "step.failed" ? (last.data ?? {}) as Record<string, unknown> : undefined;
 }
 
-/** Reasons a human gave when rejecting an approval card, oldest first (typed on a TTY: trusted). */
-export function planRejections(state: RunState): string[] {
+/** Reasons a person gave when sending back a card whose id starts with one of `prefixes`, oldest first (typed by a named person: trusted). */
+export function rejectionsOf(state: RunState, ...prefixes: string[]): string[] {
   return state.decisions
-    .filter((d) => d.decision === "reject" && d.cardId.startsWith("approval-"))
+    .filter((d) => d.decision === "reject" && prefixes.some((p) => d.cardId.startsWith(p)))
     .map((d) => String((d as unknown as { reason?: string }).reason ?? "").trim())
     .filter(Boolean);
+}
+
+/** Reasons a human gave when rejecting an approval card, oldest first. */
+export const planRejections = (state: RunState): string[] => rejectionsOf(state, "approval-");
+
+/**
+ * Autonomous off (`autonomous: false` in the project, or `factory start --guided`): a person also checks what the factory
+ * understood and the spec, each on its own card, before the design and the plan (src/stages/review-cards.ts).
+ */
+export const guided = (info: Pick<RunInfo, "autonomous">): boolean => info.autonomous === false;
+
+export const UNDERSTOOD_CARD = "understood-";
+export const SPEC_CARD = "spec-review-";
+
+/** What a person sent back on the spec card (a guided run), oldest first. */
+export const specRejections = (state: RunState): string[] => rejectionsOf(state, SPEC_CARD);
+
+/** What a person corrected on the "what I understood" card (a guided run): handed to the spec writers. */
+export function correction(state: RunState): string | undefined {
+  const d = state.decisions.filter((x) => x.cardId.startsWith(UNDERSTOOD_CARD)).at(-1) as { note?: string; reason?: string } | undefined;
+  return String(d?.reason ?? d?.note ?? "").trim() || undefined;
 }

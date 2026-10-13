@@ -12,6 +12,7 @@ Run them from the repo root. They need Docker, and the fidelity check needs a br
 | `npx tsx dryrun/one-run-greenfield.ts --intent dryrun/intent-example.md` | One greenfield run: empty repo to a delivered Next.js branch, two screens. Add `--no-fidelity` to skip the browser check. | about 12 min |
 | `npx tsx dryrun/one-run-greenfield.ts --intent dryrun/intent-example.md --kill-at-implement` | The same, killed as the second task starts. It prints the command that resumes it (`--resume <home> <run>`). Wait a minute first: the run lock goes stale after 60 s. | about 10 min |
 | `npx tsx dryrun/fullstack.ts dryrun/intent-example.md` | `factory fullstack` end to end: both repos, the web run, the contract hand-over, the API run, then the compose files. The API's second task first names a field wrongly, so the contract gate must fail once and pass on the retry. | about 17 min |
+| `DRYRUN_GUIDED=1` in front of either | The same run guided (autonomous off): it also stops at the "what I understood" card and the spec card, and the dry run approves both. |
 
 Each run gets a fresh factory home under `~/.factory/tmp/greenfield-dryrun/`; your real home is not touched. The
 last lines of the output give the steps, the cards, the contract gate's results and the folder.

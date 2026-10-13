@@ -29,9 +29,10 @@ export const CONTRACT_FILE = "contracts/openapi.yaml";
  * A side's `github`: the GitHub repo the factory made for it (its page), when the product was put on GitHub.
  * `database`: what the API keeps its data in (src/fullstack/database.ts): PostgreSQL. A product from before that was settled has none and is on SQLite.
  * `models`: the models chosen when the product was started (like --preset and --model); the API run uses the same choice, so it is asked once.
+ * `autonomous`: false when the product was started with --guided; the API run is reviewed the same way.
  */
 export interface ProductSide { project: string; repo: string; run?: string; github?: string }
-export interface Product { name: string; dir: string; web: ProductSide; api: ProductSide; request?: string; from?: { kind: "design" | "estimate"; runId: string }; database?: DatabaseChoice; models?: Choice }
+export interface Product { name: string; dir: string; web: ProductSide; api: ProductSide; request?: string; from?: { kind: "design" | "estimate"; runId: string }; database?: DatabaseChoice; models?: Choice; autonomous?: false }
 
 /** What a product may start from besides a request: an approved design or an approved estimate, each made with no repo. */
 export type ProductSeed = { design: ApprovedDesign } | { estimate: Approved };
@@ -138,7 +139,7 @@ async function putOnGithub(p: Product, acct: GithubAccount): Promise<void> {
  * and nothing is estimated. `github`: put both repos on GitHub first (`putOnGithub`); GitHub is asked before anything is made.
  * `models`: the models for both runs, checked before anything is made and kept with the product for the API run.
  */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}): Promise<Product> {
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}, autonomous?: boolean): Promise<Product> {
   const from = seed && ("design" in seed ? seed.design : seed.estimate);
   const text = from?.request ?? request?.text;
   if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
@@ -152,7 +153,9 @@ export async function startProduct(name: string, dir: string, request: { text: s
   p.request = text;
   if (seed) p.from = { kind: "design" in seed ? "design" : "estimate", runId: from!.runId };
   if (chosen) p.models = models;
+  if (autonomous === false) p.autonomous = false;
   p.web.run = await createRun(text, p.web.project, operator, {
+    ...(autonomous !== undefined ? { autonomous } : {}),
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     ...(chosen ? { models } : {}),
     ...(from ? { sources: [{ kind: "prompt" as const }] } : request?.sources ? { sources: request.sources } : {}),
@@ -180,7 +183,7 @@ export async function startApiRun(p: Product, operator: string, maxCostUsd?: num
   }
   // a build that asks, as the web run of the same product is: a large request is read module by module. Read in one piece it
   // does not fit the intake step (run 1de4: parked on a 33,000-character request the web run had read in two modules)
-  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { asks: true, ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}) });
+  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { asks: true, ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}), ...(p.autonomous === false ? { autonomous: false } : {}) });
   saveProduct(p);
   return p.api.run;
 }

@@ -2,7 +2,7 @@
 import type { RunState } from "../ledger/state.js";
 import { acceptStep, authorTestsStep, discoverStep, implementStep, integrateStep, stubCommitStep } from "./build.js";
 import { deliverStep, reviewStep } from "./deliver.js";
-import type { StepDef } from "./framework.js";
+import { guided, type StepDef } from "./framework.js";
 import { clarify2Step, clarifyStep } from "./clarify.js";
 import { breakdownStep, estimateStep } from "./estimate.js";
 import { approveStep, intakeStep, planStep } from "./spec.js";
@@ -15,6 +15,7 @@ import { designFidelityStep } from "./design-fidelity.js";
 import { approveEstimateStep, exportStep } from "./estimate-approve.js";
 import { designSteps } from "./design-pipeline.js";
 import { seedStep } from "./seed.js";
+import { specReviewStep, understoodStep } from "./review-cards.js";
 import { impactStep } from "./impact.js";
 import { brownfieldGroundStep, estimateGroundStep, newProductGroundStep } from "./estimate-ground.js";
 import { BROWNFIELD_SOURCES } from "./design-inputs.js";
@@ -128,7 +129,11 @@ export function requirementsHead(state: RunState, ground: StepDef = estimateGrou
  * build's own ground step): a large request is split into modules. Any other build reads it in one piece, as builds always have.
  */
 function buildHead(state: RunState, ground: StepDef): StepDef[] {
-  return settles(state.info) ? requirementsHead(state, ground) : [intakeStep, ground, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+  const head = settles(state.info) ? requirementsHead(state, ground) : [intakeStep, ground, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+  if (!guided(state.info)) return head;
+  // a guided run: a person checks what was understood before the first draft, and the spec once it is written
+  const drafts = head.findIndex((s) => s.key.startsWith("drafts"));
+  return [...head.slice(0, drafts), understoodStep, ...head.slice(drafts), specReviewStep];
 }
 
 /** The steps of an approved design-only run, seeded into a new run under the same keys (`info.designRef`). */

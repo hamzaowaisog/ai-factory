@@ -79,6 +79,21 @@ describe("mode manifests", () => {
     expect(keys).toEqual(["discover", "intake", "ground", "specify", "impact", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
+  it("a guided build adds its two cards around the spec; a seeded one has its spec already, and an estimate is not a build", async () => {
+    const keys = async (id: string, data: Record<string, unknown>) => {
+      const l = Ledger.create(id);
+      await l.append({ type: "run.created", data: { project: "p", request: "x", autonomous: false, ...data } }, HUMAN_WRITER);
+      return stepsFor(replay(l.events())).map((s) => s.key);
+    };
+    const direct = await keys("20261013-guided-1", { mode: "brownfield" });
+    expect(direct.slice(3, 11)).toEqual(["clarify", "clarify-2", "understood", "drafts", "merge", "specify", "spec-review", "impact"]);
+    // a greenfield run reads its request as an estimate does, and has the same two cards
+    expect((await keys("20261013-guided-2", { mode: "greenfield", asks: true })).filter((k) => ["understood", "spec-review"].includes(k))).toEqual(["understood", "spec-review"]);
+    const none = (k: string[]) => expect(k.some((x) => x === "understood" || x === "spec-review")).toBe(false);
+    none(await keys("20261013-guided-3", { mode: "brownfield", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64) } }));
+    none(await keys("20261013-guided-4", { mode: "estimate" }));
+  });
+
   it("an estimate with the design left out goes from the spec straight to the breakdown", async () => {
     const l = Ledger.create("20261007-estimate-nodesign");
     await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", estimate: { drawDesign: false } } }, HUMAN_WRITER);

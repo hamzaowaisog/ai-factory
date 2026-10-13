@@ -5,14 +5,14 @@ import { z } from "zod";
 import { CriticFinding, CurrentBehaviourBody, IntentBody, SpecDraft } from "../contracts/index.js";
 import { checkEvidence } from "../context/tools.js";
 import { failure } from "../gates/engine.js";
-import { planRejections, requireOutput, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { correction, planRejections, rejectionsOf, requireOutput, readOutput, SPEC_CARD, specRejections, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { lintSpec, OBSERVABLE_RULE, outOfScopeSpans, requestExcluded, sizeNote, type LintResult } from "./speclint.js";
 import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { LANE, lightSpec, specLane } from "./lane.js";
 import { settles, specRefused, unsettled, type Found } from "../estimate/settled.js";
-import { settle, settleKey, type Answer, type Decided } from "./settle.js";
+import { settle, settledAnswers, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { testsScreens } from "./stack-text.js";
@@ -250,6 +250,8 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
     S.artifact("assumptions", "assumptions", i.assumptions),
     S.artifact("cb", "current-behaviour", i.cb),
     S.untrusted("request", "cli", request(ctx)),
+    // a guided run: what the person corrected on the "what I understood" card
+    ...(correction(ctx.state) ? [{ spec: { id: "correction", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `Before the spec was written, the requester read what was understood (the answers and assumptions above) and corrected it. Where this differs from an assumption, this wins:\n${correction(ctx.state)}` }] : []),
   ];
 }
 
@@ -259,7 +261,7 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
 export const draftsStep: StepDef = {
   key: "drafts", stage: "specify", templateVersion: "6",
   inputs: (s) => (s.steps.get("clarify-2")?.status === "completed"
-    ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0] } : undefined),
+    ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0], ...(correction(s) ? { correction: correction(s) } : {}) } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
     const lowBugfix = i.intent.changeClass === "bugfix" && i.intent.risk === "low";
@@ -374,16 +376,17 @@ export const specifyStep: StepDef = {
   key: "specify", stage: "specify", templateVersion: "8",
   // refused: gate E1 refused a spec written before problems were settled by questions, so this step runs again to settle them
   inputs: (s, l) => (s.steps.get("merge")?.status === "completed"
-    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(settles(s.info) && specRefused(s, l) ? { refused: true } : {}) }
+    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(specRejections(s).length ? { specRejections: specRejections(s) } : {}), ...(settles(s.info) && specRefused(s, l) ? { refused: true } : {}) }
     : undefined),
   async run(ctx) {
-    const i = inputsOf(ctx);
+    let i = inputsOf(ctx);
     const lane = specLane(i.intent, ctx.state.info.mode);
     const merged = requireOutput<{ spec: Spec; conflicts: string[]; singleDraft?: boolean }>(ctx.state, ctx.ledger, "merge");
     // stability is only measured across drafts: with one draft there's nothing to report
     const stable = (stab: Record<string, number | undefined>, id: string) => (merged.singleDraft ? undefined : stab[id] ?? 1 / 3);
     // after a rejection, start from the spec the human saw and repair it with their reason first
-    const rejections = planRejections(ctx.state);
+    // (a guided run's spec card sends back the same way, before there is a plan)
+    const rejections = rejectionsOf(ctx.state, "approval-", SPEC_CARD);
     let spec = rejections.length ? (readOutput<Spec>(ctx.state, ctx.ledger, "specify") ?? merged.spec) : merged.spec;
     // a failed attempt's repairs are paid for: the retry goes on from its spec, not from the merge again
     const mergedSha = ctx.state.steps.get("merge")!.outputs[0]!;
@@ -418,7 +421,11 @@ export const specifyStep: StepDef = {
     // a spec gate E1 refused before problems were settled by questions: settle that spec's problems, not a new spec's
     const prior = readOutput<Spec & Found>(ctx.state, ctx.ledger, "specify");
     const refused = settling && !resumed && unsettled(prior) && specRefused(ctx.state, ctx.ledger) ? prior : undefined;
-    if (resumed || refused) {
+    // a rejection after the spec's own questions: the answered rounds stand (they are in the spec the person saw), so they are
+    // not applied and paid for again; the spec is revised with the reason, knowing those answers
+    const answered = settling && rejections.length && prior?.settled ? settledAnswers<Checks>(ctx, key) : undefined;
+    if (answered) i = { ...i, answers: [...i.answers, ...answered] };
+    if ((resumed && !answered) || refused) {
       if (refused) ctx.log("specify: gate E1 refused this spec; settling its open problems with questions");
     } else {
     if (rejections.length) {
@@ -428,7 +435,7 @@ export const specifyStep: StepDef = {
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
-          { spec: { id: "rejection", source: "feedback", trust: "trusted", placement: "user" }, content: `The human reviewer rejected the spec and plan built from this spec. Their reasons (latest last):\n${rejections.map((x) => `- ${x}`).join("\n")}` },
+          { spec: { id: "rejection", source: "feedback", trust: "trusted", placement: "user" }, content: `The human reviewer rejected ${planRejections(ctx.state).length ? "the spec and plan built from this spec" : "this spec"}. Their reasons (latest last):\n${rejections.map((x) => `- ${x}`).join("\n")}` },
           S.task("Revise this spec so it addresses the reviewer's reasons. Keep requirement IDs stable where the meaning doesn't change. Change nothing the reasons don't need."),
         ],
       });
@@ -475,8 +482,8 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
       repaired = true;
     }
     }
-    let settled: Found["settled"];
-    if (settling) {
+    let settled: Found["settled"] = answered ? prior!.settled : undefined;
+    if (settling && !answered) {
       const withAnswers = (answers: Answer[]) => ({ ...i, answers: [...i.answers, ...answers] });
       const s = await settle<Checks>(ctx, {
         key, request: request(ctx), firstId: nextQuestion(i.answers),

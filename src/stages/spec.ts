@@ -17,9 +17,10 @@ import { runGate, type GateDef } from "../gates/engine.js";
 import { apiSide } from "../config/platform.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
-import { header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { guided, header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { acOwners, slicesProblem } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
+import { requirementSummary, riskLines, spendLine, taskSummary, withSummary } from "./card-summary.js";
 import { gateNotes } from "./gate-questions.js";
 import { settledText } from "./settle.js";
 import { CLIENT_DIR } from "./contract.js";
@@ -372,6 +373,14 @@ export function plannedFiles(plan: PlanT): string[] {
   return [...new Set(plan.tasks.flatMap((t) => t.fileScope))].sort();
 }
 
+/** Each requirement as the cards list it: its id, its EARS sentence and its acceptance criteria. */
+export const requirementLines = (spec: Spec): string[] =>
+  spec.requirements.map((r) => `- **${r.id}** (${r.op})${r.stability !== undefined && r.stability < 2 / 3 ? " ⚠ only one draft had this" : ""} ${r.ears}\n${r.acceptance.map((c) => `  - ${c.id} [${c.level}] Given ${c.given}; when ${c.when}; then ${c.then}`).join("\n")}`);
+
+/** The spec critic's findings as the cards list them. */
+export const criticLines = (critic: { findings: { severity: string; reqId?: string; finding: string }[]; note?: string }): string[] =>
+  [...critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`), ...(critic.note ? [`_${critic.note}_`] : [])];
+
 export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[]; /** spec problems and failing design checks settled by questions, and what was carried as an open risk */ settled?: string[] }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
@@ -391,7 +400,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     ...(a.clar.assumptions.some((x) => x.risk !== "high") ? [``, `Other assumptions: ${a.clar.assumptions.filter((x) => x.risk !== "high").map((x) => `${x.id} ${x.text}`).join("; ")}`] : []),
     ``,
     `## Requirements`,
-    ...a.spec.requirements.map((r) => `- **${r.id}** (${r.op})${r.stability !== undefined && r.stability < 2 / 3 ? " ⚠ only one draft had this" : ""} ${r.ears}\n${r.acceptance.map((c) => `  - ${c.id} [${c.level}] Given ${c.given}; when ${c.when}; then ${c.then}`).join("\n")}`),
+    ...requirementLines(a.spec),
     ``,
     ...(() => {
       const manual = a.spec.requirements.flatMap((r) => r.acceptance.filter((c) => c.level === "manual").map((c) => c.id));
@@ -435,8 +444,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     })(),
     ``,
     `## Critic findings (${a.critic.findings.length})`,
-    ...a.critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`),
-    ...(a.critic.note ? [`_${a.critic.note}_`] : []),
+    ...criticLines(a.critic),
     ...(a.open.length ? [``, `## Still open after ${a.repairs ?? 3} repair${a.repairs === 1 ? "" : "s"}`, ...a.open.map((o) => `- ${o}`)] : []),
     ...(a.settled?.length ? [``, `## Settled by questions, and open risks`, ...a.settled.map((x) => `- ${x}`)] : []),
     ...(a.roundTrip && !a.roundTrip.droppedSpans.length && !a.roundTrip.inventedCapabilities.length ? [``, `Round trip: the spec restated back matches your request (nothing dropped, nothing added).`] : []),
@@ -480,7 +488,19 @@ export const approveStep: StepDef = {
       ...(impact ? { affects: affectsLines(impact, plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))) } : {}),
       settled: [...(requireOutput<{ settled?: SettledProblem[] }>(ctx.state, ctx.ledger, "specify").settled ?? []).map(settledText), ...gateNotes(ctx.ledger, ctx.state, "approve")],
     });
-    const card = `${md}\n\nCard hash: ${bundleSha.slice(0, 8)}`;
+    // a guided run: the same card under a plain summary of what is built, how, and what is still open
+    const plain = (): string => {
+      const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify"), rec = ctx.state.steps.get("specify")!;
+      const clar = clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2"));
+      const risks = riskLines((rec.data?.openFindings as string[] | undefined) ?? [], [...((spec as { settled?: SettledProblem[] }).settled ?? []).map(settledText), ...gateNotes(ctx.ledger, ctx.state, "approve")], clar);
+      return withSummary([
+        `# The plan: what will be built, and how`, ``, `Run ${ctx.runId}. No test or code is written yet. ${spendLine(ctx.state)}`, ``,
+        ...requirementSummary(spec, (rec.data?.apiSide as string[] | undefined) ?? []), ``,
+        ...taskSummary(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan").tasks, spec, (readOutput<{ screens?: { route: string }[] }>(ctx.state, ctx.ledger, "design")?.screens ?? []).map((x) => x.route)),
+        ...(risks.length ? [``, ...risks] : []),
+      ], md);
+    };
+    const card = `${guided(ctx.state.info) ? plain() : md}\n\nCard hash: ${bundleSha.slice(0, 8)}`;
     return { kind: "wait", card: { cardId: `approval-${bundleSha.slice(0, 8)}`, kind: "approval", artifactSha: bundleSha, markdown: card } };
   },
 };
