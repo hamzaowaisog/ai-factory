@@ -1,0 +1,118 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Provide a shared Feedlot web workspace through an app link without sign-in or role-specific controls, with the same operational and financial controls for all users."
+     },
+     {
+      "n": 2,
+      "text": "Add mock procurement synchronization that requests and displays PO and receiving details, and map PO lines to one or more lots and pens with traceability, pen capacity, and animal counts."
+     },
+     {
+      "n": 3,
+      "text": "Display import duplicates, changed or conflicting records, returned conflict status and mappings, and a review action."
+     },
+     {
+      "n": 4,
+      "text": "Show lot lifecycle targets and projected market or ship dates, applying lot-specific targets when available and the configured yard target otherwise, displaying the yard target for all lots, and leaving projected dates empty when ADG is zero or negative."
+     },
+     {
+      "n": 5,
+      "text": "Add feed inventory entry and viewing with item details and opening, received, consumed, and closing stock; when a movement is refused for insufficient stock, show the returned shortage and error while keeping the unsaved movement available for correction."
+     },
+     {
+      "n": 6,
+      "text": "Let users configure wastage and view returned ingredient balances and shortages across daily, weekly, monthly, quarterly, bi-annual, and annual horizons, marking periods without a dated feeding plan as unavailable."
+     },
+     {
+      "n": 7,
+      "text": "Let users create, save, view, and compare rations, including ingredients or as-fed proportions, nutrition, intended animal type or weight range, returned cost per pound, and associated lot performance or cost-of-gain values; identify the lowest returned cost of gain when available."
+     },
+     {
+      "n": 8,
+      "text": "For ton-denominated inventory or ration prices, show the equivalent per-pound price in the configured currency and display calculation quantities in pounds."
+     },
+     {
+      "n": 9,
+      "text": "Let users generate dated pen feeding plans from a ration, per-animal daily rate, animal count, and feeding time, and display returned quantities, feed cost, energy intake, and status."
+     },
+     {
+      "n": 10,
+      "text": "For multi-lot pens, require a planned quantity allocation for every lot and flag missing or unreconciled allocations; show the single-lot allocation field for pens with one lot."
+     },
+     {
+      "n": 11,
+      "text": "On saved feeding-event details, show returned planned and actual quantities, variance, feed cost, energy, inventory decrement based on delivered quantity, feeding status, lot allocations, and ingredient unit-cost snapshot; show wastage-adjusted estimated consumption separately when applicable."
+     },
+     {
+      "n": 12,
+      "text": "Show planned-versus-actual feeding variance and provide an action to adjust a future plan, with editable quantity fields and the selected pen and ration."
+     },
+     {
+      "n": 13,
+      "text": "Let users record dated lot weight measurements with number weighed, average weight, and notes; calculate total measured weight from average weight and number weighed, with no independently editable total-weight field."
+     },
+     {
+      "n": 14,
+      "text": "Show lot weight history as a time-ordered list with returned dates, average and total weight, number weighed, gain since the prior measurement, and notes."
+     },
+     {
+      "n": 15,
+      "text": "When saved feeding or weight records are edited or voided, show returned revised balances and metrics while retaining the original record in history."
+     },
+     {
+      "n": 16,
+      "text": "Show returned creator and last-changed identifiers and timestamps on record details without presenting a full audit log."
+     },
+     {
+      "n": 17,
+      "text": "Show returned lot feed-to-gain metrics, including days on feed, weight gain, ADG, feed consumed, FCR, feed cost per unit of gain, and projected ship date; calculate feed cost per unit of gain using recorded feed costs only."
+     },
+     {
+      "n": 18,
+      "text": "After feeding or weight events are saved, refresh returned lot metrics and show returned feeding-adjustment or sale-timing suggestions."
+     },
+     {
+      "n": 19,
+      "text": "Provide an operational dashboard with active lots and pens, animal counts, inventory status, ration usage, bunk rates, planned and actual feed, feed consumed and cost, weights and gains, ADG, feed-to-gain ratio, cost per gain, energy consumed, and best- and worst-performing lots."
+     },
+     {
+      "n": 20,
+      "text": "Provide operational reports showing the highest-consuming pen, best feed-to-gain lot, highest-ADG lot, most-used ration, feeding alignment, overfed or underfed pens, remaining inventory, and cost per gain."
+     },
+     {
+      "n": 21,
+      "text": "Provide a Feed-to-Gain report with date-range, lot, breed, sex, and pen filters to compare returned ADG, FCR, and cost of gain across matching lots."
+     },
+     {
+      "n": 22,
+      "text": "Allow the filtered Feed-to-Gain report results and selected scope to be exported as CSV and PDF."
+     },
+     {
+      "n": 23,
+      "text": "Provide a yard-level summary of aggregate total head, average ADG, average cost of gain, and total feed cost across active lots."
+     },
+     {
+      "n": 24,
+      "text": "Provide representative mock operational data and a project presentation page covering the proposed solution, architecture diagrams, demo walkthrough, coding prompts, testing and validation, challenges, production readiness, and go-to-market strategy and analysis."
+     },
+     {
+      "n": 25,
+      "text": "Render every page responsively for phone, tablet, and desktop browser widths, with touch-sized controls on narrow layouts."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

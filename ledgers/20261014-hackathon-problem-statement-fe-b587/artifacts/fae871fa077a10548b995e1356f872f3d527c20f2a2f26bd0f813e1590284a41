@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Pen 14",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 0,
+   "resultChars": 1520,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Pen 14&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:94: export const getGetFeedingPlansResponseMock = (): FeedingPlanListResponseResponse => ({\"plans\":[{\"planId\":4806,\"penId\":14,\"penName\":\"Pen 14\",\"rationId\":62,\"rationName\":\"North Yard Grower\",\"feedingDate\nlib/api/client.msw.ts:96: export const getCreateFeedingPlanResponseMock = (): FeedingPlanResponseResponse => ({\"plan\":{\"planId\":4806,\"penId\":14,\"penName\":\"Pen 14\",\"rationId\":62,\"rationName\":\"North Yard Grower\",\"feedingDate\":\"2\nlib/api/client.msw.ts:98: export const getEditFeedingPlanResponseMock = (): FeedingPlanResponseResponse => ({\"plan\":{\"planId\":4806,\"penId\":14,\"penName\":\"Pen 14\",\"rationId\":62,\"rationName\":\"North Yard Grower\",\"feedingDate\":\"202\nlib/api/client.msw.ts:100: export const getCreateFeedingEventResponseMock = (): FeedingEventResponseResponse => ({\"event\":{\"eventId\":9001,\"planId\":4806,\"penId\":14,\"penName\":\"Pen 14\",\"rationName\":\"North Yard Grower\",\"plannedQuan\nlib/api/client.msw.ts:102: export const getEditFeedingEventResponseMock = (): FeedingEventResponseResponse => ({\"event\":{\"eventId\":9001,\"planId\":4806,\"penId\":14,\"penName\":\"Pen 14\",\"rationName\":\"North Yard Grower\",\"plannedQuanti\nlib/api/client.msw.ts:104: export const getVoidFeedingEventResponseMock = (): FeedingEventResponseResponse => ({\"event\":{\"eventId\":9001,\"planId\":4806,\"penId\":14,\"penName\":\"Pen 14\",\"rationName\":\"North Yard Grower\",\"plannedQuanti\n</untrusted_document>"
+  }
+ ]
+}

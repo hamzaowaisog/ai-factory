@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-17.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test saves an event with distinct planned and actual quantities, then checks both quantities, the variance, and the future-plan adjustment action."
+     },
+     {
+      "acId": "AC-17.2",
+      "testId": "AC_17_2_AdjustFormShowsEditableQuantitiesPenAndRation",
+      "verdict": "weak",
+      "why": "It requires only one editable field matching broad quantity/rate/allocation labels, so a form without editable future-plan quantity fields could pass."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the computed total after multiple average-weight and animal-count changes, verifies prior totals disappear, and checks there is no editable total field."
+     },
+     {
+      "acId": "AC-18.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It checks the calculated 10,000-pound total before saving and then waits for a history row containing the saved record's date, count, average, total, and notes."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "AC_19_1_WeightHistoryListsRecordsInTimeOrderWithAllColumns",
+      "verdict": "weak",
+      "why": "The test skips the returned zero weight-gain value for the first record, so a history row that omits that value could pass."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "",
+      "verdict": "weak",
+      "why": "The edit and void cases check only selected revised metrics, not the other metrics returned in their responses, so those values could be omitted from the screen."
+     },
+     {
+      "acId": "AC-22.1",
+      "testId": "AC_22_1_LotPerformanceShowsEveryReturnedMetric",
+      "verdict": "weak",
+      "why": "The test checks only that the year 2027 appears for the returned projected ship date, not that the returned date itself is displayed."
+     },
+     {
+      "acId": "AC-22.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies the stated lot values and returned performance metrics, then checks every requested displayed result: days on feed, gain, ADG, FCR, and cost of gain."
+     },
+     {
+      "acId": "AC-22.3",
+      "testId": "AC_22_3_CostOfGainIsBasedOnRecordedFeedCostsOnly",
+      "verdict": "weak",
+      "why": "The fixture does not establish non-feed costs and recorded feed costs or distinguish the expected feed-only calculation, so the displayed value and label could pass without using feed costs alone."
+     },
+     {
+      "acId": "AC-23.1",
+      "testId": "",
+      "verdict": "weak",
+      "why": "Both save tests assert only selected returned metrics and omit others in the response, such as total feed consumed and feed-cost-per-gain, so not all returned updated metric values are verified."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

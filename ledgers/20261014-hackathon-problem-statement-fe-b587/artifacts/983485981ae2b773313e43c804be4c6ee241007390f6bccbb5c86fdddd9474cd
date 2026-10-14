@@ -1,0 +1,174 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Import reconciliation and duplicate handling",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 5,
+        "summary": "Repeat synchronizations update changed source values while preserving original traceability."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Duplicate or conflicting imports are rejected/reported without overwriting prior mappings, then corrected and retried."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-2",
+      "topic": "How inventory forecasts account for demand",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Forecasts apply wastage to estimated consumption across the stated horizons."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Forecasts estimate ingredient balances and shortages from available stock and expected demand."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-2",
+      "topic": "Inventory movements below zero",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 6,
+        "summary": "A movement that would make stock negative is blocked or flagged."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Negative-stock movements are blocked or flagged for authorized correction."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 6,
+        "summary": "Demand shortfalls are flagged without showing negative balances as available stock."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-3",
+      "topic": "Feeding plans for pens with multiple lots",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "A plan records a selected lot allocation, without explicitly requiring a multi-lot allocation reconciliation."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Plans can allocate quantities to multiple lots and flag unreconciled animal or quantity allocations."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 5,
+        "summary": "A multi-lot pen requires sufficient allocation to attribute feeding and flags missing or unreconciled allocations."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-3",
+      "topic": "Wastage treatment in actual feed consumption",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "Inventory consumption follows ration mix and actual delivered quantity, with no wastage adjustment specified."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Actual ration consumption updates inventory and applies configured wastage where relevant."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Inventory is decremented according to ration proportions and configured wastage."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-4",
+      "topic": "Basis for lot total weight and gain",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "The user records total lot weight as a measurement value; the stated reading does not derive it from average weight and head count."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Total measured weight and change are calculated from average weight and number weighed when possible."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Total weight is calculated or validated from average weight and number weighed."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-5",
+      "topic": "Projected ship date calculation",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Projected ship date is based on remaining target-weight days at current ADG."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Ship date is projected from current weight, target weight, and ADG, without specifying the sketch 1 rule for using current ADG."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "I-6",
+      "topic": "Scope of dashboard filters",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Filters are specified for the dedicated feed-to-gain report, and exports retain that selected scope."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Dashboards and reports are filterable by date range and available lot, pen, breed, and sex attributes."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

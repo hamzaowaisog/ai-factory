@@ -179,6 +179,23 @@ function stubFailures(errors: BuildError[], on: string): Failure[] {
   return errors.slice(0, 10).map((e, i) => failure("plan-stub-build", `The stubs do not compile on ${on}: ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
 }
 
+/**
+ * The API client and test handlers the stub commit generated from the plan's contract, built before any test is written (run b587:
+ * an example in the contract left out three fields its schema requires, the generated handlers did not compile, and four test
+ * writers worked ten minutes before the build said so). Errors there are the contract's: the plan goes back to the planner, as
+ * for stubs that do not build. Errors elsewhere are left to the test writer's own checks.
+ */
+async function contractCodeOrBack(ctx: StepContext, planSha: string, commit: string): Promise<StepOutcome | undefined> {
+  const errors = (await buildErrors(ctx, `author-tests/contract-${ctx.attempt}`, commit, "author-tests") ?? []).filter((e) => e.file.startsWith(`${CLIENT_DIR}/`));
+  if (!errors.length) return undefined;
+  const fix = `The client and its test handlers are generated from ${ctx.project.contract?.file ?? "the contract"}, and the handlers answer with its examples: give every example every field its schema requires, with the schema's types.`;
+  const failures = errors.slice(0, 10).map((e, i) => failure("plan-contract-build", `The code generated from the contract does not compile: ${e.file}:${e.line} ${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
+  const list = failures.slice(0, 3).map((f) => f.message.split(" The client and")[0]).join("; ");
+  if (stubRefusals(ctx.ledger).length >= STUB_REFUSALS) return { kind: "park", reason: `The code generated from the contract still does not compile after ${STUB_REFUSALS} corrected plans: ${list}. Fix the contract's examples in the plan, then resume.` };
+  await ctx.ledger.append({ type: "plan.refused", key: "author-tests", data: { plan: planSha, failures: ctx.ledger.putJson(failures), commit } }, ctx.writer);
+  return { kind: "back", reason: `the code generated from the contract does not compile (${errors.length} error(s): ${list}); the planner corrects the contract before any test is written` };
+}
+
 /** How often the stub commit may send one run's plan back for stubs that do not build, before a person looks. */
 export const STUB_REFUSALS = 2;
 
@@ -868,6 +885,11 @@ export const authorTestsStep: StepDef = {
       }
     }
     if (mode.mode === "reset") { keptFiles = []; await resetHard(wt, start, keptOnReset(ctx.project)); }
+    // the code generated from the plan's contract must build before a writer is paid for: the writers may not change it
+    if (mode.mode === "reset" && existsSync(join(wt, CLIENT_DIR, "client.msw.ts"))) {
+      const back = await contractCodeOrBack(ctx, ctx.state.steps.get("plan")!.outputs[0]!, start);
+      if (back) return back;
+    }
     else ctx.log(`author-tests: keeping the previous attempt's ${keptFiles.length} test file${keptFiles.length === 1 ? "" : "s"} (${mode.reason})`);
     const prevOut = mode.mode === "keep" && prev?.out ? AuthorOut.safeParse(ctx.ledger.getJson(prev.out)).data : undefined;
     if (prev) { ctx.note?.("previousTests", mode.mode === "keep" ? `kept (${keptFiles.length} files)` : "wiped"); ctx.note?.("previousTestsWhy", mode.reason); }
@@ -983,7 +1005,10 @@ Before you return, check your list against the criteria: each of these needs at 
             tracePack(ctx.trace, `test writer ${p.index}`, packs[i]!, ctx.ledger.putJson(packs[i]!));
             const res = await session(`test writer ${p.index}`, `author-tests/${ctx.attempt}-w${p.index}`, writerScope(p.index), dir, packs[i]!, p.limits);
             // only the writer's own test file comes back; anything else it left is dropped
-            const left = UNFINISHED.has(res.status) || res.status === "ok" || res.error === NO_CREDIT_TEXT ? (await dirtyPaths(dir)).filter((f) => existsSync(join(dir, f))) : [];
+            // a tightening writer that did not finish leaves its file as it was: its tests stand as the previous attempt returned them,
+            // and a half-edited file would not match that list (Hamza's review of 16b41d9)
+            const unfinished = !p.keep && (UNFINISHED.has(res.status) || res.error === NO_CREDIT_TEXT);
+            const left = res.status === "ok" || unfinished ? (await dirtyPaths(dir)).filter((f) => existsSync(join(dir, f))) : [];
             const mine = left.filter((f) => matchesAny(f, writerScope(p.index)) && matchesAny(f, TEST_SCOPE));
             const dropped = left.filter((f) => !mine.includes(f));
             if (dropped.length) ctx.log(`author-tests: test writer ${p.index} left ${dropped.length} file(s) outside its own test file; not taken: ${dropped.slice(0, 5).join(", ")}`);
@@ -1097,8 +1122,6 @@ Before you return, check your list against the criteria: each of these needs at 
     }
     const run1 = storeRun(ctx, found);
     const only = [...tests.map((t) => t.testId), ...characterisation.map((c) => c.testId)];
-    ctx.log("author-tests: running the new tests on the old code again (2 of 2)");
-    const run2 = storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const acIds = new Set(acs.filter((a) => a.level === "api").map((a) => a.id));
     const lock: Lock = {
       tests, characterisation, probes: apiElsewhere(ctx.project) ? [] : out.probes.filter((p) => acIds.has(p.acId)),
@@ -1113,6 +1136,11 @@ Before you return, check your list against the criteria: each of these needs at 
       : undefined;
     // rules: which fails-on-base rules this lock was written under (verify-evidence re-checks old locks the old way)
     const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
+    // the second run only shows a first run's result is not a one-off: when the first already fails the check, the check is
+    // decided on it alone (run b587: two minutes a failed attempt)
+    const firstFails = !failsOnBase.predicate({ run1: found.testRun, run2: found.testRun, tests: { tests, characterisation, rules: { productionExceptionOk: true } } as never }, ctx.policy).passed;
+    if (!firstFails) ctx.log("author-tests: running the new tests on the old code again (2 of 2)");
+    const run2 = firstFails ? run1 : storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
     if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
     // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,

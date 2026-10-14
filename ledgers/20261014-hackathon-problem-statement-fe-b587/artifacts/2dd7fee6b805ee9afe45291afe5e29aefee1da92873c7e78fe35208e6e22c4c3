@@ -1,0 +1,414 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Yard overview & reports",
+     "subtitle": "Shared yard workspace · 5 active lots · Updated 06:15",
+     "tabs": [
+      "Overview",
+      "Operational reports",
+      "Feed-to-gain"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Total head · active lots",
+         "value": "1,248 head"
+        },
+        {
+         "label": "Average ADG",
+         "value": "1.42 kg/day"
+        },
+        {
+         "label": "Average cost of gain",
+         "value": "$1.31/kg"
+        },
+        {
+         "label": "Total feed cost · 30 days",
+         "value": "$69,840"
+        }
+       ]
+      },
+      {
+       "type": "filters",
+       "search": "Search lots or pens",
+       "chips": [
+        "01–30 Jun 2026",
+        "All lots",
+        "All breeds",
+        "All sexes",
+        "All pens"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot",
+        "Pens / head",
+        "Start → current",
+        "ADG",
+        "FCR",
+        "Cost / gain"
+       ],
+       "rows": [
+        [
+         "Red Bluff · L-232",
+         "2 / 196",
+         "405 → 452 kg",
+         "1.57 kg/day",
+         "6.6",
+         "$1.18/kg"
+        ],
+        [
+         "North Ridge · L-241",
+         "3 / 286",
+         "412 → 458 kg",
+         "1.53 kg/day",
+         "6.8",
+         "$1.24/kg"
+        ],
+        [
+         "Cedar Run · L-238",
+         "2 / 214",
+         "398 → 439 kg",
+         "1.37 kg/day",
+         "7.1",
+         "$1.27/kg"
+        ],
+        [
+         "Prairie Gate · L-229",
+         "2 / 250",
+         "389 → 430 kg",
+         "1.37 kg/day",
+         "7.3",
+         "$1.39/kg"
+        ],
+        [
+         "Willow Creek · L-236",
+         "3 / 302",
+         "421 → 460 kg",
+         "1.30 kg/day",
+         "7.6",
+         "$1.42/kg"
+        ]
+       ],
+       "sortBy": 5,
+       "sortDir": "asc",
+       "pages": 1,
+       "page": 1
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Active footprint",
+         "meta": "5 active lots · 12 pens · 1,248 head"
+        },
+        {
+         "title": "Feed consumed · plan alignment",
+         "meta": "12.1 t today vs 12.4 t planned · 97.6% aligned"
+        },
+        {
+         "title": "Pen signals",
+         "meta": "Highest intake: Pen 07 · North Ridge · 1.42 t today; bunk rate 2.31–2.56% BW; P04 +6.8%, P11 −7.1%"
+        },
+        {
+         "title": "Ration use · energy",
+         "meta": "Most-used: R-18 Grower · 26.4 t this week · 13,603 Mcal total · 10.9 Mcal/head/day"
+        },
+        {
+         "title": "Remaining inventory",
+         "meta": "Corn 184.6 t · 21 days cover; soybean meal 36.2 t · 18 days; silage 62.4 t · 7 days"
+        },
+        {
+         "title": "Performance leaders",
+         "meta": "Best FCR: Red Bluff · 6.6; highest ADG: Red Bluff · 1.57 kg/day; watch: Willow Creek · 1.30 kg/day, FCR 7.6"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Export report",
+         "variant": "primary",
+         "icon": "download",
+         "hint": "Exports Feed-to-Gain results for the active filters.",
+         "menu": [
+          "CSV",
+          "PDF"
+         ]
+        },
+        {
+         "label": "Lots & procurement",
+         "variant": "secondary"
+        },
+        {
+         "label": "Feed operations",
+         "variant": "secondary"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Lots & procurement",
+       "to": "S-2"
+      },
+      {
+       "from": "Feed operations",
+       "to": "S-3"
+      },
+      {
+       "from": "Project presentation",
+       "to": "S-4"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "CSV",
+       "text": "Feed-to-Gain results exported as CSV for the active filters.",
+       "tone": "ok"
+      },
+      {
+       "after": "PDF",
+       "text": "Feed-to-Gain report exported as PDF for the active filters.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No yard activity in this date range",
+      "emptyHint": "Choose another date range or clear a filter to review active lots.",
+      "error": "Yard data could not be refreshed. Showing the last available report.",
+      "success": "Report exported for the selected filter scope.",
+      "validation": "Choose a valid date range before running the report."
+     }
+    },
+    "mockFull": {
+     "title": "Yard overview & reports",
+     "subtitle": "Shared yard workspace · 5 active lots · Updated 06:15",
+     "tabs": [
+      "Overview",
+      "Operational reports",
+      "Feed-to-gain"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Total head · active lots",
+         "value": "1,248 head"
+        },
+        {
+         "label": "Average ADG",
+         "value": "1.42 kg/day"
+        },
+        {
+         "label": "Average cost of gain",
+         "value": "$1.31/kg"
+        },
+        {
+         "label": "Total feed cost · 30 days",
+         "value": "$69,840"
+        }
+       ]
+      },
+      {
+       "type": "filters",
+       "search": "Search lots or pens",
+       "chips": [
+        "01–30 Jun 2026",
+        "All lots",
+        "All breeds",
+        "All sexes",
+        "All pens"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot",
+        "Pens / head",
+        "Start → current",
+        "ADG",
+        "FCR",
+        "Cost / gain"
+       ],
+       "rows": [
+        [
+         "Red Bluff · L-232",
+         "1 / 144",
+         "405 → 452 kg",
+         "1.57 kg/day",
+         "6.6",
+         "$1.18/kg"
+        ],
+        [
+         "North Ridge · L-241",
+         "1 / 142",
+         "412 → 458 kg",
+         "1.53 kg/day",
+         "6.8",
+         "$1.24/kg"
+        ],
+        [
+         "Pine Hollow · L-225",
+         "1 / 118",
+         "414 → 456 kg",
+         "1.41 kg/day",
+         "6.9",
+         "$1.28/kg"
+        ],
+        [
+         "Copper Mesa · L-227",
+         "1 / 120",
+         "396 → 440 kg",
+         "1.46 kg/day",
+         "6.9",
+         "$1.29/kg"
+        ],
+        [
+         "Cedar Run · L-238",
+         "1 / 132",
+         "398 → 439 kg",
+         "1.37 kg/day",
+         "7.1",
+         "$1.31/kg"
+        ],
+        [
+         "Blue Stem · L-222",
+         "1 / 116",
+         "390 → 431 kg",
+         "1.38 kg/day",
+         "7.2",
+         "$1.34/kg"
+        ],
+        [
+         "Silver Butte · L-218",
+         "2 / 112",
+         "409 → 451 kg",
+         "1.40 kg/day",
+         "7.1",
+         "$1.36/kg"
+        ],
+        [
+         "Dry Creek · L-220",
+         "2 / 112",
+         "402 → 445 kg",
+         "1.42 kg/day",
+         "7.0",
+         "$1.37/kg"
+        ],
+        [
+         "Prairie Gate · L-229",
+         "1 / 128",
+         "389 → 429 kg",
+         "1.34 kg/day",
+         "7.3",
+         "$1.39/kg"
+        ],
+        [
+         "Willow Creek · L-236",
+         "1 / 124",
+         "421 → 460 kg",
+         "1.30 kg/day",
+         "7.6",
+         "$1.42/kg"
+        ]
+       ],
+       "sortBy": 5,
+       "sortDir": "asc",
+       "pages": 1,
+       "page": 1
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Active footprint",
+         "meta": "10 active lots · 12 pens · 1,248 head"
+        },
+        {
+         "title": "Feed consumed · plan alignment",
+         "meta": "12.1 t today vs 12.4 t planned · 97.6% aligned; 12.4 t consumed yesterday"
+        },
+        {
+         "title": "Highest-feed pen",
+         "meta": "Pen 07 · North Ridge · 1.42 t today; 1.38 t yesterday"
+        },
+        {
+         "title": "Bunk rate · exceptions",
+         "meta": "2.31–2.56% BW across 12 pens · Pen 04 +6.8% vs plan; Pen 11 −7.1%"
+        },
+        {
+         "title": "Most-used ration",
+         "meta": "R-18 Grower · 26.4 t this week · 4.1 t issued today"
+        },
+        {
+         "title": "Remaining inventory",
+         "meta": "Corn 184.6 t · 21 days cover; soybean meal 36.2 t · 18 days; silage 62.4 t · 7 days"
+        },
+        {
+         "title": "Energy consumed",
+         "meta": "13,603 Mcal total · 10.9 Mcal/head/day across active lots"
+        },
+        {
+         "title": "Best-performing lot",
+         "meta": "Red Bluff · ADG 1.57 kg/day · FCR 6.6 · cost of gain $1.18/kg"
+        },
+        {
+         "title": "Watch lot · yard cost",
+         "meta": "Willow Creek · ADG 1.30 kg/day · FCR 7.6 · yard average cost of gain $1.31/kg"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Export report",
+         "variant": "primary",
+         "icon": "download",
+         "hint": "Exports Feed-to-Gain results for the active filters.",
+         "menu": [
+          "CSV",
+          "PDF"
+         ]
+        },
+        {
+         "label": "Lots & procurement",
+         "variant": "secondary"
+        },
+        {
+         "label": "Feed operations",
+         "variant": "secondary"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 6,
+   "resultChars": 467,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.3.items.2.meta: Too big: expected string to have <=80 characters; mock.blocks.3.items.3.meta: Too big: expected string to have <=80 characters; mock.blocks.3.items.4.meta: Too big: expected string to have <=80 characters; mock.blocks.3.items.5.meta: Too big: expected string to have <=80 characters; mockFull.blocks.3.items.5.meta: Too big: expected string to have <=80 characters. Fix it and call submit_result again."
+  }
+ ]
+}

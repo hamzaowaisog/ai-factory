@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "interface LotSummary|type LotSummary|receivingDate|feedCost",
+    "glob": "src/lib/api/client.schemas.ts"
+   },
+   "ms": 0,
+   "resultChars": 227,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;interface LotSummary|type LotSummary|receivingDate|feedCost&quot;,&quot;glob&quot;:&quot;src/lib/api/client.schemas.ts&quot;}\">\nNo matches\n</untrusted_document>"
+  }
+ ]
+}

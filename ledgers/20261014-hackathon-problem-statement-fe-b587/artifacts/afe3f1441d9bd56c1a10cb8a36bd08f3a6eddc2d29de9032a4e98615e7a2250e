@@ -1,0 +1,847 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Feed operations",
+     "subtitle": "Shared yard workspace · inventory, forecasts, rations and delivered feed",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Yard overview & reports",
+         "variant": "ghost"
+        },
+        {
+         "label": "Lots & procurement",
+         "variant": "ghost"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "ghost"
+        },
+        {
+         "label": "Feed tools",
+         "variant": "secondary",
+         "menu": [
+          "Add inventory item",
+          "Configure wastage",
+          "Plan feeding"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Stock movement refused · soybean meal",
+       "text": "The service returned a shortage: 1,250 lb requested; 820 lb available. Nothing was saved. Reduce the movement quantity before retrying."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Ingredient",
+        "Category",
+        "Available (lb)",
+        "Unit cost (USD/lb · USD/ton)",
+        "DM / energy",
+        "Location · O / R / U / C (lb)"
+       ],
+       "rows": [
+        [
+         "Corn silage",
+         "Roughage",
+         "20,240",
+         "$0.052/lb · $104/ton",
+         "35.2% · 0.91 Mcal/lb",
+         "North bunker · 18,400 / 4,000 / 2,160 / 20,240"
+        ],
+        [
+         "Alfalfa hay",
+         "Roughage",
+         "15,110",
+         "$0.146/lb · $292/ton",
+         "90.2% · 0.98 Mcal/lb",
+         "Hay shed A · 12,600 / 3,600 / 1,090 / 15,110"
+        ],
+        [
+         "Steam-flaked corn",
+         "Grain",
+         "9,370",
+         "$0.068/lb · $136/ton",
+         "88.5% · 1.54 Mcal/lb",
+         "Mill bin 2 · 8,650 / 2,200 / 1,480 / 9,370"
+        ],
+        [
+         "Soybean meal",
+         "Protein",
+         "2,840",
+         "$0.184/lb · $368/ton",
+         "89.1% · 1.43 Mcal/lb",
+         "Protein bay · 4,100 / 0 / 1,260 / 2,840"
+        ],
+        [
+         "Mineral premix",
+         "Mineral",
+         "1,588",
+         "$0.428/lb · $856/ton",
+         "96.0% · 0.00 Mcal/lb",
+         "Locked store · 1,180 / 480 / 72 / 1,588"
+        ]
+       ],
+       "sortBy": 2,
+       "sortDir": "desc"
+      },
+      {
+       "type": "chart",
+       "kind": "line",
+       "title": "Soybean meal balance · dated-plan demand + 6.5% wastage",
+       "points": [
+        {
+         "label": "1 day",
+         "value": 2612
+        },
+        {
+         "label": "1 week",
+         "value": 1040
+        },
+        {
+         "label": "1 month",
+         "value": -4950
+        },
+        {
+         "label": "1 quarter",
+         "value": -18200
+        },
+        {
+         "label": "6 months",
+         "value": -36800
+        },
+        {
+         "label": "1 year",
+         "value": -74300
+        }
+       ],
+       "max": 3200,
+       "unit": "lb"
+      },
+      {
+       "type": "compare",
+       "items": [
+        {
+         "name": "Prairie 16",
+         "meta": "Lot 24A · 18-day trial · lowest returned cost of gain",
+         "featured": true
+        },
+        {
+         "name": "North Range 14",
+         "meta": "Lot 18C · 21-day trial"
+        },
+        {
+         "name": "High-energy finish",
+         "meta": "Lot 7B · 14-day trial"
+        }
+       ],
+       "rows": [
+        {
+         "label": "Returned ration cost",
+         "values": [
+          "$0.154/lb",
+          "$0.149/lb",
+          "$0.171/lb"
+         ]
+        },
+        {
+         "label": "Returned cost of gain",
+         "values": [
+          "$0.98/lb gain",
+          "$1.08/lb gain",
+          "$1.14/lb gain"
+         ]
+        },
+        {
+         "label": "Average daily gain",
+         "values": [
+          "3.18 lb/day",
+          "3.06 lb/day",
+          "3.34 lb/day"
+         ]
+        },
+        {
+         "label": "Dry matter",
+         "values": [
+          "87.6%",
+          "88.1%",
+          "86.9%"
+         ]
+        },
+        {
+         "label": "Energy value",
+         "values": [
+          "1.38 Mcal/lb",
+          "1.41 Mcal/lb",
+          "1.46 Mcal/lb"
+         ]
+        }
+       ],
+       "cta": "Use ration"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Event · pen · time",
+        "Planned → actual (lb)",
+        "Variance (lb)",
+        "Feed cost · energy",
+        "Decrement · snapshot ($/lb)",
+        "Status · lot allocation"
+       ],
+       "rows": [
+        [
+         "FE-2470 · Pen 08 · 18 Mar 13:00",
+         "9,600 → 10,080",
+         "+480",
+         "USD 1,552 · 1.38 Mcal/lb; sale +4d",
+         "10,080 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 18C 6,000; 18D 4,080 lb"
+        ],
+        [
+         "FE-2468 · Pen 12 · 18 Mar 06:00",
+         "12,474 → 12,210",
+         "−264",
+         "USD 1,880 · 1.38 Mcal/lb",
+         "12,210 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 24A 7,450; 24B 4,760 lb"
+        ],
+        [
+         "FE-2463 · Pen 09 · 17 Mar 13:00",
+         "8,200 → 7,740",
+         "−460",
+         "USD 1,192 · 1.38 Mcal/lb",
+         "7,740 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Revised · Lot 9A 7,740; original retained"
+        ],
+        [
+         "FE-2458 · Pen 07 · 17 Mar 06:00",
+         "9,300 → 9,480",
+         "+180",
+         "USD 1,460 · 1.36 Mcal/lb",
+         "No stock change · original snapshot kept",
+         "Voided · original retained in history"
+        ],
+        [
+         "FE-2451 · Pen 04 · 16 Mar 13:00",
+         "10,100 → 10,100",
+         "0",
+         "USD 1,555 · 1.38 Mcal/lb",
+         "10,100 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 4C 5,800; 4D 4,300 lb"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Revise selected",
+         "variant": "secondary"
+        },
+        {
+         "label": "Void selected",
+         "variant": "danger"
+        },
+        {
+         "label": "Adjust future plan",
+         "variant": "primary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Yard overview & reports",
+       "to": "S-1"
+      },
+      {
+       "from": "Lots & procurement",
+       "to": "S-2"
+      },
+      {
+       "from": "Project presentation",
+       "to": "S-4"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Add inventory item",
+       "title": "Add inventory item",
+       "text": "Enter the ingredient and its current stock record. Prices are stored per pound and shown with the per-ton equivalent.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Ingredient name",
+           "kind": "text",
+           "placeholder": "e.g. Beet pulp"
+          },
+          {
+           "label": "Category",
+           "kind": "select",
+           "options": [
+            "Roughage",
+            "Grain",
+            "Protein",
+            "Mineral",
+            "By-product"
+           ],
+           "required": true
+          },
+          {
+           "label": "Available quantity",
+           "kind": "number",
+           "placeholder": "Pounds",
+           "help": "Enter quantity in lb.",
+           "required": true
+          },
+          {
+           "label": "Unit cost",
+           "kind": "currency",
+           "placeholder": "USD per lb",
+           "help": "Per-pound price is also shown per ton.",
+           "required": true
+          },
+          {
+           "label": "Dry matter · energy",
+           "kind": "text",
+           "placeholder": "e.g. 90.5% · 1.22 Mcal/lb",
+           "required": true
+          },
+          {
+           "label": "Storage location · opening / received / consumed / closing",
+           "kind": "textarea",
+           "placeholder": "Bay B-3 · 3,200 / 0 / 610 / 2,590 lb",
+           "required": true
+          }
+         ],
+         "submit": "Save inventory item"
+        }
+       ]
+      },
+      {
+       "kind": "modal",
+       "trigger": "Configure wastage",
+       "title": "Wastage forecast setting",
+       "text": "Apply the configured ratio to estimated consumption from dated pen feeding plans.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Wastage ratio",
+           "kind": "number",
+           "value": "6.5",
+           "placeholder": "Percent",
+           "help": "Used in daily, weekly, monthly, quarterly, bi-annual and annual balance forecasts.",
+           "required": true
+          }
+         ],
+         "submit": "Save wastage ratio"
+        }
+       ]
+      },
+      {
+       "kind": "sheet",
+       "trigger": "Plan feeding",
+       "title": "Plan a pen feeding",
+       "text": "Generate a dated plan from a saved ration. Every lot in a multi-lot pen must have an allocation that reconciles to the planned total.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Ration",
+           "kind": "select",
+           "value": "Prairie 16",
+           "options": [
+            "Prairie 16",
+            "North Range 14",
+            "High-energy finish"
+           ],
+           "required": true
+          },
+          {
+           "label": "Pen · animal count",
+           "kind": "select",
+           "value": "Pen 12 · 126 head",
+           "options": [
+            "Pen 12 · 126 head",
+            "Pen 08 · 104 head",
+            "Pen 04 · 96 head"
+           ],
+           "required": true
+          },
+          {
+           "label": "Daily bunk rate",
+           "kind": "number",
+           "value": "99",
+           "placeholder": "lb per head per day",
+           "help": "Calculated quantity is shown in lb.",
+           "required": true
+          },
+          {
+           "label": "Feeding date",
+           "kind": "date",
+           "value": "19 Mar 2026",
+           "required": true
+          },
+          {
+           "label": "Planned feeding time",
+           "kind": "time",
+           "value": "05:45",
+           "required": true
+          },
+          {
+           "label": "Lot allocation (lb)",
+           "kind": "textarea",
+           "value": "Lot 24A: 7,128 lb; Lot 24B: 5,346 lb",
+           "help": "Include every lot. Allocations must equal 12,474 lb.",
+           "required": true
+          }
+         ],
+         "submit": "Generate plan"
+        },
+        {
+         "type": "detail",
+         "title": "Returned plan preview",
+         "lead": {
+          "label": "Plan status",
+          "value": "Ready · allocation reconciled"
+         },
+         "rows": [
+          {
+           "label": "Planned quantity",
+           "value": "12,474 lb"
+          },
+          {
+           "label": "Per animal",
+           "value": "99 lb/head/day"
+          },
+          {
+           "label": "Total feed cost",
+           "value": "USD 1,921"
+          },
+          {
+           "label": "Expected energy intake",
+           "value": "136.6 Mcal/head/day"
+          },
+          {
+           "label": "Ration cost basis",
+           "value": "USD 0.154/lb · USD 308/ton"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save wastage ratio",
+       "text": "Forecasts recalculated with 6.5% wastage and dated plan demand.",
+       "tone": "ok"
+      },
+      {
+       "after": "Revise selected",
+       "text": "Balances and lot metrics refreshed; the original record remains in history.",
+       "tone": "ok"
+      },
+      {
+       "after": "Void selected",
+       "text": "Record voided. The original remains in feeding history.",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No feed inventory yet",
+      "emptyHint": "Add a feed ingredient to begin tracking stock, per-pound cost and forecast balances.",
+      "error": "The inventory service refused 1,250 lb; only 820 lb is available. Nothing was saved. Reduce the movement quantity and retry.",
+      "success": "Feeding record saved. Inventory, lot metrics and returned adjustment or sale-timing suggestions are refreshed.",
+      "validation": "Lot allocations must include every lot and reconcile exactly to the planned quantity of 12,474 lb."
+     }
+    },
+    "mockFull": {
+     "title": "Feed operations",
+     "subtitle": "Shared yard workspace · inventory, forecasts, rations and delivered feed",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Yard overview & reports",
+         "variant": "ghost"
+        },
+        {
+         "label": "Lots & procurement",
+         "variant": "ghost"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "ghost"
+        },
+        {
+         "label": "Feed tools",
+         "variant": "secondary",
+         "menu": [
+          "Add inventory item",
+          "Configure wastage",
+          "Plan feeding"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Stock movement refused · soybean meal",
+       "text": "The service returned a shortage: 1,250 lb requested; 820 lb available. Nothing was saved. Reduce the movement quantity before retrying."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Ingredient",
+        "Category",
+        "Available (lb)",
+        "Unit cost (USD/lb · USD/ton)",
+        "DM / energy",
+        "Location · O / R / U / C (lb)"
+       ],
+       "rows": [
+        [
+         "Corn silage",
+         "Roughage",
+         "20,240",
+         "$0.052/lb · $104/ton",
+         "35.2% · 0.91 Mcal/lb",
+         "North bunker · 18,400 / 4,000 / 2,160 / 20,240"
+        ],
+        [
+         "Alfalfa hay",
+         "Roughage",
+         "15,110",
+         "$0.146/lb · $292/ton",
+         "90.2% · 0.98 Mcal/lb",
+         "Hay shed A · 12,600 / 3,600 / 1,090 / 15,110"
+        ],
+        [
+         "Steam-flaked corn",
+         "Grain",
+         "9,370",
+         "$0.068/lb · $136/ton",
+         "88.5% · 1.54 Mcal/lb",
+         "Mill bin 2 · 8,650 / 2,200 / 1,480 / 9,370"
+        ],
+        [
+         "Distillers grain",
+         "By-product",
+         "6,660",
+         "$0.132/lb · $264/ton",
+         "90.4% · 1.36 Mcal/lb",
+         "Dry bay · 6,300 / 1,200 / 840 / 6,660"
+        ],
+        [
+         "Cottonseed",
+         "By-product",
+         "5,780",
+         "$0.213/lb · $426/ton",
+         "92.1% · 1.54 Mcal/lb",
+         "Shed C · 4,700 / 1,800 / 720 / 5,780"
+        ],
+        [
+         "Soybean meal",
+         "Protein",
+         "2,840",
+         "$0.184/lb · $368/ton",
+         "89.1% · 1.43 Mcal/lb",
+         "Protein bay · 4,100 / 0 / 1,260 / 2,840"
+        ],
+        [
+         "Beet pulp",
+         "By-product",
+         "2,590",
+         "$0.119/lb · $238/ton",
+         "90.5% · 1.22 Mcal/lb",
+         "Bay B-3 · 3,200 / 0 / 610 / 2,590"
+        ],
+        [
+         "Mineral premix",
+         "Mineral",
+         "1,588",
+         "$0.428/lb · $856/ton",
+         "96.0% · 0.00 Mcal/lb",
+         "Locked store · 1,180 / 480 / 72 / 1,588"
+        ],
+        [
+         "Salt",
+         "Mineral",
+         "722",
+         "$0.086/lb · $172/ton",
+         "99.5% · 0.00 Mcal/lb",
+         "Dry store · 540 / 200 / 18 / 722"
+        ]
+       ],
+       "sortBy": 2,
+       "sortDir": "desc"
+      },
+      {
+       "type": "chart",
+       "kind": "line",
+       "title": "Soybean meal balance · dated-plan demand + 6.5% wastage",
+       "points": [
+        {
+         "label": "Today",
+         "value": 2840
+        },
+        {
+         "label": "1 day",
+         "value": 2612
+        },
+        {
+         "label": "1 week",
+         "value": 1040
+        },
+        {
+         "label": "2 weeks",
+         "value": -1160
+        },
+        {
+         "label": "1 month",
+         "value": -4950
+        },
+        {
+         "label": "2 months",
+         "value": -10500
+        },
+        {
+         "label": "1 quarter",
+         "value": -18200
+        },
+        {
+         "label": "4 months",
+         "value": -24500
+        },
+        {
+         "label": "6 months",
+         "value": -36800
+        },
+        {
+         "label": "8 months",
+         "value": -49200
+        },
+        {
+         "label": "10 months",
+         "value": -61500
+        },
+        {
+         "label": "1 year",
+         "value": -74300
+        }
+       ],
+       "max": 3200,
+       "unit": "lb"
+      },
+      {
+       "type": "compare",
+       "items": [
+        {
+         "name": "Prairie 16",
+         "meta": "Lot 24A · 18-day trial · lowest returned cost of gain",
+         "featured": true
+        },
+        {
+         "name": "North Range 14",
+         "meta": "Lot 18C · 21-day trial"
+        },
+        {
+         "name": "High-energy finish",
+         "meta": "Lot 7B · 14-day trial"
+        }
+       ],
+       "rows": [
+        {
+         "label": "Returned ration cost",
+         "values": [
+          "$0.154/lb",
+          "$0.149/lb",
+          "$0.171/lb"
+         ]
+        },
+        {
+         "label": "Returned cost of gain",
+         "values": [
+          "$0.98/lb gain",
+          "$1.08/lb gain",
+          "$1.14/lb gain"
+         ]
+        },
+        {
+         "label": "Average daily gain",
+         "values": [
+          "3.18 lb/day",
+          "3.06 lb/day",
+          "3.34 lb/day"
+         ]
+        },
+        {
+         "label": "Dry matter",
+         "values": [
+          "87.6%",
+          "88.1%",
+          "86.9%"
+         ]
+        },
+        {
+         "label": "Energy value",
+         "values": [
+          "1.38 Mcal/lb",
+          "1.41 Mcal/lb",
+          "1.46 Mcal/lb"
+         ]
+        }
+       ],
+       "cta": "Use ration"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Event · pen · time",
+        "Planned → actual (lb)",
+        "Variance (lb)",
+        "Feed cost · energy",
+        "Decrement · snapshot ($/lb)",
+        "Status · lot allocation"
+       ],
+       "rows": [
+        [
+         "FE-2470 · Pen 08 · 18 Mar 13:00",
+         "9,600 → 10,080",
+         "+480",
+         "USD 1,552 · 1.38 Mcal/lb; sale +4d",
+         "10,080 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 18C 6,000; 18D 4,080 lb"
+        ],
+        [
+         "FE-2468 · Pen 12 · 18 Mar 06:00",
+         "12,474 → 12,210",
+         "−264",
+         "USD 1,880 · 1.38 Mcal/lb",
+         "12,210 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 24A 7,450; 24B 4,760 lb"
+        ],
+        [
+         "FE-2463 · Pen 09 · 17 Mar 13:00",
+         "8,200 → 7,740",
+         "−460",
+         "USD 1,192 · 1.38 Mcal/lb",
+         "7,740 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Revised · Lot 9A 7,740; original retained"
+        ],
+        [
+         "FE-2458 · Pen 07 · 17 Mar 06:00",
+         "9,300 → 9,480",
+         "+180",
+         "USD 1,460 · 1.36 Mcal/lb",
+         "No stock change · original snapshot kept",
+         "Voided · original retained in history"
+        ],
+        [
+         "FE-2451 · Pen 04 · 16 Mar 13:00",
+         "10,100 → 10,100",
+         "0",
+         "USD 1,555 · 1.38 Mcal/lb",
+         "10,100 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 4C 5,800; 4D 4,300 lb"
+        ],
+        [
+         "FE-2444 · Pen 15 · 16 Mar 06:00",
+         "11,200 → 11,050",
+         "−150",
+         "USD 1,702 · 1.38 Mcal/lb",
+         "11,050 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 31B 6,000; 31C 5,050 lb"
+        ],
+        [
+         "FE-2439 · Pen 03 · 15 Mar 13:00",
+         "8,640 → 8,920",
+         "+280",
+         "USD 1,373 · 1.38 Mcal/lb",
+         "8,920 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Revised · Lot 3A 8,920; original retained"
+        ],
+        [
+         "FE-2434 · Pen 11 · 15 Mar 06:00",
+         "10,800 → 10,540",
+         "−260",
+         "USD 1,623 · 1.38 Mcal/lb",
+         "10,540 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 21A 5,200; 21B 5,340 lb"
+        ],
+        [
+         "FE-2428 · Pen 06 · 14 Mar 13:00",
+         "9,100 → 9,300",
+         "+200",
+         "USD 1,433 · 1.36 Mcal/lb",
+         "No stock change · original snapshot kept",
+         "Voided · original retained in history"
+        ],
+        [
+         "FE-2421 · Pen 10 · 14 Mar 06:00",
+         "10,400 → 10,400",
+         "0",
+         "USD 1,602 · 1.38 Mcal/lb",
+         "10,400 lb; CS .052 SFC .068 SBM .184 AH .146 MP .428",
+         "Saved · Lot 20C 5,000; 20D 5,400 lb"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Revise selected",
+         "variant": "secondary"
+        },
+        {
+         "label": "Void selected",
+         "variant": "danger"
+        },
+        {
+         "label": "Adjust future plan",
+         "variant": "primary"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Returned lot suggestion",
+       "text": "Pen 08's feed and weight metrics suggest moving its sale window four days later. Review the next feeding plan before confirming."
+      }
+     ]
+    }
+   },
+   "ms": 4,
+   "resultChars": 233,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.4.items.0.meta: Too big: expected string to have <=30 characters; mockFull.blocks.4.items.0.meta: Too big: expected string to have <=30 characters. Fix it and call submit_result again."
+  }
+ ]
+}

@@ -1,0 +1,108 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_ShowsRefusalAndShortageKeepsFormAndSavesNothing",
+      "verdict": "weak",
+      "why": "The test checks that common save-confirmation phrases are absent, but does not assert that no saved movement record is displayed."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_ShowsWastageRatioAndBalancesForEveryHorizon",
+      "verdict": "weak",
+      "why": "The daily response has a shortage of 0, but the `if (shortage)` condition at line 287 omits any assertion that the daily shortage is displayed."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "AC_10_2_MarksPeriodsWithoutDatedPlanUnavailable",
+      "verdict": "weak",
+      "why": "The test checks for an unavailable label but never asserts that the Weekly and Quarterly rows omit numeric estimates."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_ShowsSavedRationWithReturnedCostNutritionAndAnimalRange",
+      "verdict": "weak",
+      "why": "At lines 350 and 361–362, the test accepts the as-fed proportions the user entered, which match the response, without requiring the saved ingredient quantities to be displayed."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_ComparisonListsCostsPerformanceAndMarksLowestCostOfGain",
+      "verdict": "weak",
+      "why": "The test checks ration names and all cost and performance numbers page-wide, rather than asserting that each ration's returned values appear with that ration."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "AC_13_1_ShowsPerPoundPricesInConfiguredCurrencyAndQuantitiesInPounds",
+      "verdict": "weak",
+      "why": "The test only configures the default USD currency, so a UI that hard-codes USD instead of using the configured currency could pass."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "AC_14_1_GeneratedPlanShowsQuantityCostEnergyAndStatus",
+      "verdict": "weak",
+      "why": "The test only checks that numbers occur in the Pen 41 row; it does not assert that they are displayed as planned quantity, per-animal quantity, cost, and energy, or that the planned quantity is the rate multiplied by the animal count."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It supplies four distinct plans with the named statuses and asserts each returned status in the corresponding pen row."
+     },
+     {
+      "acId": "AC-15.1",
+      "testId": "AC_15_1_ShowsReconciliationFlagAndDifferenceFromPlanTotal",
+      "verdict": "weak",
+      "why": "The test accepts any mismatch/reconciliation-related text and any occurrence of 400, without asserting an allocation-reconciliation flag and its associated difference."
+     },
+     {
+      "acId": "AC-15.2",
+      "testId": "AC_15_2_NamesLotWithoutAllocationAndDoesNotShowPlanSaved",
+      "verdict": "weak",
+      "why": "The test only excludes a “plan saved” phrase, so a plan could still appear as a saved record or status without that wording."
+     },
+     {
+      "acId": "AC-15.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "After selecting the one-lot pen, the test requires exactly one visible allocation-labelled field."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_EventDetailShowsPlannedActualVarianceCostEnergyConsumptionAndStatus",
+      "verdict": "weak",
+      "why": "The optional `openDetailIfAny` at line 526 can skip opening details, and the test does not distinguish the inventory-consumption value from the identical actual-quantity value."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_EventDetailShowsEachLotsReturnedActualAllocationAndEventCost",
+      "verdict": "weak",
+      "why": "The fixture at lines 531–538 has only two lots despite “each” requiring at least three, and the optional detail navigation can be skipped while the event cost is checked page-wide."
+     },
+     {
+      "acId": "AC-16.3",
+      "testId": "AC_16_3_EachEventShowsCostAtItsOwnSavedUnitCost",
+      "verdict": "weak",
+      "why": "The test returns different cost snapshots at lines 553–557 but never changes an ingredient's unit cost after the first save, so it does not set up the criterion's changed-cost scenario."
+     },
+     {
+      "acId": "AC-16.4",
+      "testId": "AC_16_4_ShowsInventoryDecrementAndWastageAdjustedConsumptionSeparately",
+      "verdict": "weak",
+      "why": "The optional `openDetailIfAny` at line 582 can skip opening the event detail screen, so the assertions could be satisfied by a non-detail view."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

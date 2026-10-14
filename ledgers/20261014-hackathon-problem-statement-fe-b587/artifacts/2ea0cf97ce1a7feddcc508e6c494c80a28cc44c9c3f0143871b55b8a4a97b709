@@ -1,0 +1,557 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Yard overview",
+     "subtitle": "Shared link · no sign-in · 426 head · ADG 3.19 lb/d · gain $1.34/lb · stock 4.6 d · feed 4.8/5.0 t actual/plan",
+     "badge": "Shared link",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Feed cost today",
+         "value": "$1,842",
+         "delta": "4.0% over $1,771 plan"
+        }
+       ]
+      },
+      {
+       "type": "chart",
+       "kind": "bar",
+       "title": "Feed delivered · daily",
+       "points": [
+        {
+         "label": "Mar 12",
+         "value": 4.7
+        },
+        {
+         "label": "Mar 13",
+         "value": 4.8
+        },
+        {
+         "label": "Mar 14",
+         "value": 4.6
+        },
+        {
+         "label": "Mar 15",
+         "value": 4.5
+        },
+        {
+         "label": "Mar 16",
+         "value": 4.9
+        },
+        {
+         "label": "Mar 17",
+         "value": 5.1
+        },
+        {
+         "label": "Mar 18",
+         "value": 4.8
+        }
+       ],
+       "max": 5.5,
+       "unit": "t",
+       "ranges": [
+        "7D",
+        "14D"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot",
+        "Head",
+        "Ration",
+        "Feed · GJ",
+        "Start → now lb",
+        "ADG / F:G / $/gain"
+       ],
+       "rows": [
+        [
+         "North 12 · best",
+         "86",
+         "Grower 62",
+         "0.99 t · 18.8 GJ",
+         "712 → 1,096",
+         "3.34 · 6.12 · $1.24"
+        ],
+        [
+         "Mesa 4",
+         "72",
+         "Finish 68",
+         "0.84 t · 16.0 GJ",
+         "748 → 1,124",
+         "3.28 · 6.34 · $1.31"
+        ],
+        [
+         "Willow 9",
+         "68",
+         "Grower 62",
+         "0.80 t · 15.2 GJ",
+         "695 → 1,062",
+         "3.19 · 6.48 · $1.36"
+        ],
+        [
+         "Red Creek · lowest",
+         "74",
+         "Finish 68",
+         "0.77 t · 14.6 GJ",
+         "740 → 1,076",
+         "2.91 · 7.02 · $1.49"
+        ],
+        [
+         "Cedar 5",
+         "61",
+         "Step-up 3",
+         "0.68 t · 12.9 GJ",
+         "722 → 1,084",
+         "3.24 · 6.28 · $1.29"
+        ],
+        [
+         "Dry Fork",
+         "65",
+         "Step-up 3",
+         "0.72 t · 13.7 GJ",
+         "704 → 1,071",
+         "3.18 · 6.41 · $1.33"
+        ]
+       ],
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Pen",
+        "Head",
+        "Ration / use",
+        "Bunk lb/head",
+        "Plan / actual t",
+        "Wt now / ADG"
+       ],
+       "rows": [
+        [
+         "P-01",
+         "28",
+         "Grower 62 · 0.23 t",
+         "24.8",
+         "0.25 / 0.23",
+         "1,096 · 3.34"
+        ],
+        [
+         "P-02",
+         "26",
+         "Grower 62 · 0.22 t",
+         "23.7",
+         "0.23 / 0.22",
+         "1,091 · 3.29"
+        ],
+        [
+         "P-04",
+         "24",
+         "Finish 68 · 0.21 t",
+         "22.9",
+         "0.22 / 0.21",
+         "1,124 · 3.28"
+        ],
+        [
+         "P-07",
+         "25",
+         "Finish 68 · 0.20 t",
+         "21.6",
+         "0.21 / 0.20",
+         "1,076 · 2.91"
+        ],
+        [
+         "P-09",
+         "22",
+         "Step-up 3 · 0.19 t",
+         "20.8",
+         "0.20 / 0.19",
+         "1,084 · 3.24"
+        ],
+        [
+         "P-12",
+         "23",
+         "Step-up 3 · 0.20 t",
+         "21.9",
+         "0.21 / 0.20",
+         "1,071 · 3.18"
+        ]
+       ],
+       "sortBy": 3,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Yard records",
+         "variant": "primary"
+        },
+        {
+         "label": "Feed ops",
+         "variant": "secondary"
+        },
+        {
+         "label": "Insights",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Yard records",
+       "to": "S-2"
+      },
+      {
+       "from": "Feed ops",
+       "to": "S-3"
+      },
+      {
+       "from": "Insights",
+       "to": "S-4"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No active lots yet",
+      "emptyHint": "Sync yard records to see feed costs, pens and performance here.",
+      "error": "Yard data could not refresh. The last saved figures are still shown.",
+      "success": "Yard overview refreshed with the latest feed and weight records.",
+      "validation": "Enter a valid ration, weight and feed quantity before saving a yard record."
+     }
+    },
+    "mockFull": {
+     "title": "Yard overview",
+     "subtitle": "Shared link · no sign-in · 682 head · ADG 3.18 lb/d · gain $1.30/lb · stock 4.1 d · feed 7.7/7.9 t actual/plan",
+     "badge": "Shared link",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Feed cost today",
+         "value": "$2,820",
+         "delta": "2.4% over $2,754 plan"
+        }
+       ]
+      },
+      {
+       "type": "chart",
+       "kind": "bar",
+       "title": "Feed delivered · daily",
+       "points": [
+        {
+         "label": "Mar 05",
+         "value": 7.5
+        },
+        {
+         "label": "Mar 06",
+         "value": 7.7
+        },
+        {
+         "label": "Mar 07",
+         "value": 7.8
+        },
+        {
+         "label": "Mar 08",
+         "value": 7.6
+        },
+        {
+         "label": "Mar 09",
+         "value": 7.4
+        },
+        {
+         "label": "Mar 10",
+         "value": 7.3
+        },
+        {
+         "label": "Mar 11",
+         "value": 7.1
+        },
+        {
+         "label": "Mar 12",
+         "value": 7.4
+        },
+        {
+         "label": "Mar 13",
+         "value": 7.5
+        },
+        {
+         "label": "Mar 14",
+         "value": 7.2
+        },
+        {
+         "label": "Mar 15",
+         "value": 7
+        },
+        {
+         "label": "Mar 16",
+         "value": 7.7
+        },
+        {
+         "label": "Mar 17",
+         "value": 7.9
+        },
+        {
+         "label": "Mar 18",
+         "value": 7.7
+        }
+       ],
+       "max": 8.5,
+       "unit": "t",
+       "ranges": [
+        "7D",
+        "14D"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot",
+        "Head",
+        "Ration",
+        "Feed · GJ",
+        "Start → now lb",
+        "ADG / F:G / $/gain"
+       ],
+       "rows": [
+        [
+         "North 12 · best",
+         "102",
+         "Grower 62",
+         "0.98 t · 18.5 GJ",
+         "710 → 1,095",
+         "3.35 · 6.08 · $1.20"
+        ],
+        [
+         "Mesa 4",
+         "84",
+         "Finish 68",
+         "0.94 t · 17.8 GJ",
+         "746 → 1,117",
+         "3.22 · 6.32 · $1.28"
+        ],
+        [
+         "Willow 9",
+         "79",
+         "Grower 62",
+         "0.92 t · 17.4 GJ",
+         "698 → 1,065",
+         "3.19 · 6.41 · $1.31"
+        ],
+        [
+         "Red Creek · lowest",
+         "88",
+         "Finish 68",
+         "1.06 t · 20.1 GJ",
+         "739 → 1,080",
+         "2.96 · 6.98 · $1.45"
+        ],
+        [
+         "Cedar 5",
+         "77",
+         "Step-up 3",
+         "0.89 t · 16.9 GJ",
+         "719 → 1,083",
+         "3.25 · 6.21 · $1.25"
+        ],
+        [
+         "Dry Fork",
+         "74",
+         "Step-up 3",
+         "0.86 t · 16.3 GJ",
+         "703 → 1,069",
+         "3.18 · 6.38 · $1.30"
+        ],
+        [
+         "Juniper 2",
+         "68",
+         "Finisher 70",
+         "0.78 t · 14.8 GJ",
+         "730 → 1,087",
+         "3.11 · 6.55 · $1.32"
+        ],
+        [
+         "East Ridge",
+         "65",
+         "Finisher 70",
+         "0.76 t · 14.4 GJ",
+         "711 → 1,076",
+         "3.17 · 6.43 · $1.27"
+        ],
+        [
+         "Cottonwood",
+         "45",
+         "Starter 54",
+         "0.53 t · 10.0 GJ",
+         "675 → 1,028",
+         "3.07 · 6.62 · $1.38"
+        ]
+       ],
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Pen",
+        "Head",
+        "Ration / use",
+        "Bunk lb/head",
+        "Plan / actual t",
+        "Wt now / ADG"
+       ],
+       "rows": [
+        [
+         "P-01",
+         "32",
+         "Grower 62 · 0.29 t",
+         "24.3",
+         "0.31 / 0.29",
+         "1,095 · 3.35"
+        ],
+        [
+         "P-02",
+         "30",
+         "Grower 62 · 0.28 t",
+         "23.8",
+         "0.29 / 0.28",
+         "1,092 · 3.31"
+        ],
+        [
+         "P-03",
+         "28",
+         "Finish 68 · 0.27 t",
+         "24.1",
+         "0.28 / 0.27",
+         "1,117 · 3.24"
+        ],
+        [
+         "P-04",
+         "29",
+         "Finish 68 · 0.26 t",
+         "22.9",
+         "0.28 / 0.26",
+         "1,080 · 2.96"
+        ],
+        [
+         "P-05",
+         "27",
+         "Step-up 3 · 0.25 t",
+         "23.6",
+         "0.26 / 0.25",
+         "1,083 · 3.25"
+        ],
+        [
+         "P-06",
+         "30",
+         "Step-up 3 · 0.27 t",
+         "23.4",
+         "0.28 / 0.27",
+         "1,069 · 3.18"
+        ],
+        [
+         "P-07",
+         "26",
+         "Finisher 70 · 0.24 t",
+         "23.5",
+         "0.25 / 0.24",
+         "1,087 · 3.11"
+        ],
+        [
+         "P-08",
+         "25",
+         "Finisher 70 · 0.23 t",
+         "22.8",
+         "0.24 / 0.23",
+         "1,076 · 3.17"
+        ],
+        [
+         "P-09",
+         "24",
+         "Starter 54 · 0.22 t",
+         "22.1",
+         "0.23 / 0.22",
+         "1,028 · 3.07"
+        ],
+        [
+         "P-10",
+         "31",
+         "Grower 62 · 0.29 t",
+         "23.9",
+         "0.30 / 0.29",
+         "1,098 · 3.28"
+        ],
+        [
+         "P-11",
+         "28",
+         "Finish 68 · 0.26 t",
+         "23.1",
+         "0.27 / 0.26",
+         "1,112 · 3.22"
+        ],
+        [
+         "P-12",
+         "30",
+         "Step-up 3 · 0.27 t",
+         "23.6",
+         "0.28 / 0.27",
+         "1,066 · 3.16"
+        ]
+       ],
+       "sortBy": 3,
+       "sortDir": "desc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Yard records",
+         "variant": "primary"
+        },
+        {
+         "label": "Feed ops",
+         "variant": "secondary"
+        },
+        {
+         "label": "Insights",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Yard records",
+       "to": "S-2"
+      },
+      {
+       "from": "Feed ops",
+       "to": "S-3"
+      },
+      {
+       "from": "Insights",
+       "to": "S-4"
+      }
+     ]
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

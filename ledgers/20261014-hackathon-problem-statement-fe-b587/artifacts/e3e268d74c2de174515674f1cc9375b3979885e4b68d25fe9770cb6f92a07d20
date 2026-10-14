@@ -1,0 +1,655 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Lots & procurement",
+     "subtitle": "Trace every PO line from receiving through lots and pens, with current targets, forecasts and gain metrics.",
+     "crumbs": [
+      "Yard overview"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Yard target weight",
+         "value": "1,360 lb",
+         "delta": "4/6 lots use yard default"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Forecast updated · L-042",
+       "text": "The corrected 17 Mar weighing returns 2.84 lb/day ADG and a 17 May 2026 ship estimate. Nutrition suggestion: review the higher-energy ration phase before the next weigh; confirm the sale window with the buyer."
+      },
+      {
+       "type": "filters",
+       "search": "Search lot, PO line or pen",
+       "chips": [
+        "Needs review",
+        "No ship forecast"
+       ],
+       "segments": [
+        "Lots",
+        "PO lines"
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Sync procurement",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Record weight",
+         "variant": "secondary",
+         "icon": "plus"
+        },
+        {
+         "label": "Feed operations",
+         "variant": "ghost"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "link"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot / PO line",
+        "Pen · head / capacity",
+        "Target / ship",
+        "DOF · gain · ADG",
+        "Feed · F:G · cost/gain",
+        "Source status"
+       ],
+       "rows": [
+        [
+         "L-042 · PO-4821/03",
+         "P-08 · 114 / 140",
+         "1,360 lb yard · 17 May 2026",
+         "96 d · +273 lb · 2.84 lb/d",
+         "198,500 lb · 6.4:1 · $1.18/lb",
+         "Changed · review"
+        ],
+        [
+         "L-043 · PO-4821/03",
+         "P-11 · 98 / 120",
+         "1,380 lb PO · 18 May 2026",
+         "88 d · +244 lb · 2.77 lb/d",
+         "190,800 lb · 8.0:1 · $1.32/lb",
+         "Duplicate · review"
+        ],
+        [
+         "L-044 · PO-4836/02",
+         "P-04 · 126 / 150",
+         "1,360 lb yard · 13 May 2026",
+         "73 d · +221 lb · 3.03 lb/d",
+         "126,000 lb · 4.5:1 · $0.94/lb",
+         "Synced"
+        ],
+        [
+         "L-045 · PO-4839/01",
+         "P-06 · 112 / 130",
+         "1,340 lb PO · 5 Jun 2026",
+         "64 d · +169 lb · 2.64 lb/d",
+         "119,800 lb · 6.3:1 · $1.17/lb",
+         "Mapped"
+        ],
+        [
+         "L-046 · PO-4842/04",
+         "P-13 · 101 / 120",
+         "1,360 lb yard · 21 May 2026",
+         "112 d · +258 lb · 2.30 lb/d",
+         "152,400 lb · 5.8:1 · $1.08/lb",
+         "Synced"
+        ],
+        [
+         "L-047 · PO-4830/01",
+         "P-18 · 86 / 90",
+         "1,360 lb yard",
+         "51 d · −6 lb · −0.12 lb/d",
+         "88,300 lb · — · —",
+         "Conflict · review"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Review selected",
+         "variant": "primary",
+         "hint": "Inspect changed, duplicate or conflicting source mappings."
+        },
+        {
+         "label": "Export traceability",
+         "variant": "secondary"
+        }
+       ],
+       "pages": 1,
+       "page": 1
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "18 Dec 2025",
+         "title": "Avg 914 lb · baseline",
+         "meta": "120 weighed · 109,680 lb total · No prior measurement · Arrival weight reference",
+         "status": "done"
+        },
+        {
+         "time": "22 Jan 2026",
+         "title": "Avg 1,002 lb",
+         "meta": "118 weighed · 118,236 lb total · +88 lb since prior · Intake steady",
+         "status": "done"
+        },
+        {
+         "time": "19 Feb 2026",
+         "title": "Original avg 1,098 lb · voided",
+         "meta": "116 weighed · 127,368 lb total · +96 lb · Original retained in history",
+         "status": "done"
+        },
+        {
+         "time": "19 Feb 2026",
+         "title": "Corrected avg 1,104 lb",
+         "meta": "116 weighed · 128,064 lb total · +102 lb since prior · Original retained",
+         "status": "done"
+        },
+        {
+         "time": "17 Mar 2026",
+         "title": "Avg 1,187 lb · latest",
+         "meta": "114 weighed · 135,318 lb total · +83 lb since prior · Scale 2; four reweighed",
+         "status": "now"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Yard overview",
+       "to": "S-1"
+      },
+      {
+       "from": "Feed operations",
+       "to": "S-3"
+      },
+      {
+       "from": "Project presentation",
+       "to": "S-4"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Sync procurement",
+       "title": "Mock procurement sync · returned records",
+       "text": "Source adapter returned PO and receiving fields. Check quantities and existing lot-to-pen assignments before applying the sync.",
+       "blocks": [
+        {
+         "type": "table",
+         "columns": [
+          "Source / PO line",
+          "Supplier · item",
+          "PO qty",
+          "Received",
+          "Result",
+          "Lot → pen map"
+         ],
+         "rows": [
+          [
+           "PO-4821/03 · RCV-7714",
+           "North Range · 246 steers",
+           "246 head",
+           "212 head · partial",
+           "Changed",
+           "L-042/P-08 + L-043/P-11"
+          ],
+          [
+           "RCV-7714 · duplicate",
+           "North Range · 212 steers",
+           "246 head",
+           "212 head",
+           "Duplicate",
+           "Existing L-042 + L-043"
+          ],
+          [
+           "PO-4830/01 · RCV-7721",
+           "Mesa Creek · 144 heifers",
+           "144 head",
+           "142 head",
+           "Conflict",
+           "L-047/P-18 · 86/90"
+          ],
+          [
+           "PO-4836/02 · RCV-7728",
+           "Red Basin · 126 steers",
+           "126 head",
+           "126 head",
+           "Synced",
+           "L-044/P-04 · 126/150"
+          ]
+         ],
+         "statusColumn": 4,
+         "sortBy": 0,
+         "sortDir": "asc"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Apply mappings",
+         "variant": "primary"
+        },
+        {
+         "label": "Close preview",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "kind": "drawer",
+       "trigger": "Review selected",
+       "title": "Review procurement conflicts",
+       "text": "Check returned source status, receipt counts and pen capacity. Applying a mapping preserves the source record and its review history.",
+       "blocks": [
+        {
+         "type": "table",
+         "columns": [
+          "Source record",
+          "Status",
+          "Current lot → pen",
+          "Pen head / capacity",
+          "Review note"
+         ],
+         "rows": [
+          [
+           "PO-4821/03",
+           "Changed",
+           "L-042 → P-08; L-043 → P-11",
+           "114/140; 98/120",
+           "212 received of 246; approve split"
+          ],
+          [
+           "RCV-7714",
+           "Duplicate",
+           "Same PO line split",
+           "114/140; 98/120",
+           "Keep existing; avoid double receiving"
+          ],
+          [
+           "PO-4830/01",
+           "Conflict",
+           "L-047 → P-18",
+           "86/90",
+           "142 received of 144; confirm short count"
+          ]
+         ],
+         "statusColumn": 1,
+         "sortBy": 0,
+         "sortDir": "asc"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Apply reviewed mappings",
+         "variant": "primary"
+        },
+        {
+         "label": "Keep current mappings",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "kind": "modal",
+       "trigger": "Record weight",
+       "title": "Record or revise a weight measurement",
+       "text": "Edits and voids stay in history. Saving refreshes returned balances, lot metrics and forecast suggestions. Total measured weight is calculated as average × animals weighed; no manual total field.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Record action",
+           "kind": "select",
+           "value": "New measurement",
+           "options": [
+            "New measurement",
+            "Edit saved measurement",
+            "Void saved measurement"
+           ],
+           "required": true
+          },
+          {
+           "label": "Saved weight record",
+           "kind": "select",
+           "value": "Choose when editing or voiding",
+           "options": [
+            "Choose when editing or voiding",
+            "19 Feb 2026 · original 1,098 lb",
+            "19 Feb 2026 · corrected 1,104 lb"
+           ]
+          },
+          {
+           "label": "Measurement date",
+           "kind": "date",
+           "value": "2026-03-18",
+           "required": true
+          },
+          {
+           "label": "Animals weighed",
+           "kind": "number",
+           "value": "114",
+           "required": true,
+           "help": "Number of animals included in this measurement."
+          },
+          {
+           "label": "Average animal weight",
+           "kind": "number",
+           "value": "1,190",
+           "required": true,
+           "help": "lb per head; total is calculated as average × animals weighed (135,660 lb)."
+          },
+          {
+           "label": "Notes",
+           "kind": "textarea",
+           "value": "Scale 2; four head reweighed."
+          }
+         ],
+         "submit": "Save measurement"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save measurement",
+       "text": "L-042 measurement saved; lot metrics and ship forecast are refreshed.",
+       "tone": "ok"
+      },
+      {
+       "after": "Apply reviewed mappings",
+       "text": "Reviewed PO and receiving mappings saved; source history is retained.",
+       "tone": "ok"
+      },
+      {
+       "after": "Apply mappings",
+       "text": "Four returned procurement records are synced to their current lot mappings.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No lots match these filters",
+      "emptyHint": "Clear a filter or sync procurement to bring returned lots into this view.",
+      "error": "The latest procurement sync failed. Showing the last returned lot and receiving records.",
+      "success": "Lot, weight and source records are up to date.",
+      "validation": "Enter a measurement date, animals weighed and average animal weight to save the record."
+     }
+    },
+    "mockFull": {
+     "title": "Lots & procurement",
+     "subtitle": "Trace every PO line from receiving through lots and pens, with current targets, forecasts and gain metrics.",
+     "crumbs": [
+      "Yard overview"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Yard target weight",
+         "value": "1,360 lb",
+         "delta": "9/12 lots use yard default"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Forecast updated · L-042",
+       "text": "The corrected 17 Mar weighing returns 2.84 lb/day ADG and a 17 May 2026 ship estimate. Nutrition suggestion: review the higher-energy ration phase before the next weigh; confirm the sale window with the buyer."
+      },
+      {
+       "type": "filters",
+       "search": "Search lot, PO line or pen",
+       "chips": [
+        "Needs review",
+        "No ship forecast"
+       ],
+       "segments": [
+        "Lots",
+        "PO lines"
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Sync procurement",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Record weight",
+         "variant": "secondary",
+         "icon": "plus"
+        },
+        {
+         "label": "Feed operations",
+         "variant": "ghost"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "link"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot / PO line",
+        "Pen · head / capacity",
+        "Target / ship",
+        "DOF · gain · ADG",
+        "Feed · F:G · cost/gain",
+        "Source status"
+       ],
+       "rows": [
+        [
+         "L-042 · PO-4821/03",
+         "P-08 · 114 / 140",
+         "1,360 lb yard · 17 May 2026",
+         "96 d · +273 lb · 2.84 lb/d",
+         "198,500 lb · 6.4:1 · $1.18/lb",
+         "Changed · review"
+        ],
+        [
+         "L-043 · PO-4821/03",
+         "P-11 · 98 / 120",
+         "1,380 lb PO · 18 May 2026",
+         "88 d · +244 lb · 2.77 lb/d",
+         "190,800 lb · 8.0:1 · $1.32/lb",
+         "Duplicate · review"
+        ],
+        [
+         "L-044 · PO-4836/02",
+         "P-04 · 126 / 150",
+         "1,360 lb yard · 13 May 2026",
+         "73 d · +221 lb · 3.03 lb/d",
+         "126,000 lb · 4.5:1 · $0.94/lb",
+         "Synced"
+        ],
+        [
+         "L-045 · PO-4839/01",
+         "P-06 · 112 / 130",
+         "1,340 lb PO · 5 Jun 2026",
+         "64 d · +169 lb · 2.64 lb/d",
+         "119,800 lb · 6.3:1 · $1.17/lb",
+         "Mapped"
+        ],
+        [
+         "L-046 · PO-4842/04",
+         "P-13 · 101 / 120",
+         "1,360 lb yard · 21 May 2026",
+         "112 d · +258 lb · 2.30 lb/d",
+         "152,400 lb · 5.8:1 · $1.08/lb",
+         "Synced"
+        ],
+        [
+         "L-047 · PO-4830/01",
+         "P-18 · 86 / 90",
+         "1,360 lb yard",
+         "51 d · −6 lb · −0.12 lb/d",
+         "88,300 lb · — · —",
+         "Conflict · review"
+        ],
+        [
+         "L-048 · PO-4846/02",
+         "P-21 · 96 / 120",
+         "1,360 lb yard · 26 May 2026",
+         "60 d · +187 lb · 3.12 lb/d",
+         "166,300 lb · 9.3:1 · $1.61/lb",
+         "Synced"
+        ],
+        [
+         "L-049 · PO-4849/02",
+         "P-22 · 108 / 130",
+         "1,360 lb yard · 7 Jun 2026",
+         "80 d · +198 lb · 2.48 lb/d",
+         "180,200 lb · 8.4:1 · $1.48/lb",
+         "Changed · review"
+        ],
+        [
+         "L-050 · PO-4851/01",
+         "P-24 · 94 / 110",
+         "1,360 lb yard",
+         "57 d · 0 lb · 0.00 lb/d",
+         "91,400 lb · — · —",
+         "Synced"
+        ],
+        [
+         "L-051 · PO-4855/03",
+         "P-27 · 132 / 150",
+         "1,375 lb PO · 14 May 2026",
+         "92 d · +267 lb · 2.90 lb/d",
+         "221,400 lb · 6.3:1 · $1.16/lb",
+         "Mapped"
+        ],
+        [
+         "L-052 · PO-4858/01",
+         "P-28 · 88 / 100",
+         "1,360 lb yard · 17 May 2026",
+         "78 d · +208 lb · 2.67 lb/d",
+         "150,600 lb · 8.2:1 · $1.39/lb",
+         "Duplicate · review"
+        ],
+        [
+         "L-053 · PO-4860/02",
+         "P-31 · 116 / 140",
+         "1,360 lb yard · 7 May 2026",
+         "90 d · +246 lb · 2.73 lb/d",
+         "204,800 lb · 7.2:1 · $1.31/lb",
+         "Synced"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Review selected",
+         "variant": "primary",
+         "hint": "Inspect changed, duplicate or conflicting source mappings."
+        },
+        {
+         "label": "Export traceability",
+         "variant": "secondary"
+        }
+       ],
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "18 Dec 2025",
+         "title": "Avg 914 lb · baseline",
+         "meta": "120 weighed · 109,680 lb total · No prior measurement · Arrival weight reference",
+         "status": "done"
+        },
+        {
+         "time": "22 Jan 2026",
+         "title": "Avg 1,002 lb",
+         "meta": "118 weighed · 118,236 lb total · +88 lb since prior · Intake steady",
+         "status": "done"
+        },
+        {
+         "time": "05 Feb 2026",
+         "title": "Avg 1,050 lb",
+         "meta": "116 weighed · 121,800 lb total · +48 lb since prior · Ration phase 2",
+         "status": "done"
+        },
+        {
+         "time": "19 Feb 2026",
+         "title": "Original avg 1,098 lb · voided",
+         "meta": "116 weighed · 127,368 lb total · +48 lb · Voided; original retained",
+         "status": "done"
+        },
+        {
+         "time": "19 Feb 2026",
+         "title": "Corrected avg 1,104 lb",
+         "meta": "116 weighed · 128,064 lb total · +54 lb since prior · Original retained",
+         "status": "done"
+        },
+        {
+         "time": "1 Mar 2026",
+         "title": "Avg 1,141 lb",
+         "meta": "115 weighed · 131,215 lb total · +37 lb since prior · Water trough checked",
+         "status": "done"
+        },
+        {
+         "time": "9 Mar 2026",
+         "title": "Avg 1,160 lb",
+         "meta": "115 weighed · 133,400 lb total · +19 lb since prior · Scale 2",
+         "status": "done"
+        },
+        {
+         "time": "17 Mar 2026",
+         "title": "Avg 1,187 lb · latest",
+         "meta": "114 weighed · 135,318 lb total · +27 lb since prior · Four head reweighed",
+         "status": "now"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No lots match these filters",
+      "emptyHint": "Clear a filter or sync procurement to bring returned lots into this view.",
+      "error": "The latest procurement sync failed. Showing the last returned lot and receiving records.",
+      "success": "Lot, weight and source records are up to date.",
+      "validation": "Enter a measurement date, animals weighed and average animal weight to save the record."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

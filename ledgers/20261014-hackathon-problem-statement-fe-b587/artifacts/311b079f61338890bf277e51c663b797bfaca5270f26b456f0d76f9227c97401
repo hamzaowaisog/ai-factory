@@ -1,0 +1,609 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The feedlot web app shall open the shared workspace from its app link without presenting a sign-in gate.",
+      "op": "ADDED",
+      "sources": [
+       "Q-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "A user has the shared workspace link and no active session.",
+        "when": "The user opens the link in a browser.",
+        "then": "The workspace screen is displayed without a sign-in screen.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.98
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The feedlot web app shall present the same operational and financial controls to every workspace user without role-specific permissions.",
+      "op": "ADDED",
+      "sources": [
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "Two users open the same workspace using separate browser sessions.",
+        "when": "Both users view the operational and financial screens.",
+        "then": "The screen displays the same available controls for both users.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.98
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When a user starts demo synchronization, the feedlot web app shall display PO and receiving records from the mocked procurement source, including vendor, costs, head count, weights, breed, age, and source.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-7",
+       "ASM-1",
+       "ASM-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "The mocked procurement source returns PO and receiving records with representative values.",
+        "when": "A user starts demo synchronization and opens the imported records list.",
+        "then": "The screen displays the returned vendor, costs, head count, weights, breed, age, and source fields for the records.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.91
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The feedlot web app shall let users map a PO line to one or more lots and map lots to pens while displaying PO-to-lot-to-pen traceability, pen ID, capacity, and current animal count.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "An imported PO line and available lots and pens are displayed.",
+        "when": "A user assigns the PO line to multiple lots and assigns those lots to pens.",
+        "then": "The screen displays each PO-line-to-lot-to-pen relationship and the pen ID, capacity, and current animal count.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When the import result identifies duplicate or conflicting source records, the feedlot web app shall display the affected records and a conflict status for operator review.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM--2",
+       "ASM-11"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "The import result contains a duplicate or conflicting-record status and identifies the affected source records.",
+        "when": "The user opens the import results screen.",
+        "then": "The screen displays each affected record and its conflict status.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.78
+     },
+     {
+      "id": "REQ-6",
+      "ears": "The feedlot web app shall display each lot's target weight and projected market date using its target-weight and gain assumptions, with the configured yard target used when procurement supplies no target.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-5",
+       "ASM-5",
+       "ASM-8",
+       "ASM-14",
+       "ASM-19"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "A lot has a receiving date, current weight, gain assumption, and either a procurement target or a configured yard target.",
+        "when": "The user opens the lot lifecycle forecast.",
+        "then": "The screen displays the selected target weight and projected market date calculated from the current date and days remaining at the gain assumption.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "A lot's gain assumption is zero or negative.",
+        "when": "The user opens its lifecycle forecast.",
+        "then": "The screen displays no projected market date.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-7",
+      "ears": "The feedlot web app shall let users view and enter feed inventory items and their category, available quantity, unit, unit cost, dry matter percentage, energy value, storage location, and opening, received, consumed, and closing stock values.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "Feed inventory records are available, including the listed inventory fields.",
+        "when": "A user opens the inventory screen.",
+        "then": "The screen displays each inventory item with its category, quantity, unit, cost, dry matter percentage, energy value, storage location, and stock movement values.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-7.2",
+        "given": "A user enters values for a new inventory item.",
+        "when": "The user submits the inventory form and the app receives a successful result.",
+        "then": "The inventory screen displays the returned item and its submitted field values.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When the inventory service refuses a stock movement because it would make available quantity negative, the feedlot web app shall show the resulting shortage and keep the movement visibly unsaved.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM--4",
+       "ASM-13"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "A stock movement would make available quantity negative and the service returns a refusal with the resulting shortage.",
+        "when": "The user submits the movement.",
+        "then": "The screen displays the shortage and the movement is not shown as saved.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The feedlot web app shall let users configure a wastage ratio and display ingredient balance and shortage forecasts for daily, weekly, monthly, quarterly, bi-annual, and annual horizons using dated feeding plans and wastage-adjusted estimated consumption.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "ASM-3",
+       "ASM-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "Inventory balances, dated feeding plans, and a configured wastage ratio are available.",
+        "when": "A user selects each forecast horizon.",
+        "then": "The screen displays projected ingredient balances and shortages for that horizon using wastage-adjusted estimated consumption.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-9.2",
+        "given": "A forecast period has no feeding plan.",
+        "when": "The user views that period in the forecast.",
+        "then": "The screen marks the period unavailable rather than displaying a projected consumption value.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.88
+     },
+     {
+      "id": "REQ-10",
+      "ears": "The feedlot web app shall let users create and compare rations with as-fed ingredient proportions and display each ration's calculated cost per pound, dry matter percentage, energy value, and intended animal type or weight range.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM--9",
+       "ASM-18"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "A user enters a ration with multiple ingredients, as-fed proportions, ingredient costs, and ration attributes.",
+        "when": "The user saves and compares the ration with another ration.",
+        "then": "The screen displays each ration's ingredient mix, calculated cost per pound, dry matter percentage, energy value, intended animal type or weight range, and side-by-side cost values.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-10.2",
+        "given": "An ingredient price is supplied per ton and the configured currency and pound conversion are available.",
+        "when": "The user views that ingredient in a ration.",
+        "then": "The screen displays its converted per-pound cost and the resulting ration cost per pound.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.89
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The feedlot web app shall let users generate a dated feeding plan for a pen from its selected ration, per-animal daily bunk rate, and animal count, and display planned quantity, quantity per animal, feeding time, total feed cost, expected energy intake, and plan status.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-11.1",
+        "given": "A pen has an animal count and the user selects a ration, date, feeding time, and per-animal daily rate.",
+        "when": "The user generates the feeding plan.",
+        "then": "The screen displays planned quantity equal to the per-animal rate multiplied by animal count, along with quantity per animal, total feed cost, expected energy intake, and plan status.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-12",
+      "ears": "The feedlot web app shall require a planned quantity allocation to each lot in a multi-lot pen and flag allocations that do not reconcile with the pen plan total.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-12.1",
+        "given": "A pen contains multiple lots and a feeding plan has a total planned quantity.",
+        "when": "The user enters a planned quantity allocation for each lot that does not sum to the plan total.",
+        "then": "The screen displays an allocation reconciliation flag and the difference from the plan total.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-12.2",
+        "given": "A pen contains multiple lots and an allocation is missing for one lot.",
+        "when": "The user attempts to save the plan.",
+        "then": "The screen identifies the lot without an allocation and does not show the plan as saved.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-13",
+      "ears": "The feedlot web app shall let users log a feeding activity against a pen with feeding date, lot, ration, planned quantity, actual delivered quantity, feed variance, feed cost, energy value, inventory consumed, and feeding status.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-13.1",
+        "given": "A feeding plan exists for a pen and the user enters an actual delivered quantity and feeding details.",
+        "when": "The user saves the feeding activity and opens its detail screen.",
+        "then": "The screen displays the submitted activity fields and feed variance equal to actual delivered quantity minus planned quantity.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When a feeding activity is saved, the feedlot web app shall display the returned inventory decrement based on actual delivered quantity, wastage-adjusted estimated consumption separately, lot consumption allocated in proportion to planned lot quantities, and event cost based on ingredient unit costs at save time.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-3",
+       "Q-7",
+       "Q-8",
+       "ASM-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-14.1",
+        "given": "A feeding activity delivers 50 pounds, the planned allocation is 60 percent to one lot and 40 percent to another, and the configured wastage ratio is nonzero.",
+        "when": "The user saves the activity and opens its detail screen.",
+        "then": "The screen displays an inventory decrement of 50 pounds, wastage-adjusted estimated consumption separately, and lot allocations of 30 and 20 pounds.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-14.2",
+        "given": "An ingredient unit cost is 0.10 currency units per pound when an earlier event is saved and later changes to 0.12.",
+        "when": "The user saves a new feeding event after the cost change and views both event details.",
+        "then": "The screen displays the earlier event cost using 0.10 per pound and the new event cost using 0.12 per pound.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.96
+     },
+     {
+      "id": "REQ-15",
+      "ears": "The feedlot web app shall let users edit or void a saved feeding or weight record and display the resulting recalculated balances and metrics while retaining the original record in history.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "I-5",
+       "ASM-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-15.1",
+        "given": "A saved feeding or weight record has affected displayed balances or metrics.",
+        "when": "The user edits or voids the record and opens its history.",
+        "then": "The screen displays the updated balances and metrics and retains the original record in the history list.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.84
+     },
+     {
+      "id": "REQ-16",
+      "ears": "The feedlot web app shall let users record lot weight measurements with measurement date, number weighed, average animal weight, and notes, calculate total measured weight as average weight multiplied by number weighed, and display the lot's weight history.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-16.1",
+        "given": "A user enters an average weight of 500 pounds and 20 animals weighed.",
+        "when": "The user views the weight measurement form and saves the measurement.",
+        "then": "The screen displays a calculated total measured weight of 10,000 pounds and the saved measurement in the lot weight history.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-16.2",
+        "given": "The weight form displays the calculated total measured weight.",
+        "when": "The user attempts to enter a conflicting independent total weight.",
+        "then": "The screen does not accept the conflicting total as a saved value.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.98
+     },
+     {
+      "id": "REQ-17",
+      "ears": "The feedlot web app shall display lot feed-to-gain metrics using days on feed as current date minus receiving date, total weight gain as current average weight minus entry average weight, ADG as total weight gain divided by days on feed, FCR as total feed consumed divided by total weight gain, and cost of gain as recorded feed costs divided by total weight gain.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "Q-5",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-17.1",
+        "given": "A lot has a receiving date 100 days before the current date, entry average weight of 1,000 pounds, current average weight of 1,200 pounds, 10,000 pounds total feed consumed, and 4,000 currency units of recorded feed cost.",
+        "when": "The user opens the lot performance screen.",
+        "then": "The screen displays 100 days on feed, 200 pounds total weight gain, ADG of 2 pounds per day, FCR of 50, and cost of gain of 20 currency units per pound.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-17.2",
+        "given": "A lot has non-feed costs as well as recorded feed costs and positive total weight gain.",
+        "when": "The user opens the cost-of-gain detail.",
+        "then": "The screen displays cost of gain calculated from recorded feed costs only.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.84
+     },
+     {
+      "id": "REQ-18",
+      "ears": "The feedlot web app shall display a projected ship date as the current date plus the days needed to reach target weight at current ADG and display no projected ship date when ADG is zero or negative.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM--5",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-18.1",
+        "given": "A lot has a target weight above current weight and positive ADG.",
+        "when": "The user opens the lot forecast.",
+        "then": "The screen displays the projected ship date calculated from the current date and remaining weight divided by ADG.",
+        "level": "ui"
+       },
+       {
+        "id": "AC-REQ-18.2",
+        "given": "A lot has zero or negative ADG.",
+        "when": "The user opens the lot forecast.",
+        "then": "The screen displays no projected ship date.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-19",
+      "ears": "When a feeding or weight event is saved, the feedlot web app shall display the recalculated lot metrics and predictive feeding or sale-timing insights returned for the updated performance trend.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-19.1",
+        "given": "A lot has existing performance metrics and the app returns recalculated metrics and a predictive insight after an event is saved.",
+        "when": "The user opens the updated lot performance screen.",
+        "then": "The screen displays the returned updated metrics and the predictive feeding or sale-timing insight.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.82
+     },
+     {
+      "id": "REQ-20",
+      "ears": "The feedlot web app shall display an operational dashboard with active lots and pens, animals per lot and pen, inventory status, ration usage, daily bunk rate, planned versus actual feed, total feed consumed and cost, starting and current weights, weight gain, ADG, feed-to-gain ratio, feed cost per unit of gain, energy consumed, and best and worst performing lots.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-20.1",
+        "given": "The workspace has returned lot, pen, inventory, ration, feeding, weight, and energy data.",
+        "when": "A user opens the operational dashboard.",
+        "then": "The screen displays each requested dashboard metric and identifies the best and worst performing lots.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-21",
+      "ears": "The feedlot web app shall provide reports that identify the highest-feed pen, best feed-to-gain lot, highest-ADG lot, most-used ration, plan-to-actual feeding alignment, overfed and underfed pens, remaining inventory, and feed cost per unit of weight gain.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-21.1",
+        "given": "Report data includes multiple pens, lots, rations, plans, feeding events, inventory items, and feed costs.",
+        "when": "A user opens the operational reports screen.",
+        "then": "The screen displays the requested rankings, alignment, overfed or underfed pens, remaining inventory, and feed cost per unit of gain.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-22",
+      "ears": "The feedlot web app shall let users filter the dedicated feed-to-gain report by date range, lot, pen, breed, and sex and display ADG, FCR, and cost of gain across the selected lots.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "ASM-6",
+       "ASM-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-22.1",
+        "given": "The feed-to-gain report contains multiple lots with different dates, pens, breeds, and sexes.",
+        "when": "The user applies date range, lot, pen, breed, and sex filters.",
+        "then": "The screen displays only matching lots and their ADG, FCR, and cost-of-gain values.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.9
+     },
+     {
+      "id": "REQ-23",
+      "ears": "The feedlot web app shall export the dedicated feed-to-gain report as CSV or PDF using the report's selected filter scope.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "ASM-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-23.1",
+        "given": "A user has applied filters to the feed-to-gain report.",
+        "when": "The user exports the report in CSV and PDF formats.",
+        "then": "The downloaded file in each format contains the selected report scope and matching report records.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.92
+     },
+     {
+      "id": "REQ-24",
+      "ears": "The feedlot web app shall display a yard-level summary of aggregate metrics across active lots, including total head, average ADG, average cost of gain, and total feed cost.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-24.1",
+        "given": "Aggregate metrics are returned for active lots in the yard.",
+        "when": "A user opens the yard summary.",
+        "then": "The screen displays total head, average ADG, average cost of gain, and total feed cost.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.86
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The feedlot web app shall provide representative mock data and a presentation page containing the proposed solution, architecture diagrams, app demo, coding prompts, testing and validation, challenges, production readiness, and go-to-market analysis.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "ASM--1",
+       "ASM-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-25.1",
+        "given": "The demo workspace is opened without pre-existing user-created data.",
+        "when": "A user opens the mock-data and presentation area.",
+        "then": "The screen displays representative procurement, lot, pen, inventory, ration, feeding, and weight data and the listed presentation sections.",
+        "level": "ui"
+       }
+      ],
+      "stability": 0.85
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "The responsive web app shall render its core pages at phone, tablet, and desktop widths and provide touch-sized controls at the narrow viewport.",
+      "metric": "Verify layouts at viewport widths of 320, 768, and 1280 CSS pixels; every primary touch target is at least 44 by 44 CSS pixels at 320 pixels wide."
+     },
+     {
+      "id": "NFR-2",
+      "text": "The responsive web app shall support the latest two versions of Chrome, Edge, Safari, and Firefox.",
+      "metric": "Pass the core import, inventory, plan, feeding, weight, report, and export flows in 8 browser/version combinations (4 browsers × 2 versions)."
+     },
+     {
+      "id": "NFR-3",
+      "text": "The responsive web app shall meet WCAG 2.1 AA on the main operational flows.",
+      "metric": "0 applicable WCAG 2.1 AA violations in automated checks and manual keyboard checks of the import, inventory, plan, feeding, weight, and report flows."
+     }
+    ],
+    "outOfScope": [
+     "Server-side persistence, transaction atomicity, durable inventory and metric recalculation, and source-record reconciliation outcomes are API-SIDE; this web spec covers the screens' handling and display of returned results.",
+     "A live external procurement connector is excluded for the mock-data implementation (ASM-16)."
+    ],
+    "assumptions": [
+     "The demo import uses representative PO and receiving records from a mocked source adapter; no live procurement connection is required (ASM-1, ASM-16).",
+     "Import conflict behavior is specified only for displaying conflict results. ASM-2 describes updating source-owned fields while preserving mappings, while ASM-11 describes rejecting changed or conflicting imports; these server-side reconciliation assumptions conflict and require resolution outside this web-side spec.",
+     "Forecast screens use dated feeding plans, apply configured wastage to estimated demand, and mark periods without plans unavailable (ASM-3, ASM-12).",
+     "The UI displays a shortage and an unsaved state when the inventory service refuses a negative-balance movement (ASM-4, ASM-13).",
+     "A lot-specific target and gain assumption are used when available; the configured yard target supplies a missing procurement target (ASM-8, ASM-19).",
+     "Projected ship dates use the current date and remaining target weight divided by positive ADG; no date is displayed for zero or negative ADG (ASM-5, ASM-14).",
+     "Feed cost calculations use pounds and one configured currency, with supported ton-based prices converted to per-pound values (ASM-9).",
+     "Receiving head count remains fixed for the requested metrics; later transfers, deaths, and sales are not represented (ASM-10).",
+     "Ration ingredient proportions are as-fed, and a pen's plan quantity uses per-animal daily rate multiplied by animal count (ASM-17, ASM-18).",
+     "Date, lot, pen, breed, and sex filters are on the dedicated feed-to-gain report, and exports retain that report's selected scope (ASM-6, ASM-15).",
+     "Users can access the shared workspace without sign-in and have the same access level (Q-1, Q-6).",
+     "Saved feeding-event costs use the ingredient unit costs recorded at event save time (Q-8)."
+    ],
+    "suggestions": [
+     "Resolve the conflicting import reconciliation assumptions (ASM-2 versus ASM-11) with the API-side specification before implementation.",
+     "Confirm whether total weight gain for FCR and cost of gain is intended as per-animal gain or lot-level gain; the problem statement's formulas do not define the denominator consistently."
+    ]
+   },
+   "ms": 12,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

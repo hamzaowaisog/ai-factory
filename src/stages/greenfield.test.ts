@@ -212,7 +212,9 @@ class NodeLab implements ContainerRuntime {
       const ops = [...readFileSync(join(src!, "contracts", "openapi.yaml"), "utf8").matchAll(/operationId: (\w+)/g)].map((m) => m[1]!);
       mkdirSync(join(src!, "lib", "api"), { recursive: true });
       writeFileSync(join(src!, "lib", "api", "client.ts"), ops.map((o) => `export const ${o} = async () => fetch("http://localhost:5080");\n`).join(""));
-      writeFileSync(join(src!, "lib", "api", "client.msw.ts"), `export const getApiMock = () => [];\n`);
+      // an example that leaves out a required field: the generated handler does not type-check (run b587)
+      const bad = readFileSync(join(src!, "contracts", "openapi.yaml"), "utf8").includes("x-missing-field");
+      writeFileSync(join(src!, "lib", "api", "client.msw.ts"), bad ? `export const getApiMock = (): MissingType[] => [];\n` : `export const getApiMock = () => [];\n`);
       return existsSync(join(src!, "orval.config.cjs")) && existsSync(join(src!, "node_modules")) ? 0 : 1;
     }
     if (s.cmd.includes("vitest")) {
@@ -488,6 +490,28 @@ describe("a new product end to end (greenfield, fakes)", () => {
       const thin = await start();
       expect(thin.first.message).toMatch(/has no operationId|has no example/);
     }, 120_000); // two whole starts: passes alone, but ran past the 30 s default when the full suite ran beside it
+
+    it("a contract whose generated handlers do not build goes back to the planner before any test is written (run b587)", async () => {
+      planContract = `${CONTRACT}x-missing-field: true\n`;
+      stubPatch = { path: "contracts/openapi.yaml", content: CONTRACT };
+      const { runId, ledger, first } = await start();
+      expect(first.status, first.message).toBe("waiting");
+      await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+      const r2 = await execute(runId);
+      expect(r2.status, r2.message).toBe("waiting");
+      const refused = ledger.events().filter((e) => e.type === "plan.refused");
+      expect(refused).toHaveLength(1);
+      expect(JSON.stringify(ledger.getJson(String(refused[0]!.data!.failures)))).toMatch(/plan-contract-build.*lib\/api\/client\.msw\.ts:1 TS2304.*give every example every field its schema requires/);
+      // no test writer was paid for, and the corrected contract is approved again
+      expect(lab.jobs).toHaveLength(0);
+      const s2 = replay(ledger.events());
+      expect(s2.openCard?.kind).toBe("approval");
+      await decide(ledger, { decision: "approve", hashPrefix: s2.openCard!.artifactSha.slice(0, 6), by: "lead" });
+      const done = await execute(runId);
+      expect(done.status, done.message).toBe("delivered");
+      expect(execFileSync("git", ["show", `factory/${runId}:contracts/openapi.yaml`], { cwd: repo, encoding: "utf8" })).not.toContain("x-missing-field");
+      expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+    }, 60_000);
 
     it("an implementer that changes the locked contract is stopped", async () => {
       const { runId, ledger } = await start();

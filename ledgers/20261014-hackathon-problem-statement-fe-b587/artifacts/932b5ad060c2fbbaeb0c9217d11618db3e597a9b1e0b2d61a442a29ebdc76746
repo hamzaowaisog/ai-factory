@@ -1,0 +1,72 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-24.1",
+      "testId": "AC_24_1_ShowsEveryDashboardMeasureAndMarksBestAndWorstLots",
+      "verdict": "weak",
+      "why": "Lines 106–117 check unlabelled page-wide numbers but omit active-lot, active-pen, and daily-delivery measures, so assert each requested measure with its label or dashboard region and its response value."
+     },
+     {
+      "acId": "AC-25.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies every listed ranking, alignment, exception, inventory, and cost value—including three distinct overfed or underfed pens—and asserts each returned identifying detail and value."
+     },
+     {
+      "acId": "AC-26.1",
+      "testId": "AC_26_1_ShowsReturnedLotsWithAdgFcrAndCostOfGainColumns",
+      "verdict": "weak",
+      "why": "The suite never changes the date-range filter, and lines 343–347 only check dates from the unfixed default request; add a fixed-date range selection and assert its selected values and matching rows."
+     },
+     {
+      "acId": "AC-26.2",
+      "testId": "",
+      "verdict": "weak",
+      "why": "The two tests change sex, lot, and pen but not date range or breed, so add changed-date-range and changed-breed cases that assert the selected values and returned matching rows."
+     },
+     {
+      "acId": "AC-27.1",
+      "testId": "AC_27_1_ExportsCsvForTheDisplayedScope",
+      "verdict": "weak",
+      "why": "Lines 478–500 verify scope on the request URL but inspect only the lot name and sex in a captured blob, so assert every displayed row field and all selected scope metadata in the downloaded CSV using a fixed test date."
+     },
+     {
+      "acId": "AC-27.2",
+      "testId": "AC_27_2_ExportsPdfForTheDisplayedScope",
+      "verdict": "weak",
+      "why": "The PDF mock returns only a constant marker and the test never inspects PDF contents, so provide a content-bearing PDF fixture and assert that the downloaded file contains the displayed results and selected scope."
+     },
+     {
+      "acId": "AC-28.1",
+      "testId": "AC_28_1_ShowsYardSummaryTotalsFromSummaryResponse",
+      "verdict": "weak",
+      "why": "The overview and summary fixtures reuse 232, 3.07, and 1.37, so the page-wide checks can pass if summary values are omitted; use distinct overview values and assert all four totals in the summary region."
+     },
+     {
+      "acId": "AC-29.1",
+      "testId": "AC_29_1_ShowsRepresentativeSampleRecordsOfEveryKind",
+      "verdict": "weak",
+      "why": "The page-wide checks in lines 149–166 can count overview lots and pens or repeated text such as “Pen 14” and “North Yard Grower” instead of records in each category, so assert identifying fields within each record’s row or region."
+     },
+     {
+      "acId": "AC-29.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks every required section title and opens each section to verify its returned body is displayed."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

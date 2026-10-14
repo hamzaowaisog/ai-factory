@@ -1,0 +1,102 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Provide a shared Feedlot web workspace accessible from its app link without sign-in or role-specific controls, with the same operational and financial controls for all users."
+     },
+     {
+      "n": 2,
+      "text": "Add mock procurement synchronization that requests PO and receiving records and displays returned procurement details, including vendor, cost, head count, weight, breed, age, and source."
+     },
+     {
+      "n": 3,
+      "text": "Allow users to map PO lines to one or multiple lots and map lots to pens, showing traceability, pen IDs, capacities, and current animal counts; show affected duplicate, changed, or conflicting import records, returned statuses and mappings, and a review action."
+     },
+     {
+      "n": 4,
+      "text": "Display lot forecast target weights and projected market or ship dates, leaving the date empty for zero or negative ADG; show available lot-specific target and gain assumptions, otherwise the configured yard target, and display that yard target consistently for all lots."
+     },
+     {
+      "n": 5,
+      "text": "Provide feed inventory entry and views showing item category, available quantity, unit, unit cost, dry-matter percentage, energy value, storage location, and opening, received, consumed, and closing stocks; on refused negative-balance movements, show the returned error and shortage, keep the form available for correction, and do not show a saved movement."
+     },
+     {
+      "n": 6,
+      "text": "Allow users to configure wastage and view returned ingredient balance and shortage forecasts for daily, weekly, monthly, quarterly, bi-annual, and annual horizons based on dated feeding-plan demand and wastage-adjusted estimated consumption; mark periods without dated plans unavailable."
+     },
+     {
+      "n": 7,
+      "text": "Let users create and view rations with name, type, ingredients and quantities or as-fed proportions, dry-matter percentage, energy value, intended animal type or weight range, and returned cost per pound; provide comparisons of returned ration cost and lot performance or cost of gain, identifying the lowest cost of gain when available."
+     },
+     {
+      "n": 8,
+      "text": "Where inventory or ration prices are denominated per ton, display the equivalent configured-currency price per pound and show calculation quantities in pounds."
+     },
+     {
+      "n": 9,
+      "text": "Let users generate dated, timed pen feeding plans from a selected ration, per-animal daily bunk rate, and pen animal count; display returned planned quantity, quantity per animal, total feed cost, expected energy intake, and status. For multi-lot pens, require an allocation for every lot and flag unreconciled totals and differences; show a single-lot allocation field for single-lot pens."
+     },
+     {
+      "n": 10,
+      "text": "On saved feeding events, display returned planned and actual delivered quantities, actual-minus-planned variance, feed cost, energy value, inventory decrement based on delivered quantity, status, lot allocations, and ingredient unit-cost snapshots; show wastage-adjusted estimated consumption separately from actual delivered quantity when wastage is configured."
+     },
+     {
+      "n": 11,
+      "text": "Show planned-versus-actual feeding variance and provide an action to adjust future plans, with editable future quantities and the selected pen and ration."
+     },
+     {
+      "n": 12,
+      "text": "Let users record lot weight measurements by date, number weighed, average weight, and notes; calculate total measured weight from average weight times number weighed without an editable total-weight field, and show time-ordered measurement history with returned weight gain and notes."
+     },
+     {
+      "n": 13,
+      "text": "When users edit or void saved feeding or weight records, display returned revised balances and metrics while retaining the original record in history; show returned creator and last-changed identifiers and timestamps in record details without a full audit log."
+     },
+     {
+      "n": 14,
+      "text": "Display returned lot feed-to-gain metrics for days on feed, total weight gain, ADG, total feed consumed, FCR, feed cost per unit of gain, and projected ship date, using recorded feed costs only for cost of gain."
+     },
+     {
+      "n": 15,
+      "text": "After feeding or weight events are saved, refresh returned lot metrics and display returned feeding-adjustment or sale-timing suggestions without requiring event re-entry."
+     },
+     {
+      "n": 16,
+      "text": "Provide an operational dashboard showing active lots and pens, animals per lot and pen, feed inventory status, ration usage, daily bunk rate per pen, planned versus actual feed, total feed consumed and cost, starting and current weight, total gain, ADG, feed-to-gain ratio, cost per unit of gain, energy consumed, and best- and worst-performing lots."
+     },
+     {
+      "n": 17,
+      "text": "Provide operational reports identifying the highest-feed-consuming pen, best feed-to-gain lot, highest-ADG lot, most-used ration, plan-versus-actual alignment, overfed or underfed pens, remaining inventory, and feed cost per unit of gain."
+     },
+     {
+      "n": 18,
+      "text": "Provide a dedicated Feed-to-Gain report with date-range, lot, breed, sex, and pen filters to compare returned ADG, FCR, and cost of gain across matching lots, and export the selected-scope results as CSV or PDF."
+     },
+     {
+      "n": 19,
+      "text": "Provide a yard-level summary of aggregate total head, average ADG, average cost of gain, and total feed cost across active lots."
+     },
+     {
+      "n": 20,
+      "text": "Provide representative mock procurement, lot, pen, inventory, ration, feeding, and weight data, plus a project presentation page covering the proposed solution, architecture diagrams, demo walkthrough, coding prompts, testing and validation, challenges, production readiness, and go-to-market strategy and analysis."
+     },
+     {
+      "n": 21,
+      "text": "Render every page responsively for phone, tablet, and desktop browser widths without horizontal overflow, with primary controls at least 44 by 44 CSS pixels at a 320 CSS-pixel phone viewport; support the latest two released versions of Chrome, Edge, Safari, and Firefox and meet WCAG 2.1 AA for main operational flows."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
