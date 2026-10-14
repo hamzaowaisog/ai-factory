@@ -18,8 +18,9 @@ import { apiSide } from "../config/platform.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { guided, header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { acOwners, openStubRefusal, slicesProblem, stubBuildProblems, stubRefusals } from "./build.js";
+import { acOwners, layeredByFiles, openStubRefusal, slicesProblem, stubBuildProblems, stubRefusals } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
+import { graphReport } from "./task-graph.js";
 import { requirementSummary, riskLines, spendLine, taskSummary, withSummary } from "./card-summary.js";
 import { gateNotes } from "./gate-questions.js";
 import { settledText } from "./settle.js";
@@ -454,6 +455,8 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
         return `- ${t.id} ${t.title} → ${t.reqs.join(", ")}${acs.length ? `; must pass ${acs.join(", ")}` : "; builds towards a later task (no criteria of its own)"}`;
       });
     })(),
+    // which tasks could run side by side (task-graph.ts): a report for now, the tasks still run one after another
+    ...(a.plan.tasks.length > 1 ? ["", ...graphReport(a.plan.tasks, layeredByFiles(a.plan, a.spec, ctx.project?.stack))] : []),
     ...(() => {
       const cfile = ctx.project?.contract?.file;
       const stubs = a.plan.stubs.filter((s) => s.path !== cfile);

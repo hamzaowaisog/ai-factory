@@ -238,6 +238,9 @@ export const planChecks = defineGate<{ plan: Plan; spec: SpecDraft }>({
     }
     const ids = new Set(plan.tasks.map((t) => t.id));
     for (const t of plan.tasks) for (const d of t.dependsOn) if (!ids.has(d)) fs.push(failure("plan-deps", `${t.id} depends on unknown ${d}`));
+    // tasks run in the plan's order: a task cannot wait for one that comes after it (and the order can then never loop)
+    const order = plan.tasks.map((t) => t.id);
+    for (const t of plan.tasks) for (const d of t.dependsOn) if (ids.has(d) && order.indexOf(d) >= order.indexOf(t.id)) fs.push(failure("plan-deps", `${t.id} depends on ${d}, which does not come before it`));
     return verdict(fs, `${plan.tasks.length} tasks cover all ${spec.requirements.length} requirements`);
   },
 });
