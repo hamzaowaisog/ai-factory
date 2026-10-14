@@ -548,7 +548,12 @@ export const stubCommitStep: StepDef = {
       ctx.log(`stub-commit: scaffold ${l.target}: ${written.length} files written${l.kept.length ? `, ${l.kept.length} kept (the repo's own)` : ""}`);
     } else if (scaf) ctx.log(`stub-commit: UI target ${scaf.target} (${scaf.source}; ${scaf.detected.why}): no scaffold, the screens are built with the repo's own components`);
     const underStubs = await headSha(wt);
-    for (const s of plan.stubs) {
+    // a stub over a file the scaffold just wrote is left out: the scaffold's file is already the interface its page imports
+    // (run 95ff: the plan stubbed all 18 screen containers, every page broke, and three plans in a row were sent back)
+    const scaffolded = new Set(scaffoldRec?.written ?? []);
+    const ownStubs = plan.stubs.filter((s) => !scaffolded.has(s.path));
+    if (ownStubs.length < plan.stubs.length) ctx.log(`stub-commit: ${plan.stubs.length - ownStubs.length} stub(s) left out: the scaffold already wrote those files`);
+    for (const s of ownStubs) {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
       writeFileSync(join(wt, s.path), s.content);
     }
@@ -557,9 +562,9 @@ export const stubCommitStep: StepDef = {
       mkdirSync(dirname(join(wt, DATA_MODEL_FILE)), { recursive: true });
       writeFileSync(join(wt, DATA_MODEL_FILE), dataModelYaml(plan.dataModel));
     }
-    const commit = plan.stubs.length || plan.dataModel ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
+    const commit = ownStubs.length || plan.dataModel ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
     // the plan could not build its stubs where they sit on files written here first: build them now, before a test is written
-    const code = plan.stubs.filter((st) => st.path !== ctx.project.contract?.file).map((st) => st.path);
+    const code = ownStubs.filter((st) => st.path !== ctx.project.contract?.file).map((st) => st.path);
     const newProduct = (() => { try { return repoIsEmpty(ctx.state.info.repoPath!, ctx.state.info.baseCommit!); } catch { return false; } })();
     if (code.length && (scaf?.layout || newProduct)) {
       const back = await stubsBuiltOrBack(ctx, ctx.state.steps.get("plan")!.outputs[0]!, commit, underStubs === ctx.state.info.baseCommit ? undefined : underStubs, code);
@@ -568,7 +573,7 @@ export const stubCommitStep: StepDef = {
     const design = pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, ...(commitPackage ? { dir: `${REPO_DESIGN_DIR}/${pkg.manifest.line}/v${pkg.manifest.version}` } : {}) } : undefined;
     const scaffoldSha = scaffoldRec ? ctx.ledger.putJson(scaffoldRec) : undefined;
     return {
-      kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path), ...(design ? { design, designCommit } : {}) }), ...(scaffoldSha ? { scaffold: scaffoldSha } : {}) }, treeSha: commit,
+      kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: ownStubs.map((s) => s.path), ...(design ? { design, designCommit } : {}) }), ...(scaffoldSha ? { scaffold: scaffoldSha } : {}) }, treeSha: commit,
       data: { commit, ...(design ? { designCommit, design } : {}), ...(scaffoldRec ? { scaffold: { target: scaffoldRec.target, kit: `${scaffoldRec.kit.id} ${scaffoldRec.kit.version}`, files: scaffoldRec.written.length, screens: scaffoldRec.screens.length, ...(scaffoldRec.commit ? { commit: scaffoldRec.commit } : {}) } } : scaf ? { uiTarget: scaf.target } : {}) },
     };
   },
@@ -868,6 +873,7 @@ export const authorTestsStep: StepDef = {
       sections: [
         S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(wt), apiElsewhere(ctx.project))),
         S.template("self-contained", SELF_CONTAINED_RULES),
+        S.template("proof-bar", `Before your tests are locked, each is read against its criterion, and one that proves too little is sent back. A test proves its criterion when ${PROOF_BAR} Proving too little looks like: ${WEAK_PATTERNS}.`),
         ...(light ? [S.template("light", `This is a small, low-risk change. Keep the tests small:
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.
@@ -883,8 +889,10 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(kit ? [S.reference("test-kit", `What is already in this checkout for your tests, so you need not search for it:\n\n${kit}`)] : []),
         S.artifact("acs", "acceptance-criteria", part ? acs.filter((a) => reqs.has(a.req)) : acs),
         ...(screens.length ? [S.artifact("approved-screens", "approved-screens", part ? screens.filter((x) => x.reqs.some((q) => reqs.has(q))) : screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before. For each test that opens one of the approved screens, also return that screen's id as "screen" (the screen the test renders, which can be another than the one its requirement is listed under): the test is then held at the task that builds that screen. Leave it out for a test that opens no screen.`)] : []),
-        // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over
-        S.files("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
+        // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over.
+        // Each is shown as the checkout has it: a stub the stub commit left out keeps the scaffold's file (run 95ff: writers copied
+        // the plan's default exports and every screen test failed to render)
+        S.files("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: existsSync(join(wt, s.path)) ? readFileSync(join(wt, s.path), "utf8") : s.content }))),
         ...contractNote(ctx.project, wt, "tests"),
         ...dataModelNote(ctx.project, wt, "tests", !!databaseBefore(ctx)),
         ...(keptFiles.length ? [S.artifact("previous-tests", "previous-tests", { files: keptFiles, ...(prevOut ? { tests: prevOut.tests, characterisation: prevOut.characterisation, probes: prevOut.probes } : {}) })] : []),
@@ -1139,10 +1147,14 @@ export function rewriteHasRoom(ctx: Pick<StepContext, "project" | "policy" | "ru
 const ProofOut = z.object({ coverage: z.array(ReviewCoverage) });
 /** A criterion whose test a reader judged not to prove it, and why. */
 export interface WeakTest { acId: string; verdict: "weak" | "no-test"; testId: string; why: string }
+// what the test check holds each test to, and the test writers are told the same, so a test is written to it rather than sent back
+// for it (runs 95ff and 5d51: both test steps went round again on tests that checked one case or bare numbers)
+const PROOF_BAR = "code that broke any part of the criterion would fail these tests. They assert the values, messages, status codes and stored data the criterion names, for every case it names.";
+const WEAK_PATTERNS = "checking that some error exists instead of the one the criterion names, checking one case of several, not comparing a value the criterion says is unchanged, not setting up the starting state the criterion describes";
 const PROOF_TEMPLATE = `You check acceptance tests before they are locked. The code they test is not written yet, so every test fails today: do not judge whether a test passes.
 For each criterion in "acs", open its tests ("ac-tests" gives the file and the test name; a criterion can have several, judge them together) and decide whether they prove the criterion.
-- "proves-it": code that broke any part of the criterion would fail these tests. They assert the values, messages, status codes and stored data the criterion names, for every case it names.
-- "weak": the tests could pass on code that does not meet the criterion. Typical: checking that some error exists instead of the one the criterion names, checking one case of several, not comparing a value the criterion says is unchanged, not setting up the starting state the criterion describes.
+- "proves-it": ${PROOF_BAR}
+- "weak": the tests could pass on code that does not meet the criterion. Typical: ${WEAK_PATTERNS}.
 - "no-test": nothing tests it.
 Report one verdict per criterion in "coverage", with testId "" unless one test is at fault. In "why", one sentence the test writer can act on: what is not asserted. Judge only against the criterion's own words; do not ask for more than it says.`;
 

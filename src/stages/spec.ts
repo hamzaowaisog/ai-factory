@@ -245,7 +245,7 @@ export const planStep: StepDef = {
 - complexity, on every task: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack. Most tasks are standard. rules-or-algorithm is a task whose work is mostly business rules, validations, allowed state changes or calculations.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. The stubs are built as they are, on the untouched code, before anything is implemented: a stub may only use types the repo already has or that another stub declares (an interface the endpoint classes share is a stub of its own). Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
-${outsideSystemsPlanRule(ctx.project.stack)}
+${approvedDesign && ctx.project.stack === "node" ? "- The scaffold of the approved design writes each screen's components/screens/<screen id in lower case>/container.tsx before the stubs (a named export its page imports and renders with a fixture prop): give no stub for those files, they are already the screen's interface; the task that owns the screen fills it in.\n" : ""}${outsideSystemsPlanRule(ctx.project.stack)}
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
 - newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.
 
