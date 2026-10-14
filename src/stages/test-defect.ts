@@ -170,5 +170,5 @@ export function disputedTests(events: LedgerEvent[]): Disputed[] {
   return [...seen.values()];
 }
 
-/** Whether a run lets a wrong locked test go instead of parking (lenientTests, or FACTORY_LENIENT_TESTS=1). */
-export const lenientTests = (project: { lenientTests?: boolean }): boolean => project.lenientTests ?? process.env.FACTORY_LENIENT_TESTS === "1";
+/** Whether a run lets a wrong locked test go instead of parking: yes unless the project says lenientTests: false, or FACTORY_LENIENT_TESTS=0. */
+export const lenientTests = (project: { lenientTests?: boolean }): boolean => project.lenientTests ?? process.env.FACTORY_LENIENT_TESTS !== "0";

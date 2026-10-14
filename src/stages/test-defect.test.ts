@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LedgerEvent } from "../contracts/index.js";
 import { DEFAULT_LADDER, nextOnFailure, RUNGS, type AttemptRecord } from "../gates/ladder.js";
 import { matchesAny } from "../util/glob.js";
-import { filesToOpen, judgedTests, openedFiles, OPEN_MAX, parkReason, relocked, rewrittenTests, settledTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
+import { filesToOpen, judgedTests, lenientTests, openedFiles, OPEN_MAX, parkReason, relocked, rewrittenTests, settledTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
 
 let seq = 0;
 const ev = (type: string, key: string, data: Record<string, unknown>): LedgerEvent => ({ seq: ++seq, type, key, data } as unknown as LedgerEvent);
@@ -30,6 +30,16 @@ describe("the test-or-code check: what the ledger says", () => {
     expect(settledTests([judged({ verdict: "code" })])).toEqual(new Set(["T::a"]));
     expect(settledTests([judged({ verdict: "test", rejected: "touched another test" })])).toEqual(new Set(["T::a"]));
     expect(testsToJudge([first, judged({ verdict: "test", rewritten }), failed], "implement/TASK-2")).toEqual([]);
+  });
+
+  it("is lenient by default; a project or FACTORY_LENIENT_TESTS=0 turns it off", () => {
+    const was = process.env.FACTORY_LENIENT_TESTS;
+    try {
+      delete process.env.FACTORY_LENIENT_TESTS;
+      expect([lenientTests({}), lenientTests({ lenientTests: false })]).toEqual([true, false]);
+      process.env.FACTORY_LENIENT_TESTS = "0";
+      expect([lenientTests({}), lenientTests({ lenientTests: true })]).toEqual([false, true]);
+    } finally { process.env.FACTORY_LENIENT_TESTS = was; }
   });
 
   it("locks a rewritten file at its new content and names the rewrite as an unlock", () => {

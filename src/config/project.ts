@@ -87,7 +87,8 @@ export const ProjectConfig = z.object({
   /**
    * true: a locked test the test-or-code check judged wrong, and that could not be rewritten into one that passes, does not park
    * the run. It is left out of the checks from then on and named on the pull request as not proven, with the check's reason.
-   * Off by default: a person decides on such a test. FACTORY_LENIENT_TESTS=1 does the same for every project.
+   * On by default (Ahsan, 14 Oct 2026: a run finishes and names what it could not prove). false, or FACTORY_LENIENT_TESTS=0 for
+   * every project, parks the run instead, so a person decides on such a test.
    */
   lenientTests: z.boolean().optional(),
   forge: z.object({

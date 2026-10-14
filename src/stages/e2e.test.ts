@@ -1400,7 +1400,7 @@ describe("implement loop across tasks (fakes)", () => {
       expect(lockOf(s, ledger).lock.tests.map((t) => t.testId)).not.toContain(disputed[0]!.testId);
       expect(lockOf(s, ledger).lock.lock.some((l) => l.file === TEST_FILE)).toBe(true);
       expect(ledger.readCard(`pr-${runId}`)).toContain(`Not proven: locked test left out`);
-    } finally { delete process.env.FACTORY_LENIENT_TESTS; }
+    } finally { process.env.FACTORY_LENIENT_TESTS = "0"; }
   }, 30_000);
 
   it("a person disputes a locked test the run parked on: it leaves the checks, the run delivers, and the PR names who and why", async () => {
