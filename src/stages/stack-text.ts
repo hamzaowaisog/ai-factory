@@ -108,5 +108,6 @@ export const SELF_CONTAINED_RULES = `A TEST MUST PASS OR FAIL ON THE CODE ALONE,
 - Order: assert an order only where the criterion names one; otherwise compare as sets.
 - Numbers: compare computed decimals (ratios, averages, money after division) with a tolerance or at the precision shown.
 - Randomness: no assertion on a generated id, code or random value; assert that it exists, or use the value the response returned.
+- Actions: after a click, save or delete, wait for its result (findBy, waitFor or the awaited response) before asserting on it.
 - Lookups: find a value inside its row, card or region, never page-wide when the same text can appear twice.
 - Data: when a criterion says each, all, every, a list or an order, give it at least three rows of your own that differ.`;

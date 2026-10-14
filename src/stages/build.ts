@@ -1891,7 +1891,7 @@ export function implementStep(taskId: string): StepDef {
         retest = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && settled.fixed.includes(f.testId));
       }
       // a lenient run: a test this task's check rewrote that still fails on two attempts after the rewrite is left out and named,
-      // instead of using up the ladder on a test already judged wrong (run ae5c, TASK-10: a test that read today's date)
+      // instead of using up the ladder on a test already judged wrong (run ae5c, TASK-10: a test that asserted before the saved answer arrived)
       if (lenientTests(ctx.project)) {
         const evs = ctx.ledger.events();
         const out = new Set(disputedTests(evs).map((d) => d.testId));
@@ -2274,8 +2274,8 @@ export const integrateStep: StepDef = {
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
     // the environment check (a web app's tests): the passing locked tests once more at another instant and in a shuffled order.
-    // A test that passes only at the usual instant or order depends on something other than the code (run ae5c: a test that
-    // read today's date). Found here, it is named before delivery instead of breaking the next run that touches it.
+    // A test that passes only at the usual instant or order depends on something other than the code (the real clock, rows
+    // another test left, the order). Found here, it is named before delivery instead of breaking the next run that touches it.
     if (ctx.project.stack === "node" && lock.tests.length) {
       const passedNow = new Set(ctx.ledger.getJson<TestRun>(testRun).results.filter((r) => r.outcome === "passed").map((r) => r.id));
       const ids = lock.tests.map((t) => t.testId).filter((id) => passedNow.has(id));

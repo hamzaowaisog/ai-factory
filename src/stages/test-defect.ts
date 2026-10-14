@@ -125,7 +125,7 @@ export const REWRITE_RULES = `A locked acceptance test was found to be wrong, an
 - Change only the tests named in "tests-to-fix", in the files they are in. Keep each test's name (its it() title or method name) exactly as it is.
 - Do not change, remove or skip any other test in those files, and do not touch any other file: no production code, no other test, no test support file.
 - When "why" names the file's shared set-up as the fault (a fixture, a helper, a beforeEach or a class constructor, for example one database shared by every test, or a value read from the real clock), you may change that set-up too. Change no other test's own body.
-- Fix what "why" says is wrong, and nothing more. The test must still prove its criterion in full: every value, message and case the criterion names.
+- Fix what "why" says is wrong, and nothing more, but fix it everywhere in the tests-to-fix: every check with the same cause, not only the line that failed. The test must still prove its criterion in full: every value, message and case the criterion names.
 - The code for this criterion may already be in the checkout. Do not read it to decide what to assert: assert what the criterion says. A test bent to whatever the code does today proves nothing.
 - The test must fail on the code as it was before this task, with a failed assertion or "not implemented", and the factory checks that.`;
 
