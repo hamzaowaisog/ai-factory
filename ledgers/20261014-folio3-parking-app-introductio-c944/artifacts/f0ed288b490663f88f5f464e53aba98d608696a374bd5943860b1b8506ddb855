@@ -1,0 +1,92 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat contracts/openapi.yaml as the exhaustive source of paths, methods, schemas, responses, and security; implement its operations without adding operations inferred only from the product narrative.",
+      "behaviours": [
+       {
+        "text": "For every operation declared in the locked contract, accept its declared HTTP method and path, validate and process inputs according to its declared parameters and request schema, and return the contract-defined success status and response shape.",
+        "kind": "happy"
+       },
+       {
+        "text": "Return the contract-defined error responses for invalid or missing inputs and for operation failures; do not silently accept inputs that violate the contract.",
+        "kind": "error"
+       },
+       {
+        "text": "Enforce the contract's declared global OAuth security and any operation-level security: requests without valid authorization are rejected as specified, and authorized callers can invoke only operations allowed by the contract.",
+        "kind": "permission"
+       },
+       {
+        "text": "The existing health route and generated OpenAPI/Swagger surfaces remain distinct from contract operations; Swagger availability does not count as implementing an operation.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Read the PostgreSQL connection string from ConnectionStrings:App and use that database for the API's persistent application data; do not substitute an in-memory store or another database.",
+        "kind": "data"
+       },
+       {
+        "text": "Successful data-changing operations persist their changes in PostgreSQL, and subsequent reads observe those changes, including after the application restarts.",
+        "kind": "happy"
+       },
+       {
+        "text": "If the App connection string is absent or the database cannot be used, startup or the affected operation fails rather than silently switching to non-persistent storage.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, SeedData writes a small set of believable sample rows for every table, using values grounded in the contract's examples; list operations can return sample items where applicable.",
+        "kind": "data"
+       },
+       {
+        "text": "Seed rows are not treated as required production records or as a substitute for data supplied through normal API operations.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "On startup, run SeedData only when Seed:Demo is true; when it is false or unset, startup does not add demo rows.",
+        "kind": "data"
+       },
+       {
+        "text": "API behavior and tests remain valid with an empty database: tests do not require demo rows to exist and handle empty lists or missing records according to the contract.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "Expose the API and its API documentation/testing surface, but do not add product screens, pages, or screen-navigation routes to this API project.",
+        "kind": "data"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

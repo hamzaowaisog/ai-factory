@@ -4,6 +4,8 @@ import type { AcceptanceTests, Requirement, ReviewCoverage, TestRun } from "../c
 import type { Ledger } from "../ledger/ledger.js";
 import { replay, type RunState } from "../ledger/state.js";
 import { readOutput } from "../stages/framework.js";
+import { provedByApi } from "../stages/contract.js";
+import { loadProject } from "../config/project.js";
 import { MANUAL_CARD, lastSignOff, type ManualBundle } from "../stages/manual-check.js";
 
 /** the gate that stops a run on what the reviewer said about the tests, and the older one that also stopped on a weak test */
@@ -12,8 +14,8 @@ const OLD_PROOF_GATE = "review.tests-prove-criteria";
 
 /** proven: the reviewer read the test and it asserts the criterion · weak, no-test: the reviewer's other verdicts ·
  *  passing, failing, flaky: how the locked test last ran, before any review · locked: written and locked, not run on the new code yet ·
- *  not-written: no test yet · by-hand, signed, failed-by-hand: a criterion a person checks */
-export type CriterionState = "proven" | "weak" | "no-test" | "passing" | "failing" | "flaky" | "locked" | "not-written" | "by-hand" | "signed" | "failed-by-hand";
+ *  not-written: no test yet · api-side: the web side's api or job criterion, proven by the API run (provedByApi) · by-hand, signed, failed-by-hand: a criterion a person checks */
+export type CriterionState = "proven" | "weak" | "no-test" | "passing" | "failing" | "flaky" | "locked" | "not-written" | "by-hand" | "signed" | "failed-by-hand" | "api-side";
 
 export interface TestRow { testId: string; name: string; file: string; outcome?: string; flaky?: boolean; message?: string }
 export interface ProbeRow { method: string; path: string; status: number; expectStatus: number }
@@ -84,6 +86,8 @@ export function testsView(ledger: Ledger): TestsView {
 
   const results = new Map((run?.results ?? []).map((r) => [r.id, r]));
   const verdicts = new Map((review?.coverage ?? []).map((c) => [c.acId, c]));
+  let project: Parameters<typeof provedByApi>[0] | undefined;
+  try { project = s.info.project ? loadProject(s.info.project) : undefined; } catch { /* a run whose project config is gone shows its criteria as they stand */ }
   const row = (a: Requirement["acceptance"][number]): CriterionRow => {
     const tests: TestRow[] = (lock?.tests ?? []).filter((t) => t.acId === a.id).map((t) => {
       const r = results.get(t.testId);
@@ -95,6 +99,7 @@ export function testsView(ledger: Ledger): TestsView {
       const c = checks?.checks[a.id];
       return { ...base, state: c ? (c.result === "pass" ? "signed" : "failed-by-hand") : "by-hand", ...(c ? { manual: { ...c, by: checks!.by } } : {}) };
     }
+    if (!tests.length && project && provedByApi(project, a)) return { ...base, state: "api-side" };
     const v = verdicts.get(a.id);
     const ran = tests.filter((t) => t.outcome);
     const state: CriterionState = v ? (v.verdict === "proves-it" ? "proven" : v.verdict)
@@ -106,7 +111,7 @@ export function testsView(ledger: Ledger): TestsView {
   };
   const requirements = spec.requirements.map((r) => ({ id: r.id, text: r.ears, op: r.op, criteria: r.acceptance.map(row) }));
   const all = requirements.flatMap((r) => r.criteria);
-  const automated = all.filter((c) => c.level !== "manual");
+  const automated = all.filter((c) => c.level !== "manual" && c.state !== "api-side");
   const lockedTests = (lock?.tests ?? []).map((t) => results.get(t.testId));
   const probes = all.flatMap((c) => c.probes);
   const characterisation = (lock?.characterisation ?? []).map((c) => ({ target: c.target, testId: c.testId, file: c.file, ...(results.get(c.testId) ? { outcome: results.get(c.testId)!.outcome } : {}) }));

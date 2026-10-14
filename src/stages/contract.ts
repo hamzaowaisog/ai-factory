@@ -10,6 +10,16 @@ import { basePath, readContract } from "../gates/contract.js";
 /** Where the generated client lives in the web app: factory-owned, locked with the contract. */
 /** The web side of a full-stack product: its API is the other repo, held to the same contract, so nothing here answers an HTTP call. */
 export const apiElsewhere = (project: { stack: string; contract?: unknown }): boolean => project.stack === "node" && !!project.contract;
+/**
+ * The criteria this repo proves. On the web side, api and job criteria are the API run's, proven there from the same
+ * request: no test here. A spec inherited from a design keeps them (run 77de: 41 of 48), and the web test writers had
+ * nothing to test them against. Requirements stay, so the plan's gates against the approved spec still hold.
+ */
+export function provenHere<T extends { requirements: { acceptance: { level: string }[] }[] }>(project: { stack: string; contract?: unknown }, spec: T): T {
+  if (!apiElsewhere(project)) return spec;
+  return { ...spec, requirements: spec.requirements.map((r) => ({ ...r, acceptance: r.acceptance.filter((a) => !provedByApi(project, a)) })) };
+}
+export const provedByApi = (project: { stack: string; contract?: unknown }, a: { level: string }): boolean => apiElsewhere(project) && (a.level === "api" || a.level === "job");
 export const CLIENT_DIR = "lib/api";
 export const CLIENT_CONFIG = "orval.config.cjs";
 /** Pinned: the generated code is part of the locked files, so the same contract must always give the same client. */

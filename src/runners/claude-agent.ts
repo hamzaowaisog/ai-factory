@@ -228,7 +228,8 @@ export class ClaudeAgentRunner implements Runner {
       { src: outDir, dst: "/job/out" },
     ];
     // no git metadata in container A
-    if (existsSync(join(job.workdir, ".git"))) {
+    const gitHidden = existsSync(join(job.workdir, ".git"));
+    if (gitHidden) {
       mounts.push(lstatSync(join(job.workdir, ".git")).isDirectory()
         ? { src: emptyDir, dst: "/work/.git", ro: true }
         : { src: emptyFile, dst: "/work/.git", ro: true });
@@ -265,6 +266,9 @@ export class ClaudeAgentRunner implements Runner {
         image: AGENT_IMAGE, role: "agent", labels: { run: x.runId, key: x.key }, network: dbId ? `container:${dbId}` : AGENT_NET,
         user: `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`, workdir: "/work", mounts,
         env: {
+          // the .NET SDK's Source Link reads the hidden .git and fails every `dotnet build` before the compiler runs: run c944's
+          // test writers never saw a C# error, so the lab found them (two retries). MSBuild reads this property from the env.
+          ...(gitHidden ? { EnableSourceControlManagerQueries: "false" } : {}),
           ...x.agentEnv,
           ...dbEnv,
           ...this.modelEnv(token),

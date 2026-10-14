@@ -1,0 +1,23 @@
+An issue was encountered verifying workloads. For more information, run "dotnet workload update".
+  App.Api -> /src/App.Api/bin/Debug/net9.0/App.Api.dll
+  
+  GenerateOpenApiDocuments:
+    dotnet "/nuget/microsoft.extensions.apidescription.server/9.0.0/build/../tools/dotnet-getdocument.dll" --assembly "/src/App.Api/bin/Debug/net9.0/App.Api.dll" --file-list "obj/App.Api.OpenApiFiles.cache" --framework ".NETCoreApp,Version=v9.0" --output "/src/App.Api/openapi" --project "App.Api" --assets-file "/src/App.Api/obj/project.assets.json" --platform "AnyCPU" --file-name built
+  Generating document named 'v1'.
+  Using discovered `GenerateAsync` overload with version parameter.
+  info: Microsoft.AspNetCore.Mvc.Infrastructure.DefaultActionDescriptorCollectionProvider[1]
+        No action descriptors found. This may indicate an incorrectly configured application or missing application parts. To learn more, visit https://aka.ms/aspnet/mvc/app-parts
+  Writing document named 'v1' to '/src/App.Api/openapi/built.json'.
+/src/App.Tests/AcceptancePart2Tests.cs(412,21): error CS9006: The interpolated raw string literal does not start with enough '$' characters to allow this many consecutive opening braces as content. [/src/App.Tests/App.Tests.csproj]
+/src/App.Tests/AcceptancePart2Tests.cs(474,21): error CS9006: The interpolated raw string literal does not start with enough '$' characters to allow this many consecutive opening braces as content. [/src/App.Tests/App.Tests.csproj]
+/src/App.Tests/AcceptancePart2Tests.cs(516,21): error CS9006: The interpolated raw string literal does not start with enough '$' characters to allow this many consecutive opening braces as content. [/src/App.Tests/App.Tests.csproj]
+
+Build FAILED.
+
+/src/App.Tests/AcceptancePart2Tests.cs(412,21): error CS9006: The interpolated raw string literal does not start with enough '$' characters to allow this many consecutive opening braces as content. [/src/App.Tests/App.Tests.csproj]
+/src/App.Tests/AcceptancePart2Tests.cs(474,21): error CS9006: The interpolated raw string literal does not start with enough '$' characters to allow this many consecutive opening braces as content. [/src/App.Tests/App.Tests.csproj]
+/src/App.Tests/AcceptancePart2Tests.cs(516,21): error CS9006: The interpolated raw string literal does not start with enough '$' characters to allow this many consecutive opening braces as content. [/src/App.Tests/App.Tests.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:03.43

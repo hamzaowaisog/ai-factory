@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 785,
+    "end": 855
+   },
+   "ms": 1,
+   "resultChars": 3007,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:785,&quot;end&quot;:855}\">\ncontracts/openapi.yaml lines 785-855\n785\tcomponents:\n786\t  securitySchemes:\n787\t    oauth2:\n788\t      type: oauth2\n789\t      flows:\n790\t        authorizationCode:\n791\t          authorizationUrl: https://accounts.google.com/o/oauth2/v2/auth\n792\t          tokenUrl: https://parking-api.folio3.com/oauth/token\n793\t          scopes:\n794\t            parking:access: \"Access the authenticated Folio3 parking application.\"\n795\t  responses:\n796\t    BadRequest:\n797\t      description: Request validation failed\n798\t      content:\n799\t        application/json:\n800\t          schema:\n801\t            $ref: '#/components/schemas/ApiError'\n802\t          example:\n803\t            code: invalid_request\n804\t            message: \"The request contains invalid or missing fields.\"\n805\t            field: plate\n806\t    Unauthorized:\n807\t      description: Authentication is required or the identity is not allowed\n808\t      content:\n809\t        application/json:\n810\t          schema:\n811\t            $ref: '#/components/schemas/ApiError'\n812\t          example:\n813\t            code: unauthorized\n814\t            message: \"Use an authorized Folio3 Google Workspace identity.\"\n815\t            field: null\n816\t    Forbidden:\n817\t      description: The authenticated identity is not permitted to perform this operation\n818\t      content:\n819\t        application/json:\n820\t          schema:\n821\t            $ref: '#/components/schemas/ApiError'\n822\t          example:\n823\t            code: forbidden\n824\t            message: \"The authenticated user does not have permission for this record.\"\n825\t            field: null\n826\t    NotFound:\n827\t      description: The requested parking record was not found\n828\t      content:\n829\t        application/json:\n830\t          schema:\n831\t            $ref: '#/components/schemas/ApiError'\n832\t          example:\n833\t            code: not_found\n834\t            message: \"The requested parking record was not found.\"\n835\t            field: null\n836\t    Conflict:\n837\t      description: The requested parking state change conflicts with current state\n838\t      content:\n839\t        application/json:\n840\t          schema:\n841\t            $ref: '#/components/schemas/ApiError'\n842\t          example:\n843\t            code: state_conflict\n844\t            message: \"The parking record is no longer available for this action.\"\n845\t            field: null\n846\t    ServiceUnavailable:\n847\t      description: Entrance verification service is unavailable and entry is denied\n848\t      content:\n849\t        application/json:\n850\t          schema:\n851\t            $ref: '#/components/schemas/ApiError'\n852\t          example:\n853\t            code: service_unavailable\n854\t            message: \"Entrance verification failed closed. Entry is denied until service is restored.\"\n855\t            field: null\n… (1557 lines total; ask for start=856)\n</untrusted_document>"
+  }
+ ]
+}

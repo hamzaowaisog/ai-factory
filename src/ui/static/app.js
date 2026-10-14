@@ -1656,7 +1656,7 @@ function dataModelScreen(id) {
 const TEST_STATE = {
   proven: ["ok", "Proven"], weak: ["bad", "Weak test"], "no-test": ["bad", "No test"],
   passing: ["ok", "Passing"], failing: ["bad", "Failing"], flaky: ["wait", "Flaky"],
-  locked: ["wait", "Locked, not run yet"], "not-written": ["idle", "No test yet"],
+  locked: ["wait", "Locked, not run yet"], "not-written": ["idle", "No test yet"], "api-side": ["idle", "Proven by the API"],
   "by-hand": ["wait", "Needs a check by hand"], signed: ["ok", "Signed off"], "failed-by-hand": ["bad", "Failed by hand"],
 };
 const TEST_LEVEL = { unit: "unit test", api: "HTTP test", job: "job test", ui: "screen test", manual: "by hand" };

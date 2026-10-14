@@ -1,0 +1,1 @@
+{"details":"plan task TASK-1 delivers no approved requirement","failures":[{"check":"b1-unmapped","frames":[],"message":"plan task TASK-1 delivers no approved requirement"}],"gateId":"build.b1-design-scope","inputsHash":"e99593c3667c43fe6171f74daabd1c52af3c697b5172fcf6cd60749303b5656a","passed":false,"safety":false}

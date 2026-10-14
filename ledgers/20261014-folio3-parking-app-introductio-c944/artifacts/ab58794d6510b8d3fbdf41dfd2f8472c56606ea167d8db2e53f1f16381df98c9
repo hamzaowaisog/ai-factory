@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  /|^    (get|post|put|patch|delete):|operationId:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 2585,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  /|^    (get|post|put|patch|delete):|operationId:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:12: /auth/sessions:\ncontracts/openapi.yaml:13: post:\ncontracts/openapi.yaml:14: operationId: createSession\ncontracts/openapi.yaml:42: /me/profile:\ncontracts/openapi.yaml:43: get:\ncontracts/openapi.yaml:44: operationId: getMyProfile\ncontracts/openapi.yaml:70: /me/vehicles:\ncontracts/openapi.yaml:71: get:\ncontracts/openapi.yaml:72: operationId: listMyVehicles\ncontracts/openapi.yaml:97: post:\ncontracts/openapi.yaml:98: operationId: registerMyVehicle\ncontracts/openapi.yaml:126: /parking/config:\ncontracts/openapi.yaml:127: get:\ncontracts/openapi.yaml:128: operationId: getParkingConfig\ncontracts/openapi.yaml:150: /parking/today:\ncontracts/openapi.yaml:151: get:\ncontracts/openapi.yaml:152: operationId: getParkingHome\ncontracts/openapi.yaml:186: /parking/releases/today:\ncontracts/openapi.yaml:187: post:\ncontracts/openapi.yaml:188: operationId: releaseParkingToday\ncontracts/openapi.yaml:210: /parking/releases:\ncontracts/openapi.yaml:211: get:\ncontracts/openapi.yaml:212: operationId: listMyReleases\ncontracts/openapi.yaml:252: post:\ncontracts/openapi.yaml:253: operationId: scheduleParkingReleases\ncontracts/openapi.yaml:284: /parking/releases/{releaseId}:\ncontracts/openapi.yaml:285: delete:\ncontracts/openapi.yaml:286: operationId: cancelParkingRelease\ncontracts/openapi.yaml:319: /parking/availability:\ncontracts/openapi.yaml:320: get:\ncontracts/openapi.yaml:321: operationId: getParkingAvailability\ncontracts/openapi.yaml:346: /parking/claims:\ncontracts/openapi.yaml:347: post:\ncontracts/openapi.yaml:348: operationId: claimParkingSpace\ncontracts/openapi.yaml:397: /parking/claims/today:\ncontracts/openapi.yaml:398: get:\ncontracts/openapi.yaml:399: operationId: getTodaysParkingClaim\ncontracts/openapi.yaml:432: /parking/claims/{claimId}/cancel:\ncontracts/openapi.yaml:433: post:\ncontracts/openapi.yaml:434: operationId: cancelParkingClaim\ncontracts/openapi.yaml:475: /admin/roster:\ncontracts/openapi.yaml:476: get:\ncontracts/openapi.yaml:477: operationId: listEmployeeRoster\ncontracts/openapi.yaml:535: /admin/entry-checks:\ncontracts/openapi.yaml:536: get:\ncontracts/openapi.yaml:537: operationId: listEntryChecks\ncontracts/openapi.yaml:591: /admin/utilization:\ncontracts/openapi.yaml:592: get:\ncontracts/openapi.yaml:593: operationId: getWeeklyUtilizationReport\ncontracts/openapi.yaml:642: /admin/settings:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

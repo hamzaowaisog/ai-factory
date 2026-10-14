@@ -32,7 +32,7 @@ import { changedPackages, isPackageManifest, packagesPlanned, type PackageChange
 import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-model.js";
 import { parse } from "yaml";
 import { DataModel, ReviewCoverage } from "../contracts/index.js";
-import { apiElsewhere, CLIENT_CMD, CLIENT_CONFIG, CLIENT_DIR, contractLockFiles, prepareClient, refreshedClient, withoutMockDelay, withRefreshed } from "./contract.js";
+import { apiElsewhere, provenHere, CLIENT_CMD, CLIENT_CONFIG, CLIENT_DIR, contractLockFiles, prepareClient, refreshedClient, withoutMockDelay, withRefreshed } from "./contract.js";
 import { authorIntro, implementIntro, notFoundHint, testsScreens } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { readApproved } from "../conventions/store.js";
@@ -828,7 +828,7 @@ export const authorTestsStep: StepDef = {
     // "already passes" is no longer a failure when the requirement has a failing test: don't push the writer to break a correct test
     const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
-    const acs = spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
+    const acs = provenHere(ctx.project, spec).requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
     const needTest = acs.filter((a) => a.level !== "manual");
     // the approved screens behind these criteria: what the person approved is what the tests expect (PR #11 review, item 13)
     const screens = screenFacts(approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design, [...new Set(acs.map((a) => a.req))]);
@@ -2208,7 +2208,7 @@ export const acceptStep: StepDef = {
   key: "accept", stage: "accept", templateVersion: "2",
   inputs: (s) => (s.steps.get("integrate")?.status === "completed" ? { integrate: s.steps.get("integrate")!.outputs[0], head: s.steps.get("integrate")!.data?.commit } : undefined),
   async run(ctx): Promise<StepOutcome> {
-    const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
+    const spec = provenHere(ctx.project, requireOutput<Spec>(ctx.state, ctx.ledger, "specify"));
     const { lock } = lockOf(ctx.state, ctx.ledger);
     const head = String(ctx.state.steps.get("integrate")!.data!.commit);
     const locked = lock.probes ?? [];

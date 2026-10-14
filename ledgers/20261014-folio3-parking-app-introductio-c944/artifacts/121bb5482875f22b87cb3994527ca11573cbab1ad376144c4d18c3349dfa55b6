@@ -1,0 +1,84 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat the locked OpenAPI file as the source of truth for all API operations, including its declared authentication/security requirements; do not infer extra operations from the product narrative.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "For every operation declared in contracts/openapi.yaml, accept the declared HTTP method and path and produce the responses, status codes, headers, and response bodies specified by that contract."
+       },
+       {
+        "kind": "data",
+        "text": "Read and write the request and response fields using the contract's declared schemas and semantics; operations that change data persist the corresponding changes, and list/read operations return contract-shaped data."
+       },
+       {
+        "kind": "permission",
+        "text": "Enforce the security requirements declared by the contract, including its global OAuth security where applicable; callers lacking the required authorization do not receive protected operation results."
+       },
+       {
+        "kind": "error",
+        "text": "For invalid requests and operation failures, return the error responses and status codes declared by the contract rather than treating the request as a successful operation."
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Store the API's persistent application data in PostgreSQL using the existing ConnectionStrings:App setting; data written by API operations remains available to later requests and after an application restart."
+       },
+       {
+        "kind": "error",
+        "text": "If the App connection string is absent or PostgreSQL cannot be used, application startup or data operations fail rather than silently switching to another data store."
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "App.Api/SeedData.cs supplies a small set of believable sample rows for each database table, using values drawn from the contract's examples, so list operations can return representative data when the sample data has been loaded."
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "When Seed:Demo is true at startup, run the sample-data seeding; when it is false or unset, do not load those sample rows."
+       },
+       {
+        "kind": "error",
+        "text": "Tests must not depend on demo rows being present; tests continue to work when seeding is disabled and the database has no sample data."
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Do not add product screens or screen routes to this API project; the separate web application owns the user-facing screens."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

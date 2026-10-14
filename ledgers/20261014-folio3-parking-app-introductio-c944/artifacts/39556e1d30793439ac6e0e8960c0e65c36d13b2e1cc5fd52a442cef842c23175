@@ -1,0 +1,300 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The request is sent without bearer authentication and the test asserts 201 plus the token, type, expiry, employee identity, email, and administrator flag."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_RejectsMissingAndInvalidIdentityTokensWithApiErrors",
+      "verdict": "weak",
+      "why": "It tests a missing token and an invalid token, but not a malformed request body or a valid identity that is unauthorized."
+     },
+     {
+      "acId": "AC-1.3",
+      "testId": "AC_1_3_ReturnsAuthenticatedEmployeeProfileAndVehicles",
+      "verdict": "weak",
+      "why": "The test omits the authenticated-but-unpermitted 403 case and checks selected profile fields rather than the complete EmployeeProfile contract."
+     },
+     {
+      "acId": "AC-1.4",
+      "testId": "AC_1_4_ListsOnlyAuthenticatedEmployeesVehicles",
+      "verdict": "weak",
+      "why": "It checks only vehicle ID, plate, and status, so other contract-defined VehicleList or Vehicle fields could be wrong without failing the test."
+     },
+     {
+      "acId": "AC-1.5",
+      "testId": "AC_1_5_RegistersVehicleAndRejectsInvalidOrConflictingRequests",
+      "verdict": "weak",
+      "why": "The created response is not checked against the full Vehicle schema, including the vehicle ID's contract type and any other required fields."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts 200, all specified initial configuration values, and 401 without authentication."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_ReturnsTodayParkingHomeForAuthenticatedEmployee",
+      "verdict": "weak",
+      "why": "It only parses officeDate instead of comparing it with the current office-local date, so a different but valid date can pass."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "AC_3_1_ReleasesDedicatedSpaceForTodayAtConfiguredClaimTime",
+      "verdict": "weak",
+      "why": "The test uses wall-clock time and checks only whichever branch happens to apply, so both before- and after-release claimableAt behavior are not reliably exercised."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts 403 for a non-holder and 409 for a duplicate holder release, with ApiError fields checked for both errors."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "AC_3_3_ListsOnlyOwnReleasesWithinOfficeDateFilters",
+      "verdict": "weak",
+      "why": "Both seeded identities are holders, so the required 403 response for a non-holder is not tested."
+     },
+     {
+      "acId": "AC-3.4",
+      "testId": "AC_3_4_SchedulesValidReleasesAndRejectsUnauthorizedOrConflictingRequests",
+      "verdict": "weak",
+      "why": "It submits only one valid date and does not assert the required 400 invalid-input response and ApiError schema."
+     },
+     {
+      "acId": "AC-3.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It checks cancellation status and both audit events, and exercises the required 401, 403, 404, and 409 cases."
+     },
+     {
+      "acId": "AC-3.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts 400 with ApiError for a malformed date and 409 with ApiError for a date outside the scheduling window."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts 200, that availableSpaceCount equals the spaces-list length, the required space fields, and 401 without authentication."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_ClaimsAvailableSpaceForEligibleEmployeeAndRejectsInvalidOrConflictingRequests",
+      "verdict": "weak",
+      "why": "The claim's floor and space code are only checked for nonempty values, not against the seeded claimable space, so an incorrect allocation can pass."
+     },
+     {
+      "acId": "AC-4.3",
+      "testId": "AC_4_3_ConcurrentClaimsAllocateTheLastSpaceOnlyOnce",
+      "verdict": "weak",
+      "why": "It does not compare the accepted claim's floor and space code with the seeded last space, so the returned claim could identify a different space."
+     },
+     {
+      "acId": "AC-4.4",
+      "testId": "AC_4_4_ReturnsTodaysClaimOrNotFoundAndRequiresAuthentication",
+      "verdict": "weak",
+      "why": "The returned floor and space code are only checked for nonempty values, not that they identify the seeded claim's assigned space."
+     },
+     {
+      "acId": "AC-4.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts the cancellation response is 409 and remains Active, and tests 401, 403, and 404 for the required cases."
+     },
+     {
+      "acId": "AC-4.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It tests both wrong-assignment operations and asserts 403 with the ApiError shape."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "AC_5_1_AdminRosterReturnsFilteredPageAndEnforcesAdministratorAccess",
+      "verdict": "weak",
+      "why": "It finds the target record but never asserts that every returned employee satisfies the search and assignment filters, so extra unfiltered rows can pass."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "AC_5_2_AdminEntryChecksReturnsFilteredContractRecords",
+      "verdict": "weak",
+      "why": "It finds the seeded check in the response but does not assert that every returned check matches the supplied search and result filters."
+     },
+     {
+      "acId": "AC-5.3",
+      "testId": "AC_5_3_AdminActivityReturnsFilteredPageAndEnforcesAccess",
+      "verdict": "weak",
+      "why": "It finds the seeded event in the response but does not assert that every returned event matches the supplied search and event-type filters."
+     },
+     {
+      "acId": "AC-5.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It exercises all three administrator list routes and asserts 403 with error code forbidden for each."
+     },
+     {
+      "acId": "AC-6.1",
+      "testId": "AC_6_1_AdminGetsWeeklyUtilizationReportAndInvalidDatesAreRejected",
+      "verdict": "weak",
+      "why": "It compares weekStart but only checks that weekEnd is a string, and an empty daily-statistics list would pass, so requested-week coverage is not established."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It sets up an unreleased dedicated holder and a temporary claimant without entry records, then asserts the expected events, employees, plates, and office-local dates."
+     },
+     {
+      "acId": "AC-6.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts 403 and error code forbidden for a standard employee requesting utilization."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It checks all listed settings fields and the required 401 and 403 access responses."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts both successful statuses, preservation of submitted timezone, release time, and recipients on update and read, schedule fields, and the required error statuses."
+     },
+     {
+      "acId": "AC-7.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts 403 and error code forbidden for both GET and PUT settings requests."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts 200, the exact authorized plate and entry status, office date and time fields, and green activation true for an active temporary allocation."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It tests an unauthorized car, pedestrian, motorcycle, other object, and permanent-sticker vehicle, asserting the specified verification outcomes and false green activation."
+     },
+     {
+      "acId": "AC-8.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It checks all named verification response fields and asserts 400 for an invalid detection missing detectedAt."
+     },
+     {
+      "acId": "AC-8.4",
+      "testId": "AC_8_4_FailsClosedWhenDetectionHasFailureReason",
+      "verdict": "weak",
+      "why": "It tests only a failureReason response; no verification-service outage is asserted to return 503 with ApiError code service_unavailable."
+     },
+     {
+      "acId": "AC-8.5",
+      "testId": "AC_8_5_PersistsDetectionDecision",
+      "verdict": "weak",
+      "why": "It verifies persistence only for a successful authorized detection, not for an unsuccessful detection."
+     },
+     {
+      "acId": "AC-8.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It sends the detection request without an access token and asserts 401 with the ApiError shape."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_PersistsParkingWorkflowAcrossApiRestart",
+      "verdict": "weak",
+      "why": "After restart it mostly checks record identifiers, not that the vehicle, release, claim, and verification values returned or submitted before restart remain available."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It creates a vehicle, verifies its ID and plate in the database, restarts the API, and reads the same ID and plate through the API."
+     },
+     {
+      "acId": "AC-9.3",
+      "testId": "AC_9_3_PersistsSettingsClaimAndDetectionRows",
+      "verdict": "weak",
+      "why": "The database assertions inspect only selected columns and do not verify all contract-defined identifiers and values for the saved claim, verification, and settings."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_DemoIdentifiersAreAbsentWhenDemoSeedingIsDisabled",
+      "verdict": "weak",
+      "why": "It tests Seed:Demo=false only, so a fresh database with the setting unset could still seed demo rows without failing this test."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It starts twice with demo seeding enabled and verifies the matching employee identifier occurs once with every pre-existing field unchanged."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_DemoStartupSeedsContractExampleRowsInEveryRepeatableTable",
+      "verdict": "weak",
+      "why": "It checks at least two rows only in RepeatableTables and explicitly allows one OfficeSettings row, although the criterion requires at least two in each contract-backed table."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It calls SeedData.Run directly and asserts exactly three rows in every repeatable table, one settings row, and contract-example values."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It calls each listed employee and administrator collection/report operation and asserts success plus nonempty collection or report lists."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "AC_13_1_DemoStartupSeedsBetweenTwoAndFiveRowsPerTableFromExamples",
+      "verdict": "weak",
+      "why": "It checks the two-to-five range only for repeatable tables and asserts one OfficeSettings row, so the required range for every contract-backed table is not proved."
+     },
+     {
+      "acId": "AC-13.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "With demo seeding disabled and no manually created fixtures, it asserts 200, an empty releases list, and zero demo sample rows."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "AC_14_1_OpenApiDocumentListsContractOperationsAndMetadata",
+      "verdict": "weak",
+      "why": "It checks request-body schemas for only six operations and does not assert response schemas, so missing request or response metadata on other operations can pass."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "AC_14_2_SessionResponseIsJsonMatchingTheDeclaredSessionShape",
+      "verdict": "weak",
+      "why": "It checks JSON content type and session shape for only POST /auth/sessions, leaving the other documented operations' response schemas untested."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

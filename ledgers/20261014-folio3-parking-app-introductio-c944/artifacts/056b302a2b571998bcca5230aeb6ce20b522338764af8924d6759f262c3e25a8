@@ -1,0 +1,59 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  /|^    (get|post|put|patch|delete):|operationId:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 2585,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  /|^    (get|post|put|patch|delete):|operationId:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:12: /auth/sessions:\ncontracts/openapi.yaml:13: post:\ncontracts/openapi.yaml:14: operationId: createSession\ncontracts/openapi.yaml:42: /me/profile:\ncontracts/openapi.yaml:43: get:\ncontracts/openapi.yaml:44: operationId: getMyProfile\ncontracts/openapi.yaml:70: /me/vehicles:\ncontracts/openapi.yaml:71: get:\ncontracts/openapi.yaml:72: operationId: listMyVehicles\ncontracts/openapi.yaml:97: post:\ncontracts/openapi.yaml:98: operationId: registerMyVehicle\ncontracts/openapi.yaml:126: /parking/config:\ncontracts/openapi.yaml:127: get:\ncontracts/openapi.yaml:128: operationId: getParkingConfig\ncontracts/openapi.yaml:150: /parking/today:\ncontracts/openapi.yaml:151: get:\ncontracts/openapi.yaml:152: operationId: getParkingHome\ncontracts/openapi.yaml:186: /parking/releases/today:\ncontracts/openapi.yaml:187: post:\ncontracts/openapi.yaml:188: operationId: releaseParkingToday\ncontracts/openapi.yaml:210: /parking/releases:\ncontracts/openapi.yaml:211: get:\ncontracts/openapi.yaml:212: operationId: listMyReleases\ncontracts/openapi.yaml:252: post:\ncontracts/openapi.yaml:253: operationId: scheduleParkingReleases\ncontracts/openapi.yaml:284: /parking/releases/{releaseId}:\ncontracts/openapi.yaml:285: delete:\ncontracts/openapi.yaml:286: operationId: cancelParkingRelease\ncontracts/openapi.yaml:319: /parking/availability:\ncontracts/openapi.yaml:320: get:\ncontracts/openapi.yaml:321: operationId: getParkingAvailability\ncontracts/openapi.yaml:346: /parking/claims:\ncontracts/openapi.yaml:347: post:\ncontracts/openapi.yaml:348: operationId: claimParkingSpace\ncontracts/openapi.yaml:397: /parking/claims/today:\ncontracts/openapi.yaml:398: get:\ncontracts/openapi.yaml:399: operationId: getTodaysParkingClaim\ncontracts/openapi.yaml:432: /parking/claims/{claimId}/cancel:\ncontracts/openapi.yaml:433: post:\ncontracts/openapi.yaml:434: operationId: cancelParkingClaim\ncontracts/openapi.yaml:475: /admin/roster:\ncontracts/openapi.yaml:476: get:\ncontracts/openapi.yaml:477: operationId: listEmployeeRoster\ncontracts/openapi.yaml:535: /admin/entry-checks:\ncontracts/openapi.yaml:536: get:\ncontracts/openapi.yaml:537: operationId: listEntryChecks\ncontracts/openapi.yaml:591: /admin/utilization:\ncontracts/openapi.yaml:592: get:\ncontracts/openapi.yaml:593: operationId: getWeeklyUtilizationReport\ncontracts/openapi.yaml:642: /admin/settings:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Map(Get|Post|Put|Patch|Delete|Group)|AddControllers|AddAuthentication|AddAuthorization|UseAuthentication|UseAuthorization|RequireAuthorization",
+    "glob": "App.Api/**/*.cs"
+   },
+   "ms": 1,
+   "resultChars": 283,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Map(Get|Post|Put|Patch|Delete|Group)|AddControllers|AddAuthentication|AddAuthorization|UseAuthentication|Use\">\nApp.Api/Program.cs:28: app.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "DbSet|modelBuilder|Entity|HasKey|CREATE TABLE|migration|Migrate",
+    "glob": "App.Api/**/*"
+   },
+   "ms": 0,
+   "resultChars": 431,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;DbSet|modelBuilder|Entity|HasKey|CREATE TABLE|migration|Migrate&quot;,&quot;glob&quot;:&quot;App.Api/**/*&quot;}\">\nApp.Api/App.Api.csproj:15: <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.2\" />\nApp.Api/AppDb.cs:1: using Microsoft.EntityFrameworkCore;\nApp.Api/Program.cs:2: using Microsoft.EntityFrameworkCore;\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/Program.cs",
+    "start": 25,
+    "end": 36
+   },
+   "ms": 1,
+   "resultChars": 585,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/Program.cs&quot;,&quot;start&quot;:25,&quot;end&quot;:36}\">\nApp.Api/Program.cs lines 25-36\n25\t    }\n26\t}\n27\tapp.UseCors();\n28\tapp.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n29\t// The API's own document (/openapi/v1.json) and a page to read and try it (/swagger). Keep both: the factory's product page links to the page.\n30\tapp.MapOpenApi();\n31\tapp.UseSwaggerUI(o => o.SwaggerEndpoint(\"/openapi/v1.json\", \"API\"));\n32\t\n33\tapp.Run();\n34\t\n35\tpublic partial class Program { }\n36\t\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "contracts/openapi.yaml|built.yaml|OpenApiDocument",
+    "glob": "**/*"
+   },
+   "ms": 2,
+   "resultChars": 434,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;contracts/openapi.yaml|built.yaml|OpenApiDocument&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/App.Api.csproj:6: <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\nApp.Api/App.Api.csproj:7: <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\n</untrusted_document>"
+  }
+ ]
+}
