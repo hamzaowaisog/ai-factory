@@ -58,7 +58,7 @@ import { designFidelityLint, designSizeCap } from "../design/gates.js";
 import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, stitchHtmlFor, stitchScaffoldBrief, type ApprovedDesign } from "../design/design-link.js";
 import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
 import { loadKit } from "../design/kit/kit.js";
-import { SCREEN_HELPER, SCREEN_SETUP, screenTestsReady } from "../design/kit/screen-tests.js";
+import { SCREEN_HELPER, SCREEN_SETUP, SHIFTED_TEST_ENV, screenTestsReady } from "../design/kit/screen-tests.js";
 import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
@@ -123,7 +123,7 @@ const packagesDir = (runId: string, stack: ProjectConfig["stack"] = "dotnet") =>
   return d;
 };
 
-async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { readSchema?: boolean; schemaOnly?: boolean; buildOnly?: boolean; skipLater?: { ids: string[]; files: string[] } }): Promise<ProduceOutput> {
+async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { testEnv?: Record<string, string>; shuffle?: boolean; readSchema?: boolean; schemaOnly?: boolean; buildOnly?: boolean; skipLater?: { ids: string[]; files: string[] } }): Promise<ProduceOutput> {
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
   // full-suite runs (task, integrate) leave out tests that already fail on the base branch
@@ -1605,6 +1605,7 @@ type LockTest = Lock["tests"][number];
 async function settleTests(ctx: StepContext, a: {
   key: string; taskId: string; wt: string; start: string; asked: string[]; own: LockTest[]; lock: Lock; fileScope: string[];
   /** every file the approved plan lists for a task of this run */ planned: string[];
+  /** the locked tests that must pass at this task (its own and the earlier tasks'): one of them may start passing after a rewrite */ held?: string[];
   lastCommit?: string; lastChange?: string; acs: { id: string; req: string }[];
   /** how every test stood when this task started */ before?: Pick<TestRun, "results">;
 }): Promise<{ fixed: string[]; opened: string[] } | { outcome: StepOutcome }> {
@@ -1732,9 +1733,14 @@ async function settleTests(ctx: StepContext, a: {
     const proof = ctx.ledger.putJson({ tests: rewrote, characterisation: [], lock: [], rules: { productionExceptionOk: true } });
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: stored.testRun, run2: stored.testRun, tests: proof }, ctx.policy, { step: a.key, treeSha: at });
     if (!g.passed) return { refused: `on the code before this task: ${[...new Set((g.failures ?? []).map((f) => f.message))].slice(0, 5).join("; ")}` };
+    // another test may not get worse, disappear, or start passing before its own task's code exists; one that is held now and
+    // starts passing is the shared set-up put right (run 768d: one database for every test), and that is allowed
+    const held = new Set(a.held ?? []);
     const moved = others.filter((id) => {
       const now = lab.testRun.results.find((x) => x.id === id)?.outcome, then = a.before?.results.find((x) => x.id === id)?.outcome;
-      return now === undefined || now === "notRun" || now === "skipped" || (then !== undefined && (now === "passed") !== (then === "passed"));
+      if (now === undefined || now === "notRun" || now === "skipped") return true;
+      if (then === undefined || (now === "passed") === (then === "passed")) return false;
+      return now !== "passed" || !held.has(id);
     });
     if (moved.length) return { refused: `it changed, removed or skipped other tests in the file: ${moved.slice(0, 5).join(", ")}` };
     // and it must still assert what the locked test asserted. Only the change is read, against the test as it was locked: the
@@ -1875,7 +1881,7 @@ export function implementStep(taskId: string): StepDef {
       const asked = testsToJudge(ctx.ledger.events(), key);
       let retest = false;
       if (asked.length) {
-        const settled = await settleTests(ctx, { key, taskId, wt, start, asked, own: myTests, lock, fileScope, planned: plan.tasks.flatMap((t) => t.fileScope), lastCommit: prev?.commit, lastChange: prevChange, before: stoodBefore(ctx, inputs.prevDone as string[]),
+        const settled = await settleTests(ctx, { key, taskId, wt, start, asked, own: myTests, held: [...myTests.map((t) => t.testId), ...earlier.keys()], lock, fileScope, planned: plan.tasks.flatMap((t) => t.fileScope), lastCommit: prev?.commit, lastChange: prevChange, before: stoodBefore(ctx, inputs.prevDone as string[]),
           acs: spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a }))) });
         if ("outcome" in settled) return settled.outcome;
         ({ lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger));
@@ -2267,6 +2273,29 @@ export const integrateStep: StepDef = {
         }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
+    // the environment check (a web app's tests): the passing locked tests once more at another instant and in a shuffled order.
+    // A test that passes only at the usual instant or order depends on something other than the code (run ae5c: a test that
+    // read today's date). Found here, it is named before delivery instead of breaking the next run that touches it.
+    if (ctx.project.stack === "node" && lock.tests.length) {
+      const passedNow = new Set(ctx.ledger.getJson<TestRun>(testRun).results.filter((r) => r.outcome === "passed").map((r) => r.id));
+      const ids = lock.tests.map((t) => t.testId).filter((id) => passedNow.has(id));
+      const shifted = ids.length ? await produce(ctx, "integrate/environment", head, "integrate", { expectPass: ids, expectFail: [], compareToBaseline: [] }, ids, undefined, undefined, undefined, { testEnv: SHIFTED_TEST_ENV, shuffle: true }) : undefined;
+      if (shifted && !shifted.build.ok) ctx.log("integrate: the environment check could not build; skipped");
+      else if (shifted) {
+        const ok = new Set(shifted.testRun.results.filter((r) => r.outcome === "passed").map((r) => r.id));
+        const moved = lock.tests.filter((t) => ids.includes(t.testId) && !ok.has(t.testId));
+        const said = (id: string) => (shifted.testRun.results.find((r) => r.id === id)?.message ?? "").split("\n").map((l) => l.trim()).find(Boolean)?.slice(0, 200) ?? "";
+        if (!moved.length) ctx.log(`integrate: environment check passed: ${ids.length} test(s) also pass at another instant and in another order`);
+        else if (lenientTests(ctx.project)) {
+          for (const t of moved) {
+            await ctx.ledger.append({ type: "test.disputed", key: "integrate", data: { step: "integrate", testId: t.testId, acId: t.acId, file: t.file, why: `It passes only at the usual test instant or order, so it depends on something other than the code: ${said(t.testId)}` } }, ctx.writer);
+          }
+          ctx.log(`integrate: ${moved.length} test(s) pass only at the usual instant or order; left out of the checks (lenient run) and named on the pull request: ${moved.map((t) => t.testId).join(", ")}`);
+        } else {
+          return { kind: "park", reason: `${moved.length} locked test(s) pass only at the usual test instant or order, so they depend on something other than the code: ${moved.slice(0, 3).map((t) => `${t.testId} (${t.acId}): ${said(t.testId)}`).join("; ")}. Read the tests, then resume or stop the run.` };
+        }
+      }
+    }
     let waivers: Omit<WaiverRow, "step">[] = [];
     // the change-size limit is a person's to waive (its gate says so): a card for this commit, not a park that no resume gets past
     const size = await runGate(diffSize, ctx.ledger, ctx.writer, { diff: diffSha }, ctx.policy, { step: "integrate", treeSha: head });

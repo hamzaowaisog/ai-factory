@@ -118,11 +118,13 @@ You get the criterion each test was written for, the test (open its file), how i
 - "scope": the test asks for what the criterion says, and the only thing in the way is the task's file list: to pass, a file that is neither under "mayChange" nor under "locked" has to change (a screen, a route or a shared module another task lists). Give those files in "files", as paths in the repo, the fewest that are needed. Do not choose this for a file under "locked", and do not choose it when code in "mayChange" could make the test pass.
 - "unclear": the criterion can be read both ways, or you cannot tell from what you have.
 Judge only against the criterion's own words. A test is not wrong because it is strict, and code is not right because it is reasonable.
+A test is also wrong when it fails for a reason other than the code: it reads the real date or time, relies on rows or state another test left behind, expects an order the criterion does not name, compares a computed decimal exactly, asserts a generated value, or looks a value up page-wide when it appears more than once. Say which, and name the line that holds the wrong value or the shared set-up at fault.
 Answer with one verdict per test, by its testId. In "why", say what is wrong in a sentence or two that the one who fixes it can act on.`;
 
 export const REWRITE_RULES = `A locked acceptance test was found to be wrong, and you are rewriting it. Everything else stays locked.
 - Change only the tests named in "tests-to-fix", in the files they are in. Keep each test's name (its it() title or method name) exactly as it is.
 - Do not change, remove or skip any other test in those files, and do not touch any other file: no production code, no other test, no test support file.
+- When "why" names the file's shared set-up as the fault (a fixture, a helper, a beforeEach or a class constructor, for example one database shared by every test, or a value read from the real clock), you may change that set-up too. Change no other test's own body.
 - Fix what "why" says is wrong, and nothing more. The test must still prove its criterion in full: every value, message and case the criterion names.
 - The code for this criterion may already be in the checkout. Do not read it to decide what to assert: assert what the criterion says. A test bent to whatever the code does today proves nothing.
 - The test must fail on the code as it was before this task, with a failed assertion or "not implemented", and the factory checks that.`;

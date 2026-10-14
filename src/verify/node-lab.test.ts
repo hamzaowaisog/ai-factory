@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { ProjectConfig } from "../config/project.js";
 import { loadKit, scaffold, writeScaffold } from "../design/kit/index.js";
 import { sampleDesign } from "../design/kit/sample.js";
+import { SHIFTED_TEST_ENV } from "../design/kit/screen-tests.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { produceNodeTests } from "./node.js";
@@ -91,6 +92,23 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
     expect(taskPhases.join("\n")).toContain("skipping 1 test file(s) of tasks that are not built yet");
     expect(task.testRun.valid, taskPhases.join("\n")).toBe(true);
     expect(Object.fromEntries(task.testRun.results.map((r) => [r.id, r.outcome])), taskPhases.join("\n")).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed", "tests/clock.test.ts::clock > AC_4_1_RunsAtTheFixedInstant": "passed" });
+    // the environment check's second run: at another instant (and a shuffled order) a test that hard-codes today's date fails,
+    // while one that works from TEST_NOW still passes
+    writeFileSync(join(repo, "tests", "now.test.ts"), [
+      `import { describe, expect, it } from "vitest";`, `import { TEST_NOW } from "./support/screen";`,
+      `describe("now", () => { it("AC_5_1_FollowsTheTestInstant", () => { expect(new Date().toISOString().slice(0, 10)).toBe(TEST_NOW.toISOString().slice(0, 10)); }); });`, ``,
+    ].join("\n"));
+    execFileSync("git", ["add", "-A"], { cwd: repo, env });
+    execFileSync("git", ["commit", "-q", "-m", "now"], { cwd: repo, env });
+    const commit2 = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, env, encoding: "utf8" }).trim();
+    const ids = ["tests/clock.test.ts::clock > AC_4_1_RunsAtTheFixedInstant", "tests/now.test.ts::now > AC_5_1_FollowsTheTestInstant"];
+    const shifted = await produceNodeTests({
+      runId: "lab-e2e", key: "lab-env", repo, commit: commit2, stage: "integrate", rt,
+      project: ProjectConfig.parse({ project: "lab", repo, stack: "node" }),
+      exp: { expectPass: ids, expectFail: [], compareToBaseline: [] }, onlyTests: ids,
+      testEnv: SHIFTED_TEST_ENV, shuffle: true,
+    });
+    expect(Object.fromEntries(shifted.testRun.results.filter((r) => ids.includes(r.id)).map((r) => [r.id, r.outcome]))).toEqual({ [ids[0]!]: "failed", [ids[1]!]: "passed" });
     rmSync(home, { recursive: true, force: true });
   });
 });

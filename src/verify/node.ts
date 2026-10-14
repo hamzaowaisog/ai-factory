@@ -144,9 +144,9 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
     const runTests = async (pattern: string | undefined, resultsDir: string) => {
       const started = Date.now();
       const t = await launch({
-        role: "producer", image: project.node.image, network: "none", workdir: "/src", env: NODE_ENV,
+        role: "producer", image: project.node.image, network: "none", workdir: "/src", env: { ...NODE_ENV, ...inp.testEnv },
         mounts: [{ src, dst: "/src" }, { src: cache, dst: "/npm-cache", ro: true }, { src: resultsDir, dst: "/results" }],
-        cmd: ["npx", "--no-install", "vitest", "run", "--reporter=json", "--outputFile=/results/r.json", "--passWithNoTests", ...(pattern ? ["-t", pattern] : later.flatMap((f) => ["--exclude", f]))],
+        cmd: ["npx", "--no-install", "vitest", "run", "--reporter=json", "--outputFile=/results/r.json", "--passWithNoTests", ...(inp.shuffle ? ["--sequence.shuffle"] : []), ...(pattern ? ["-t", pattern] : later.flatMap((f) => ["--exclude", f]))],
       });
       const code = await rt.wait(t, project.node.testTimeoutSec * 1000);
       await rt.stop(t);

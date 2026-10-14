@@ -38,6 +38,10 @@ export interface ProduceInput {
   onRemoved?: (id: string) => Promise<void>;
   /** For author-tests-on-base: only run these tests. */
   onlyTests?: string[];
+  /** extra environment for the test run only (the environment check moves the test instant: FACTORY_TEST_NOW) */
+  testEnv?: Record<string, string>;
+  /** run the tests in a random order (the environment check) */
+  shuffle?: boolean;
   /** tests that failed in the baseline: never re-run as possibly flaky */
   knownFailures?: ReadonlySet<string>;
   /** Per-run package folder, kept between producer runs (restore is the slow part). */

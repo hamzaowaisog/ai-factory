@@ -27,7 +27,8 @@ export const TEST_NOW = "2026-01-15T12:00:00.000Z";
 /** What a screen test reads and sets about the address. */
 export const screenHelperFile = (tag: string): string => `// ${OWNED_MARK} from ${tag}.
 // Every test runs at TEST_NOW in UTC (set up in ./setup): work out expected dates and durations from it, never from the real clock.
-export const TEST_NOW = new Date("${TEST_NOW}");
+// (the factory's environment check runs the tests once more at another instant, through FACTORY_TEST_NOW)
+export const TEST_NOW = new Date(process.env.FACTORY_TEST_NOW ?? "${TEST_NOW}");
 
 // What a screen test reads and sets about the address. In tests the app's navigation (lib/nav) is replaced by this:
 // nothing really navigates, and every place the page went to is kept in nav.went.
@@ -153,3 +154,6 @@ export function screenTestsReady(dir: string): boolean {
     return "jsdom" in have && "@testing-library/react" in have && existsSync(join(dir, SCREEN_SETUP));
   } catch { return false; }
 }
+
+/** The environment check's second run (integrate): another instant, a year and a half later, on the other side of the day. */
+export const SHIFTED_TEST_ENV: Record<string, string> = { FACTORY_TEST_NOW: "2027-07-04T03:30:00.000Z" };
