@@ -33,7 +33,7 @@ import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-mod
 import { parse } from "yaml";
 import { DataModel, ReviewCoverage } from "../contracts/index.js";
 import { apiElsewhere, provenHere, CLIENT_CMD, CLIENT_CONFIG, CLIENT_DIR, contractLockFiles, prepareClient, refreshedClient, withoutMockDelay, withRefreshed } from "./contract.js";
-import { authorIntro, implementIntro, notFoundHint, testsScreens } from "./stack-text.js";
+import { authorIntro, implementIntro, notFoundHint, SELF_CONTAINED_RULES, testsScreens } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { readApproved } from "../conventions/store.js";
 import { guidelinesBrief } from "../conventions/brief.js";
@@ -762,7 +762,7 @@ export function testKitFacts(wt: string, max = 12_000): string | undefined {
   const containers = existsSync(screensDir) ? readdirSync(screensDir).filter((d) => existsSync(join(screensDir, d, "container.tsx"))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })) : [];
   if (containers.length) parts.push(`Each screen's code is components/screens/<screen id in lower case>/container.tsx: ${containers.join(", ")}.`);
   const handlers = [...new Set([...(text(`${CLIENT_DIR}/client.msw.ts`) ?? "").matchAll(/^export const (\w+)/gm)].map((m) => m[1]!))];
-  if (handlers.length) parts.push(`${CLIENT_DIR}/client.msw.ts exports these API test handlers and example answers (generated from the contract; use them, don't write your own): ${handlers.join(", ")}.`);
+  if (handlers.length) parts.push(`${CLIENT_DIR}/client.msw.ts exports these API test handlers and example answers, generated from the contract with one example each. Start from them, and where a criterion says each, all, a list or an order, answer with rows of your own instead (the generator's single example cannot prove it): ${handlers.join(", ")}.`);
   if (!parts.length) return undefined;
   const all = parts.join("\n\n");
   return all.length > max ? `${all.slice(0, max)}\n… (cut; read the files for the rest)` : all;
@@ -867,6 +867,7 @@ export const authorTestsStep: StepDef = {
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
         S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(wt), apiElsewhere(ctx.project))),
+        S.template("self-contained", SELF_CONTAINED_RULES),
         ...(light ? [S.template("light", `This is a small, low-risk change. Keep the tests small:
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.
@@ -1179,6 +1180,8 @@ async function weakTests(ctx: StepContext, commit: string, needTest: { id: strin
       tools: ["read_file", "search"], repoTools: toolsAt(ctx, commit), toolsAt: "under-review",
       sections: [
         S.template("tpl", PROOF_TEMPLATE),
+        // a test that breaks one of these fails for a reason other than the code: weak, sent back now rather than locked
+        S.template("self-contained", `${SELF_CONTAINED_RULES}\nA test that breaks one of these rules is "weak": name the rule and the line in "why".`),
         S.artifact("acs", "acceptance-criteria", g.need),
         S.artifact("ac-tests", "acceptance-tests", g.tests.map((t) => ({ acId: t.acId, file: t.file, name: t.name }))),
         S.task("Check these tests against their criteria. Open the test files."),

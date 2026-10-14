@@ -97,3 +97,16 @@ ${outsideSystemsImplementRule(stack)}
     : `You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.`}
 ${database ? `- PostgreSQL keeps a time to the microsecond, and DateTime.UtcNow is finer than that. Cut a time to the microsecond before you save it, so the value the API returns on create is the value it returns when the row is read again.\n` : ""}- This session has no memory beyond its context window, and everything a command prints or a file read returns stays in it. Print only what you need (pipe long output through tail or grep), read part of a large file instead of all of it, and change a file with Edit instead of writing it again.`;
 }
+
+/**
+ * What makes a locked test fail for a reason other than the code under test, said once for the test writer and the check that
+ * reads its tests. Runs ae5c and 768d each parked on one of these; any requirement can hit them.
+ */
+export const SELF_CONTAINED_RULES = `A TEST MUST PASS OR FAIL ON THE CODE ALONE, on every run and every machine:
+- Time: no value that depends on today's date or the current time (use the fixed test instant, or values the test itself set).
+- Stored data: no reliance on rows, files or state another test or an earlier run left behind; create what you assert on.
+- Order: assert an order only where the criterion names one; otherwise compare as sets.
+- Numbers: compare computed decimals (ratios, averages, money after division) with a tolerance or at the precision shown.
+- Randomness: no assertion on a generated id, code or random value; assert that it exists, or use the value the response returned.
+- Lookups: find a value inside its row, card or region, never page-wide when the same text can appear twice.
+- Data: when a criterion says each, all, every, a list or an order, give it at least three rows of your own that differ.`;
