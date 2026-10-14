@@ -1,22 +1,22 @@
 {
   "runId": "20261013-folio3-parking-app-introductio-e8ef",
-  "status": "waiting",
+  "status": "closed: stopped",
   "request": "Folio3 Parking App\n\nIntroduction\n\nFolio3 has a fixed number of parking spaces available at its office premises, while the number of\nemployees commuting to the office by car is greater than the availab",
-  "costUsd": 0.28908214,
-  "activeMin": 13.9841,
-  "firstTimePassRate": 0.8,
+  "costUsd": 1.7092145699999999,
+  "activeMin": 81.93286666666667,
+  "firstTimePassRate": 0.7142857142857143,
   "topCost": [
+    {
+      "step": "implement/TASK-1",
+      "costUsd": 1.13088046
+    },
     {
       "step": "specify",
       "costUsd": 0.21607413999999997
     },
     {
-      "step": "drafts",
-      "costUsd": 0.03439837
-    },
-    {
-      "step": "merge",
-      "costUsd": 0.0139846
+      "step": "author-tests",
+      "costUsd": 0.20481196999999998
     }
   ],
   "steps": [
@@ -371,9 +371,9 @@
     {
       "step": "approve",
       "stage": "approve",
-      "outcome": "interrupted",
-      "firstTimePass": false,
-      "attempts": 0,
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
       "interruptions": 0,
       "retryReasons": [],
       "highestRung": 0,
@@ -384,7 +384,7 @@
         "cached": 0
       },
       "costUsd": 0,
-      "activeSec": 0.06,
+      "activeSec": 0.073,
       "gates": {
         "passed": 0,
         "failed": 0,
@@ -392,7 +392,161 @@
       },
       "human": {
         "cards": 1,
+        "decisions": [
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "stub-commit",
+      "stage": "stub-commit",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.215,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
         "decisions": []
+      }
+    },
+    {
+      "step": "author-tests",
+      "stage": "author-tests",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 4,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Escalating after repeated failures",
+        "Retrying with the failures"
+      ],
+      "highestRung": 1,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 78719,
+        "output": 198453,
+        "cached": 4616882
+      },
+      "costUsd": 0.20481196999999998,
+      "activeSec": 1248.107,
+      "gates": {
+        "passed": 2,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 305,
+        "agentSec": 797,
+        "labSec": 53
+      }
+    },
+    {
+      "step": "implement/TASK-1",
+      "stage": "implement",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 5,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Escalating after repeated failures",
+        "Retrying with the failures",
+        "Escalating after repeated failures"
+      ],
+      "highestRung": 2,
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-sol"
+      ],
+      "tokens": {
+        "input": 516,
+        "output": 195690,
+        "cached": 10979202
+      },
+      "costUsd": 1.13088046,
+      "activeSec": 2061.999,
+      "gates": {
+        "passed": 37,
+        "failed": 6,
+        "failedIds": [
+          "contract.matches",
+          "tests.expectations",
+          "contract.matches",
+          "tests.expectations",
+          "tests.expectations",
+          "contract.matches"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 1947,
+        "labSec": 74
+      }
+    },
+    {
+      "step": "implement/TASK-2",
+      "stage": "implement",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Escalating after repeated failures"
+      ],
+      "highestRung": 0,
+      "models": [
+        "gpt-6-luna"
+      ],
+      "tokens": {
+        "input": 74545,
+        "output": 64120,
+        "cached": 3368875
+      },
+      "costUsd": 0.08444,
+      "activeSec": 766.592,
+      "gates": {
+        "passed": 7,
+        "failed": 2,
+        "failedIds": [
+          "tests.expectations",
+          "contract.matches"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 0,
+        "agentSec": 737,
+        "labSec": 15
       }
     }
   ],

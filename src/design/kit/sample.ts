@@ -112,7 +112,9 @@ export function sampleDesign(): z.infer<typeof DesignBody> {
           title: "Clients",
           blocks: [
             { type: "list", items: [{ title: "Acme", meta: "2 invoices", badge: "Active" }] },
-            { type: "form", fields: fields(18, 21), submit: "Add client" },
+            // a hint and an icon-only button: the two things that draw a tooltip
+            { type: "form", fields: fields(18, 21).map((f, i) => (i ? f : { ...f, hint: "As on the invoice" })), submit: "Add client" },
+            { type: "actions", buttons: [{ label: "Refresh", icon: "refresh", iconOnly: true }] },
             { type: "text", body: "Changes apply to everyone in the workspace." },
           ],
         },

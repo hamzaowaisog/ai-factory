@@ -1,0 +1,1368 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="394f201a-25bc-4a9b-8b4b-8ad0c649f14f" name="@176c189fd1c9 2026-10-13 23:52:28" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-13T23:52:28.7375572+00:00" queuing="2026-10-13T23:52:28.7375572+00:00" start="2026-10-13T23:52:27.1320661+00:00" finish="2026-10-13T23:52:28.9114150+00:00" />
+  <TestSettings name="default" id="a70e6816-29dc-44ea-a464-a19ecad8a8dd">
+    <Deployment runDeploymentRoot="_176c189fd1c9_2026-10-13_23_52_28" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="8f61b188-2f66-455d-ae1f-c1f701bd7527" testId="7d68fd91-b62f-5859-fc5d-8fdd8599ce5a" testName="App.Tests.Part1.AcceptancePart1Tests.AC_6_2_ReturnsContractUnauthorizedErrorWithoutBearerSession" computerName="176c189fd1c9" duration="00:00:00.0182000" startTime="2026-10-13T23:52:28.5667289+00:00" endTime="2026-10-13T23:52:28.5667290+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8f61b188-2f66-455d-ae1f-c1f701bd7527">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: Unauthorized
+Actual:   InternalServerError</Message>
+          <StackTrace>   at App.Tests.Part1.AcceptancePart1Tests.AssertApiErrorAsync(HttpResponseMessage response, HttpStatusCode status, String code, String message, String field) in /src/App.Tests/AcceptancePart1Tests.cs:line 538
+   at App.Tests.Part1.AcceptancePart1Tests.AC_6_2_ReturnsContractUnauthorizedErrorWithoutBearerSession() in /src/App.Tests/AcceptancePart1Tests.cs:line 366
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="57e5468c-7cce-4d3b-9567-24439f03a1fc" testId="012103d7-7a14-6a62-5163-544fb2d7eac5" testName="App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService" computerName="176c189fd1c9" duration="00:00:00.0377058" startTime="2026-10-13T23:52:28.3020746+00:00" endTime="2026-10-13T23:52:28.3020747+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="57e5468c-7cce-4d3b-9567-24439f03a1fc">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "Employee" does not exist
+
+POSITION: 13</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteScalar(Boolean async, CancellationToken cancellationToken)
+   at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql) in /src/App.Tests/AcceptancePart4Tests.cs:line 617
+   at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql) in /src/App.Tests/AcceptancePart4Tests.cs:line 617
+   at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql) in /src/App.Tests/AcceptancePart4Tests.cs:line 617
+   at App.Tests.Part4.AcceptancePart4Tests.InsertEmployeeAsync(Part4Database database, TestIdentity identity, Boolean dedicatedParking) in /src/App.Tests/AcceptancePart4Tests.cs:line 411
+   at App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService() in /src/App.Tests/AcceptancePart4Tests.cs:line 186
+   at App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService() in /src/App.Tests/AcceptancePart4Tests.cs:line 205
+   at App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService() in /src/App.Tests/AcceptancePart4Tests.cs:line 205
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="38702d83-eee1-4ed8-abfb-08dccca32ae4" testId="4dc58f10-d3ab-e197-ef87-cdf74357d4a9" testName="App.Tests.Part1.AcceptancePart1Tests.AC_7_2_ReturnsBadRequestUnauthorizedAndConflictErrorsForVehicleFailures" computerName="176c189fd1c9" duration="00:00:00.0210191" startTime="2026-10-13T23:52:28.7520179+00:00" endTime="2026-10-13T23:52:28.7520180+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="38702d83-eee1-4ed8-abfb-08dccca32ae4">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: Unauthorized
+Actual:   InternalServerError</Message>
+          <StackTrace>   at App.Tests.Part1.AcceptancePart1Tests.AssertApiErrorAsync(HttpResponseMessage response, HttpStatusCode status, String code, String message, String field) in /src/App.Tests/AcceptancePart1Tests.cs:line 538
+   at App.Tests.Part1.AcceptancePart1Tests.AC_7_2_ReturnsBadRequestUnauthorizedAndConflictErrorsForVehicleFailures() in /src/App.Tests/AcceptancePart1Tests.cs:line 404
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="a666b0b0-44d6-4875-8bed-66325a93a6f1" testId="f8f4df66-0be4-c9ba-ef0e-8466cfaa841f" testName="App.Tests.Part1.AcceptancePart1Tests.AC_6_1_ListsOnlyTheSignedInEmployeesVehicles" computerName="176c189fd1c9" duration="00:00:00.0310324" startTime="2026-10-13T23:52:28.6437453+00:00" endTime="2026-10-13T23:52:28.6437454+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a666b0b0-44d6-4875-8bed-66325a93a6f1">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: OK
+Actual:   InternalServerError</Message>
+          <StackTrace>   at App.Tests.Part1.AcceptancePart1Tests.AC_6_1_ListsOnlyTheSignedInEmployeesVehicles() in /src/App.Tests/AcceptancePart1Tests.cs:line 351
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="897ecbf7-c938-4d68-8bca-f432ade0c44f" testId="bf2c92d2-e233-48fd-f33e-2e9b72863a61" testName="App.Tests.Part1.AcceptancePart1Tests.AC_3_1_ReturnsEmployeeProfileAndOnlyItsRegisteredVehicles" computerName="176c189fd1c9" duration="00:00:00.0336151" startTime="2026-10-13T23:52:28.7299796+00:00" endTime="2026-10-13T23:52:28.7299799+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="897ecbf7-c938-4d68-8bca-f432ade0c44f">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: OK
+Actual:   InternalServerError</Message>
+          <StackTrace>   at App.Tests.Part1.AcceptancePart1Tests.AC_3_1_ReturnsEmployeeProfileAndOnlyItsRegisteredVehicles() in /src/App.Tests/AcceptancePart1Tests.cs:line 204
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e9999418-2240-4d53-a670-5d337ec36604" testId="10190cc4-3e93-514b-0089-e51ce0d8cc5e" testName="App.Tests.Part1.AcceptancePart1Tests.AC_2_1_SignsInEligibleWorkspaceEmployeeAndReturnsSession" computerName="176c189fd1c9" duration="00:00:00.9002095" startTime="2026-10-13T23:52:28.5471556+00:00" endTime="2026-10-13T23:52:28.5471556+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e9999418-2240-4d53-a670-5d337ec36604" />
+    <UnitTestResult executionId="a4015d84-ac62-42ef-8452-584dbe0d0bf0" testId="cc371590-e07b-49f3-9138-954aca01e44c" testName="App.Tests.HealthTests.ApiIsUp" computerName="176c189fd1c9" duration="00:00:00.6013765" startTime="2026-10-13T23:52:28.2520885+00:00" endTime="2026-10-13T23:52:28.2521007+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a4015d84-ac62-42ef-8452-584dbe0d0bf0" />
+    <UnitTestResult executionId="6b34827a-003b-4204-bd58-769bb229f627" testId="c51134a0-1c43-9f85-42b8-d3c7375db9c2" testName="App.Tests.Part1.AcceptancePart1Tests.AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession" computerName="176c189fd1c9" duration="00:00:00.0156257" startTime="2026-10-13T23:52:28.7681699+00:00" endTime="2026-10-13T23:52:28.7681701+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b34827a-003b-4204-bd58-769bb229f627">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: Unauthorized
+Actual:   InternalServerError</Message>
+          <StackTrace>   at App.Tests.Part1.AcceptancePart1Tests.AssertApiErrorAsync(HttpResponseMessage response, HttpStatusCode status, String code, String message, String field) in /src/App.Tests/AcceptancePart1Tests.cs:line 538
+   at App.Tests.Part1.AcceptancePart1Tests.AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession() in /src/App.Tests/AcceptancePart1Tests.cs:line 224
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="917bd0b0-8982-4d07-ae74-856490a2b3bb" testId="e97dab25-a9c9-7f5b-a722-3044c906f558" testName="App.Tests.Part1.AcceptancePart1Tests.AC_2_2_SendsConfiguredOAuthValuesToGoogleTokenEndpoint" computerName="176c189fd1c9" duration="00:00:00.0343130" startTime="2026-10-13T23:52:28.8209150+00:00" endTime="2026-10-13T23:52:28.8209151+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="917bd0b0-8982-4d07-ae74-856490a2b3bb" />
+    <UnitTestResult executionId="f47afcf4-210c-4c81-927c-a08ef5dc2818" testId="6b32b6e3-449a-bad3-9cda-21fdfbb28dd4" testName="App.Tests.Part1.AcceptancePart1Tests.AC_1_2_ReturnsContractServiceUnavailableWhenOAuthConfigurationIsMissing" computerName="176c189fd1c9" duration="00:00:00.0451414" startTime="2026-10-13T23:52:28.6118641+00:00" endTime="2026-10-13T23:52:28.6118642+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f47afcf4-210c-4c81-927c-a08ef5dc2818" />
+    <UnitTestResult executionId="9913ecbf-96da-4fda-9ac0-c320139be5a7" testId="a2bc8a89-0f06-9231-e9d9-ee7ea34a802d" testName="App.Tests.Part1.AcceptancePart1Tests.CHAR_HealthEndpointContinuesToReturnOk" computerName="176c189fd1c9" duration="00:00:00.0150672" startTime="2026-10-13T23:52:28.6951303+00:00" endTime="2026-10-13T23:52:28.6951304+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9913ecbf-96da-4fda-9ac0-c320139be5a7" />
+    <UnitTestResult executionId="d9c2d362-b8b5-4995-9c49-71e0fc3f3c3d" testId="41310471-9248-b994-42e6-3831943e5c07" testName="App.Tests.Part1.AcceptancePart1Tests.AC_2_3_RejectsInvalidOAuthRequestsIdentitiesAndUnavailableGoogleService" computerName="176c189fd1c9" duration="00:00:00.0360108" startTime="2026-10-13T23:52:28.6796689+00:00" endTime="2026-10-13T23:52:28.6796690+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d9c2d362-b8b5-4995-9c49-71e0fc3f3c3d" />
+    <UnitTestResult executionId="39f0e0a4-cb33-4f6a-b637-c68c10b726bf" testId="f55e063e-c0bf-e743-5352-2015e9aef789" testName="App.Tests.Part1.AcceptancePart1Tests.AC_1_1_ReturnsConfiguredGoogleAuthorizationUrlAndState" computerName="176c189fd1c9" duration="00:00:00.0180773" startTime="2026-10-13T23:52:28.7863213+00:00" endTime="2026-10-13T23:52:28.7863213+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="39f0e0a4-cb33-4f6a-b637-c68c10b726bf" />
+    <UnitTestResult executionId="d74ba2f2-f954-4695-a25c-e7c4f757a8c8" testId="ed06cfa9-335d-5ebc-98ad-199223652703" testName="App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients" computerName="176c189fd1c9" duration="00:00:00.6076569" startTime="2026-10-13T23:52:28.2684218+00:00" endTime="2026-10-13T23:52:28.2684219+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d74ba2f2-f954-4695-a25c-e7c4f757a8c8">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "Employee" does not exist
+
+POSITION: 13</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteScalar(Boolean async, CancellationToken cancellationToken)
+   at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql) in /src/App.Tests/AcceptancePart4Tests.cs:line 617
+   at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql) in /src/App.Tests/AcceptancePart4Tests.cs:line 617
+   at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql) in /src/App.Tests/AcceptancePart4Tests.cs:line 617
+   at App.Tests.Part4.AcceptancePart4Tests.InsertEmployeeAsync(Part4Database database, TestIdentity identity, Boolean dedicatedParking) in /src/App.Tests/AcceptancePart4Tests.cs:line 411
+   at App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients() in /src/App.Tests/AcceptancePart4Tests.cs:line 155
+   at App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients() in /src/App.Tests/AcceptancePart4Tests.cs:line 177
+   at App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients() in /src/App.Tests/AcceptancePart4Tests.cs:line 177
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="b9ac8b36-dbeb-43cd-8143-6684ac2fcd53" testId="22ad3b50-f839-efb6-228e-715d578c77f3" testName="App.Tests.Part1.AcceptancePart1Tests.AC_7_1_RegistersVehicleAsActiveAndReturnsCreatedRecord" computerName="176c189fd1c9" duration="00:00:00.0322630" startTime="2026-10-13T23:52:28.8539835+00:00" endTime="2026-10-13T23:52:28.8539836+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b9ac8b36-dbeb-43cd-8143-6684ac2fcd53">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: Created
+Actual:   InternalServerError</Message>
+          <StackTrace>   at App.Tests.Part1.AcceptancePart1Tests.AC_7_1_RegistersVehicleAsActiveAndReturnsCreatedRecord() in /src/App.Tests/AcceptancePart1Tests.cs:line 387
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_1_2_ReturnsContractServiceUnavailableWhenOAuthConfigurationIsMissing" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="6b32b6e3-449a-bad3-9cda-21fdfbb28dd4">
+      <Execution id="f47afcf4-210c-4c81-927c-a08ef5dc2818" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_1_2_ReturnsContractServiceUnavailableWhenOAuthConfigurationIsMissing" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="ed06cfa9-335d-5ebc-98ad-199223652703">
+      <Execution id="d74ba2f2-f954-4695-a25c-e7c4f757a8c8" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part4.AcceptancePart4Tests" name="AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_1_1_ReturnsConfiguredGoogleAuthorizationUrlAndState" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="f55e063e-c0bf-e743-5352-2015e9aef789">
+      <Execution id="39f0e0a4-cb33-4f6a-b637-c68c10b726bf" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_1_1_ReturnsConfiguredGoogleAuthorizationUrlAndState" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.CHAR_HealthEndpointContinuesToReturnOk" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="a2bc8a89-0f06-9231-e9d9-ee7ea34a802d">
+      <Execution id="9913ecbf-96da-4fda-9ac0-c320139be5a7" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="CHAR_HealthEndpointContinuesToReturnOk" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="012103d7-7a14-6a62-5163-544fb2d7eac5">
+      <Execution id="57e5468c-7cce-4d3b-9567-24439f03a1fc" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part4.AcceptancePart4Tests" name="AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_2_1_SignsInEligibleWorkspaceEmployeeAndReturnsSession" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="10190cc4-3e93-514b-0089-e51ce0d8cc5e">
+      <Execution id="e9999418-2240-4d53-a670-5d337ec36604" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_2_1_SignsInEligibleWorkspaceEmployeeAndReturnsSession" />
+    </UnitTest>
+    <UnitTest name="App.Tests.HealthTests.ApiIsUp" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="cc371590-e07b-49f3-9138-954aca01e44c">
+      <Execution id="a4015d84-ac62-42ef-8452-584dbe0d0bf0" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.HealthTests" name="ApiIsUp" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_6_1_ListsOnlyTheSignedInEmployeesVehicles" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="f8f4df66-0be4-c9ba-ef0e-8466cfaa841f">
+      <Execution id="a666b0b0-44d6-4875-8bed-66325a93a6f1" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_6_1_ListsOnlyTheSignedInEmployeesVehicles" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_2_3_RejectsInvalidOAuthRequestsIdentitiesAndUnavailableGoogleService" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="41310471-9248-b994-42e6-3831943e5c07">
+      <Execution id="d9c2d362-b8b5-4995-9c49-71e0fc3f3c3d" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_2_3_RejectsInvalidOAuthRequestsIdentitiesAndUnavailableGoogleService" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_3_1_ReturnsEmployeeProfileAndOnlyItsRegisteredVehicles" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="bf2c92d2-e233-48fd-f33e-2e9b72863a61">
+      <Execution id="897ecbf7-c938-4d68-8bca-f432ade0c44f" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_3_1_ReturnsEmployeeProfileAndOnlyItsRegisteredVehicles" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_6_2_ReturnsContractUnauthorizedErrorWithoutBearerSession" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="7d68fd91-b62f-5859-fc5d-8fdd8599ce5a">
+      <Execution id="8f61b188-2f66-455d-ae1f-c1f701bd7527" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_6_2_ReturnsContractUnauthorizedErrorWithoutBearerSession" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="c51134a0-1c43-9f85-42b8-d3c7375db9c2">
+      <Execution id="6b34827a-003b-4204-bd58-769bb229f627" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_7_1_RegistersVehicleAsActiveAndReturnsCreatedRecord" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="22ad3b50-f839-efb6-228e-715d578c77f3">
+      <Execution id="b9ac8b36-dbeb-43cd-8143-6684ac2fcd53" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_7_1_RegistersVehicleAsActiveAndReturnsCreatedRecord" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_7_2_ReturnsBadRequestUnauthorizedAndConflictErrorsForVehicleFailures" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="4dc58f10-d3ab-e197-ef87-cdf74357d4a9">
+      <Execution id="38702d83-eee1-4ed8-abfb-08dccca32ae4" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_7_2_ReturnsBadRequestUnauthorizedAndConflictErrorsForVehicleFailures" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_2_2_SendsConfiguredOAuthValuesToGoogleTokenEndpoint" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="e97dab25-a9c9-7f5b-a722-3044c906f558">
+      <Execution id="917bd0b0-8982-4d07-ae74-856490a2b3bb" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_2_2_SendsConfiguredOAuthValuesToGoogleTokenEndpoint" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="7d68fd91-b62f-5859-fc5d-8fdd8599ce5a" executionId="8f61b188-2f66-455d-ae1f-c1f701bd7527" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="012103d7-7a14-6a62-5163-544fb2d7eac5" executionId="57e5468c-7cce-4d3b-9567-24439f03a1fc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4dc58f10-d3ab-e197-ef87-cdf74357d4a9" executionId="38702d83-eee1-4ed8-abfb-08dccca32ae4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f8f4df66-0be4-c9ba-ef0e-8466cfaa841f" executionId="a666b0b0-44d6-4875-8bed-66325a93a6f1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bf2c92d2-e233-48fd-f33e-2e9b72863a61" executionId="897ecbf7-c938-4d68-8bca-f432ade0c44f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10190cc4-3e93-514b-0089-e51ce0d8cc5e" executionId="e9999418-2240-4d53-a670-5d337ec36604" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc371590-e07b-49f3-9138-954aca01e44c" executionId="a4015d84-ac62-42ef-8452-584dbe0d0bf0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c51134a0-1c43-9f85-42b8-d3c7375db9c2" executionId="6b34827a-003b-4204-bd58-769bb229f627" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e97dab25-a9c9-7f5b-a722-3044c906f558" executionId="917bd0b0-8982-4d07-ae74-856490a2b3bb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6b32b6e3-449a-bad3-9cda-21fdfbb28dd4" executionId="f47afcf4-210c-4c81-927c-a08ef5dc2818" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a2bc8a89-0f06-9231-e9d9-ee7ea34a802d" executionId="9913ecbf-96da-4fda-9ac0-c320139be5a7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="41310471-9248-b994-42e6-3831943e5c07" executionId="d9c2d362-b8b5-4995-9c49-71e0fc3f3c3d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f55e063e-c0bf-e743-5352-2015e9aef789" executionId="39f0e0a4-cb33-4f6a-b637-c68c10b726bf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ed06cfa9-335d-5ebc-98ad-199223652703" executionId="d74ba2f2-f954-4695-a25c-e7c4f757a8c8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="22ad3b50-f839-efb6-228e-715d578c77f3" executionId="b9ac8b36-dbeb-43cd-8143-6684ac2fcd53" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="15" executed="15" passed="7" failed="8" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.20)
+[xUnit.net 00:00:00.06]   Discovering: App.Tests
+[xUnit.net 00:00:00.08]   Discovered:  App.Tests
+[xUnit.net 00:00:00.08]   Starting:    App.Tests
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Employee" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "EmployeeId" text NOT NULL,
+          "EmployeeName" text NOT NULL,
+          "CorporateEmail" text NOT NULL,
+          "Role" text NOT NULL,
+          "DedicatedParking" boolean NOT NULL,
+          "AssignedFloor" text,
+          "AssignedSpace" text,
+          CONSTRAINT "PK_Employee" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "OAuthState" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "State" text NOT NULL,
+          "CreatedAt" timestamp with time zone NOT NULL,
+          "ExpiresAt" timestamp with time zone NOT NULL,
+          CONSTRAINT "PK_OAuthState" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "AuthSession" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "EmployeeId" integer NOT NULL,
+          "TokenHash" text NOT NULL,
+          "CreatedAt" timestamp with time zone NOT NULL,
+          "ExpiresAt" timestamp with time zone NOT NULL,
+          CONSTRAINT "PK_AuthSession" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_AuthSession_Employee_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES "Employee" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Vehicle" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "EmployeeId" integer NOT NULL,
+          "Plate" text NOT NULL,
+          "Make" text,
+          "Model" text,
+          "Color" text,
+          "Active" boolean NOT NULL,
+          CONSTRAINT "PK_Vehicle" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_Vehicle_Employee_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES "Employee" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_AuthSession_EmployeeId" ON "AuthSession" ("EmployeeId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_AuthSession_TokenHash" ON "AuthSession" ("TokenHash");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Employee_CorporateEmail" ON "Employee" ("CorporateEmail");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Employee_EmployeeId" ON "Employee" ("EmployeeId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_OAuthState_State" ON "OAuthState" ("State");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_Vehicle_EmployeeId" ON "Vehicle" ("EmployeeId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Vehicle_Plate" ON "Vehicle" ("Plate");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/ - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/ - 200 - text/plain;+charset=utf-8 39.4948ms
+[xUnit.net 00:00:00.73]       Npgsql.PostgresException : 42P01: relation "Employee" does not exist
+[xUnit.net 00:00:00.73]       
+[xUnit.net 00:00:00.73]       POSITION: 13
+[xUnit.net 00:00:00.73]       Stack Trace:
+[xUnit.net 00:00:00.73]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:00.73]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+[xUnit.net 00:00:00.73]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.73]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.73]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.73]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.73]            at Npgsql.NpgsqlCommand.ExecuteScalar(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(617,0): at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql)
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(617,0): at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql)
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(617,0): at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql)
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(411,0): at App.Tests.Part4.AcceptancePart4Tests.InsertEmployeeAsync(Part4Database database, TestIdentity identity, Boolean dedicatedParking)
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(155,0): at App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients()
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(177,0): at App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients()
+[xUnit.net 00:00:00.73]         /src/App.Tests/AcceptancePart4Tests.cs(177,0): at App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients()
+[xUnit.net 00:00:00.73]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+[xUnit.net 00:00:00.76]       Npgsql.PostgresException : 42P01: relation "Employee" does not exist
+[xUnit.net 00:00:00.76]       
+[xUnit.net 00:00:00.76]       POSITION: 13
+[xUnit.net 00:00:00.76]       Stack Trace:
+[xUnit.net 00:00:00.76]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:00.76]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+[xUnit.net 00:00:00.76]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.76]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.76]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.76]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.76]            at Npgsql.NpgsqlCommand.ExecuteScalar(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(617,0): at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql)
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(617,0): at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql)
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(617,0): at App.Tests.Part4.AcceptancePart4Tests.Part4Database.ExecuteIntAsync(String sql)
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(411,0): at App.Tests.Part4.AcceptancePart4Tests.InsertEmployeeAsync(Part4Database database, TestIdentity identity, Boolean dedicatedParking)
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(186,0): at App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService()
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(205,0): at App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService()
+[xUnit.net 00:00:00.76]         /src/App.Tests/AcceptancePart4Tests.cs(205,0): at App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService()
+[xUnit.net 00:00:00.76]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 123.7546ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 95
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT e."Id", e."AssignedFloor", e."AssignedSpace", e."CorporateEmail", e."DedicatedParking", e."EmployeeId", e."EmployeeName", e."Role"
+      FROM "Employee" AS e
+      WHERE lower(e."CorporateEmail") = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AuthSession" ("CreatedAt", "EmployeeId", "ExpiresAt", "TokenHash")
+      VALUES (@p0, @p1, @p2, @p3)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'SessionResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 200 - application/json;+charset=utf-8 198.0171ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/vehicles - - -
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Endpoint HTTP: GET /api/vehicles =&gt; ListVehiclesAsync contains authorization metadata, but a middleware was not found that supports authorization.
+      Configure your application startup by adding app.UseAuthorization() in the application startup code. If there are calls to app.UseRouting() and app.UseEndpoints(...), the call to app.UseAuthorization() must go between them.
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.ThrowMissingAuthMiddlewareException(Endpoint endpoint)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/vehicles - 500 - text/plain;+charset=utf-8 5.0861ms
+[xUnit.net 00:00:01.03]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.03]       Expected: Unauthorized
+[xUnit.net 00:00:01.03]       Actual:   InternalServerError
+[xUnit.net 00:00:01.03]       Stack Trace:
+[xUnit.net 00:00:01.03]         /src/App.Tests/AcceptancePart1Tests.cs(538,0): at App.Tests.Part1.AcceptancePart1Tests.AssertApiErrorAsync(HttpResponseMessage response, HttpStatusCode status, String code, String message, String field)
+[xUnit.net 00:00:01.03]         /src/App.Tests/AcceptancePart1Tests.cs(366,0): at App.Tests.Part1.AcceptancePart1Tests.AC_6_2_ReturnsContractUnauthorizedErrorWithoutBearerSession()
+[xUnit.net 00:00:01.03]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 503.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 503 - application/json;+charset=utf-8 8.8794ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 503.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 503 - application/json;+charset=utf-8 16.2035ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vehicle" ("EmployeeId", "Plate", "Make", "Model", "Color", "Active") VALUES (@p0, @p1, 'Toyota', 'Corolla', 'Silver', TRUE)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vehicle" ("EmployeeId", "Plate", "Make", "Model", "Color", "Active") VALUES (@p0, @p1, 'Toyota', 'Corolla', 'Silver', TRUE)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 3.9232ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 95
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT e."Id", e."AssignedFloor", e."AssignedSpace", e."CorporateEmail", e."DedicatedParking", e."EmployeeId", e."EmployeeName", e."Role"
+      FROM "Employee" AS e
+      WHERE lower(e."CorporateEmail") = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AuthSession" ("CreatedAt", "EmployeeId", "ExpiresAt", "TokenHash")
+      VALUES (@p0, @p1, @p2, @p3)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'SessionResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 200 - application/json;+charset=utf-8 7.8024ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/vehicles - - -
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Endpoint HTTP: GET /api/vehicles =&gt; ListVehiclesAsync contains authorization metadata, but a middleware was not found that supports authorization.
+      Configure your application startup by adding app.UseAuthorization() in the application startup code. If there are calls to app.UseRouting() and app.UseEndpoints(...), the call to app.UseAuthorization() must go between them.
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.ThrowMissingAuthMiddlewareException(Endpoint endpoint)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/vehicles - 500 - text/plain;+charset=utf-8 0.5897ms
+[xUnit.net 00:00:01.10]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.10]       Expected: OK
+[xUnit.net 00:00:01.10]       Actual:   InternalServerError
+[xUnit.net 00:00:01.10]       Stack Trace:
+[xUnit.net 00:00:01.10]         /src/App.Tests/AcceptancePart1Tests.cs(351,0): at App.Tests.Part1.AcceptancePart1Tests.AC_6_1_ListsOnlyTheSignedInEmployeesVehicles()
+[xUnit.net 00:00:01.10]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 4
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 400 - application/json;+charset=utf-8 3.5577ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 3.5077ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 34
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 400 - application/json;+charset=utf-8 0.4099ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 1.5213ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 90
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 400 - application/json;+charset=utf-8 1.7597ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 2.0536ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 97
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 400 - application/json;+charset=utf-8 1.4142ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 1.2053ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 88
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 401.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 401 - application/json;+charset=utf-8 1.9285ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 1.9561ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 88
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 503.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'ApiError' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 503 - application/json;+charset=utf-8 2.0249ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/ - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/ - 200 - text/plain;+charset=utf-8 3.0292ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vehicle" ("EmployeeId", "Plate", "Make", "Model", "Color", "Active") VALUES (@p0, @p1, 'Toyota', 'Corolla', 'Silver', TRUE)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vehicle" ("EmployeeId", "Plate", "Make", "Model", "Color", "Active") VALUES (@p0, @p1, 'Toyota', 'Corolla', 'Silver', TRUE)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 5.1242ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 95
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT e."Id", e."AssignedFloor", e."AssignedSpace", e."CorporateEmail", e."DedicatedParking", e."EmployeeId", e."EmployeeName", e."Role"
+      FROM "Employee" AS e
+      WHERE lower(e."CorporateEmail") = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AuthSession" ("CreatedAt", "EmployeeId", "ExpiresAt", "TokenHash")
+      VALUES (@p0, @p1, @p2, @p3)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'SessionResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 200 - application/json;+charset=utf-8 6.2796ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/employees/me - - -
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Endpoint HTTP: GET /api/employees/me =&gt; GetMyProfileAsync contains authorization metadata, but a middleware was not found that supports authorization.
+      Configure your application startup by adding app.UseAuthorization() in the application startup code. If there are calls to app.UseRouting() and app.UseEndpoints(...), the call to app.UseAuthorization() must go between them.
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.ThrowMissingAuthMiddlewareException(Endpoint endpoint)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/employees/me - 500 - text/plain;+charset=utf-8 0.3809ms
+[xUnit.net 00:00:01.19]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.19]       Expected: OK
+[xUnit.net 00:00:01.19]       Actual:   InternalServerError
+[xUnit.net 00:00:01.19]       Stack Trace:
+[xUnit.net 00:00:01.19]         /src/App.Tests/AcceptancePart1Tests.cs(204,0): at App.Tests.Part1.AcceptancePart1Tests.AC_3_1_ReturnsEmployeeProfileAndOnlyItsRegisteredVehicles()
+[xUnit.net 00:00:01.19]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/vehicles - application/json;+charset=utf-8 21
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Endpoint HTTP: POST /api/vehicles =&gt; RegisterVehicleAsync contains authorization metadata, but a middleware was not found that supports authorization.
+      Configure your application startup by adding app.UseAuthorization() in the application startup code. If there are calls to app.UseRouting() and app.UseEndpoints(...), the call to app.UseAuthorization() must go between them.
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.ThrowMissingAuthMiddlewareException(Endpoint endpoint)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/vehicles - 500 - text/plain;+charset=utf-8 7.4775ms
+[xUnit.net 00:00:01.21]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.21]       Expected: Unauthorized
+[xUnit.net 00:00:01.21]       Actual:   InternalServerError
+[xUnit.net 00:00:01.21]       Stack Trace:
+[xUnit.net 00:00:01.21]         /src/App.Tests/AcceptancePart1Tests.cs(538,0): at App.Tests.Part1.AcceptancePart1Tests.AssertApiErrorAsync(HttpResponseMessage response, HttpStatusCode status, String code, String message, String field)
+[xUnit.net 00:00:01.21]         /src/App.Tests/AcceptancePart1Tests.cs(404,0): at App.Tests.Part1.AcceptancePart1Tests.AC_7_2_ReturnsBadRequestUnauthorizedAndConflictErrorsForVehicleFailures()
+[xUnit.net 00:00:01.21]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/employees/me - - -
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Endpoint HTTP: GET /api/employees/me =&gt; GetMyProfileAsync contains authorization metadata, but a middleware was not found that supports authorization.
+      Configure your application startup by adding app.UseAuthorization() in the application startup code. If there are calls to app.UseRouting() and app.UseEndpoints(...), the call to app.UseAuthorization() must go between them.
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.ThrowMissingAuthMiddlewareException(Endpoint endpoint)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/employees/me - 500 - text/plain;+charset=utf-8 3.5051ms
+[xUnit.net 00:00:01.23]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.23]       Expected: Unauthorized
+[xUnit.net 00:00:01.23]       Actual:   InternalServerError
+[xUnit.net 00:00:01.23]       Stack Trace:
+[xUnit.net 00:00:01.23]         /src/App.Tests/AcceptancePart1Tests.cs(538,0): at App.Tests.Part1.AcceptancePart1Tests.AssertApiErrorAsync(HttpResponseMessage response, HttpStatusCode status, String code, String message, String field)
+[xUnit.net 00:00:01.23]         /src/App.Tests/AcceptancePart1Tests.cs(224,0): at App.Tests.Part1.AcceptancePart1Tests.AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession()
+[xUnit.net 00:00:01.23]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 5.9862ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 5.7629ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 102
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.LogicalHandler[100]
+      Start processing HTTP request POST https://oauth2.googleapis.com/token
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.ClientHandler[100]
+      Sending HTTP request POST https://oauth2.googleapis.com/token
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.ClientHandler[101]
+      Received HTTP response headers after 0.6882ms - 200
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.LogicalHandler[101]
+      End processing HTTP request after 5.0132ms - 200
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.LogicalHandler[100]
+      Start processing HTTP request GET https://www.googleapis.com/oauth2/v2/userinfo
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.ClientHandler[100]
+      Sending HTTP request GET https://www.googleapis.com/oauth2/v2/userinfo
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.ClientHandler[101]
+      Received HTTP response headers after 1.4076ms - 200
+info: System.Net.Http.HttpClient.IWorkspaceOAuthClient.LogicalHandler[101]
+      End processing HTTP request after 1.466ms - 200
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT e."Id", e."AssignedFloor", e."AssignedSpace", e."CorporateEmail", e."DedicatedParking", e."EmployeeId", e."EmployeeName", e."Role"
+      FROM "Employee" AS e
+      WHERE lower(e."CorporateEmail") = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AuthSession" ("CreatedAt", "EmployeeId", "ExpiresAt", "TokenHash")
+      VALUES (@p0, @p1, @p2, @p3)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'SessionResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 200 - application/json;+charset=utf-8 14.5229ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/api/auth/google/authorization - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OAuthState" ("CreatedAt", "ExpiresAt", "State")
+      VALUES (@p0, @p1, @p2)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'AuthorizationStartResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/auth/google/authorization =&gt; GetAuthorizationAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/api/auth/google/authorization - 200 - application/json;+charset=utf-8 11.3832ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/auth/sign-in - application/json;+charset=utf-8 95
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__input_State_0='?', @__now_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT o."Id", o."CreatedAt", o."ExpiresAt", o."State"
+      FROM "OAuthState" AS o
+      WHERE o."State" = @__input_State_0 AND o."ExpiresAt" &gt; @__now_1
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OAuthState"
+      WHERE "Id" = @p0;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT e."Id", e."AssignedFloor", e."AssignedSpace", e."CorporateEmail", e."DedicatedParking", e."EmployeeId", e."EmployeeName", e."Role"
+      FROM "Employee" AS e
+      WHERE lower(e."CorporateEmail") = @__normalizedEmail_0
+      LIMIT 2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AuthSession" ("CreatedAt", "EmployeeId", "ExpiresAt", "TokenHash")
+      VALUES (@p0, @p1, @p2, @p3)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'SessionResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/auth/sign-in =&gt; SignInAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/auth/sign-in - 200 - application/json;+charset=utf-8 5.1245ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/api/vehicles - application/json;+charset=utf-8 72
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Endpoint HTTP: POST /api/vehicles =&gt; RegisterVehicleAsync contains authorization metadata, but a middleware was not found that supports authorization.
+      Configure your application startup by adding app.UseAuthorization() in the application startup code. If there are calls to app.UseRouting() and app.UseEndpoints(...), the call to app.UseAuthorization() must go between them.
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.ThrowMissingAuthMiddlewareException(Endpoint endpoint)
+         at Microsoft.AspNetCore.Routing.EndpointMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/api/vehicles - 500 - text/plain;+charset=utf-8 0.4802ms
+[xUnit.net 00:00:01.31]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.31]       Expected: Created
+[xUnit.net 00:00:01.31]       Actual:   InternalServerError
+[xUnit.net 00:00:01.31]       Stack Trace:
+[xUnit.net 00:00:01.31]         /src/App.Tests/AcceptancePart1Tests.cs(387,0): at App.Tests.Part1.AcceptancePart1Tests.AC_7_1_RegistersVehicleAsActiveAndReturnsCreatedRecord()
+[xUnit.net 00:00:01.31]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.32]   Finished:    App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.2672576+00:00">
+        <Text>[xUnit.net 00:00:00.73]     App.Tests.Part4.AcceptancePart4Tests.AC_23_1_AcceptsAvailabilityAndDispatchesToEligibleRecipients [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.3019541+00:00">
+        <Text>[xUnit.net 00:00:00.76]     App.Tests.Part4.AcceptancePart4Tests.AC_23_2_ReturnsContractErrorsForInvalidInputAndUnavailableEmailService [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.5667315+00:00">
+        <Text>[xUnit.net 00:00:01.03]     App.Tests.Part1.AcceptancePart1Tests.AC_6_2_ReturnsContractUnauthorizedErrorWithoutBearerSession [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.6436332+00:00">
+        <Text>[xUnit.net 00:00:01.10]     App.Tests.Part1.AcceptancePart1Tests.AC_6_1_ListsOnlyTheSignedInEmployeesVehicles [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.7418996+00:00">
+        <Text>[xUnit.net 00:00:01.19]     App.Tests.Part1.AcceptancePart1Tests.AC_3_1_ReturnsEmployeeProfileAndOnlyItsRegisteredVehicles [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.7518164+00:00">
+        <Text>[xUnit.net 00:00:01.21]     App.Tests.Part1.AcceptancePart1Tests.AC_7_2_ReturnsBadRequestUnauthorizedAndConflictErrorsForVehicleFailures [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.7686786+00:00">
+        <Text>[xUnit.net 00:00:01.23]     App.Tests.Part1.AcceptancePart1Tests.AC_3_2_ReturnsContractUnauthorizedErrorWithoutBearerSession [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Error" timestamp="2026-10-13T23:52:28.8541430+00:00">
+        <Text>[xUnit.net 00:00:01.31]     App.Tests.Part1.AcceptancePart1Tests.AC_7_1_RegistersVehicleAsActiveAndReturnsCreatedRecord [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="176c189fd1c9" outcome="Warning" timestamp="2026-10-13T23:52:28.8866802+00:00">
+        <Text>Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

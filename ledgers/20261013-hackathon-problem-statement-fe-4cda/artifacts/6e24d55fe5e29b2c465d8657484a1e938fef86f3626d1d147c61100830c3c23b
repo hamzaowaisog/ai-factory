@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every operation in the OpenAPI contract with its declared methods, paths, parameters, schemas, security, statuses, and behavior."
+     },
+     {
+      "n": 2,
+      "text": "Persist all application values, including derived and cached values, in PostgreSQL through the existing App connection string; make committed data available across requests and restarts; initialize required structures without deleting or changing pre-existing database contents."
+     },
+     {
+      "n": 3,
+      "text": "When Seed:Demo is true on a clean database, run SeedData.cs and populate every application table with two or three believable demo rows based on OpenAPI examples."
+     },
+     {
+      "n": 4,
+      "text": "When Seed:Demo is false, skip demo seeding, insert no demo rows, and serve contract operations without requiring demo rows."
+     },
+     {
+      "n": 5,
+      "text": "Expose only backend API and documentation surfaces, with no product-facing screens or frontend implementation."
+     },
+     {
+      "n": 6,
+      "text": "Calculate ingredient consumption and ration cost from as-fed ingredient weights, using dry-matter values only for nutritional calculations."
+     },
+     {
+      "n": 7,
+      "text": "Atomically reject feeding-event creations or corrections that require unavailable inventory without changing persisted event, inventory, movement, or lot rollup values; apply successful corrections as replacements of prior effects; and reverse a voided event’s inventory and rollup effects."
+     },
+     {
+      "n": 8,
+      "text": "Return ADG, feed-to-gain metrics, and projected ship dates as unavailable when Days on Feed is zero, ADG is nonpositive, or no positive gain remains toward the target."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

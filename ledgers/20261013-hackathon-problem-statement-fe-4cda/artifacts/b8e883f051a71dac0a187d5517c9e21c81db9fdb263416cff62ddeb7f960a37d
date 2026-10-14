@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation declared in the OpenAPI contract, matching its methods, paths, parameters, schemas, security, statuses, and behavior."
+     },
+     {
+      "n": 2,
+      "text": "Persist application values in PostgreSQL through the existing App connection string, preserve pre-existing database contents, initialize required structures safely, and make committed values available after restart."
+     },
+     {
+      "n": 3,
+      "text": "When demo seeding is enabled on a clean database, run App.Api/SeedData.cs and populate each application table with believable sample rows based on OpenAPI examples."
+     },
+     {
+      "n": 4,
+      "text": "When demo seeding is disabled at startup, skip SeedData.Run, insert no demo rows, and serve contract operations without requiring seeded records."
+     },
+     {
+      "n": 5,
+      "text": "Expose only backend API and documentation surfaces, with no product-facing web application screens or frontend implementation."
+     },
+     {
+      "n": 6,
+      "text": "Calculate ingredient consumption and ration cost from as-fed ingredient weights, using dry-matter values only for nutritional calculations."
+     },
+     {
+      "n": 7,
+      "text": "Make feeding-event creation, correction, and voiding atomic: reject unavailable-inventory requests without changing persisted values, replace prior effects on successful corrections, and reverse inventory and rollup effects when an event is voided."
+     },
+     {
+      "n": 8,
+      "text": "Return ADG, feed-to-gain metrics, and projected ship dates as unavailable when a required positive denominator or positive gain toward the target is absent."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -143,10 +143,11 @@ export const screenScope = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "es
  * B1 for a build from an approved design (`--from-design`, no estimate): every plan task delivers requirements of the approved
  * spec, and none delivers one the design run did not approve (PR #11 review, item 10).
  */
-export const designScopeLock = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "reqs">[] }; approvedSpec: Pick<SpecDraft, "requirements"> }>({
+export const designScopeLock = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "reqs">[] }; approvedSpec: Pick<SpecDraft, "requirements"> & Partial<Pick<SpecDraft, "nfrs">> }>({
   id: "build.b1-design-scope", after: "plan", safety: false, waiver: "human",
   predicate: ({ plan, approvedSpec }) => {
-    const approved = new Set(approvedSpec.requirements.map((r) => r.id));
+    // the spec's non-functional requirements are approved with it: a set-up task delivers one (run c0aa: NFR-1 was refused three times)
+    const approved = new Set([...approvedSpec.requirements, ...(approvedSpec.nfrs ?? [])].map((r) => r.id));
     return verdict(
       plan.tasks.flatMap((t) => !t.reqs.length
         ? [failure("b1-unmapped", `plan task ${t.id} delivers no approved requirement`)]

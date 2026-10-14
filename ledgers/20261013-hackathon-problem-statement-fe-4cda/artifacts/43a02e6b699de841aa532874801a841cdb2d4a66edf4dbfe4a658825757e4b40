@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation declared in the OpenAPI contract exactly as specified, including its method, path, parameters, request and response schemas, security requirements, statuses, behavior, and export artifact."
+     },
+     {
+      "n": 2,
+      "text": "Persist all application values that operations read or change, including derived or cached values, in PostgreSQL through the existing App connection string, retain committed values across restarts, and initialize required structures without changing or deleting pre-existing database contents."
+     },
+     {
+      "n": 3,
+      "text": "When Seed:Demo is true at startup on a clean database, run SeedData.cs to populate each application table with believable demo rows based on contract examples."
+     },
+     {
+      "n": 4,
+      "text": "When Seed:Demo is false at startup, skip SeedData.Run, insert no demo rows, and serve contract operations without requiring seeded records."
+     },
+     {
+      "n": 5,
+      "text": "Expose only backend API and documentation surfaces, with no product-facing screens or frontend implementation."
+     },
+     {
+      "n": 6,
+      "text": "Calculate ration ingredient consumption and cost from as-fed proportions and weights, and use dry-matter values only for nutritional calculations."
+     },
+     {
+      "n": 7,
+      "text": "Atomically reject feeding-event creations or corrections that require unavailable ingredient inventory without changing persisted event, inventory, movement, or lot rollup values; apply successful corrections as replacements of prior effects and reverse a voided event’s inventory and rollup effects."
+     },
+     {
+      "n": 8,
+      "text": "When Days on Feed is zero, ADG is nonpositive, or no positive gain remains toward the target, return unavailable values for ADG, feed-to-gain metrics, and projected ship dates whenever their required positive denominator or gain is absent."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

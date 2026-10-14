@@ -38,7 +38,45 @@ export function resetNav(): void {
 `;
 
 /** Runs before every test file: the navigation stand-in, the browser parts jsdom lacks, and the clean-up after each test. */
-export const screenSetupFile = (tag: string): string => `// ${OWNED_MARK} from ${tag}.
+/** The router's own package, for a page that reaches it directly and not through lib/nav: the same stand-in, so it renders and its navigation is recorded. */
+const ROUTER_MOCK = {
+  next: `vi.mock("next/navigation", async (original) => {
+  const real = await original<typeof import("next/navigation")>();
+  const { nav } = await import("./screen");
+  const go = (to: string) => { nav.went.push(to); };
+  return {
+    ...real,
+    useRouter: () => ({ push: go, replace: go, back: () => {}, forward: () => {}, refresh: () => {}, prefetch: () => {} }),
+    usePathname: () => nav.path,
+    useSearchParams: () => new URLSearchParams(nav.params),
+    useParams: () => nav.params,
+  };
+});
+
+vi.mock("next/link", async () => {
+  const { createElement } = await import("react");
+  const { nav } = await import("./screen");
+  return {
+    default: ({ href, onClick, prefetch: _p, replace: _r, scroll: _s, ...props }: { href: unknown; onClick?: (e: unknown) => void } & Record<string, unknown>) =>
+      createElement("a", { ...props, href: String(href), onClick: (e: { preventDefault(): void }) => { onClick?.(e); e.preventDefault(); nav.went.push(String(href)); } }),
+  };
+});`,
+  vite: `vi.mock("react-router", async (original) => {
+  const real = await original<typeof import("react-router")>();
+  const { nav } = await import("./screen");
+  const { Link } = await import("@/lib/nav");
+  return {
+    ...real,
+    useNavigate: () => (to: unknown) => { nav.went.push(String(to)); },
+    useLocation: () => ({ pathname: nav.path, search: "", hash: "", state: null, key: "test" }),
+    useSearchParams: () => [new URLSearchParams(nav.params), () => {}],
+    useParams: () => nav.params,
+    Link, NavLink: Link,
+  };
+});`,
+};
+
+export const screenSetupFile = (tag: string, next = true): string => `// ${OWNED_MARK} from ${tag}.
 // Runs before every test file. A screen test (a *.test.tsx file whose first line is "// @vitest-environment jsdom") renders
 // a page with no router and no browser: navigation is recorded in ./screen, and the few browser parts jsdom lacks are
 // filled in. A plain *.test.ts file is not affected.
@@ -53,6 +91,20 @@ vi.mock("@/lib/nav", async () => {
     Link: ({ to, onClick, ...props }: { to: string; onClick?: (e: unknown) => void } & Record<string, unknown>) =>
       createElement("a", { ...props, href: to, onClick: (e: { preventDefault(): void }) => { onClick?.(e); e.preventDefault(); nav.went.push(to); } }),
   };
+});
+
+// A page that uses the router's package itself, not lib/nav, gets the same stand-in: outside the app it has no router.
+${next ? ROUTER_MOCK.next : ROUTER_MOCK.vite}
+
+// A page is tested without the app's frame, so render() puts around it what the frame gives every page: the tooltip
+// provider (a page with a tooltip cannot render without it) and the place toasts appear in.
+vi.mock("@testing-library/react", async (original) => {
+  const real = await original<typeof import("@testing-library/react")>();
+  const { createElement, Fragment } = await import("react");
+  const { TooltipProvider } = await import("@/components/ui/tooltip");
+  const { Toaster } = await import("@/components/ui/sonner");
+  const wrapper = ({ children }: { children: unknown }) => createElement(TooltipProvider, null, createElement(Fragment, null, children as never, createElement(Toaster)));
+  return { ...real, render: (ui: never, options?: object) => real.render(ui, { wrapper: wrapper as never, ...options }) };
 });
 
 if (typeof window !== "undefined") {

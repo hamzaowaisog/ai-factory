@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation declared in the OpenAPI contract, matching its methods, paths, parameters, schemas, security, statuses, and behavior."
+     },
+     {
+      "n": 2,
+      "text": "Persist all application values, including derived and cached values, in PostgreSQL through the existing App connection string; preserve compatible pre-existing data, make committed values available after restart, and initialize the required structures."
+     },
+     {
+      "n": 3,
+      "text": "When Seed:Demo is true on a clean database, run the seed data and populate each application table with two or three believable sample rows based on contract examples."
+     },
+     {
+      "n": 4,
+      "text": "When Seed:Demo is false, skip demo seeding, insert no demo rows, and serve contract operations without requiring demo seed data."
+     },
+     {
+      "n": 5,
+      "text": "Expose only backend API and API documentation surfaces, with no product-facing screens or frontend implementation."
+     },
+     {
+      "n": 6,
+      "text": "Calculate ingredient consumption and ration cost using as-fed proportions, weights, and costs; use dry-matter values only for nutritional calculations."
+     },
+     {
+      "n": 7,
+      "text": "Atomically reject feeding-event creation or correction when required ingredient inventory is unavailable, leaving event, inventory, movement, and lot rollup values unchanged; apply successful corrections as replacements of prior effects and reverse a voided event’s inventory and rollup effects."
+     },
+     {
+      "n": 8,
+      "text": "When Days on Feed is zero, ADG is nonpositive, or no positive gain remains toward the target, return ADG, feed-to-gain metrics, and projected ship dates as unavailable wherever their required positive denominator or gain is absent."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

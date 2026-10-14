@@ -73,6 +73,10 @@ export function nextOnFailure(history: AttemptRecord[], o: LadderOptions): Ladde
     if (twice.length) return { action: "a5-check", testIds: twice, reason: "The same locked test failed twice" };
   }
 
+  // an error thrown by the factory itself (no container runtime, a failed install), the same twice: nothing a model
+  // writes can change it, so a stronger one is not tried (four runs spent 14 attempts on such errors)
+  if (prev && last.signature.startsWith("exception:") && prev.signature === last.signature) return { action: "park", reason: `The same error twice, so another attempt cannot change it: ${last.signature.slice("exception:".length)}` };
+
   // 4. anything else: climb the ladder
   const stuck = !!prev && (prev.signature === last.signature || (!!last.diffSha && prev.diffSha === last.diffSha));
   const atRung = counted.filter((h) => h.rung === last.rung).length;

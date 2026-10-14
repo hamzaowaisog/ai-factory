@@ -142,6 +142,8 @@ describe("test gates", () => {
     expect(verdict(crash(prod)).passed).toBe(true);
     // a crash in the test's own code, a compile error or an infra failure is still a broken test
     expect(verdict(crash(inTest)).details).toMatch(/fails with exception/);
+    // and the writer is told what the crash said (run c0aa: three attempts guessed at a missing TooltipProvider)
+    expect(verdict(crash(inTest)).details).toContain("It failed with: System.NullReferenceException");
     expect(verdict(crash([])).passed).toBe(false);
     expect(verdict(crash(prod, "compile")).passed).toBe(false);
     expect(verdict(crash(prod, "infra")).passed).toBe(false);
@@ -206,6 +208,14 @@ describe("failure ladder", () => {
     maxAttempts: 6, attemptsPerRung: 2, availableRungs: new Set(RUNGS), backoffSpentMs: 0, backoffCapMs: 900_000, a5Done: new Set(), ...over,
   });
   const a = (over: Partial<AttemptRecord>): AttemptRecord => ({ category: "other", signature: "s", rung: 0, ...over });
+
+  it("parks on the same thrown error twice, where a failed check would move to a stronger model", () => {
+    const boom = a({ signature: "exception:No usable container runtime" });
+    expect(nextOnFailure([boom], opts()).action).toBe("retry");
+    expect(nextOnFailure([boom, boom], opts())).toEqual({ action: "park", reason: "The same error twice, so another attempt cannot change it: No usable container runtime" });
+    expect(nextOnFailure([boom, a({ signature: "exception:npm install failed" })], opts()).action).toBe("retry");
+    expect(nextOnFailure([a({}), a({})], opts())).toMatchObject({ action: "retry", rung: 1 });
+  });
 
   it("safety: retry once, then park", () => {
     expect(nextOnFailure([a({ category: "safety" })], opts()).action).toBe("retry");

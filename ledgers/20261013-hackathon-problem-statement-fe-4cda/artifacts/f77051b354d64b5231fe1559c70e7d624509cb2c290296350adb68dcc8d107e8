@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "feeding-events|void",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 704,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;feeding-events|void&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:1414: /feeding-events:\ncontracts/openapi.yaml:1523: /feeding-events/{eventId}:\ncontracts/openapi.yaml:1593: /feeding-events/{eventId}/void:\ncontracts/openapi.yaml:1595: operationId: voidFeedingEvent\ncontracts/openapi.yaml:1596: summary: \"Void a saved feeding event.\"\ncontracts/openapi.yaml:1605: description: \"Voided event, inventory movement, and lot totals.\"\ncontracts/openapi.yaml:1612: - \"feeding.void\"\ncontracts/openapi.yaml:1626: status: \"Voided\"\ncontracts/openapi.yaml:1637: movementType: \"Void reversal\"\n</untrusted_document>"
+  }
+ ]
+}

@@ -420,7 +420,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
 
   // screen tests ("ui" criteria): the navigation stand-in and the setup every test file runs after (factory-owned)
   add(SCREEN_HELPER, screenHelperFile(o.tag), "glue", true);
-  add(SCREEN_SETUP, screenSetupFile(o.tag), "glue", true);
+  add(SCREEN_SETUP, screenSetupFile(o.tag, next), "glue", true);
 
   // a fresh app's skeleton, or what the design-system task must wire in an existing one
   const kitDeps = { ...o.kit.manifest.dependencies, ...o.kit.manifest.targetDependencies[o.target] };
