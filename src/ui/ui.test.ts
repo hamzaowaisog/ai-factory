@@ -210,15 +210,16 @@ describe("factory ui: who can talk to it", () => {
 });
 
 describe("factory ui: what the web can decide", () => {
-  it("the decision routes are the estimate, design, plan, question, limit and manual-check cards only; no gate waiver, unlock, steer or pause", () => {
+  it("the decision routes are the estimate, design, plan, question, client-intent, limit and manual-check cards only; no gate waiver, unlock, steer or pause", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note|limit/i;
     for (const r of ROUTES.filter((r) => !/\/(estimate-decision|answers|decision|limit|limit-stop|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // decisions, each with a typed name and the card hash: an estimate card, a design or plan card, a question card's answers, a limit
-    // card (raise one step, or stop the run there), and a person's check of the criteria that have no automated test. Resuming a parked run decides nothing; exports and the scaffold write only under the
-    // run's own folders; the full-stack routes are factory fullstack
+    // card (raise one step, or stop the run there), a person's check of the criteria that have no automated test, and an edit of a
+    // transcript run's client-intent card (factory edit-intent; its approve and send-back use the decision route). Resuming a parked run
+    // decides nothing; exports and the scaffold write only under the run's own folders; the full-stack routes are factory fullstack
     expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
       "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
-      "POST /api/runs/:id/manual-checks", "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
+      "POST /api/runs/:id/intent-edit", "POST /api/runs/:id/manual-checks", "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
       "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/fullstack/:name/apps/start", "POST /api/fullstack/:name/apps/down", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
       // one pass of the review agent on the run's pull request: factory review-open-prs for that one, never forced
       "POST /api/runs/:id/review",
