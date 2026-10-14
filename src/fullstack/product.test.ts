@@ -77,6 +77,22 @@ describe("a full-stack product: two repos, one contract", () => {
     expect(apiRequest("Staff sign in.")).toMatch(/^Staff sign in\.\n\nThis run builds the API side[\s\S]*contracts\/openapi\.yaml[\s\S]*PostgreSQL database \(the connection string named App/);
   });
 
+  it("a product from a meeting: the web run distills the transcript, and the API run reads the approved brief", async () => {
+    const p = setUpProduct("clinic", dir);
+    const transcript = { format: "gemini-meet" as const, notes: "", speakers: ["Alex Morgan"], turns: [{ id: "T-1", time: "00:00:41", speaker: "Alex Morgan", text: "Staff sign in and record each delivery" }] };
+    p.request = "T-1 [00:00:41] Alex Morgan: Staff sign in and record each delivery";
+    p.web.run = await createRun(p.request, p.web.project, "tester", { transcript });
+    saveProduct(p);
+    const l = Ledger.open(p.web.run);
+    expect(replay(l.events()).info.transcriptSha).toBeDefined();
+    await l.append({ type: "step.completed", key: "distill/1", inputsHash: "a".repeat(64), outputs: [l.putJson({})], data: { brief: "# Clinic deliveries\n\n## Requirements\n- R-1: Staff record each delivery" } }, HUMAN_WRITER);
+    await done(l, "plan", [l.putJson({ stubs: [{ path: CONTRACT_FILE, content: "openapi: 3.0.3\npaths: {}\n", reason: "" }] })]);
+    await done(l, "approve", [l.putJson({ approved: true })]);
+    const api = replay(Ledger.open((await startApiRun(loadProduct("clinic"), "tester"))!).events());
+    expect(api.info.request).toMatch(/^# Clinic deliveries[\s\S]*R-1: Staff record each delivery[\s\S]*This run builds the API side/);
+    expect(api.info.request).not.toContain("T-1 [00:00:41]");
+  });
+
   it("sets every new product's API up on PostgreSQL, and says so when the request names another database", () => {
     const p = setUpProduct("clinic", dir, "Staff sign in. Keep it in SQLite.");
     const read = (f: string) => readFileSync(join(p.api.repo, f), "utf8");

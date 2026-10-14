@@ -30,6 +30,12 @@ describe("the intent card on the run page", () => {
       dropped: ["R-21: Paraphrase (the quote is not in T-41)"],
     });
   });
+  it("gives each quote the whole turn it is from, when the run's transcript is there", () => {
+    const withTurns = { getJson: <T>(sha: string): T => (sha === "t" ? { turns: [{ id: "T-13", time: "00:20:00", speaker: "Alex Morgan", text: "Right. Each doctor sees only uh his own appointments, not the others." }] } : ledger.getJson(sha)) as T };
+    const v = intentOf(withTurns, "card", "t")!;
+    expect(v.requirements[0]!.said).toBe("Right. Each doctor sees only uh his own appointments, not the others.");
+    expect(v.requirements[1]!.said).toBeUndefined();
+  });
   it("is nothing when the card's data is missing", () => {
     expect(intentOf(ledger, "other")).toBeUndefined();
   });

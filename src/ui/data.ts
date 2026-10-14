@@ -5,6 +5,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "
 import { basename, join, sep } from "node:path";
 import type { z } from "zod";
 import type { ClientIntentBody, Design as DesignSchema } from "../contracts/artifacts.js";
+import type { Transcript } from "../contracts/index.js";
 import type { Breakdown, Estimate } from "../contracts/estimate.js";
 import { buildInventory, type DesignInventory } from "../design/inventory.js";
 import { depsOf, detectLayout } from "../design/layout.js";
@@ -264,20 +265,24 @@ function evidence(ledger: Ledger, seq: number) {
 /** An open client-intent card as data for the run page's editor (spec 2026-10-14 transcript-intent §5c); undefined when its data is missing. */
 export interface IntentView {
   project: { name?: string; goal: string };
-  requirements: { id: string; text: string; status: string; quote?: string; turn?: string; speaker?: string; role?: string; added?: string }[];
+  requirements: { id: string; text: string; status: string; quote?: string; turn?: string; speaker?: string; role?: string; added?: string; /** the whole turn the quote is from, to read it in context */ said?: string }[];
   speakers: { name: string; role: string; source: string }[];
   constraints: string[]; openQuestions: string[]; warnings: string[]; dropped: string[];
 }
-export function intentOf(ledger: Pick<Ledger, "getJson">, sha: string): IntentView | undefined {
+export function intentOf(ledger: Pick<Ledger, "getJson">, sha: string, transcriptSha?: string): IntentView | undefined {
   let body: { intent?: ClientIntentBody } | undefined;
   try { body = ledger.getJson<{ intent?: ClientIntentBody }>(sha); } catch { return undefined; }
   const i = body?.intent;
   if (!i) return undefined;
+  let turns: Transcript["turns"] = [];
+  try { turns = (transcriptSha ? ledger.getJson<Transcript>(transcriptSha)?.turns : undefined) ?? []; } catch { /* the quotes still show */ }
+  const said = new Map(turns.map((t) => [t.id, t.text]));
   return {
     project: i.project,
     requirements: i.requirements.map((r) => ({
       id: r.id, text: r.text, status: r.status, ...(r.quote ? { quote: r.quote } : {}), ...(r.turn ? { turn: r.turn } : {}),
       ...(r.speaker ? { speaker: r.speaker } : {}), ...(r.role ? { role: r.role } : {}), ...(r.addedBy ? { added: `${r.addedBy.by}: ${r.addedBy.note}` } : {}),
+      ...(r.turn && said.has(r.turn) ? { said: said.get(r.turn)! } : {}),
     })),
     speakers: i.speakers,
     constraints: i.constraints.map((c) => `${c.id}: ${c.text}`), openQuestions: i.openQuestions.map((q) => `${q.id}: ${q.text}`),
@@ -340,7 +345,7 @@ export function runView(ledger: Ledger) {
     gates: gateChips(s),
     // the model each step was given when the run was created, and what was called on each
     models: runModels(events),
-    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...(s.openCard.kind === "intent" ? { intent: intentOf(ledger, s.openCard.artifactSha) } : {}), ...limitOf(s) } : undefined,
+    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...(s.openCard.kind === "intent" ? { intent: intentOf(ledger, s.openCard.artifactSha, s.info.transcriptSha) } : {}), ...limitOf(s) } : undefined,
     trace,
     // what the factory asked each model and what came back (src/ui/talk.ts)
     talk: talkView(lines),
@@ -563,11 +568,12 @@ export function estimateView(ledger: Ledger) {
       return { by: String(a.by ?? ""), hash: String(a.hash ?? ""), ...(a.auto ? { auto: true } : {}) };
     })() : undefined,
     // a hands-off run: nobody was asked, so what clarify found unclear is listed as the factory's assumptions
-    ...(!humanReview(s.info) ? { handsOff: true, factoryAssumptions: ["clarify", "clarify-2"].flatMap((k) => {
+    // (a transcript run's meeting first: what distill approved without a person, src/stages/distill.ts assumedOf)
+    ...(!humanReview(s.info) ? { handsOff: true, factoryAssumptions: ((s.steps.get("distill")?.data?.assumed ?? []) as { id: string; text: string; risk: string }[]).concat(["clarify", "clarify-2"].flatMap((k) => {
       const sha = done(k);
       const r = sha ? ledger.getJson<{ assumedBy?: string; assumptions?: { id: string; text: string; risk: string; fromDefault?: string }[] }>(sha) : undefined;
       return r?.assumedBy ? (r.assumptions ?? []).map((a) => ({ id: a.id, text: a.text, risk: a.risk, ...(a.fromDefault ? { fromDefault: a.fromDefault } : {}) })) : [];
-    }).concat(factoryAssumed(ledger)) } : {}),
+    })).concat(factoryAssumed(ledger)) } : {}),
     files,
   };
 }

@@ -153,7 +153,10 @@ factory reject  <run> <hash> --reason "what is wrong"
 - A role change re-labels the speaker everywhere and is listed on the card; it does not re-run the model.
 - `reject --reason`: the model runs again once with the reason as feedback; a second reject parks the run.
 - `approve`: the step completes with the client intent as its output and `data.brief`.
-- **PENDING (hands-off):** default A: the intent card always shows, even with `factory estimate --hands-off`.
+- **Hands-off** (`factory estimate --hands-off`): nobody is asked, as at clarify. The factory approves the checked
+  intent itself (`by: factory`, `auto`), and the warnings and the dropped requirements are listed with the
+  factory's assumptions on the run page (`assumedOf`, high risk for a dropped requirement). Settled 2026-10-15:
+  estimates run with nobody in the loop; Ahsan may still overrule it.
 
 The step caches the model result as a named output of its first attempt (as clarify does), so edits and
 resumes never pay for the model again; the cache key includes the transcript sha, the skill sha and the

@@ -32,6 +32,9 @@ describe("transcript runs", () => {
   it("a build from a transcript distills after discover", async () => {
     expect(keys(await run({ mode: "brownfield", request: "T-1", transcriptSha: T }))).toEqual(["discover", "distill"]);
   });
+  it("a new product (greenfield) from a transcript distills after discover, as a build does", async () => {
+    expect(keys(await run({ mode: "greenfield", request: "T-1", transcriptSha: T }))).toEqual(["discover", "distill"]);
+  });
   it("a design-only run from a transcript runs distill first", async () => {
     expect(keys(await run({ mode: "design", request: "T-1", transcriptSha: T }))).toEqual(["distill"]);
   });

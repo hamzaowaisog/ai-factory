@@ -41,10 +41,10 @@ beforeEach(() => {
   addMember({ name: "Jordan Lee" }, "demo"); // the project's roster
 });
 
-async function newRun(): Promise<Ledger> {
+async function newRun(estimate?: { humanReview: boolean }): Promise<Ledger> {
   const l = Ledger.create(`20261014-distill-${Math.random().toString(16).slice(2, 6)}`);
   const transcriptSha = l.putJson(transcript);
-  await l.append({ type: "run.created", data: { mode: "estimate", project: "demo", request: "T-1 ...", operator: "sam", transcriptSha } }, HUMAN_WRITER);
+  await l.append({ type: "run.created", data: { mode: "estimate", project: "demo", request: "T-1 ...", operator: "sam", transcriptSha, ...(estimate ? { estimate } : {}) } }, HUMAN_WRITER);
   return l;
 }
 async function exec(l: Ledger, attempt = 1): Promise<StepOutcome> {
@@ -108,6 +108,17 @@ describe("distill step", () => {
     expect(calls).toBe(2);
     await decide(l, second, "reject", { reason: "still wrong" });
     expect((await exec(l, 3)).kind).toBe("park");
+  });
+  it("a hands-off estimate approves the checked intent itself and lists what nobody checked", async () => {
+    const l = await newRun({ humanReview: false });
+    const withBad = { ...good, requirements: [...good.requirements, { id: "R-3", text: "SMS reminders", status: "decided", quote: "nobody said this", turn: "T-1" }] };
+    answers = [withBad, withBad]; // one quote in three fails: one repair call
+    const done = await exec(l);
+    if (done.kind !== "done") throw new Error(`expected done, got ${done.kind}`);
+    expect(done.data).toMatchObject({ by: "factory", auto: true });
+    expect(done.data!.assumed).toEqual([expect.objectContaining({ id: "R-3", risk: "high" })]);
+    expect(replay(l.events()).info.request).toContain("- R-1: Patients book appointments online");
+    expect(calls).toBe(2);
   });
   it("without a roster every speaker is the client and the card says how to fix it", async () => {
     process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-distill-")); // no roster here

@@ -16,6 +16,7 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import type { RequestSource } from "../sources/request.js";
+import type { Transcript } from "../contracts/index.js";
 import { createRun } from "../stages/executor.js";
 import { checkRoutes, type Choice } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
@@ -139,7 +140,7 @@ async function putOnGithub(p: Product, acct: GithubAccount): Promise<void> {
  * and nothing is estimated. `github`: put both repos on GitHub first (`putOnGithub`); GitHub is asked before anything is made.
  * `models`: the models for both runs, checked before anything is made and kept with the product for the API run.
  */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}, autonomous?: boolean): Promise<Product> {
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[]; transcript?: Transcript } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}, autonomous?: boolean): Promise<Product> {
   const from = seed && ("design" in seed ? seed.design : seed.estimate);
   const text = from?.request ?? request?.text;
   if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
@@ -159,6 +160,8 @@ export async function startProduct(name: string, dir: string, request: { text: s
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     ...(chosen ? { models } : {}),
     ...(from ? { sources: [{ kind: "prompt" as const }] } : request?.sources ? { sources: request.sources } : {}),
+    // a meeting transcript: the web run distills it first, and the API run later reads the brief that came out (startApiRun)
+    ...(!from && request?.transcript ? { transcript: request.transcript } : {}),
     ...(seed ? { mode: "greenfield" as const, ...("design" in seed ? { fromDesign: seed.design } : { lineage: { kind: "build" as const, approved: seed.estimate } }) } : {}),
   });
   saveProduct(p);
@@ -183,7 +186,10 @@ export async function startApiRun(p: Product, operator: string, maxCostUsd?: num
   }
   // a build that asks, as the web run of the same product is: a large request is read module by module. Read in one piece it
   // does not fit the intake step (run 1de4: parked on a 33,000-character request the web run had read in two modules)
-  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { asks: true, ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}), ...(p.autonomous === false ? { autonomous: false } : {}) });
+  // a product from a meeting: the brief the web run's distill made (and a person approved), not the transcript
+  const web = p.web.run ? stateOf(p.web.run).info : undefined;
+  const request = (web?.transcriptSha ? web.request : p.request) ?? "";
+  p.api.run = await createRun(apiRequest(request, databaseOf(p)), p.api.project, operator, { asks: true, ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}), ...(p.autonomous === false ? { autonomous: false } : {}) });
   saveProduct(p);
   return p.api.run;
 }

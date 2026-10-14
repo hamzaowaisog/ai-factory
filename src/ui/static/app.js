@@ -408,7 +408,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     showFile();
   };
   fileInput.addEventListener("change", () => takeFile(fileInput.files?.[0]));
-  const drop = h("label", { class: "drop" }, fileInput, icon("upload"), h("strong", {}, "Drop a .md, .txt, .docx or .pdf file here"), h("span", { class: "small" }, "or click to choose one · read like --file · a Google Meet transcript (.docx) is read as a meeting"));
+  const drop = h("label", { class: "drop" }, fileInput, icon("upload"), h("strong", {}, "Drop a .md, .txt, .docx or .pdf file here"), h("span", { class: "small" }, "or click to choose one · read like --file · a Google Meet transcript (.docx, or copied out as .txt) is read as a meeting"));
   drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
   drop.addEventListener("dragleave", () => drop.classList.remove("over"));
   drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFile(e.dataTransfer?.files?.[0]); });
@@ -699,14 +699,14 @@ const RUN_TABS = [["run", "activity", "Interactive"], ["charts", "bars", "Graphi
 
 function runHeader(r, tab) {
   const id = encodeURIComponent(r.runId);
-  const from = (r.sources ?? []).map((s) => (s.kind === "prompt" ? "typed prompt" : s.kind === "file" ? s.name : `Jira ${s.key}`)).join(" + ");
+  const from = (r.sources ?? []).map((s) => (s.kind === "prompt" ? "typed prompt" : s.kind === "jira" ? `Jira ${s.key}` : s.kind === "transcript" ? `meeting ${s.name}` : s.name ?? s.kind)).join(" + ");
   const kind = r.sources?.[0]?.kind;
   return [
     h("div", { class: "page-head" }, h("div", {},
       h("div", { class: "crumbs" }, h("a", { href: "#/runs" }, "Runs"), "/", h("span", { class: "mono" }, r.runId)),
       h("h1", {}, (r.request ?? "").split("\n").map((l) => l.replace(/^#+\s*/, "").trim()).find(Boolean) ?? r.runId),
       h("div", { class: "meta" }, pill(r.status), h("span", {}, icon("layers"), r.project),
-        from ? h("span", {}, icon(kind === "jira" ? "ticket" : kind === "file" ? "file" : "pen"), from) : null,
+        from ? h("span", {}, icon(kind === "jira" ? "ticket" : kind === "prompt" ? "pen" : "file"), from) : null,
         h("span", {}, icon("clock"), `started ${ago(r.createdAt)}`)))),
     h("nav", { class: "subnav", "aria-label": "Run views" },
       h("div", { class: "seg", role: "tablist" }, RUN_TABS.map(([key, ico, label]) => h("a", { href: `#/runs/${id}${key === "run" ? "" : `/${key}`}`, role: "tab", "aria-selected": String(tab === key), class: tab === key ? "on" : undefined }, icon(ico), label))),
@@ -949,6 +949,8 @@ function decisionForm(r, o) {
   lock(draft.sent);
   const send = async (decision) => {
     if (decision === "reject" && !reason.value.trim()) { msg.textContent = draft.msg = o.reasonNeeded; reason.focus(); return; }
+    const blocked = decision === "approve" && o.beforeApprove?.();
+    if (blocked) { msg.textContent = draft.msg = blocked; return; }
     lock(true);
     msg.textContent = "";
     try {
@@ -1051,6 +1053,9 @@ function intentPanel(r) {
     reasonLabel: "Or send it back: what is wrong", reasonPlaceholder: "e.g. The SMS reminder was asked for at 00:14:00 and is missing.",
     reasonHint: "The meeting is read again with your reason. A second send-back stops the run.", reasonNeeded: "Say what is wrong.",
     approved: "Approved. The run is continuing with this intent…", rejected: "Sent back. The meeting is being read again…",
+    // an approval is of the card as shown: edits typed here and not saved would be lost without a word
+    beforeApprove: () => (!d.saved && (Object.keys(d.status).length || Object.values(d.remove).some(Boolean) || d.add.trim() || Object.keys(d.roles).length)
+      ? "You have edits that are not saved. Save them first (the card is rebuilt with them), or undo them, then approve." : ""),
   });
   const terminal = h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd))));
   if (!iv) {
@@ -1066,7 +1071,9 @@ function intentPanel(r) {
     rm.checked = !!d.remove[q.id];
     rm.addEventListener("change", () => { d.remove[q.id] = rm.checked; });
     const ev = q.quote ? `"${q.quote}" (${q.turn}, ${q.speaker || "?"}, ${q.role || "?"})` : q.added ? `added by ${q.added}` : "";
-    return h("tr", {}, h("td", { class: "mono small" }, q.id), h("td", {}, q.text, ev ? h("div", { class: "small muted" }, ev) : null), h("td", {}, sel), h("td", {}, rm));
+    // the whole turn, to check the quote was not taken out of context
+    const said = q.said && q.said.trim() !== q.quote ? h("details", { class: "small muted" }, h("summary", {}, "The whole turn"), h("p", {}, q.said)) : null;
+    return h("tr", {}, h("td", { class: "mono small" }, q.id), h("td", {}, q.text, ev ? h("div", { class: "small muted" }, ev) : null, said), h("td", {}, sel), h("td", {}, rm));
   });
   const speakers = iv.speakers.map((s) => {
     const sel = h("select", { "aria-label": `Role of ${s.name}` }, ["client", "team"].map((x) => h("option", { value: x }, x)));
@@ -1105,7 +1112,7 @@ function intentPanel(r) {
       h("p", { class: "small muted" }, "This is what the meeting asked for, each point with the words that were said. Fix anything wrong, save, then approve. Nothing is specified or built before you approve."),
       iv.warnings.length ? h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Warnings"), h("ul", { class: "small" }, iv.warnings.map((w) => h("li", {}, w))))) : null,
       h("p", {}, h("strong", {}, iv.project.name || "Client request"), ` · ${iv.project.goal}`),
-      h("table", { class: "runs" }, h("thead", {}, h("tr", {}, h("th", {}, "Id"), h("th", {}, "Requirement and what was said"), h("th", {}, "Status"), h("th", {}, "Remove"))), h("tbody", {}, rows)),
+      h("div", { class: "table-wrap" }, h("table", { class: "intent" }, h("thead", {}, h("tr", {}, h("th", {}, "Id"), h("th", {}, "Requirement and what was said"), h("th", {}, "Status"), h("th", {}, "Remove"))), h("tbody", {}, rows))),
       h("div", { class: "fld" }, h("label", { for: "i-add" }, "Add requirements the meeting agreed but the card missed"), add),
       h("div", { class: "fld" }, h("label", {}, "Who is who"), h("ul", { class: "small" }, speakers), h("div", { class: "hint" }, "A role changed here holds for this run; factory team add makes it stick.")),
       list("Constraints", iv.constraints), list("Open questions (asked at clarify)", iv.openQuestions), list("Dropped: the quote was not in the transcript", iv.dropped),

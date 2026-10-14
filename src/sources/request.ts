@@ -22,6 +22,8 @@ export const MAX_FRAME_UPLOAD_BYTES = 5_000_000;
 export const MAX_FRAMES_TOTAL_BYTES = 20_000_000;
 /** Request text limit for the estimate command: requirements documents are far longer than change requests. */
 export const MAX_ESTIMATE_REQUEST_BYTES = 400_000;
+/** A meeting transcript: about 75K tokens, so the whole of it fits distill's 120K briefing with the skill and the notes (4-5 hours of talk). */
+export const MAX_TRANSCRIPT_BYTES = 300_000;
 
 /** The request text and attachments for a set of frame files (from a folder or an upload). Only names go into the text. */
 export function framesRequest(files: { name: string; bytes: Buffer }[]): { text: string; attachments: Attachment[] } {
@@ -63,6 +65,9 @@ export function checkUploadedFrames(input: unknown): { name: string; bytes: Buff
   });
 }
 
+/** A transcript run's request until distill's brief replaces it: titled by the meeting, so lists and headers name it rather than its first turn. */
+const meetingRequest = (t: Transcript): string => `# ${/^meeting\b/i.test(t.title ?? "") ? t.title : `Meeting: ${t.title ?? "client meeting"}`}\n\n${transcriptText(t)}`;
+
 export async function gatherRequest(
   o: { prompt?: string; file?: string; jira?: string; frames?: string; frameFiles?: { name: string; bytes: Buffer }[] },
   deps: { fetchJira?: typeof fetchJiraTicket } = {},
@@ -79,7 +84,7 @@ export async function gatherRequest(
     // a Google Meet export (Gemini notes + transcript) is a meeting: the distill step finds the client's intent in it
     if (isMeetTranscript(d.text)) {
       transcript = parseMeetTranscript(d.text);
-      parts.push({ heading: `Meeting ${basename(o.file)}`, text: transcriptText(transcript), source: { kind: "transcript", name: basename(o.file), summary: `${transcript.turns.length} turns, ${transcript.speakers.length} speakers` } });
+      parts.push({ heading: `Meeting ${basename(o.file)}`, text: meetingRequest(transcript), source: { kind: "transcript", name: basename(o.file), summary: `${transcript.turns.length} turns, ${transcript.speakers.length} speakers` } });
     } else {
       attachments.push(...d.images.map((i) => ({ name: `docx/${i.name}`, bytes: i.bytes })));
       parts.push({ heading: `From ${basename(o.file)}`, text: d.text, source: { kind: "docx", name: basename(o.file), summary: `${d.headings} headings, ${d.tables} tables, ${d.images.length} images` } });
@@ -90,8 +95,15 @@ export async function gatherRequest(
     const d = await readPdf(readFileSync(o.file));
     parts.push({ heading: `From ${basename(o.file)}`, text: d.text, source: { kind: "pdf", name: basename(o.file), summary: `${d.pages} page${d.pages === 1 ? "" : "s"}${d.blank ? `, ${d.blank} with no text` : ""}` } });
   } else if (o.file) {
-    const f = readRequestFile(o.file);
-    parts.push({ heading: `From ${f.name}`, text: f.text, source: { kind: "file", name: f.name } });
+    // a Meet transcript copied out of Docs as text or Markdown is a meeting too; any other file keeps the usual size limit
+    const raw = readRequestFile(o.file, Math.max(MAX_TRANSCRIPT_BYTES, opts.maxBytes ?? 0));
+    if (isMeetTranscript(raw.text)) {
+      transcript = parseMeetTranscript(raw.text);
+      parts.push({ heading: `Meeting ${raw.name}`, text: meetingRequest(transcript), source: { kind: "transcript", name: raw.name, summary: `${transcript.turns.length} turns, ${transcript.speakers.length} speakers` } });
+    } else {
+      const f = readRequestFile(o.file);
+      parts.push({ heading: `From ${f.name}`, text: f.text, source: { kind: "file", name: f.name } });
+    }
   }
   if (o.frames) {
     const f = readFrames(o.frames);
@@ -111,7 +123,8 @@ export async function gatherRequest(
   if (transcript && parts.length > 1) throw new Error("A meeting transcript is the whole request: drop the prompt, --jira and frames, or send them in a later run.");
   // one source: its text as is; several: labelled sections
   const text = parts.length === 1 ? parts[0]!.text : parts.map((p) => `## ${p.heading}\n\n${p.text}`).join("\n\n");
-  const max = opts.maxBytes ?? MAX_REQUEST_FILE_BYTES;
+  // a transcript is not intake's request (distill's brief replaces it): its own limit, what distill can read whole, on any run
+  const max = transcript ? MAX_TRANSCRIPT_BYTES : opts.maxBytes ?? MAX_REQUEST_FILE_BYTES;
   if (Buffer.byteLength(text) > max) {
     throw new Error(`The request is ${Math.round(Buffer.byteLength(text) / 1000)} KB; the limit is ${Math.round(max / 1000)} KB; shorten or split it.`);
   }

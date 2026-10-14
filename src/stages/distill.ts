@@ -3,6 +3,8 @@
 // (as clarify's does), so edits, resumes and approvals never pay for the model again.
 import { ClientIntentBody, DistillOut, type Transcript } from "../contracts/index.js";
 import { loadRoster, rolesFor } from "../config/team.js";
+import { humanReview } from "../estimate/settings.js";
+import { FACTORY_APPROVER } from "../estimate/gates.js";
 import { transcriptText } from "../sources/transcript.js";
 import { hashJson } from "../util/hash.js";
 import { DISTILL_SKILL, loadDistillSkill } from "./distill-skill.js";
@@ -45,6 +47,14 @@ async function ask(ctx: StepContext, t: Transcript, skill: string, roles: string
     ],
   });
   return r.ok ? { ok: true, out: r.output, model: r.model } : { ok: false, outcome: r.outcome };
+}
+
+/** What nobody checked on a hands-off run: each warning, and each requirement left out because its quote was not in the transcript. */
+export function assumedOf(intent: ClientIntentBody): { id: string; text: string; risk: string }[] {
+  return [
+    ...intent.warnings.map((w, i) => ({ id: `INT-W${i + 1}`, text: `Meeting: ${w} → not checked by a person`, risk: "medium" })),
+    ...intent.dropped.map((d) => ({ id: d.id, text: `Meeting: "${d.text}" left out of scope (${d.why}) → not checked by a person`, risk: "high" })),
+  ];
 }
 
 export const distillStep: StepDef = {
@@ -98,9 +108,12 @@ export const distillStep: StepDef = {
     const intent = applyIntentEdits(draft, intentEditsOf(ctx.state).map(({ roles: _roles, ...e }) => e));
 
     const cardSha = ctx.ledger.putJson({ card: "intent", intent });
-    if (decisionOn(ctx, cardSha)?.decision === "approve") {
+    // a hands-off estimate asks nobody (as clarify): the checked intent is approved by the factory, and what a person would have
+    // checked (the warnings, the requirements whose quote was not found) is listed with the factory's assumptions
+    const handsOff = !humanReview(ctx.state.info);
+    if (handsOff || decisionOn(ctx, cardSha)?.decision === "approve") {
       const sha = ctx.ledger.putJson({ header: header(ctx.runId, "client-intent", "distill", "", base.model), ...intent });
-      return { kind: "done", outputs: { intent: sha }, data: { brief: renderBrief(intent, t.date), requirements: intent.requirements.length } };
+      return { kind: "done", outputs: { intent: sha }, data: { brief: renderBrief(intent, t.date), requirements: intent.requirements.length, ...(handsOff ? { by: FACTORY_APPROVER, auto: true, assumed: assumedOf(intent) } : {}) } };
     }
     const hash = cardSha.slice(0, 8);
     // the cache travels on the card, as clarify's does (src/stages/clarify.ts cardOrDone / pendingFor)

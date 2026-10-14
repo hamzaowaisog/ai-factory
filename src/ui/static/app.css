@@ -880,3 +880,20 @@ table.models.used td:nth-child(3) { width: 6.5rem; }
 table.models.used :is(td, th):nth-child(4) { width: 3rem; text-align: right; }
 table.models.used :is(td, th):nth-child(5) { width: 4.2rem; text-align: right; padding-right: 0; }
 @media (max-width: 520px) { table.models.used td:nth-child(2) { display: table-cell; } table.models.used :is(td, th):nth-child(3) { display: none; } }
+
+/* the client-intent card's requirements: a narrow id, the words that were said, a status that shows in full */
+table.intent { width: 100%; }
+table.intent td { vertical-align: top; }
+table.intent :is(td, th):first-child { width: 3.5rem; white-space: nowrap; }
+table.intent :is(td, th):nth-child(3) { width: 8.5rem; }
+table.intent :is(td, th):nth-child(4) { width: 4.5rem; text-align: center; }
+table.intent select { width: 100%; min-width: 7.5rem; }
+table.intent details summary { cursor: pointer; font-weight: 400; }
+@media (max-width: 520px) {
+  table.intent :is(td, th) { padding: 0.6rem 0.35rem; }
+  table.intent th { letter-spacing: 0.02em; font-size: 0.66rem; }
+  table.intent :is(td, th):first-child { width: 2.2rem; padding-left: 0; }
+  table.intent :is(td, th):nth-child(3) { width: 6.3rem; }
+  table.intent :is(td, th):nth-child(4) { width: 2.6rem; }
+  table.intent select { min-width: 5.9rem; padding-left: 0.45rem; padding-right: 0.2rem; }
+}
