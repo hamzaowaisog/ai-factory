@@ -13,6 +13,10 @@ One reconciled view of every stage, per the precedence rule (newest wins): verif
 
 ## 1. Canonical stage order per mode
 
+(Update 2026-10-14: in every mode below, a request that is a Google Meet transcript (.docx) runs **distill → [intent card, H]**
+before intake (after discover in a build); intake then reads the approved brief. See
+`docs/superpowers/specs/2026-10-14-transcript-intent-design.md`.)
+
 **Brownfield** (CD §13 "Updated brownfield pipeline", §16, SS §1, CB §2.8, RM §2.10, GE §2.5):
 ```
 discover (once per repo; refresh per run)
