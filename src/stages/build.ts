@@ -179,6 +179,23 @@ function stubFailures(errors: BuildError[], on: string): Failure[] {
   return errors.slice(0, 10).map((e, i) => failure("plan-stub-build", `The stubs do not compile on ${on}: ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
 }
 
+/**
+ * The API client and test handlers the stub commit generated from the plan's contract, built before any test is written (run b587:
+ * an example in the contract left out three fields its schema requires, the generated handlers did not compile, and four test
+ * writers worked ten minutes before the build said so). Errors there are the contract's: the plan goes back to the planner, as
+ * for stubs that do not build. Errors elsewhere are left to the test writer's own checks.
+ */
+async function contractCodeOrBack(ctx: StepContext, planSha: string, commit: string): Promise<StepOutcome | undefined> {
+  const errors = (await buildErrors(ctx, `author-tests/contract-${ctx.attempt}`, commit, "author-tests") ?? []).filter((e) => e.file.startsWith(`${CLIENT_DIR}/`));
+  if (!errors.length) return undefined;
+  const fix = `The client and its test handlers are generated from ${ctx.project.contract?.file ?? "the contract"}, and the handlers answer with its examples: give every example every field its schema requires, with the schema's types.`;
+  const failures = errors.slice(0, 10).map((e, i) => failure("plan-contract-build", `The code generated from the contract does not compile: ${e.file}:${e.line} ${e.code} ${e.msg}${i === 0 ? ` ${fix}` : ""}`));
+  const list = failures.slice(0, 3).map((f) => f.message.split(" The client and")[0]).join("; ");
+  if (stubRefusals(ctx.ledger).length >= STUB_REFUSALS) return { kind: "park", reason: `The code generated from the contract still does not compile after ${STUB_REFUSALS} corrected plans: ${list}. Fix the contract's examples in the plan, then resume.` };
+  await ctx.ledger.append({ type: "plan.refused", key: "author-tests", data: { plan: planSha, failures: ctx.ledger.putJson(failures), commit } }, ctx.writer);
+  return { kind: "back", reason: `the code generated from the contract does not compile (${errors.length} error(s): ${list}); the planner corrects the contract before any test is written` };
+}
+
 /** How often the stub commit may send one run's plan back for stubs that do not build, before a person looks. */
 export const STUB_REFUSALS = 2;
 
@@ -868,6 +885,11 @@ export const authorTestsStep: StepDef = {
       }
     }
     if (mode.mode === "reset") { keptFiles = []; await resetHard(wt, start, keptOnReset(ctx.project)); }
+    // the code generated from the plan's contract must build before a writer is paid for: the writers may not change it
+    if (mode.mode === "reset" && existsSync(join(wt, CLIENT_DIR, "client.msw.ts"))) {
+      const back = await contractCodeOrBack(ctx, ctx.state.steps.get("plan")!.outputs[0]!, start);
+      if (back) return back;
+    }
     else ctx.log(`author-tests: keeping the previous attempt's ${keptFiles.length} test file${keptFiles.length === 1 ? "" : "s"} (${mode.reason})`);
     const prevOut = mode.mode === "keep" && prev?.out ? AuthorOut.safeParse(ctx.ledger.getJson(prev.out)).data : undefined;
     if (prev) { ctx.note?.("previousTests", mode.mode === "keep" ? `kept (${keptFiles.length} files)` : "wiped"); ctx.note?.("previousTestsWhy", mode.reason); }
