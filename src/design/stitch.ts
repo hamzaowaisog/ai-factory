@@ -177,21 +177,26 @@ const causeOf = (e: unknown): string => {
   return c ? [c.code, c.message].filter(Boolean).join(" ") : "";
 };
 
+/** The server's 5xx status when Stitch answered with an error page instead of a result (run 95ff: a Google "Error 502" page). */
+export const serverError = (e: unknown): string | undefined => /\b(?:Error|HTTP|status) (5\d\d)\b/i.exec((e as Error)?.message ?? "")?.[1];
+
 /** Wait before the one retry of a dropped call; tests set 0. */
 let RETRY_WAIT_MS = 3_000;
 export function setStitchRetryWait(ms: number): void { RETRY_WAIT_MS = ms; }
 
 /**
- * A call whose connection dropped is tried once more on a fresh connection (run ae5c parked twice on "fetch failed" with the
+ * A call whose connection dropped, or that Stitch answered with a 5xx error page, is tried once more on a fresh connection (run ae5c parked twice on "fetch failed" with the
  * calls just before it answered). A second drop fails with the network's reason, which "fetch failed" alone does not give.
  * A generation the dropped call did start may leave one extra frame in the Stitch project; nothing reads it.
  */
 function once<T>(f: () => Promise<T>, ms: number, what: string): Promise<T> {
   return within(f(), ms, what).catch(async (e: unknown) => {
-    if (!dropped(e)) throw e;
+    if (!dropped(e) && !serverError(e)) throw e;
     await new Promise((r) => setTimeout(r, RETRY_WAIT_MS));
     return within(f(), ms, what).catch((e2: unknown) => {
-      throw dropped(e2) ? new Error(`the connection dropped twice during ${what}${causeOf(e2) ? ` (${causeOf(e2)})` : ""}`) : e2;
+      const code = serverError(e2);
+      throw dropped(e2) ? new Error(`the connection dropped twice during ${what}${causeOf(e2) ? ` (${causeOf(e2)})` : ""}`)
+        : code ? new Error(`Stitch returned ${code} (a server error) twice during ${what}`) : e2;
     });
   });
 }

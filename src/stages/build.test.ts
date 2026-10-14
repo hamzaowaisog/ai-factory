@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, proofGroups, testKitFacts, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, tighteningGroups, failuresToFix, proofGroups, testKitFacts, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests } from "./build.js";
 import { ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { attemptSpend, startNeed } from "./executor.js";
@@ -336,6 +336,26 @@ describe("test writing: parallel writers and the lighter test check", () => {
     for (const grp of big) expect(new Set(grp.map((id) => id.split(".")[0])).size * 5).toBe(grp.length);
     // one requirement holding everything cannot be split
     expect(writerGroups(acs([40]))).toHaveLength(1);
+  });
+  it("splits the tightening of weak tests by the writers' files, each writer with every criterion in its file (run 95ff)", () => {
+    const tests = [{ acId: "AC-1.1", file: "tests/acceptance.part1.test.tsx" }, { acId: "AC-1.2", file: "tests/acceptance.part1.test.tsx" },
+      { acId: "AC-2.1", file: "tests/acceptance.part2.test.tsx" }, { acId: "AC-3.1", file: "tests/acceptance.part3.test.tsx" }];
+    expect(tighteningGroups(tests, ["AC-1.2", "AC-3.1"])).toEqual([{ index: 1, ids: ["AC-1.1", "AC-1.2"] }, { index: 3, ids: ["AC-3.1"] }]);
+    // one file to fix, nothing weak, or tests outside the writers' files: one writer, as before
+    expect(tighteningGroups(tests, ["AC-1.1", "AC-1.2"])).toEqual([]);
+    expect(tighteningGroups(tests, [])).toEqual([]);
+    expect(tighteningGroups([...tests, { acId: "AC-4.1", file: "tests/orders.test.tsx" }], ["AC-1.2", "AC-3.1"])).toEqual([]);
+  });
+  it("carries the weak tests on when the attempt tightening them was cut off (run 95ff, attempt 4)", () => {
+    const proof = [{ check: "test-proof", message: "AC-6.1: its test … does not prove the criterion" }, { check: "tests-compile", message: "x" }];
+    const cut = [{ check: "agent-timeout", message: "error_max_turns" }];
+    const ev = (seq: number, type: string, key: string, data: object, outputs?: string[]) => ({ seq, type, key, data, ...(outputs ? { outputs } : {}) }) as never;
+    const get = (sha: string) => (sha === "p" ? proof : []) as never;
+    const events = [ev(1, "step.failed", "author-tests/2", { signature: "author-tests:proof" }, ["p"]), ev(2, "step.failed", "author-tests/3", { signature: "author-tests:timeout" }, ["t"])];
+    expect(failuresToFix(events, cut as never, get).map((f) => f.check)).toEqual(["agent-timeout", "test-proof"]);
+    // any other failure stands as it is, and a weak list from before the tests were locked is not carried
+    expect(failuresToFix(events, proof as never, get)).toEqual(proof);
+    expect(failuresToFix([...events.slice(0, 1), ev(2, "step.completed", "author-tests/3", {}), ev(3, "step.failed", "author-tests/4", {})], cut as never, get)).toEqual(cut);
   });
   it("gives each writer one file of its own, inside the tests", () => {
     expect(matchesAny("tests/acceptance.part2.test.tsx", writerScope(2))).toBe(true);

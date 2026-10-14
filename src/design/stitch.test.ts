@@ -99,6 +99,13 @@ describe("a Stitch call whose connection drops", () => {
     await expect(stitchClient().generate("p", "x", "DESKTOP")).rejects.toThrow("quota exceeded");
     expect(calls).toBe(1);
     expect(dropped(new Error("Unauthorized"))).toBe(false);
+    // a 5xx error page (run 95ff) is retried once too, and a second one is named plainly instead of quoting the page
+    const page = () => new Error("Streamable HTTP error: Error POSTing to endpoint: <!DOCTYPE html><title>Error 502 (Server Error)!!1</title>");
+    calls = 0;
+    setStitchFactory(() => ({ generate: async () => { calls++; if (calls === 1) throw page(); return { html: "<p/>" }; } }) as never);
+    await expect(stitchClient().generate("p", "x", "DESKTOP")).resolves.toEqual({ html: "<p/>" });
+    setStitchFactory(() => ({ generate: async () => { throw page(); } }) as never);
+    await expect(stitchClient().generate("p", "x", "DESKTOP")).rejects.toThrow(/^Stitch returned 502 \(a server error\) twice during generate_screen$/);
     setStitchFactory(undefined); setStitchRetryWait(3_000);
   });
 });

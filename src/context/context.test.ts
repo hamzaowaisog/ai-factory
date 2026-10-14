@@ -122,6 +122,12 @@ describe("snapshot and tools", () => {
     expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public async Task<int> SyncAsync(int customerId, CancellationToken ct)" }).ok).toBe(true);
     expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public void Invented()" }).ok).toBe(false);
     expect(checkEvidence(snap, { path: "src/Nope.cs", lineStart: 1, lineEnd: 1, quote: "x" }).ok).toBe(false);
+    // a long line cut short with "…" (run 5d51): the parts around it must be there, in order
+    expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public async Task<int> SyncAsync(int customerId, …" }).ok).toBe(true);
+    expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public async … CancellationToken ct)" }).ok).toBe(true);
+    expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "CancellationToken ct) … public async" }).ok).toBe(false);
+    expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public void Invented(…" }).ok).toBe(false);
+    expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "…" }).ok).toBe(false);
   });
 
   it("extracts C# symbols", () => {
