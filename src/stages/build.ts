@@ -13,7 +13,7 @@ import {
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
 import { failureSignature, RUNGS } from "../gates/ladder.js";
-import { changedFiles, commitAll, commitFiles, commitWith, diffIncludingUntracked, git, headSha, pathChangedSince, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
+import { changedFiles, cleanIgnored, commitAll, commitFiles, commitWith, diffIncludingUntracked, git, headSha, pathChangedSince, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
 import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
 import { codingRunner } from "../runners/codex.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
@@ -1827,7 +1827,7 @@ export function implementStep(taskId: string): StepDef {
         await git(wt, ["reset", "--mixed", "-q", start]);
         // a kept file an ignore rule matches would be cleaned away with the build output
         await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack), stuck).fileScope], builtDoc);
-        await git(wt, ["clean", "-fdX", ...keptOnReset(ctx.project).flatMap((k) => ["-e", k])]);
+        await cleanIgnored(wt, keptOnReset(ctx.project));
         ctx.log(`implement ${taskId}: keeping previous attempt's code (${mode.reason}; diff ${saved.slice(0, 8)})`);
         ctx.note?.("previousCode", "kept"); ctx.note?.("previousCodeWhy", mode.reason); ctx.note?.("previousCodeDiff", saved);
       } else if (head !== start || dirty) {

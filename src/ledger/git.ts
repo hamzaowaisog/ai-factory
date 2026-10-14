@@ -232,6 +232,14 @@ export async function commitFiles(repo: string, base: string, files: { path: str
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
+/**
+ * Remove the ignored files (build output), but not the paths in `keep`. With -X an "-e <path>" is one more ignore rule, so it
+ * would remove the path too: "-e !<path>" un-ignores it. Run ae5c: every kept retry deleted node_modules and reinstalled it.
+ */
+export async function cleanIgnored(wt: string, keep: string[] = []): Promise<void> {
+  await git(wt, ["clean", "-fdX", ...keep.flatMap((k) => ["-e", `!${k}`])]);
+}
+
 export async function resetHard(wt: string, sha: string, keep: string[] = []): Promise<void> {
   await git(wt, ["reset", "--hard", sha]);
   await git(wt, ["clean", "-fdx", ...keep.flatMap((k) => ["-e", k])]);
