@@ -13,8 +13,21 @@ const JSON_TYPE = "application/json";
 export function readContract(text: string): Obj | undefined {
   try {
     const d = parse(text) as Obj;
-    return d && typeof d === "object" && typeof d.openapi === "string" && d.paths && typeof d.paths === "object" ? d : undefined;
+    if (!(d && typeof d === "object" && typeof d.openapi === "string" && d.paths && typeof d.paths === "object")) return undefined;
+    for (const [name, s] of Object.entries((d.components?.schemas ?? {}) as Obj)) selfRefs(s, `#/components/schemas/${name}/`);
+    return d;
   } catch { return undefined; }
+}
+
+/**
+ * .NET's generator writes a second use of one type inside a schema as "#/components/schemas/#/properties/a/items", meaning
+ * "#/properties/a/items" of that schema (run 768d: list fields read as missing on 4 attempts). Written out in full, it resolves.
+ */
+function selfRefs(o: unknown, at: string): void {
+  if (!o || typeof o !== "object") return;
+  const x = o as Obj;
+  if (typeof x.$ref === "string" && x.$ref.startsWith("#/components/schemas/#/")) x.$ref = at + x.$ref.slice("#/components/schemas/#/".length);
+  for (const v of Object.values(x)) selfRefs(v, at);
 }
 
 /**

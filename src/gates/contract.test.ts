@@ -119,6 +119,15 @@ describe("the locked API contract", () => {
     expect(contractDiff(shared, nullable)).toEqual([]);
   });
 
+  it("reads .NET's pointer to a list's items inside the same schema as that list's items (run 768d, 4 attempts)", () => {
+    const doc = (second: object) => JSON.stringify({ openapi: "3.0.1", info: { title: "a", version: "1" },
+      paths: { "/load": { post: { operationId: "load", responses: { "200": { description: "ok", content: { "application/json": { schema: { $ref: "#/components/schemas/Load" } } } } } } } },
+      components: { schemas: { Outcome: { type: "object", properties: { id: { type: "integer" } } },
+        Load: { type: "object", properties: { added: { type: "array", items: { $ref: "#/components/schemas/Outcome" } }, failed: { type: "array", items: second } } } } } });
+    const contract = readContract(doc({ $ref: "#/components/schemas/Outcome" }))!;
+    expect(contractDiff(contract, readContract(doc({ $ref: "#/components/schemas/#/properties/added/items" }))!)).toEqual([]);
+  });
+
   it("reads a field given only as a list of allowed values as the type of those values (run e8ef, TASK-1 attempt 4)", () => {
     // a .NET enum field comes out of the build as { enum: [...] } with no type; the contract says string
     const listed = built();
