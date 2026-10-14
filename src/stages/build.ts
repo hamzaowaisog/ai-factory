@@ -774,7 +774,7 @@ export function testKitFacts(wt: string, max = 12_000): string | undefined {
 }
 
 /** One of several test writers working at the same time: its number and the criteria it writes tests for. */
-export interface WriterPart { index: number; of: number; ids: string[] }
+export interface WriterPart { index: number; of: number; ids: string[]; keep?: boolean }
 const WRITERS_MAX = 4, WRITER_CRITERIA = 12;
 
 /**
@@ -797,10 +797,37 @@ export function writerGroups(acs: { id: string; req: string }[], max = WRITERS_M
   return groups;
 }
 
+/**
+ * The tightening of weak tests split the way the first write was: one writer per test file that holds a weak test, each with
+ * every criterion in that file (run 95ff: one writer for 33 weak tests ran out of turns after 14 minutes, where the first write
+ * had four). Empty when the tests are not in parallel writers' files, or only one file needs work: one writer then, as before.
+ */
+export function tighteningGroups(tests: { acId: string; file: string }[], weak: string[]): { index: number; ids: string[] }[] {
+  const partOf = (f: string) => Array.from({ length: WRITERS_MAX }, (_, i) => i + 1).find((i) => matchesAny(f, writerScope(i)));
+  if (!weak.length || tests.some((t) => partOf(t.file) === undefined)) return [];
+  const parts = [...new Set(tests.filter((t) => weak.includes(t.acId)).map((t) => partOf(t.file)!))].sort((a, b) => a - b);
+  return parts.length < 2 ? [] : parts.map((index) => ({ index, ids: [...new Set(tests.filter((t) => partOf(t.file) === index).map((t) => t.acId))] }));
+}
+
+/**
+ * The failures a test writer is to fix. An attempt cut off by its turn or time limit leaves only that cut-off as its failure;
+ * the weak tests it was tightening are carried on, or the next attempt rewrites blind (run 95ff, attempt 4).
+ */
+export function failuresToFix(events: LedgerEvent[], prior: Failure[], get: (sha: string) => Failure[]): Failure[] {
+  if (!prior.length || !prior.every((f) => f.check === "agent-timeout" || f.check === "agent-over-budget")) return prior;
+  const evs = events.filter((e) => e.key && splitKey(e.key).step === "author-tests");
+  const lastDone = Math.max(-1, ...evs.filter((e) => e.type === "step.completed").map((e) => e.seq));
+  const proof = evs.findLast((e) => e.seq > lastDone && e.type === "step.failed" && (e.data as { signature?: string } | undefined)?.signature === PROOF_SIGNATURE);
+  return proof?.outputs?.[0] ? [...prior, ...get(proof.outputs[0]).filter((f) => f.check === "test-proof")] : prior;
+}
+
 /** The one file a parallel test writer may write: its name carries the writer's number. */
 export const writerScope = (index: number): string[] => [`**/*Part${index}*`, `**/*part${index}*`, `*Part${index}*`, `*part${index}*`];
 
 function writerPartNote(p: WriterPart, stack: ProjectConfig["stack"]): string {
+  if (p.keep) return `You are test writer ${p.index} of ${p.of}. The others work at the same time, each on its own copy of this checkout and its own test file. Yours is the test file already in the checkout whose name contains "${stack === "node" ? "part" : "Part"}${p.index}", with the criteria ${p.ids.join(", ")}.
+- Change only that file: nothing else is taken from your checkout.
+- Return the full list for that file only: every test in it, changed or not${p.index === 1 ? ", and the characterisation tests" : ", and an empty list of characterisation tests"}.`;
   const file = stack === "node" ? `acceptance.part${p.index}.test.tsx (or .test.ts), in the folder the rules above give for tests` : `AcceptancePart${p.index}Tests.cs, in the existing test project`;
   return `You are test writer ${p.index} of ${p.of}. The others work at the same time, each on its own copy of this checkout and its own criteria. Yours are: ${p.ids.join(", ")}. Write tests for these only.
 - Put ALL your tests in ONE new file: ${file}. Its name must contain "${stack === "node" ? "part" : "Part"}${p.index}".
@@ -853,7 +880,7 @@ export const authorTestsStep: StepDef = {
     const lessons = usableLessons(readLessons(ctx.project.project), wt);
     if (lessons.length) ctx.log(`author-tests: pointing the test writer at ${lessons.map((l) => l.dir).join(", ")} (from earlier runs)`);
     // "already passes" is no longer a failure when the requirement has a failing test: don't push the writer to break a correct test
-    const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
+    const priorFailures = failuresToFix(ctx.ledger.events(), ctx.priorFailures, (sha) => ctx.ledger.getJson<Failure[]>(sha)).filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
     const acs = provenHere(ctx.project, spec).requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
     const needTest = acs.filter((a) => a.level !== "manual");
@@ -868,7 +895,10 @@ export const authorTestsStep: StepDef = {
     const limits = { maxTurns: Math.round(testWriterTurns(light, needTest.map((a) => a.level)) * room), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: Math.round(45 * 60 * room) };
     const kit = ctx.project.stack === "node" ? testKitFacts(wt) : undefined;
     // one briefing for the whole list, or one per writer when the list is split (part: that writer's share)
-    const packFor = (part?: WriterPart, lim = limits) => { const mine = part ? needTest.filter((a) => part.ids.includes(a.id)) : needTest; const reqs = new Set(mine.map((a) => a.req)); return buildPack({
+    const packFor = (part?: WriterPart, lim = limits) => { const mine = part ? needTest.filter((a) => part.ids.includes(a.id)) : needTest; const reqs = new Set(mine.map((a) => a.req));
+      // a writer of a part sees the weak tests of its own criteria only
+      const fails = part ? priorFailures.filter((f) => f.check !== "test-proof" || part.ids.includes(proofNamed([f])[0]!)) : priorFailures;
+      return buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
         S.template("tpl", authorIntro(ctx.project.stack, testsScreens(ctx.project) && screenTestsReady(wt), apiElsewhere(ctx.project))),
@@ -896,7 +926,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...contractNote(ctx.project, wt, "tests"),
         ...dataModelNote(ctx.project, wt, "tests", !!databaseBefore(ctx)),
         ...(keptFiles.length ? [S.artifact("previous-tests", "previous-tests", { files: keptFiles, ...(prevOut ? { tests: prevOut.tests, characterisation: prevOut.characterisation, probes: prevOut.probes } : {}) })] : []),
-        ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + shownFailures(priorFailures).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
+        ...(fails.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + shownFailures(fails).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${keptFiles.length
           ? ` The previous attempt failed for the reasons above. Its test files are still in the checkout (previous-tests lists them${prevOut ? " and the tests it returned" : ""}): keep them, change only what the failures name, and write the tests that are missing.${prevOut ? "" : " It stopped before it finished, so read those files first and finish them."} Return the full list: the tests you kept and the new ones.`
           : priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}
@@ -904,11 +934,13 @@ Before you return, check your list against the criteria: each of these needs at 
         S.recap(["one test per AC", "tests fail now for the right reason", "characterisation tests pass today", "don't touch production code"]),
       ],
     }); };
-    // a long list written from nothing is split among writers that work at the same time, each on a copy of the checkout
-    const groups = mode.mode === "reset" && !light ? writerGroups(needTest) : [];
-    const parts: (WriterPart & { limits: typeof limits })[] = groups.length > 1 ? groups.map((ids, i) => {
+    // a long list written from nothing is split among writers that work at the same time, each on a copy of the checkout, and so
+    // is the tightening of weak tests in their files
+    const groups = light ? [] : mode.mode === "reset" ? writerGroups(needTest).map((ids, i) => ({ index: i + 1, ids }))
+      : tighteningGroups(prevOut?.tests ?? [], proofNamed(priorFailures));
+    const parts: (WriterPart & { limits: typeof limits })[] = groups.length > 1 ? groups.map(({ index, ids }) => {
       const r = testWriterRoom(ids.length);
-      return { index: i + 1, of: groups.length, ids, limits: { maxTurns: Math.round(testWriterTurns(false, needTest.filter((a) => ids.includes(a.id)).map((a) => a.level)) * r), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * r, groups.length), timeoutSec: Math.round(45 * 60 * r) } };
+      return { index, of: Math.max(...groups.map((g) => g.index)), ids, ...(mode.mode === "keep" ? { keep: true } : {}), limits: { maxTurns: Math.round(testWriterTurns(false, needTest.filter((a) => ids.includes(a.id)).map((a) => a.level)) * r), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * r, groups.length), timeoutSec: Math.round(45 * 60 * r) } };
     }) : [];
     const packs = parts.map((p) => packFor(p, p.limits));
     const pack = packFor();
@@ -942,6 +974,8 @@ Before you return, check your list against the criteria: each of these needs at 
           await git(wt, ["worktree", "prune"]);
           await git(wt, ["worktree", "add", "--detach", "--force", dir, start]);
           for (const k of keptOnReset(ctx.project)) if (existsSync(join(wt, k))) copyDir(join(wt, k), join(dir, k));
+          // a tightening: the kept test files are not in the stub commit the checkout starts from
+          for (const f of keptFiles) { mkdirSync(dirname(join(dir, f)), { recursive: true }); copyFileSync(join(wt, f), join(dir, f)); }
         }
         const done = await Promise.all(parts.map(async (p, i) => {
           const dir = join(root, `w${p.index}`);
@@ -964,6 +998,11 @@ Before you return, check your list against the criteria: each of these needs at 
         }));
         for (const d of done) await ctx.usage({ model, inputTokens: d.usage.inputTokens, outputTokens: d.usage.outputTokens, cacheRead: d.usage.cacheRead, cacheWrite: d.usage.cacheWrite, turns: d.usage.turns, wallMs: d.usage.wallMs, estUsd: d.usage.estUsd });
         const good = done.filter((d) => d.status === "ok").map((d) => d.output as z.infer<typeof AuthorOut>);
+        // a tightening: the tests of every file no writer finished stand as the previous attempt returned them
+        const redone = parts.filter((_, i) => done[i]!.status === "ok");
+        const mineDone = (f: string) => redone.some((p) => matchesAny(f, writerScope(p.index)));
+        if (mode.mode === "keep" && prevOut && redone.length) good.push({ tests: prevOut.tests.filter((t) => !mineDone(t.file)), characterisation: prevOut.characterisation.filter((c) => !mineDone(c.file)),
+          probes: prevOut.probes.filter((x) => !redone.some((p) => p.ids.includes(x.acId))), notes: "" });
         const stopped = done.find((d) => d.status === "config-error") ?? done.find((d) => d.status !== "ok");
         done.forEach((d, i) => { if (d.status !== "ok") ctx.log(`author-tests: test writer ${i + 1} did not finish (${d.error ?? d.status})`); });
         // one writer short: the others' tests stand, and the missing criteria go back as "no test" for a retry that keeps the files
@@ -1079,7 +1118,7 @@ Before you return, check your list against the criteria: each of these needs at 
     // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,
     // since after the lock nothing in the run can change it
     // after a rewrite only the criteria it was sent back for are read again: the others were read and found proven
-    const reread = mode.mode === "keep" ? proofNamed(ctx.priorFailures) : [];
+    const reread = mode.mode === "keep" ? proofNamed(priorFailures) : [];
     const toRead = reread.length ? needTest.filter((a) => reread.includes(a.id)) : needTest;
     const weak = await weakTests(ctx, commit, toRead.length ? toRead : needTest, tests);
     if ("outcome" in weak) return weak.outcome;
@@ -1150,7 +1189,7 @@ export interface WeakTest { acId: string; verdict: "weak" | "no-test"; testId: s
 // what the test check holds each test to, and the test writers are told the same, so a test is written to it rather than sent back
 // for it (runs 95ff and 5d51: both test steps went round again on tests that checked one case or bare numbers)
 const PROOF_BAR = "code that broke any part of the criterion would fail these tests. They assert the values, messages, status codes and stored data the criterion names, for every case it names.";
-const WEAK_PATTERNS = "checking that some error exists instead of the one the criterion names, checking one case of several, not comparing a value the criterion says is unchanged, not setting up the starting state the criterion describes";
+const WEAK_PATTERNS = "checking that some error exists instead of the one the criterion names, checking one case of several, checking only that a list is not empty, not comparing a value the criterion says is unchanged, not setting up the starting state the criterion describes, a mocked response that repeats the values the test entered (so a screen that only shows its own input would pass)";
 const PROOF_TEMPLATE = `You check acceptance tests before they are locked. The code they test is not written yet, so every test fails today: do not judge whether a test passes.
 For each criterion in "acs", open its tests ("ac-tests" gives the file and the test name; a criterion can have several, judge them together) and decide whether they prove the criterion.
 - "proves-it": ${PROOF_BAR}
