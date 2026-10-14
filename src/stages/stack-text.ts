@@ -49,7 +49,7 @@ Rules:
 - New APIs exist as stubs that throw new Error("not implemented"); tests must import them and fail for now.
 - Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today. A new app has little of its own: write none when there is nothing to keep.
 - Don't change production code, package.json, tsconfig or the vitest config.
-- You may run "npx tsc --noEmit" to check the tests compile. Don't run the tests: the factory runs them itself in its test lab.
+- You may run "npx tsc --noEmit" to check the tests compile. When every test is written, run your own new test files once (npx vitest run <your files>) and read how each test fails: on an assertion or "not implemented", never on a crash in the set-up or while rendering. Fix a test that crashes, or that passes, before you return. Run nothing else, and at most twice: the factory runs and judges every test itself in its test lab.
 - Test each criterion at its level: ${screens ? `"unit" criteria` : `"unit" and "ui" criteria`} call the module directly; ${apiSide ? API_SIDE_TESTS : `"api" criteria call the route handler (for example GET or POST exported from app/api/.../route.ts, with a Request).`} Skip "manual" criteria: a person checks those.
 ${outsideSystemsTestRule(stack)}${screens ? `\n${SCREEN_TEST_RULES}` : ""}`;
   }
