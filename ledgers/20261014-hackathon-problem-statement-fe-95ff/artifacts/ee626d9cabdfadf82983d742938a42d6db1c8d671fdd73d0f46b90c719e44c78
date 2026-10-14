@@ -1,0 +1,194 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Import sources and synchronization",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Allows import from a connected source or uploaded data file."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Specifies import or synchronization from PO and receiving records, without stating uploaded-file support."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Describes importing records but does not specify connected-source synchronization or file-upload options."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-3",
+      "topic": "Inventory stock adjustments",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Tracks opening stock, receipts, consumption, wastage, and closing stock as dated movements."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Tracks opening stock, receipts, consumption, and closing stock, without listing wastage as a movement."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Tracks receipts, consumption, adjustments, and wastage as dated movements."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-4",
+      "topic": "Ration candidate generation and saving",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Compares candidate rations against nutritional/animal constraints and identifies the lower-cost eligible mix."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Allows users to request economical candidate mixes and review their proposed proportions; saving or assigning is a separate user action."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Compares eligible mixes and shows lower-cost candidates and trade-offs, without specifying candidate generation or selection workflow."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-5",
+      "topic": "Bunk-rate interpretation and plan quantity",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Calculates planned quantity from bunk rate and animal count, without defining the bunk-rate unit."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Calculates planned quantity from bunk rate and animal count, without defining the bunk-rate unit."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Explicitly treats bunk rate as daily feed per animal and calculates plan quantity as rate times animal count."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-6",
+      "topic": "Validation of feeding activity dates",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "Rejects invalid feeding-event inputs or insufficient inventory, without requiring reconciliation to a plan date."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Rejects or flags invalid quantities, ration/allocation, or insufficient inventory, without specifying plan-date reconciliation."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Also rejects activity dates that cannot be reconciled to the plan."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-8",
+      "topic": "Profitability scope",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Calculates cost of gain from feed cost divided by weight gained; no broader profitability inputs are specified."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Clarifies that feed-cost-based cost of gain is not complete net ROI when other revenues or costs are absent."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Uses purchase, feed, sale-value, or other recorded costs for profitability and identifies which inputs are included."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-9",
+      "topic": "Dashboard/report filtering scope",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Specifies date range, breed, sex, or pen filters for the feed-to-gain report."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Specifies those filters for the feed-to-gain report and other report views for operational questions."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Applies filtering to relevant dashboard and report data, including supported lot and other attributes."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "I-10",
+      "topic": "Demo deliverable format and content",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Provides a demo view of solution and architecture; behavior 2 separately covers validation, challenges, readiness, and go-to-market content."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Presents the demo and presentation materials, including flow and dashboard/report demonstration."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Provides demo or presentation content including an architecture diagram, demo flow, testing results, challenges, readiness, and go-to-market analysis."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

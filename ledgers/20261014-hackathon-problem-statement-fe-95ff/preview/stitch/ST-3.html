@@ -1,0 +1,555 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lots - Feedlot</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design System Tokens */
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-surface: #FFFFFF;
+      --text-main: #262A2D;
+      --text-muted: #626A6F;
+      --border-color: #D9DAD7;
+      --primary-color: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    h1 {
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes (CSS only) */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUp {
+      from {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreath {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: rollUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-1 { animation-delay: 0ms; }
+    .digit-2 { animation-delay: 35ms; }
+    .digit-3 { animation-delay: 70ms; }
+
+    .sync-breath {
+      animation: ambientBreath 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive control states */
+    .btn-secondary {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 6px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #ECEAE4;
+      border-color: #C2C4C0;
+    }
+
+    .btn-secondary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .btn-secondary:active {
+      background-color: #E2E0D8;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+      white-space: nowrap;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+    }
+
+    .nav-item:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--primary-color);
+    }
+
+    .nav-item.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    /* Panels & Tables */
+    .feedlot-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .table-feedlot {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .table-feedlot th {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: #FAF9F6;
+    }
+
+    .table-feedlot td {
+      padding: 0 16px;
+      height: 44px;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .table-feedlot tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-feedlot tr:hover td {
+      background-color: #FAF9F6;
+    }
+
+    .section-divider {
+      height: 1px;
+      background-color: var(--border-color);
+      margin-top: 8px;
+      margin-bottom: 28px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-[#D9DAD7] h-16 sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
+      
+      <!-- Left: Brand + Nav -->
+      <div class="flex items-center gap-8 h-full overflow-x-auto no-scrollbar">
+        <!-- Brand -->
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div class="w-7 h-7 bg-[#526F82] rounded-[4px] flex items-center justify-center text-white font-semibold text-sm font-['Hanken_Grotesk'] leading-none">
+            F
+          </div>
+          <span class="font-['Hanken_Grotesk'] font-semibold text-lg tracking-tight text-[#262A2D]">Feedlot</span>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="flex items-center h-full">
+          <a href="#" class="nav-item">Overview</a>
+          <a href="#" class="nav-item active">Lots</a>
+          <a href="#" class="nav-item">Inventory</a>
+          <a href="#" class="nav-item">Rations</a>
+          <a href="#" class="nav-item">Feeding plans</a>
+          <a href="#" class="nav-item">Feeding log</a>
+          <a href="#" class="nav-item">Lot weights</a>
+          <a href="#" class="nav-item">Yard summary</a>
+          <a href="#" class="nav-item">Feed-to-Gain</a>
+        </nav>
+      </div>
+
+      <!-- Right: User Avatar + Name + Role -->
+      <div class="flex items-center gap-3 shrink-0 pl-4 border-l border-[#D9DAD7] h-8">
+        <div class="w-8 h-8 rounded-full bg-[#EAE8E2] border border-[#D9DAD7] flex items-center justify-center font-semibold text-xs text-[#262A2D] font-mono">
+          MC
+        </div>
+        <div class="flex flex-col text-left leading-tight">
+          <span class="font-semibold text-sm text-[#262A2D]">Mara Chen</span>
+          <span class="text-xs text-[#626A6F]">Feed Operations, Administrator</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-[1440px] mx-auto px-6 pt-8 pb-16 animate-entrance">
+    
+    <!-- Page Title -->
+    <div class="mb-2">
+      <h1>Lots</h1>
+    </div>
+
+    <!-- Section hairline divider with 28px pause -->
+    <div class="section-divider"></div>
+
+    <!-- Contextual Summary Line (Lead) -->
+    <div class="mb-6 flex items-baseline gap-2">
+      <p class="text-base text-[#262A2D]">
+        <span class="font-mono font-semibold text-xl text-[#262A2D]">
+          <span class="digit-roll digit-1">1</span><span class="digit-roll digit-2">7</span><span class="digit-roll digit-3">8</span>
+        </span>
+        <span class="text-[#262A2D] font-medium"> head across </span>
+        <span class="font-mono font-semibold text-lg text-[#262A2D]">3</span>
+        <span class="text-[#262A2D] font-medium"> active lots</span>
+      </p>
+    </div>
+
+    <!-- Traceability Table Panel (Desktop) / Stacked Records (Phone) -->
+    <div class="feedlot-panel overflow-hidden">
+      
+      <!-- Desktop Table (visible md and up) -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="table-feedlot">
+          <thead>
+            <tr>
+              <th>Source PO &amp; Line</th>
+              <th>Supplier</th>
+              <th>Received Date</th>
+              <th>Lot</th>
+              <th>Breed &amp; Sex</th>
+              <th class="text-right">Received Head</th>
+              <th>Pen</th>
+              <th class="text-right">Purchase Cost Allocation</th>
+              <th class="text-right">Pen Cap / Count</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1: L-241 -->
+            <tr>
+              <td>
+                <span class="font-mono font-semibold">PO-5817</span>
+                <span class="text-[#626A6F] text-xs font-mono ml-1">line 2</span>
+              </td>
+              <td>Prairie Creek Cattle Co.</td>
+              <td class="font-mono text-xs">Jan 8, 2025</td>
+              <td>
+                <span class="font-mono font-semibold text-[#262A2D]">L-241</span>
+              </td>
+              <td>Angus steers</td>
+              <td class="text-right font-mono">64</td>
+              <td>
+                <span class="font-mono">Pen 4</span>
+              </td>
+              <td class="text-right font-mono font-medium">$89,600</td>
+              <td class="text-right">
+                <span class="font-mono">96 / 120</span>
+                <span class="text-[#626A6F] text-xs ml-1 font-mono">(24 free)</span>
+              </td>
+              <td>
+                <div class="flex items-center justify-center gap-2">
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Lifecycle</a>
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Performance</a>
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Financials</a>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 2: L-242 -->
+            <tr>
+              <td>
+                <span class="font-mono font-semibold">PO-5817</span>
+                <span class="text-[#626A6F] text-xs font-mono ml-1">line 2</span>
+              </td>
+              <td>Prairie Creek Cattle Co.</td>
+              <td class="font-mono text-xs">Jan 8, 2025</td>
+              <td>
+                <span class="font-mono font-semibold text-[#262A2D]">L-242</span>
+              </td>
+              <td>Angus heifers</td>
+              <td class="text-right font-mono">32</td>
+              <td>
+                <span class="font-mono">Pen 4</span>
+              </td>
+              <td class="text-right font-mono font-medium">$44,800</td>
+              <td class="text-right">
+                <span class="font-mono">96 / 120</span>
+                <span class="text-[#626A6F] text-xs ml-1 font-mono">(24 free)</span>
+              </td>
+              <td>
+                <div class="flex items-center justify-center gap-2">
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Lifecycle</a>
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Performance</a>
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Financials</a>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3: L-243 -->
+            <tr>
+              <td>
+                <span class="font-mono font-semibold">PO-5831</span>
+                <span class="text-[#626A6F] text-xs font-mono ml-1">line 1</span>
+              </td>
+              <td>Mesa Range Livestock</td>
+              <td class="font-mono text-xs">Mar 1, 2025</td>
+              <td>
+                <span class="font-mono font-semibold text-[#262A2D]">L-243</span>
+              </td>
+              <td>Hereford steers</td>
+              <td class="text-right font-mono">82</td>
+              <td>
+                <span class="font-mono">Pen 7</span>
+              </td>
+              <td class="text-right font-mono font-medium">$119,720</td>
+              <td class="text-right">
+                <span class="font-mono">82 / 110</span>
+                <span class="text-[#626A6F] text-xs ml-1 font-mono">(28 free)</span>
+              </td>
+              <td>
+                <div class="flex items-center justify-center gap-2">
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Lifecycle</a>
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Performance</a>
+                  <a href="#" class="btn-secondary !min-h-[34px] !h-[34px] !px-3 text-xs">Financials</a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Stacked Records (Phone: md:hidden) -->
+      <div class="md:hidden divide-y divide-[#D9DAD7]">
+        
+        <!-- Record 1: L-241 -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-semibold text-base text-[#262A2D]">Lot L-241</span>
+            <span class="text-xs text-[#626A6F] font-mono">Received Jan 8, 2025</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-y-2 text-xs">
+            <div>
+              <span class="text-[#626A6F] block">Source PO &amp; Line</span>
+              <span class="font-mono text-[#262A2D] font-medium">PO-5817 line 2</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Supplier</span>
+              <span class="text-[#262A2D]">Prairie Creek Cattle Co.</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Breed &amp; Sex</span>
+              <span class="text-[#262A2D]">Angus steers</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Received Head</span>
+              <span class="font-mono text-[#262A2D] font-medium">64 head</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Pen &amp; Capacity</span>
+              <span class="font-mono text-[#262A2D]">Pen 4 (96/120)</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Purchase Cost Allocation</span>
+              <span class="font-mono text-[#262A2D] font-medium">$89,600</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex flex-col gap-2">
+            <a href="#" class="btn-secondary w-full text-center">Lifecycle</a>
+            <a href="#" class="btn-secondary w-full text-center">Performance</a>
+            <a href="#" class="btn-secondary w-full text-center">Financials</a>
+          </div>
+        </div>
+
+        <!-- Record 2: L-242 -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-semibold text-base text-[#262A2D]">Lot L-242</span>
+            <span class="text-xs text-[#626A6F] font-mono">Received Jan 8, 2025</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-y-2 text-xs">
+            <div>
+              <span class="text-[#626A6F] block">Source PO &amp; Line</span>
+              <span class="font-mono text-[#262A2D] font-medium">PO-5817 line 2</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Supplier</span>
+              <span class="text-[#262A2D]">Prairie Creek Cattle Co.</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Breed &amp; Sex</span>
+              <span class="text-[#262A2D]">Angus heifers</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Received Head</span>
+              <span class="font-mono text-[#262A2D] font-medium">32 head</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Pen &amp; Capacity</span>
+              <span class="font-mono text-[#262A2D]">Pen 4 (96/120)</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Purchase Cost Allocation</span>
+              <span class="font-mono text-[#262A2D] font-medium">$44,800</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex flex-col gap-2">
+            <a href="#" class="btn-secondary w-full text-center">Lifecycle</a>
+            <a href="#" class="btn-secondary w-full text-center">Performance</a>
+            <a href="#" class="btn-secondary w-full text-center">Financials</a>
+          </div>
+        </div>
+
+        <!-- Record 3: L-243 -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-semibold text-base text-[#262A2D]">Lot L-243</span>
+            <span class="text-xs text-[#626A6F] font-mono">Received Mar 1, 2025</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-y-2 text-xs">
+            <div>
+              <span class="text-[#626A6F] block">Source PO &amp; Line</span>
+              <span class="font-mono text-[#262A2D] font-medium">PO-5831 line 1</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Supplier</span>
+              <span class="text-[#262A2D]">Mesa Range Livestock</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Breed &amp; Sex</span>
+              <span class="text-[#262A2D]">Hereford steers</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Received Head</span>
+              <span class="font-mono text-[#262A2D] font-medium">82 head</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Pen &amp; Capacity</span>
+              <span class="font-mono text-[#262A2D]">Pen 7 (82/110)</span>
+            </div>
+            <div>
+              <span class="text-[#626A6F] block">Purchase Cost Allocation</span>
+              <span class="font-mono text-[#262A2D] font-medium">$119,720</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex flex-col gap-2">
+            <a href="#" class="btn-secondary w-full text-center">Lifecycle</a>
+            <a href="#" class="btn-secondary w-full text-center">Performance</a>
+            <a href="#" class="btn-secondary w-full text-center">Financials</a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","inventory":"S-5","rations":"S-7","feeding plans":"S-9","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13","lifecycle":"S-4","performance":"S-17","financials":"S-18"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-3";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

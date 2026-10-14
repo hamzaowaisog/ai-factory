@@ -1,0 +1,220 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "external",
+      "text": "For procurement and receiving ingestion, which source path should the first version support?",
+      "options": [
+       "Use a mock connected procurement/receiving source for the demo, with no file-upload flow.",
+       "Connect to the named procurement system and synchronize its PO and receiving records.",
+       "Support both a connected source and uploaded data files."
+      ],
+      "recommended": "Use a mock connected procurement/receiving source for the demo, with no file-upload flow.",
+      "reason": "The request calls for mock data fetched from other systems but names no real source or file format.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines where imported lot and receiving records originate and how they enter the system.",
+      "difference": "D-1"
+     },
+     {
+      "id": "Q-7",
+      "category": "existing-data",
+      "text": "When a later synchronization returns a PO or receiving record that was imported before, how should the app handle it?",
+      "options": [
+       "Match by the source record ID, update the imported record when the source changes, and report failed records without duplicating them.",
+       "Import only new records; leave previously imported records unchanged.",
+       "Create a new copy for each synchronization and let an administrator reconcile duplicates."
+      ],
+      "recommended": "Match by the source record ID, update the imported record when the source changes, and report failed records without duplicating them.",
+      "reason": "This makes repeated synchronization useful while avoiding duplicate procurement and receiving records.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "Synchronization behavior can overwrite or duplicate source data used for lot traceability and cost baselines."
+     },
+     {
+      "id": "Q-8",
+      "category": "data-model",
+      "text": "What target-weight and growth-rate basis should lifecycle and projected market-date forecasts use?",
+      "options": [
+       "Set a target weight for each lot and project timing from that lot’s measured ADG.",
+       "Use a yard-wide configurable target weight and the lot’s measured ADG.",
+       "Use configured targets and assumed growth rates by breed or animal type."
+      ],
+      "recommended": "Set a target weight for each lot and project timing from that lot’s measured ADG.",
+      "reason": "Per-lot targets and measured performance provide the requested forecast without adding breed-specific assumptions.",
+      "spans": [
+       "I-2",
+       "I-8"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes the projected readiness dates and target weights shown to operators."
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "text": "How should the bunk rate be interpreted when generating a pen’s planned feed quantity?",
+      "options": [
+       "Pounds of as-fed ration per animal per day, multiplied by the planned animal count.",
+       "Pounds of dry matter per animal per day, converted using the ration’s dry-matter percentage.",
+       "A configurable unit and time basis selected for each bunk rate."
+      ],
+      "recommended": "Pounds of as-fed ration per animal per day, multiplied by the planned animal count.",
+      "reason": "This defines the daily per-animal rate directly and keeps it aligned with delivered feed quantities.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "The unit and basis determine planned quantities and can change inventory decrements and feed-cost calculations.",
+      "difference": "D-4"
+     },
+     {
+      "id": "Q-10",
+      "category": "data-model",
+      "text": "Should feed-to-gain calculations use feed quantities as-fed or adjust them to dry matter?",
+      "options": [
+       "Use as-fed pounds for feed consumption and FCR.",
+       "Convert feed consumption to dry-matter pounds for FCR using each ingredient’s dry-matter percentage.",
+       "Show both as-fed and dry-matter FCR."
+      ],
+      "recommended": "Use as-fed pounds for feed consumption and FCR.",
+      "reason": "The stated formula uses total feed consumed in pounds and does not require a second, dry-matter-adjusted metric.",
+      "spans": [
+       "I-6",
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "The basis changes reported consumption and feed-to-gain results across lots."
+     },
+     {
+      "id": "Q-11",
+      "category": "data-model",
+      "text": "When a pen contains animals from multiple lots, how should a pen-level feeding plan or activity be attributed for lot rollups?",
+      "options": [
+       "Record a separate lot allocation for each portion of the pen’s planned or delivered feed.",
+       "Require one lot per plan or activity; record separate entries for each lot’s portion.",
+       "Attribute the full pen quantity to one selected lot, without splitting it."
+      ],
+      "recommended": "Record a separate lot allocation for each portion of the pen’s planned or delivered feed.",
+      "reason": "This preserves lot-level consumption and cost attribution when a pen contains more than one lot.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines how actual feed, costs, and inventory consumption are attributed to lots."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "Should the configured wastage ratio change inventory decrements for recorded feeding activities, or only estimates and forecasts?",
+      "options": [
+       "Apply the ratio to forecasts and estimates only; decrement inventory by the recorded actual feed quantity, with no separate wastage movement.",
+       "Apply the ratio to the recorded actual quantity before decrementing inventory, with no separate wastage movement.",
+       "Apply the ratio to actual quantities and record the resulting wastage as a separate inventory movement."
+      ],
+      "recommended": "Apply the ratio to forecasts and estimates only; decrement inventory by the recorded actual feed quantity, with no separate wastage movement.",
+      "reason": "This keeps recorded delivery as the basis for stock decrement while respecting the stated estimate-and-projection use of wastage.",
+      "spans": [
+       "I-3",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "The choice changes inventory balances and the feed consumption and cost figures derived from them."
+     },
+     {
+      "id": "Q-13",
+      "category": "errors",
+      "text": "How should a feeding activity be handled when its date does not match a plan for that pen and lot?",
+      "options": [
+       "Allow it as an unplanned activity and make the mismatch visible in reporting.",
+       "Reject it unless a matching plan exists for that date.",
+       "Allow it and automatically associate it with the nearest plan date."
+      ],
+      "recommended": "Allow it as an unplanned activity and make the mismatch visible in reporting.",
+      "reason": "Feeding can still be recorded accurately without inventing a plan-date association.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "This determines whether operators can record real feeding activity when plans are missing or dates differ.",
+      "difference": "D-5"
+     },
+     {
+      "id": "Q-14",
+      "category": "existing-data",
+      "text": "How should users correct a saved feeding or weight record if they discover an error?",
+      "options": [
+       "Allow an authorized user to correct the original record and recalculate affected inventory and lot metrics.",
+       "Keep saved records unchanged and add a separate correcting entry.",
+       "Do not allow corrections in the first version."
+      ],
+      "recommended": "Allow an authorized user to correct the original record and recalculate affected inventory and lot metrics.",
+      "reason": "Correcting the source event keeps derived stock balances and performance metrics consistent with the corrected data.",
+      "spans": [
+       "I-6",
+       "I-7",
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "Corrections affect inventory balances, weight history, and calculated lot performance."
+     },
+     {
+      "id": "Q-15",
+      "category": "data-model",
+      "text": "What should lot profitability include beyond the feed-cost-based cost-of-gain calculation?",
+      "options": [
+       "Report feed cost per pound gained only, and label it as cost of gain rather than net ROI.",
+       "Include allocated animal purchase cost and feed cost, and include sale revenue only when it is recorded.",
+       "Include all recorded purchase, feed, sale, and other lot costs and revenues in net ROI."
+      ],
+      "recommended": "Include allocated animal purchase cost and feed cost, and include sale revenue only when it is recorded.",
+      "reason": "This uses the specified purchase-cost baseline and feed costs while avoiding an unsupported claim of complete ROI when sale data is absent.",
+      "spans": [
+       "I-1",
+       "I-6",
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "The selected inputs change lot profitability figures and how those figures may be interpreted.",
+      "difference": "D-6"
+     },
+     {
+      "id": "Q-16",
+      "category": "scope",
+      "text": "Where should the requested dashboard and report filters apply?",
+      "options": [
+       "Apply the stated date-range, breed, sex, and pen filters to the dedicated feed-to-gain report only.",
+       "Apply relevant filters across dashboards and all report views as well as the feed-to-gain report.",
+       "Apply filters only to dashboards; keep reports unfiltered."
+      ],
+      "recommended": "Apply the stated date-range, breed, sex, and pen filters to the dedicated feed-to-gain report only.",
+      "reason": "Those filter dimensions are explicitly required for the dedicated feed-to-gain report; broader filtering is an additional scope choice.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "The choice affects which views users can narrow and compare operational data in.",
+      "difference": "D-7",
+      "topic": "reporting"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

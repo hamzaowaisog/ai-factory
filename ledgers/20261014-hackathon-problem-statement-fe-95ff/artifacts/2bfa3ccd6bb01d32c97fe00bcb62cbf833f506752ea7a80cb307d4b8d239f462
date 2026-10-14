@@ -1,0 +1,7 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "end",
+ "text": "",
+ "calls": []
+}

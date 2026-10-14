@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "CREATE TABLE",
+    "glob": "**/*.cs"
+   },
+   "ms": 5,
+   "resultChars": 158,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;CREATE TABLE&quot;,&quot;glob&quot;:&quot;**/*.cs&quot;}\">\nNo matches\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "source": "cli",
+    "sourceRef": "request",
+    "spans": [
+     {
+      "id": "I-1",
+      "text": "Import procurement and receiving data and map PO lines to lots and pens with traceability."
+     },
+     {
+      "id": "I-2",
+      "text": "Forecast lifecycle milestones, target weights, and projected market dates."
+     },
+     {
+      "id": "I-3",
+      "text": "Track feed inventory, stock movements, wastage, and forecasts across multiple time horizons."
+     },
+     {
+      "id": "I-4",
+      "text": "Create and optimize rations with ingredient proportions, nutritional values, and costs."
+     },
+     {
+      "id": "I-5",
+      "text": "Generate pen-level feeding plans and schedules using bunk rates, ration, and animal counts."
+     },
+     {
+      "id": "I-6",
+      "text": "Record feeding activities, compare planned and actual quantities, decrement inventory, and roll up lot costs and consumption."
+     },
+     {
+      "id": "I-7",
+      "text": "Record dated lot weight measurements and maintain weight trends."
+     },
+     {
+      "id": "I-8",
+      "text": "Calculate feed-to-gain metrics, profitability, forecasts, and recommendations from feeding and weight data."
+     },
+     {
+      "id": "I-9",
+      "text": "Provide dashboards, reports, filters, and CSV or PDF exports for feedlot operations and performance."
+     },
+     {
+      "id": "I-10",
+      "text": "Create mock data and present the proposed architecture, demo, validation, challenges, readiness, and go-to-market analysis."
+     }
+    ],
+    "changeClass": "feature",
+    "risk": "high",
+    "riskTags": [
+     "migration"
+    ],
+    "rigor": "full",
+    "touchesUi": true
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

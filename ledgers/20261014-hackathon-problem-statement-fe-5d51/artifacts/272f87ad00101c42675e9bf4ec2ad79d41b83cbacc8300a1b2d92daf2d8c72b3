@@ -1,0 +1,1306 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Establish API conventions, authentication, and account operations",
+      "reqs": [
+       "REQ-6",
+       "REQ-10",
+       "REQ-16"
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/Infrastructure/**",
+       "App.Api/Auth/**",
+       "App.Api/Migrations/202610140001_Auth.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs"
+      ],
+      "conventions": [
+       "Keep the locked OpenAPI contract unchanged; expose only contract operations plus the existing health and documentation routes.",
+       "Discover endpoint, service, and seed modules by convention so later slices add their own modules without editing Program.cs or SeedData.cs.",
+       "Use additive EF Core migrations and apply them at startup; do not reset or delete existing tables or rows.",
+       "The test factory is outside allowed file scopes; make an unset Seed:Demo explicitly default to false in the application while preserving an explicit true opt-in."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 650,
+      "complexity": "compliance-sensitive",
+      "approach": "Wire module discovery and service registration in Program.cs before building the app, map discovered route modules before MapOpenApi, and configure generated OpenAPI metadata for the contract's operation IDs, schemas, statuses, media types, and bearer security. Replace EnsureCreated with Database.Migrate. Add account/session entities and the auth migration; implement sign-in, custom bearer validation, administrator-only account list/create/update, and typed contract errors in this slice so its routes work immediately. Add the ordered seed-module convention and account sample seeder; leave AppFactory unchanged and normalize an unset Seed:Demo to false."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Add lot traceability and pen allocation operations",
+      "reqs": [],
+      "fileScope": [
+       "App.Api/Lots/**",
+       "App.Api/Migrations/202610140002_Lots.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Add each route through a discovered endpoint module; do not edit startup or shared registration files.",
+       "Keep lot and pen entities, their EF configuration, their migration, and their seed module in this slice.",
+       "Return only contract-defined lot traceability fields and use real persisted pen/lot allocations."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 450,
+      "complexity": "standard",
+      "approach": "Add Pen, Lot, and PenLotAllocation entities/configurations and an additive migration. Implement GET /api/v1/lots with the contract response and at least two seeded pens, lots, and allocations. Keep lifecycle/performance/financial detail handlers for the slice that introduces weight and feeding data."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Implement inventory, rations, and ration-candidate operations",
+      "reqs": [
+       "REQ-2"
+      ],
+      "fileScope": [
+       "App.Api/InventoryRations/**",
+       "App.Api/Migrations/202610140003_InventoryRations.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use the discovered endpoint and seed module conventions established in TASK-1.",
+       "Keep entered quantities and units in storage; normalize quantities and prices to pounds for calculations using 2,000 lb per ton.",
+       "Use one database transaction for stock receipts and ration saves; return contract-shaped 422 field errors for invalid requests."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 900,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add inventory items/movements, rations/ingredients, optimization candidates/ingredients, and candidate assignments with an additive migration. Implement inventory listing, receipts, projections, ration listing/creation, optimization, and explicit candidate save/assign routes. Validate positive quantities and proportions, compute normalized pounds and USD/lb, derive nutrition/cost values from ingredient data, and seed at least two rows for every table introduced here."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Implement feeding plans and per-lot feeding activities",
+      "reqs": [
+       "REQ-3",
+       "REQ-11",
+       "REQ-12",
+       "REQ-13"
+      ],
+      "fileScope": [
+       "App.Api/Feeding/**",
+       "App.Api/Migrations/202610140004_Feeding.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Keep all routes, models, migration, and seed data for this slice inside its scope.",
+       "Use pounds for plan allocation, ingredient consumption, stock changes, costs, and variance; preserve source units in ration responses.",
+       "Make multi-lot posting atomic, reject insufficient stock with 409 without persisting any partial changes, and reverse/recalculate affected movements on update or cancel."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3"
+      ],
+      "plannedLoc": 950,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add dated plans and feeding activity persistence with one distinct activity row per served lot under a shared group ID, plus their migrations and sample seed rows. Implement list/create plan and list/create/update/cancel activity routes. Compute each lot's share and its own costs/consumption, while the create response aggregates those rows into the contract's singular activity object and its separate lotAllocations; list responses expose each persisted per-lot activity. Apply inventory and activity changes in one transaction."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Implement weights, lot detail, yard summary, and Feed-to-Gain reports",
+      "reqs": [
+       "REQ-4"
+      ],
+      "fileScope": [
+       "App.Api/WeightsReports/**",
+       "App.Api/Migrations/202610140005_WeightsReports.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use the endpoint-module convention and make this slice's routes usable as soon as it is added.",
+       "Persist source weight measurements and derive trends, ADG, FCR, costs, and projected dates from stored lot/feeding data rather than storing request-time aggregates.",
+       "Return only matching report rows while retaining complete known filter choices; CSV and PDF must use the same filtered rows."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4"
+      ],
+      "plannedLoc": 750,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add WeightMeasurement persistence and an additive migration, then implement weight list/create/correct, lifecycle/performance/financial lot detail, yard summary, report filtering, and CSV/PDF export routes. Recalculate metrics from accepted measurements and feeding records; seed at least two weight measurements. Generate CSV directly and a minimal valid PDF response without adding a package."
+     },
+     {
+      "id": "TASK-6",
+      "title": "Complete overview, synchronization, demo operations, seeding, and contract coverage",
+      "reqs": [
+       "REQ-1",
+       "REQ-5",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9"
+      ],
+      "fileScope": [
+       "App.Api/Administration/**",
+       "App.Api/External/**",
+       "App.Api/appsettings.json",
+       "App.Api/Migrations/202610140006_Administration.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Implement only the remaining operations in the locked contract; do not modify contracts/openapi.yaml or add product-screen routes.",
+       "Reach the configured mock procurement source only through the IProcurementSource seam, registered through the service-module convention.",
+       "Keep the seed modules ordered by dependency and ensure demo-enabled startup seeds every contract-backed table with at least two rows."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5"
+      ],
+      "plannedLoc": 750,
+      "complexity": "external-dependency",
+      "approach": "Add the procurement seam implementation and service registration, overview/sync/demo endpoint modules, and sync persistence/migration. Declare every new configuration key in appsettings.json with an empty value; the configured mock source should use contract-derived sample records when its Records setting is empty. Finish OpenAPI metadata so all 32 locked operations have their exact paths, methods, operation IDs, schemas, statuses, media types, and security; verify the route set contains no extra product API operations. Add at least two seed rows for each remaining contract-backed table, using the seed-module convention from TASK-1, and check create/update persistence and data-preserving migrations."
+     }
+    ],
+    "options": [
+     {
+      "id": "OPTION-1",
+      "summary": "Implement the contract operations as a single set of handlers in Program.cs with inferred OpenAPI metadata and shared persistence code.",
+      "simplest": true,
+      "tradeoffs": "Fewest abstractions and quickest initial scaffolding, but creates one large integration hotspot, makes later route changes conflict, and inferred schemas/security/status metadata can drift from the locked contract."
+     },
+     {
+      "id": "OPTION-2",
+      "summary": "Use discovered endpoint, service, and seed modules; each working slice owns its routes, entities, additive migration, and seed module, while a startup OpenAPI configuration enforces contract metadata.",
+      "simplest": false,
+      "tradeoffs": "Adds a small convention and migration discipline, but later slices wire their own routes without editing shared startup files, preserve existing data, and support parallel implementation with disjoint scopes."
+     }
+    ],
+    "chosen": "OPTION-2",
+    "adr": "Choose OPTION-2: discovered route/service/seed modules let each slice wire its own API and data without shared-file conflicts.\nUse additive EF migrations and contract-shaped endpoint metadata; leave contracts/openapi.yaml locked and unchanged.\nPersist one feeding-activity row per lot under a shared group, aggregating only the POST response to preserve the contract's singular activity shape.\nKeep the existing API/Swagger surface; do not add product screens or external packages.",
+    "protectedPathsDeclared": [
+     "App.Api/Migrations/202610140001_Auth.cs",
+     "App.Api/Migrations/202610140002_Lots.cs",
+     "App.Api/Migrations/202610140003_InventoryRations.cs",
+     "App.Api/Migrations/202610140004_Feeding.cs",
+     "App.Api/Migrations/202610140005_WeightsReports.cs",
+     "App.Api/Migrations/202610140006_Administration.cs"
+    ],
+    "newDependencies": [],
+    "stubs": [
+     {
+      "path": "App.Api/External/IProcurementSource.cs",
+      "reason": "Keeps synchronization behind an injectable seam so tests can supply a stand-in before the provider implementation exists.",
+      "content": "namespace App.Api.External;\n\npublic interface IProcurementSource\n{\n    Task<string> FetchRecordsJsonAsync(CancellationToken cancellationToken);\n}\n"
+     }
+    ],
+    "dataModel": {
+     "tables": [
+      {
+       "name": "Accounts",
+       "purpose": "Administrator-managed accounts used for sign-in and role authorization.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "department",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "email",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "passwordHash",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "role",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Administrator",
+          "Operator"
+         ]
+        },
+        {
+         "name": "status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Active",
+          "Inactive"
+         ]
+        }
+       ]
+      },
+      {
+       "name": "ApiSessions",
+       "purpose": "Revocable, expiring bearer sessions associated with an account.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "uuid",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "accountId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Accounts",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "tokenHash",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "issuedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "expiresAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "revoked",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Pens",
+       "purpose": "Named yard pens and their animal capacity.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "capacity",
+         "type": "int",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "Lots",
+       "purpose": "Procurement-traceable cattle lots and their received and target attributes.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "lotCode",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "sourceId",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "sourceRecordId",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "supplier",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "receivedDate",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "breed",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "sex",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "receivedHead",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "purchaseCostAllocation",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "receivedAverageWeightLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "targetWeightLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "ageMonths",
+         "type": "int",
+         "required": false
+        },
+        {
+         "name": "status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Active",
+          "Closed"
+         ]
+        }
+       ],
+       "uniques": [
+        [
+         "sourceId",
+         "sourceRecordId"
+        ]
+       ]
+      },
+      {
+       "name": "PenLotAllocations",
+       "purpose": "Current head-count allocations of cattle lots to pens.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "penId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "lotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "headCount",
+         "type": "int",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "penId",
+         "lotId"
+        ]
+       ]
+      },
+      {
+       "name": "InventoryItems",
+       "purpose": "Feed ingredients with entered-unit, normalized-price, nutrition, and opening-stock values.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "item",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "category",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "supplier",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "enteredQuantity",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "enteredUnit",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "normalizedPounds",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "cost",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "costUnit",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "normalizedCostUsdPerLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "dryMatterPercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "energyMcalPerLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "crudeProteinPercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "tdnPercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "storageLocation",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "openingLb",
+         "type": "decimal",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "InventoryMovements",
+       "purpose": "Pound-based receipt and feeding-consumption stock movements.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "inventoryItemId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "InventoryItems",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "date",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "type",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Receipt",
+          "Feed consumption"
+         ]
+        },
+        {
+         "name": "quantityLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "enteredQuantity",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "enteredUnit",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "activityGroupId",
+         "type": "uuid",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "Rations",
+       "purpose": "Saved ration names and intended animal ranges.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "name",
+         "type": "string",
+         "required": true,
+         "unique": true
+        },
+        {
+         "name": "rationType",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "intendedAnimalRange",
+         "type": "string",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "RationIngredients",
+       "purpose": "Entered ingredient quantities, units, and proportions for saved rations.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "rationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Rations",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "inventoryItemId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "InventoryItems",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "quantity",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "enteredUnit",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "proportionPercent",
+         "type": "decimal",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "RationCandidates",
+       "purpose": "Unsaved or explicitly saved/assigned optimization candidate mixes.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "intendedAnimalRange",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "costUsdPerLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "crudeProteinPercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "tdnPercent",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "netEnergyMcalPerLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "tradeoff",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Candidate",
+          "Saved",
+          "Assigned"
+         ]
+        },
+        {
+         "name": "savedRationId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "Rations",
+          "column": "id",
+          "onDelete": "set-null"
+         }
+        }
+       ]
+      },
+      {
+       "name": "CandidateIngredients",
+       "purpose": "Ingredient proportions for each optimization candidate.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "candidateId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "RationCandidates",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "inventoryItemId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "InventoryItems",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "name",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "proportionPercent",
+         "type": "decimal",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "candidateId",
+         "inventoryItemId"
+        ]
+       ]
+      },
+      {
+       "name": "CandidateAssignments",
+       "purpose": "Explicit effective-date assignments of accepted candidates to pens.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "candidateId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "RationCandidates",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "penId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "effectiveDate",
+         "type": "date",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "candidateId"
+        ]
+       ]
+      },
+      {
+       "name": "FeedingPlans",
+       "purpose": "Dated pen and ration feeding schedules with planned head count and rate.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "date",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "penId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "rationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Rations",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "bunkRateLbPerHeadPerDay",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "plannedHeadCount",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "feedingTime",
+         "type": "time",
+         "required": false
+        },
+        {
+         "name": "status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Planned",
+          "In progress",
+          "Completed",
+          "Skipped"
+         ]
+        }
+       ]
+      },
+      {
+       "name": "PlanLotAllocations",
+       "purpose": "Per-lot pound shares of a planned pen delivery.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "planId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "FeedingPlans",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "lotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "plannedQuantityLb",
+         "type": "decimal",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "planId",
+         "lotId"
+        ]
+       ]
+      },
+      {
+       "name": "FeedingActivities",
+       "purpose": "Separately attributable per-lot feeding activity rows grouped as one pen-level delivery.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "activityGroupId",
+         "type": "uuid",
+         "required": true
+        },
+        {
+         "name": "planId",
+         "type": "int",
+         "required": false,
+         "references": {
+          "table": "FeedingPlans",
+          "column": "id",
+          "onDelete": "set-null"
+         }
+        },
+        {
+         "name": "date",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "penId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Pens",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "rationId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Rations",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "lotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "bunkRateLbPerHeadPerDay",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "headCount",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "plannedQuantityLb",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "actualQuantityLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Completed",
+          "Canceled"
+         ]
+        },
+        {
+         "name": "planMismatch",
+         "type": "bool",
+         "required": true
+        }
+       ],
+       "uniques": [
+        [
+         "activityGroupId",
+         "lotId"
+        ]
+       ]
+      },
+      {
+       "name": "WeightMeasurements",
+       "purpose": "Dated, correctable lot weight measurements and recorder notes.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "lotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        },
+        {
+         "name": "date",
+         "type": "date",
+         "required": true
+        },
+        {
+         "name": "animalsWeighed",
+         "type": "int",
+         "required": true
+        },
+        {
+         "name": "averageWeightLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "totalLotWeightLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "gainSincePriorLb",
+         "type": "decimal",
+         "required": true
+        },
+        {
+         "name": "notes",
+         "type": "text",
+         "required": true
+        },
+        {
+         "name": "recorder",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "result",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Accepted",
+          "Corrected"
+         ]
+        }
+       ]
+      },
+      {
+       "name": "SyncBatches",
+       "purpose": "Timestamped outcomes for synchronization requests to the configured mock source.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "uuid",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "source",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "status",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Completed",
+          "Partial"
+         ]
+        },
+        {
+         "name": "createdAt",
+         "type": "datetime",
+         "required": true
+        }
+       ]
+      },
+      {
+       "name": "SyncRecords",
+       "purpose": "Imported, updated, or failed source records and their source values.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "syncBatchId",
+         "type": "uuid",
+         "required": true,
+         "references": {
+          "table": "SyncBatches",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "sourceId",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "sourceRecordId",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "vendor",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "costUsd",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "headCount",
+         "type": "int",
+         "required": false
+        },
+        {
+         "name": "averageWeightLb",
+         "type": "decimal",
+         "required": false
+        },
+        {
+         "name": "breed",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "ageMonths",
+         "type": "int",
+         "required": false
+        },
+        {
+         "name": "sex",
+         "type": "string",
+         "required": false
+        },
+        {
+         "name": "result",
+         "type": "enum",
+         "required": true,
+         "values": [
+          "Imported",
+          "Updated",
+          "Failed"
+         ]
+        },
+        {
+         "name": "error",
+         "type": "text",
+         "required": false
+        }
+       ]
+      },
+      {
+       "name": "SyncRecordLots",
+       "purpose": "Lot targets produced by individual procurement synchronization records.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "id",
+         "type": "int",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "syncRecordId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "SyncRecords",
+          "column": "id",
+          "onDelete": "cascade"
+         }
+        },
+        {
+         "name": "lotId",
+         "type": "int",
+         "required": true,
+         "references": {
+          "table": "Lots",
+          "column": "id",
+          "onDelete": "restrict"
+         }
+        }
+       ],
+       "uniques": [
+        [
+         "syncRecordId",
+         "lotId"
+        ]
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 6,
+   "resultChars": 149,
+   "isError": true,
+   "result": "The result doesn't match the schema: dataModel.tables.11.uniques.0: Too small: expected array to have >=2 items. Fix it and call submit_result again."
+  }
+ ]
+}

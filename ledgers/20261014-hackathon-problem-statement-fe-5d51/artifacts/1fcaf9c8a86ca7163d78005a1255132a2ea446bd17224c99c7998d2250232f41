@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Tests/AppFactory.cs"
+   },
+   "ms": 1,
+   "resultChars": 3059,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Tests/AppFactory.cs&quot;}\">\nApp.Tests/AppFactory.cs lines 1-68\n1\tusing Microsoft.AspNetCore.Hosting;\n2\tusing Microsoft.AspNetCore.Mvc.Testing;\n3\tusing Microsoft.Extensions.Configuration;\n4\tusing Npgsql;\n5\t\n6\tnamespace App.Tests;\n7\t\n8\t/// <summary>\n9\t/// The app for one test class, on a database of its own that starts empty: no other test class, and no earlier run, can leave\n10\t/// rows in it. Use it as the class fixture: <c>public class OrdersTests : IClassFixture&lt;AppFactory&gt;</c>. A test that\n11\t/// restarts the app makes a second one on the same database: <c>using var again = factory.Restarted();</c>\n12\t/// The server and login come from ConnectionStrings__App, which the factory sets; only the database is new.\n13\t/// </summary>\n14\tpublic class AppFactory : WebApplicationFactory<Program>\n15\t{\n16\t    private readonly string _server;\n17\t    private readonly bool _owns;\n18\t    public string ConnectionString { get; }\n19\t\n20\t    public AppFactory() : this(null) { }\n21\t\n22\t    private AppFactory(string? database)\n23\t    {\n24\t        _server = Environment.GetEnvironmentVariable(\"ConnectionStrings__App\")\n25\t            ?? throw new InvalidOperationException(\"ConnectionStrings__App is not set: the tests need a PostgreSQL server.\");\n26\t        _owns = database is null;\n27\t        var name = database ?? $\"t_{Guid.NewGuid():N}\";\n28\t        if (_owns) Exec(_server, $\"CREATE DATABASE \\\"{name}\\\"\");\n29\t        ConnectionString = new NpgsqlConnectionStringBuilder(_server) { Database = name }.ConnectionString;\n30\t    }\n31\t\n32\t    /// <summary>The app started again on this class's database, as after a restart.</summary>\n33\t    public AppFactory Restarted() => new(new NpgsqlConnectionStringBuilder(ConnectionString).Database);\n34\t\n35\t    protected override void ConfigureWebHost(IWebHostBuilder builder) =>\n36\t        builder.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?> { [\"ConnectionStrings:App\"] = ConnectionString }));\n37\t\n38\t    // xUnit ends a class fixture with DisposeAsync; Dispose covers a test that ends one itself with using\n39\t    public override async ValueTask DisposeAsync()\n40\t    {\n41\t        await base.DisposeAsync();\n42\t        Drop();\n43\t    }\n44\t\n45\t    protected override void Dispose(bool disposing)\n46\t    {\n47\t        base.Dispose(disposing);\n48\t        if (disposing) Drop();\n49\t    }\n50\t\n51\t    private bool _dropped;\n52\t    private void Drop()\n53\t    {\n54\t        if (!_owns || _dropped) return;\n55\t        _dropped = true;\n56\t        NpgsqlConnection.ClearAllPools();\n57\t        Exec(_server, $\"DROP DATABASE IF EXISTS \\\"{new NpgsqlConnectionStringBuilder(ConnectionString).Database}\\\" WITH (FORCE)\");\n58\t    }\n59\t\n60\t    private static void Exec(string connection, string sql)\n61\t    {\n62\t        using var c = new NpgsqlConnection(connection);\n63\t        c.Open();\n64\t        using var cmd = new NpgsqlCommand(sql, c);\n65\t        cmd.ExecuteNonQuery();\n66\t    }\n67\t}\n68\t\n</untrusted_document>"
+  }
+ ]
+}

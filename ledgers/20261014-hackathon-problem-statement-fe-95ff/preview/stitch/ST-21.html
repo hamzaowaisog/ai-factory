@@ -1,0 +1,400 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed-to-Gain - Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Design Tokens */
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-panel: #FFFFFF;
+      --text-main: #262A2D;
+      --text-quiet: #626A6F;
+      --border-rule: #D9DAD7;
+      --primary-accent: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion Tokens */
+    @keyframes fadeInSequence {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUpDigit {
+      from {
+        transform: translateY(0.65em);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: fadeInSequence 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: rollUpDigit 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Shared Header */
+    header.feedlot-header {
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border-rule);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .brand-mark-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-grain-box {
+      width: 28px;
+      height: 28px;
+      background-color: var(--primary-accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-wordmark {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    nav.header-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 56px;
+    }
+
+    .nav-link {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      text-decoration: none;
+      padding: 0 12px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: -2px;
+    }
+
+    .nav-link.active {
+      color: var(--text-main);
+      font-weight: 600;
+      border-bottom-color: var(--primary-accent);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar-initials {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #E6E8E6;
+      border: 1px solid var(--border-rule);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .user-role {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    /* Main Layout */
+    main.page-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-title-row {
+      margin-bottom: 24px;
+    }
+
+    h1.page-heading {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 28px;
+      line-height: 1.2;
+      color: var(--text-main);
+      letter-spacing: -0.015em;
+    }
+
+    /* Sub-bar / Count display */
+    .summary-meta-bar {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+
+    .summary-meta-bar .count-highlight {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text-main);
+    }
+
+    /* Empty State Panel */
+    .empty-state-panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+      padding: 80px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 400px;
+    }
+
+    .empty-state-icon-wrapper {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background-color: #ECEEEA;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-accent);
+      margin-bottom: 20px;
+    }
+
+    .empty-state-title {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 22px;
+      line-height: 1.3;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .empty-state-desc {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-quiet);
+      max-width: 460px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background-color: var(--primary-accent);
+      color: #FFFFFF;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background-color 140ms ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #435b6b;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared Header -->
+  <header class="feedlot-header">
+    <div class="header-left">
+      <a href="#" class="brand-mark-group">
+        <div class="brand-grain-box">F</div>
+        <span class="brand-wordmark">Feedlot</span>
+      </a>
+      <nav class="header-nav" aria-label="Main Navigation">
+        <a href="#" class="nav-link">Overview</a>
+        <a href="#" class="nav-link">Lots</a>
+        <a href="#" class="nav-link">Inventory</a>
+        <a href="#" class="nav-link">Rations</a>
+        <a href="#" class="nav-link">Feeding plans</a>
+        <a href="#" class="nav-link">Feeding log</a>
+        <a href="#" class="nav-link">Lot weights</a>
+        <a href="#" class="nav-link">Yard summary</a>
+        <a href="#" class="nav-link active" aria-current="page">Feed-to-Gain</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-avatar-initials" aria-hidden="true">MC</div>
+      <div class="user-meta">
+        <span class="user-name">Mara Chen</span>
+        <span class="user-role">Feed Operations, Administrator</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <main class="page-container animate-entrance">
+    <div class="page-title-row">
+      <h1 class="page-heading">Feed-to-Gain</h1>
+    </div>
+
+    <div class="summary-meta-bar">
+      <span><span class="count-highlight digit-roll">0</span> lots evaluated across <span class="count-highlight digit-roll">0</span> active pens</span>
+    </div>
+
+    <!-- Empty State Container -->
+    <div class="empty-state-panel">
+      <div class="empty-state-icon-wrapper" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+          <polyline points="17 6 23 6 23 12"></polyline>
+        </svg>
+      </div>
+
+      <h2 class="empty-state-title">No feed-to-gain comparisons yet</h2>
+      
+      <p class="empty-state-desc">
+        No cattle lots have recorded both feeding logs and weight events to compute conversion ratios. Record lot weights to generate gain efficiency metrics.
+      </p>
+
+      <button type="button" class="btn-primary">
+        Record lot weight
+      </button>
+    </div>
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding plans":"S-9","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-13";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getListFeedingActivitiesResponseMock|feedingActivitiesResponse",
+    "glob": "**/*"
+   },
+   "ms": 19,
+   "resultChars": 2411,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getListFeedingActivitiesResponseMock|feedingActivitiesResponse&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:79: export const getListFeedingActivitiesResponseMock = (): FeedingActivityList => ({\"activities\":[{\"id\":901,\"date\":\"2026-04-14\",\"pen\":\"North 2\",\"ration\":\"Grower 2\",\"plannedQuantityLb\":900,\"actualQuantity\nlib/api/client.msw.ts:289: : getListFeedingActivitiesResponseMock()),\nlib/api/client.ts:939: export type listFeedingActivitiesResponse200 = {\nlib/api/client.ts:944: export type listFeedingActivitiesResponse401 = {\nlib/api/client.ts:949: export type listFeedingActivitiesResponse403 = {\nlib/api/client.ts:954: export type listFeedingActivitiesResponse500 = {\nlib/api/client.ts:959: export type listFeedingActivitiesResponseSuccess = (listFeedingActivitiesResponse200) & {\nlib/api/client.ts:962: export type listFeedingActivitiesResponseError = (listFeedingActivitiesResponse401 | listFeedingActivitiesResponse403 | listFeedingActivitiesResponse500) & {\nlib/api/client.ts:966: export type listFeedingActivitiesResponse = (listFeedingActivitiesResponseSuccess | listFeedingActivitiesResponseError)\nlib/api/client.ts:976: export const listFeedingActivities = async ( options?: RequestInit): Promise<listFeedingActivitiesResponse> => {\nlib/api/client.ts:989: const data: listFeedingActivitiesResponse['data'] = body ? JSON.parse(body) : {}\nlib/api/client.ts:990: return { data, status: res.status, headers: res.headers } as listFeedingActivitiesResponse\ntests/acceptance.part2.test.tsx:18: getListFeedingActivitiesResponseMock,\ntests/acceptance.part2.test.tsx:323: const response = getListFeedingActivitiesResponseMock();\ntests/acceptance.part2.test.tsx:442: const response = getListFeedingActivitiesResponseMock();\ntests/acceptance.part3.test.tsx:16: getListFeedingActivitiesResponseMock,\ntests/acceptance.part3.test.tsx:147: const activities = getListFeedingActivitiesResponseMock();\ntests/acceptance.part3.test.tsx:173: getListFeedingActivitiesMockHandler(getListFeedingActivitiesResponseMock()),\ntests/acceptance.part3.test.tsx:195: getListFeedingActivitiesMockHandler(getListFeedingActivitiesResponseMock()),\ntests/acceptance.part4.test.tsx:28: getListFeedingActivitiesResponseMock,\ntests/acceptance.part4.test.tsx:98: const activity = getListFeedingActivitiesResponseMock().activities[0];\n</untrusted_document>"
+  }
+ ]
+}

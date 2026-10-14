@@ -1,0 +1,79 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "operationId:|^  /|^paths:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2950,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;operationId:|^  /|^paths:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:10: paths:\ncontracts/openapi.yaml:11: /auth/sign-in:\ncontracts/openapi.yaml:13: operationId: signIn\ncontracts/openapi.yaml:57: /overview:\ncontracts/openapi.yaml:59: operationId: getOverview\ncontracts/openapi.yaml:117: /lots:\ncontracts/openapi.yaml:119: operationId: listLots\ncontracts/openapi.yaml:150: /lots/{lotId}/lifecycle:\ncontracts/openapi.yaml:152: operationId: getLotLifecycle\ncontracts/openapi.yaml:197: /inventory:\ncontracts/openapi.yaml:199: operationId: listInventory\ncontracts/openapi.yaml:240: /inventory/receipts:\ncontracts/openapi.yaml:242: operationId: createInventoryReceipt\ncontracts/openapi.yaml:287: /inventory/projections:\ncontracts/openapi.yaml:289: operationId: getInventoryProjections\ncontracts/openapi.yaml:322: /rations:\ncontracts/openapi.yaml:324: operationId: listRations\ncontracts/openapi.yaml:356: operationId: createRation\ncontracts/openapi.yaml:405: /rations/optimization:\ncontracts/openapi.yaml:407: operationId: optimizeRation\ncontracts/openapi.yaml:450: /rations/candidates/{candidateId}/save:\ncontracts/openapi.yaml:452: operationId: saveRationCandidate\ncontracts/openapi.yaml:483: /rations/candidates/{candidateId}/assign:\ncontracts/openapi.yaml:485: operationId: assignRationCandidate\ncontracts/openapi.yaml:517: /feeding-plans:\ncontracts/openapi.yaml:519: operationId: listFeedingPlans\ncontracts/openapi.yaml:554: operationId: createFeedingPlan\ncontracts/openapi.yaml:602: /feeding-activities:\ncontracts/openapi.yaml:604: operationId: listFeedingActivities\ncontracts/openapi.yaml:642: operationId: createFeedingActivity\ncontracts/openapi.yaml:711: /feeding-activities/{activityId}:\ncontracts/openapi.yaml:713: operationId: updateFeedingActivity\ncontracts/openapi.yaml:786: operationId: cancelFeedingActivity\ncontracts/openapi.yaml:825: /weight-measurements:\ncontracts/openapi.yaml:827: operationId: listWeightMeasurements\ncontracts/openapi.yaml:866: operationId: createWeightMeasurement\ncontracts/openapi.yaml:917: /weight-measurements/{measurementId}:\ncontracts/openapi.yaml:919: operationId: correctWeightMeasurement\ncontracts/openapi.yaml:974: /yard-summary:\ncontracts/openapi.yaml:976: operationId: getYardSummary\ncontracts/openapi.yaml:1015: /reports/feed-to-gain:\ncontracts/openapi.yaml:1017: operationId: getFeedToGainReport\ncontracts/openapi.yaml:1090: /reports/feed-to-gain/export:\ncontracts/openapi.yaml:1092: operationId: exportFeedToGainReport\ncontracts/openapi.yaml:1152: /admin/accounts:\ncontracts/openapi.yaml:1154: operationId: listAccounts\ncontracts/openapi.yaml:1176: operationId: createAccount\ncontracts/openapi.yaml:1216: /admin/accounts/{accountId}:\ncontracts/openapi.yaml:1218: operationId: updateAccount\ncontracts/openapi.yaml:1257: /admin/sync:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Map|Http(Get|Post|Put|Patch|Delete)|Route\\(|Controller|GetAsync|PostAsync",
+    "glob": "App.Api/**/*.cs"
+   },
+   "ms": 1,
+   "resultChars": 342,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Map|Http(Get|Post|Put|Patch|Delete)|Route\\\\(|Controller|GetAsync|PostAsync&quot;,&quot;glob&quot;:&quot;App.Api/**/*.cs&quot;}\">\nApp.Api/Program.cs:28: app.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\nApp.Api/Program.cs:30: app.MapOpenApi();\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "contracts/openapi|built|OpenApi|Seed__Demo|Seed:Demo",
+    "glob": "**/*.*"
+   },
+   "ms": 2,
+   "resultChars": 1750,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;contracts/openapi|built|OpenApi|Seed__Demo|Seed:Demo&quot;,&quot;glob&quot;:&quot;**/*.*&quot;}\">\n.gitignore:3: App.Api/openapi/*.json\nApp.Api/App.Api.csproj:6: <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\nApp.Api/App.Api.csproj:7: <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\nApp.Api/App.Api.csproj:8: <OpenApiGenerateDocumentsOptions>--file-name built</OpenApiGenerateDocumentsOptions>\nApp.Api/App.Api.csproj:11: <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\nApp.Api/Program.cs:5: builder.Services.AddOpenApi();\nApp.Api/Program.cs:6: // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is\nApp.Api/Program.cs:13: // Create the database with every table when the app starts. The build also runs this file, to write the API's OpenAPI\nApp.Api/Program.cs:23: // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/Program.cs:29: // The API's own document (/openapi/v1.json) and a page to read and try it (/swagger). Keep both: the factory's product page links to the page.\nApp.Api/Program.cs:30: app.MapOpenApi();\nApp.Api/Program.cs:31: app.UseSwaggerUI(o => o.SwaggerEndpoint(\"/openapi/v1.json\", \"API\"));\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\ncontracts/openapi.yaml:1: openapi: 3.0.3\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "class .*Entity|DbSet|ToTable|HasKey|HasMany|Property\\(",
+    "glob": "App.Api/**/*.cs"
+   },
+   "ms": 0,
+   "resultChars": 209,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;class .*Entity|DbSet|ToTable|HasKey|HasMany|Property\\\\(&quot;,&quot;glob&quot;:&quot;App.Api/**/*.cs&quot;}\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/App.Api.csproj"
+   },
+   "ms": 0,
+   "resultChars": 1148,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/App.Api.csproj&quot;}\">\nApp.Api/App.Api.csproj lines 1-19\n1\t<Project Sdk=\"Microsoft.NET.Sdk.Web\">\n2\t  <PropertyGroup>\n3\t    <TargetFramework>net9.0</TargetFramework>\n4\t    <Nullable>enable</Nullable>\n5\t    <ImplicitUsings>enable</ImplicitUsings>\n6\t    <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\n7\t    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\n8\t    <OpenApiGenerateDocumentsOptions>--file-name built</OpenApiGenerateDocumentsOptions>\n9\t  </PropertyGroup>\n10\t  <ItemGroup>\n11\t    <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\n12\t    <PackageReference Include=\"Microsoft.Extensions.ApiDescription.Server\" Version=\"9.0.0\">\n13\t      <PrivateAssets>all</PrivateAssets>\n14\t    </PackageReference>\n15\t    <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.2\" />\n16\t    <PackageReference Include=\"Swashbuckle.AspNetCore.SwaggerUI\" Version=\"7.3.2\" />\n17\t  </ItemGroup>\n18\t</Project>\n19\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1,
+    "end": 90
+   },
+   "ms": 1,
+   "resultChars": 3226,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1,&quot;end&quot;:90}\">\ncontracts/openapi.yaml lines 1-90\n1\topenapi: 3.0.3\n2\tinfo:\n3\t  title: Feedlot Operations API\n4\t  version: 1.0.0\n5\t  description: \"Shared API contract for the responsive Feedlot web application and API implementation.\"\n6\tservers:\n7\t  - url: /api/v1\n8\tsecurity:\n9\t  - bearerAuth: []\n10\tpaths:\n11\t  /auth/sign-in:\n12\t    post:\n13\t      operationId: signIn\n14\t      summary: \"Sign in with an administrator-managed account.\"\n15\t      security: []\n16\t      requestBody:\n17\t        required: true\n18\t        content:\n19\t          application/json:\n20\t            schema:\n21\t              $ref: '#/components/schemas/SignInRequest'\n22\t            example:\n23\t              email: operator@example.com\n24\t              password: «SECRET_3»      responses:\n26\t        '200':\n27\t          description: \"Signed-in account and role.\"\n28\t          content:\n29\t            application/json:\n30\t              schema:\n31\t                $ref: '#/components/schemas/Session'\n32\t              example:\n33\t                user:\n34\t                  id: 18\n35\t                  name: Morgan Lee\n36\t                  email: operator@example.com\n37\t                  role: Operator\n38\t                accessToken: «SECRET_4»                availablePages:\n40\t                  - Overview\n41\t                  - Lots\n42\t                  - Inventory\n43\t                  - Rations\n44\t                  - Feeding plans\n45\t                  - Feeding log\n46\t                  - Lot weights\n47\t                  - Yard summary\n48\t                  - Feed-to-Gain\n49\t        '400':\n50\t          $ref: '#/components/responses/BadRequest'\n51\t        '401':\n52\t          $ref: '#/components/responses/Unauthorized'\n53\t        '403':\n54\t          $ref: '#/components/responses/Forbidden'\n55\t        '503':\n56\t          $ref: '#/components/responses/Unavailable'\n57\t  /overview:\n58\t    get:\n59\t      operationId: getOverview\n60\t      summary: \"Get operational overview tables and headline values.\"\n61\t      responses:\n62\t        '200':\n63\t          description: \"Overview values from the operations API.\"\n64\t          content:\n65\t            application/json:\n66\t              schema:\n67\t                $ref: '#/components/schemas/Overview'\n68\t              example:\n69\t                headline:\n70\t                  label: Total feed cost today\n71\t                  value: 4280.5\n72\t                  unit: USD\n73\t                activeLots: 3\n74\t                activePens: 2\n75\t                lots:\n76\t                  - lotCode: L-241\n77\t                    pen: North 2\n78\t                    head: 40\n79\t                    adg: 3.2\n80\t                    fcr: 6.4\n81\t                    costOfGain: 1.92\n82\t                    feedCost: 12480\n83\t                    rank: 1\n84\t                    breed: Angus\n85\t                    daysOnFeed: 72\n86\t                    latestWeight: 748\n87\t                inventory:\n88\t                  - item: Ground corn\n89\t                    closingLb: 12400\n90\t                    dailyDemandLb: 1250\n… (3256 lines total; ask for start=91)\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1280,
+    "end": 1370
+   },
+   "ms": 0,
+   "resultChars": 3885,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1280,&quot;end&quot;:1370}\">\ncontracts/openapi.yaml lines 1280-1370\n1280\t                    sex: Unknown\n1281\t                    result: Updated\n1282\t                    targetLots:\n1283\t                      - L-241\n1284\t                    error: null\n1285\t                  - sourceId: PO-7302-1\n1286\t                    sourceRecordId: REC-5520\n1287\t                    result: Failed\n1288\t                    targetLots: []\n1289\t                    error: Source record validation failed\n1290\t        '401':\n1291\t          $ref: '#/components/responses/Unauthorized'\n1292\t        '403':\n1293\t          $ref: '#/components/responses/Forbidden'\n1294\t        '503':\n1295\t          $ref: '#/components/responses/Unavailable'\n1296\t  /admin/demo:\n1297\t    get:\n1298\t      operationId: getDemoMaterials\n1299\t      summary: \"Get mock operational data and presentation materials.\"\n1300\t      responses:\n1301\t        '200':\n1302\t          description: \"Demo content and verified sample outputs.\"\n1303\t          content:\n1304\t            application/json:\n1305\t              schema:\n1306\t                $ref: '#/components/schemas/DemoMaterials'\n1307\t              example:\n1308\t                operationalData:\n1309\t                  activeLots: 3\n1310\t                  activePens: 2\n1311\t                  totalHead: 120\n1312\t                  totalFeedCostUsd: 37440\n1313\t                rules:\n1314\t                  - ruleId: ASM-7\n1315\t                    description: Mixed-lot pen allocations are proportional to current head count.\n1316\t                    sampleDataTarget: Pen North 2\n1317\t                    verifiedOutput: 600 lb and 400 lb lot allocations\n1318\t                    status: Verified\n1319\t                sections:\n1320\t                  - Proposed Solution\n1321\t                  - Architecture Diagram\n1322\t                  - Demo Flow\n1323\t                  - Coding Super Prompt and Other Prompts\n1324\t                  - Testing and Validation\n1325\t                  - Challenges\n1326\t                  - Production Readiness\n1327\t                  - Go-to-Market Analysis\n1328\t        '401':\n1329\t          $ref: '#/components/responses/Unauthorized'\n1330\t        '403':\n1331\t          $ref: '#/components/responses/Forbidden'\n1332\t  /admin/demo/flow:\n1333\t    post:\n1334\t      operationId: startDemoFlow\n1335\t      summary: \"Start the guided demo sequence.\"\n1336\t      requestBody:\n1337\t        required: true\n1338\t        content:\n1339\t          application/json:\n1340\t            schema:\n1341\t              $ref: '#/components/schemas/DemoFlowRequest'\n1342\t            example:\n1343\t              start: true\n1344\t      responses:\n1345\t        '200':\n1346\t          description: \"Started flow and currently selected step.\"\n1347\t          content:\n1348\t            application/json:\n1349\t              schema:\n1350\t                $ref: '#/components/schemas/DemoFlowResult'\n1351\t              example:\n1352\t                started: true\n1353\t                currentStep: 1\n1354\t                stepTitle: Mixed-Lot Pen Allocations\n1355\t                status: In progress\n1356\t        '400':\n1357\t          $ref: '#/components/responses/BadRequest'\n1358\t        '401':\n1359\t          $ref: '#/components/responses/Unauthorized'\n1360\t        '403':\n1361\t          $ref: '#/components/responses/Forbidden'\n1362\t  /lots/{lotId}/performance:\n1363\t    get:\n1364\t      operationId: getLotPerformance\n1365\t      summary: \"Get performance metrics, feed utilization, and weight progression.\"\n1366\t      parameters:\n1367\t        - $ref: '#/components/parameters/LotId'\n1368\t      responses:\n1369\t        '200':\n1370\t          description: \"Lot metrics and refreshed event history.\"\n… (3256 lines total; ask for start=1371)\n</untrusted_document>"
+  }
+ ]
+}

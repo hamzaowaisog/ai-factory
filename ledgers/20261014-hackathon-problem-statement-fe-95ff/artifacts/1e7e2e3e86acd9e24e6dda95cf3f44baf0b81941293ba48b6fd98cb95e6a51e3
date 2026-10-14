@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "function getListInventoryResponseMock|const getListInventoryResponseMock|function getListFeedingActivitiesResponseMock|function getCreateFeedingActivityResponseMock|function getGetLotPerformanceResponseMock|function getCorrectWeightMeasurementResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 19,
+   "resultChars": 426,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;function getListInventoryResponseMock|const getListInventoryResponseMock|function getListFeedingActivitiesRe\">\nlib/api/client.msw.ts:59: export const getListInventoryResponseMock = (): InventoryList => ({\"items\":[{\"id\":401,\"item\":\"Ground corn\",\"category\":\"Grain\",\"supplier\":\"Prairie Feed\",\"availableQuantity\":6.2,\"enteredUnit\":\"ton\",\"nor\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getCreateWeightMeasurementResponseMock|getUpdateFeedingActivityResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 12,
+   "resultChars": 1173,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getCreateWeightMeasurementResponseMock|getUpdateFeedingActivityResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:83: export const getUpdateFeedingActivityResponseMock = (): FeedingActivityResult => ({\"activity\":{\"id\":901,\"date\":\"2026-04-14\",\"pen\":\"North 2\",\"ration\":\"Grower 2\",\"plannedQuantityLb\":900,\"actualQuantityL\nlib/api/client.msw.ts:89: export const getCreateWeightMeasurementResponseMock = (): WeightMeasurementResult => ({\"measurement\":{\"id\":1102,\"lotId\":241,\"lotCode\":\"L-241\",\"date\":\"2026-04-14\",\"animalsWeighed\":40,\"averageWeightLb\":\nlib/api/client.msw.ts:313: : getUpdateFeedingActivityResponseMock()),\nlib/api/client.msw.ts:349: : getCreateWeightMeasurementResponseMock()),\ntests/acceptance.part3.test.tsx:25: getUpdateFeedingActivityResponseMock,\ntests/acceptance.part3.test.tsx:26: getCreateWeightMeasurementResponseMock,\ntests/acceptance.part3.test.tsx:174: getUpdateFeedingActivityMockHandler(getUpdateFeedingActivityResponseMock()),\ntests/acceptance.part3.test.tsx:216: const createdMeasurement = getCreateWeightMeasurementResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,660 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-panel: #FFFFFF;
+      --text-main: #262A2D;
+      --text-quiet: #626A6F;
+      --border-color: #D9DAD7;
+      --primary: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+
+      --font-heading: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUp {
+      from {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes liveBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Digit roller classes */
+    .roll-digit {
+      display: inline-block;
+      animation: rollUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .roll-d1 { animation-delay: 0ms; }
+    .roll-d2 { animation-delay: 35ms; }
+    .roll-d3 { animation-delay: 70ms; }
+    .roll-d4 { animation-delay: 105ms; }
+    .roll-d5 { animation-delay: 140ms; }
+
+    /* Live sync indicator */
+    .sync-live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      animation: liveBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Shared Header */
+    header.site-header {
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      width: 100%;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 100%;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .grain-icon {
+      width: 24px;
+      height: 24px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .brand-name {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    nav.main-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      height: 100%;
+    }
+
+    .nav-link {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      text-decoration: none;
+      height: 100%;
+      display: inline-flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      padding: 0 2px;
+      transition: color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+
+    .nav-link:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary);
+      border-radius: 4px;
+    }
+
+    .nav-link.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #E2E4DE;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    /* Main Container */
+    main.page-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 24px 48px;
+    }
+
+    /* Typography */
+    h1.page-title {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text-main);
+      margin-bottom: 24px;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Buttons & Controls */
+    button, .btn {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      min-height: 44px;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    button:focus-visible, .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    button:active, .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #445c6d;
+      border-color: #445c6d;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: #F8F7F4;
+      border-color: #C6C8C3;
+    }
+
+    /* Error Notification Banner */
+    .error-banner {
+      background-color: #FFFFFF;
+      border: 1px solid var(--status-failed);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .error-banner-message {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .error-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-failed);
+      flex-shrink: 0;
+    }
+
+    .error-banner-title {
+      font-weight: 600;
+      color: var(--status-failed);
+      margin-bottom: 2px;
+    }
+
+    .error-banner-desc {
+      color: var(--text-quiet);
+      font-size: 14px;
+    }
+
+    /* Header Summary Card (Last Run) */
+    .sync-summary-panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .summary-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-quiet);
+    }
+
+    .summary-headline {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .summary-meta {
+      font-size: 14px;
+      color: var(--text-quiet);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Source Record Table Section */
+    .section-header-wrap {
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .section-hairline {
+      height: 1px;
+      background-color: var(--border-color);
+      width: 100%;
+    }
+
+    .table-container {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    /* Error Table Empty/Failed State Display */
+    .table-error-state {
+      padding: 48px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .table-error-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .table-error-subtitle {
+      color: var(--text-quiet);
+      font-size: 14px;
+      max-width: 480px;
+      margin-bottom: 20px;
+    }
+
+    /* Source Records Table */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background-color: #FAFAF8;
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-quiet);
+      height: 40px;
+    }
+
+    table.data-table td {
+      padding: 0 16px;
+      height: 44px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.data-table tr:hover td {
+      background-color: #FAF9F6;
+    }
+
+    /* Semantic Status Indicators */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-good {
+      background-color: var(--status-good);
+    }
+
+    .dot-failed {
+      background-color: var(--status-failed);
+    }
+
+    .dot-waiting {
+      background-color: var(--status-waiting);
+    }
+
+    .text-good {
+      color: var(--status-good);
+    }
+
+    .text-failed {
+      color: var(--status-failed);
+    }
+
+    .text-waiting {
+      color: var(--status-waiting);
+    }
+
+    .error-inline-text {
+      color: var(--status-failed);
+      font-size: 13px;
+    }
+
+    .tag-identifier {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .meta-quiet {
+      color: var(--text-quiet);
+    }
+
+    /* Responsive / Mobile layout */
+    @media (max-width: 900px) {
+      nav.main-nav {
+        display: none;
+      }
+      .sync-summary-panel {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .btn-primary {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <a href="#" class="brand-mark">
+          <div class="grain-icon">F</div>
+          <span class="brand-name">Feedlot</span>
+        </a>
+
+        <nav class="main-nav" aria-label="Main Navigation">
+          <a href="#" class="nav-link">Overview</a>
+          <a href="#" class="nav-link">Lots</a>
+          <a href="#" class="nav-link">Inventory</a>
+          <a href="#" class="nav-link">Rations</a>
+          <a href="#" class="nav-link">Feeding plans</a>
+          <a href="#" class="nav-link">Feeding log</a>
+          <a href="#" class="nav-link">Lot weights</a>
+          <a href="#" class="nav-link">Yard summary</a>
+          <a href="#" class="nav-link">Feed-to-Gain</a>
+        </nav>
+      </div>
+
+      <div class="header-right">
+        <div class="user-avatar" title="Mara Chen">MC</div>
+        <div class="user-meta">
+          <span class="user-name">Mara Chen</span>
+          <span class="user-role">Feed Operations, Administrator</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="page-container animate-entrance">
+    <h1 class="page-title">Sync</h1>
+
+    <!-- Inline Error Message Banner (Data failed to load) -->
+    <div class="error-banner" role="alert">
+      <div class="error-banner-message">
+        <div class="error-dot"></div>
+        <div>
+          <div class="error-banner-title">Data failed to load</div>
+          <div class="error-banner-desc">Unable to retrieve synchronization source logs from the yard service. Please check network connection and try again.</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary">Retry</button>
+    </div>
+
+    <!-- Latest Mock-Source Run Summary -->
+    <section class="sync-summary-panel">
+      <div class="summary-left">
+        <span class="summary-label">Latest Synchronization Run</span>
+        <div class="summary-headline">
+          <span class="mono">
+            <span class="roll-digit roll-d1">A</span><span class="roll-digit roll-d1">p</span><span class="roll-digit roll-d1">r</span> 
+            <span class="roll-digit roll-d2">1</span><span class="roll-digit roll-d2">7</span>, 
+            <span class="roll-digit roll-d3">2</span><span class="roll-digit roll-d3">0</span><span class="roll-digit roll-d3">2</span><span class="roll-digit roll-d3">5</span> 
+            <span class="roll-digit roll-d4">0</span><span class="roll-digit roll-d4">6</span>:<span class="roll-digit roll-d4">2</span><span class="roll-digit roll-d4">0</span>
+          </span>
+          <span class="meta-quiet mono" style="font-size: 15px; font-weight: 400;">America/Denver</span>
+        </div>
+        <div class="summary-meta">
+          <span>Executed by Mara Chen</span>
+          <span>·</span>
+          <span>Mock-source synchronization endpoint</span>
+        </div>
+      </div>
+      <div>
+        <button class="btn btn-primary" type="button">Sync now</button>
+      </div>
+    </section>
+
+    <!-- Source Records Section -->
+    <div class="section-header-wrap" style="margin-top: 28px;">
+      <h2 class="section-title">Source Records</h2>
+      <div class="section-hairline"></div>
+    </div>
+
+    <!-- Table Container displaying failure to load records with retry action -->
+    <div class="table-container">
+      <div class="table-error-state">
+        <div class="error-dot" style="width: 10px; height: 10px; margin-bottom: 4px;"></div>
+        <h3 class="table-error-title">Failed to load source records</h3>
+        <p class="table-error-subtitle">The server encountered an error while retrieving operational synchronization logs and procurement records.</p>
+        <button class="btn btn-secondary" type="button">Retry loading</button>
+      </div>
+    </div>
+
+  </main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding plans":"S-9","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13"},A={"accounts":"S-14","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-15";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

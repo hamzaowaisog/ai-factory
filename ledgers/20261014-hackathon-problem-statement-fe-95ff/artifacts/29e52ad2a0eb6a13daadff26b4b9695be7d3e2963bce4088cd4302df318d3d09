@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>StockFlow Operations - Inventory</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary": "#ffffff",
+            "secondary": "#556068",
+            "background": "#faf9f5",
+            "inverse-surface": "#30312e",
+            "surface-container": "#efeeea",
+            "inverse-on-surface": "#f2f1ed",
+            "surface-container-highest": "#e3e2df",
+            "surface-tint": "#456274",
+            "on-primary-fixed": "#001e2d",
+            "on-error": "#ffffff",
+            "on-primary": "#ffffff",
+            "on-secondary-container": "#5b666e",
+            "tertiary-fixed": "#ffddb7",
+            "secondary-fixed": "#d9e4ee",
+            "primary-fixed-dim": "#accbe0",
+            "on-tertiary-fixed": "#2a1700",
+            "surface-variant": "#e3e2df",
+            "on-tertiary-container": "#ffebd6",
+            "on-secondary": "#ffffff",
+            "on-background": "#1b1c1a",
+            "tertiary-fixed-dim": "#e7c093",
+            "inverse-primary": "#accbe0",
+            "surface-dim": "#dbdad6",
+            "surface-container-lowest": "#ffffff",
+            "outline": "#72787c",
+            "outline-variant": "#c2c7cc",
+            "on-surface": "#1b1c1a",
+            "tertiary": "#6a4e2a",
+            "secondary-container": "#d9e4ee",
+            "on-secondary-fixed-variant": "#3d4850",
+            "on-error-container": "#93000a",
+            "on-surface-variant": "#42474c",
+            "surface-container-low": "#f5f4f0",
+            "surface-bright": "#faf9f5",
+            "surface": "#faf9f5",
+            "tertiary-container": "#856640",
+            "error": "#ba1a1a",
+            "surface-container-high": "#e9e8e4",
+            "primary-fixed": "#c8e7fd",
+            "primary-container": "#526f82",
+            "secondary-fixed-dim": "#bdc8d1",
+            "on-secondary-fixed": "#121d24",
+            "on-primary-container": "#ddf0ff",
+            "on-tertiary-fixed-variant": "#5c421f",
+            "on-primary-fixed-variant": "#2d4a5c",
+            "primary": "#3a5769",
+            "error-container": "#ffdad6"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["\"Source Sans 3\"", "sans-serif"],
+            "mono": ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: 12px;
+    }
+
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes page-enter {
+      from { opacity: 0.65; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes live-breathe {
+      0%, 100% { opacity: 0.84; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+
+    .page-enter {
+      animation: page-enter var(--dur-base) var(--ease-out) both;
+    }
+
+    .live-sync-dot {
+      animation: live-breathe 8s var(--ease-inout) infinite;
+    }
+
+    .figure-digit {
+      opacity: 0.65;
+      transform: translateY(0.65em);
+      transition: transform 600ms var(--ease-out), opacity 600ms var(--ease-out);
+    }
+    .is-visible .figure-digit {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Interactive button transitions strictly per spec */
+    .btn-action {
+      background-color: #526F82;
+      color: #FFFFFF;
+      transition: background-color var(--dur-quick) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+    }
+    .btn-action:hover {
+      background-color: #435c6d;
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    /* Standard 44px field styling */
+    .field-input {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      height: 44px;
+      color: #262A2D;
+      font-size: 15px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
+    }
+    .field-input:focus {
+      border-color: #526F82;
+      box-shadow: 0 0 0 2px rgba(82, 111, 130, 0.25);
+    }
+
+    .record-row {
+      transition: background-color var(--dur-quick) var(--ease-out);
+    }
+    .record-row:hover {
+      background-color: #FAFAF8;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition-duration: 100ms !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] flex flex-col justify-between selection:bg-[#526F82] selection:text-white">
+<!-- Desktop Header (TopNavBar strict spec) -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D9DAD7] sticky top-0 z-40">
+<div class="max-w-[1440px] mx-auto px-6 h-[58px] flex items-center justify-between">
+<!-- Left: Square grain mark with white 'F' beside "Feedlot" wordmark -->
+<div class="flex items-center gap-3 shrink-0">
+<div aria-label="Feedlot Icon" class="w-7 h-7 bg-[#526F82] rounded-[4px] flex items-center justify-center text-white font-headline font-bold text-sm select-none">
+          F
+        </div>
+<span class="font-headline font-semibold text-base tracking-tight text-[#262A2D]">Feedlot</span>
+</div>
+<!-- Navigation items in exact order -->
+<nav aria-label="Main Navigation" class="hidden lg:flex items-center space-x-7 text-[14.5px] h-full">
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#overview">Overview</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#lots">Lots</a>
+<!-- Active Tab: Inventory -->
+<a aria-current="page" class="text-[#262A2D] font-semibold flex items-center h-full border-b-2 border-[#526F82] pt-1" href="#inventory">Inventory</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#rations">Rations</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#feeding-plans">Feeding plans</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#feeding-log">Feeding log</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#lot-weights">Lot weights</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#yard-summary">Yard summary</a>
+<a class="text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160 flex items-center h-full pt-1" href="#feed-to-gain">Feed-to-Gain</a>
+</nav>
+<!-- Right: Signed-in user initials "MC" + Mara Chen + role -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-8 h-8 rounded-full bg-[#E9E8E4] border border-[#D9DAD7] flex items-center justify-center text-[#262A2D] font-medium text-xs font-num select-none">
+          MC
+        </div>
+<div class="text-left flex flex-col justify-center">
+<span class="text-[13.5px] font-semibold text-[#262A2D] leading-tight">Mara Chen</span>
+<span class="text-[11.5px] text-[#626A6F] leading-tight">Feed Operations, Administrator</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas Container -->
+<main class="w-full max-w-[1440px] mx-auto px-6 py-7 flex-1 page-enter">
+<!-- Title Area & Context Metric Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-7 pb-4 border-b border-[#D9DAD7]">
+<div>
+<h1 class="font-headline text-[28px] font-semibold leading-tight text-[#262A2D] tracking-[-0.02em]">
+          Inventory
+        </h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="w-2 h-2 rounded-full bg-[#356A55] live-sync-dot"></span>
+<span class="text-xs text-[#626A6F]">Operational period: Apr 1–17 • All weights recorded on verified scale</span>
+</div>
+</div>
+<!-- Signature Contextual Headline Figure -->
+<div class="mt-4 md:mt-0 flex items-baseline gap-3" id="signature-stat">
+<span class="text-xs text-[#626A6F] tracking-wide uppercase">Total On Hand (Dry Basis)</span>
+<div class="flex items-baseline font-num font-semibold text-2xl text-[#262A2D] is-visible">
+<span class="figure-digit">32,032.0</span>
+<span class="text-sm font-normal text-[#626A6F] ml-1">lb</span>
+</div>
+</div>
+</div>
+<!-- Section: Stock-Flow Movements Table -->
+<section class="mb-10">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<h2 class="font-headline text-[16px] font-semibold text-[#262A2D]">
+            Stock-Flow Movement (Apr 1–17)
+          </h2>
+<span class="text-xs text-[#626A6F] border-l border-[#D9DAD7] pl-3">Standard batch cycle</span>
+</div>
+<!-- Quiet "Projections" Link -->
+<a class="text-sm text-[#626A6F] hover:text-[#262A2D] underline underline-offset-4 decoration-[#D9DAD7] hover:decoration-[#526F82] transition-colors" href="#projections">
+          Projections
+        </a>
+</div>
+<!-- Compact Table Wrapper -->
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-[8px] overflow-hidden shadow-none">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse" style="min-width: 680px;">
+<thead>
+<tr class="border-b border-[#D9DAD7] bg-[#FFFFFF] text-[11px] font-semibold text-[#626A6F] uppercase tracking-[0.08em] h-11">
+<th class="px-5 py-2" scope="col">Item</th>
+<th class="px-4 py-2 w-28" scope="col">Entered Unit</th>
+<th class="px-4 py-2 text-right" scope="col">Opening</th>
+<th class="px-4 py-2 text-right" scope="col">Received</th>
+<th class="px-4 py-2 text-right" scope="col">Consumed</th>
+<th class="px-5 py-2 text-right" scope="col">Closing</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D9DAD7] text-[14px]">
+<!-- Record 1: Steam-flaked corn -->
+<tr class="record-row h-[44px]">
+<td class="px-5 py-2 font-medium text-[#262A2D]">Steam-flaked corn</td>
+<td class="px-4 py-2 text-[#626A6F]">lb</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">50,000</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">5,000</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">38,127.6</td>
+<td class="px-5 py-2 text-right font-num font-semibold text-[#262A2D]">16,872.4</td>
+</tr>
+<!-- Record 2: Alfalfa hay -->
+<tr class="record-row h-[44px]">
+<td class="px-5 py-2 font-medium text-[#262A2D]">Alfalfa hay</td>
+<td class="px-4 py-2 text-[#626A6F]">lb</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">20,000</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">1,200</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">10,893.6</td>
+<td class="px-5 py-2 text-right font-num font-semibold text-[#262A2D]">10,306.4</td>
+</tr>
+<!-- Record 3: Cottonseed meal -->
+<tr class="record-row h-[44px]">
+<td class="px-5 py-2 font-medium text-[#262A2D]">Cottonseed meal</td>
+<td class="px-4 py-2 text-[#626A6F]">lb</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">8,000</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">0</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">3,812.8</td>
+<td class="px-5 py-2 text-right font-num font-semibold text-[#262A2D]">4,187.2</td>
+</tr>
+<!-- Record 4: Mineral premix -->
+<tr class="record-row h-[44px]">
+<td class="px-5 py-2 font-medium text-[#262A2D]">Mineral premix</td>
+<td class="px-4 py-2 text-[#626A6F]">lb</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">2,000</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">300</td>
+<td class="px-4 py-2 text-right font-num text-[#262A2D]">1,634.0</td>
+<td class="px-5 py-2 text-right font-num font-semibold text-[#262A2D]">666.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p class="text-xs text-[#626A6F] mt-2">
+        * Stock movements reflect automated feeder dispensary tallies. Wastage write-offs are tracked separately in Yard Audit.
+      </p>
+</section>
+<!-- 28px Pause strictly mandated before new section -->
+<div class="h-7"></div>
+<!-- Practical Add Receipt Form -->
+<section class="pt-6 border-t border-[#D9DAD7]">
+<div class="mb-5">
+<h2 class="font-headline text-[22px] font-semibold text-[#262A2D] leading-tight">
+          Add receipt
+        </h2>
+<p class="text-sm text-[#626A6F] mt-1">
+          Record delivery tickets immediately upon unloader discharge and moisture inspection.
+        </p>
+</div>
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-[8px] p-6 max-w-4xl shadow-none">
+<form class="space-y-5" id="receipt-form" onsubmit="event.preventDefault();">
+<!-- Row 1: Item Name & Supplier -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="item-name">
+                Item name
+              </label>
+<select class="field-input w-full appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23626A6F%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:9px_9px] bg-[right_14px_center] bg-no-repeat" id="item-name">
+<option value="">Select ration ingredient</option>
+<option value="Steam-flaked corn">Steam-flaked corn</option>
+<option value="Alfalfa hay">Alfalfa hay</option>
+<option value="Cottonseed meal">Cottonseed meal</option>
+<option value="Mineral premix">Mineral premix</option>
+<option value="High-moisture sorghum">High-moisture sorghum</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="supplier">
+                Supplier
+              </label>
+<input class="field-input w-full" id="supplier" placeholder="e.g. Panhandle Milling LLC" type="text"/>
+</div>
+</div>
+<!-- Row 2: Quantity, Entered Unit, Normalized pounds beside it -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="quantity">
+                Quantity
+              </label>
+<input class="field-input w-full font-num" id="quantity" placeholder="0.00" step="0.01" type="number"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="entered-unit">
+                Entered unit
+              </label>
+<select class="field-input w-full appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23626A6F%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:9px_9px] bg-[right_14px_center] bg-no-repeat" id="entered-unit">
+<option value="lb">Pounds (lb)</option>
+<option value="ton">Short tons (2,000 lb)</option>
+<option value="cwt">Hundredweight (cwt)</option>
+<option value="bu">Bushels (bu)</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="norm-pounds">
+                Normalized pounds
+              </label>
+<div class="relative">
+<input class="field-input w-full bg-[#FAF9F5] text-[#626A6F] font-num cursor-not-allowed" id="norm-pounds" placeholder="0.00" readonly="" type="text"/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#626A6F] font-num">lb</span>
+</div>
+</div>
+</div>
+<!-- Row 3: Cost & Received date -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="cost">
+                Cost ($ USD)
+              </label>
+<input class="field-input w-full font-num" id="cost" placeholder="Total delivered ticket cost" step="0.01" type="number"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-[#262A2D] mb-1.5" for="received-date">
+                Received date
+              </label>
+<input class="field-input w-full font-num" id="received-date" type="date" value="2025-04-17"/>
+</div>
+</div>
+<!-- Action Submission Row -->
+<div class="pt-3 flex items-center justify-between">
+<span class="text-xs text-[#626A6F]">Ticket records are automatically locked after ledger settlement.</span>
+<button class="btn-action px-6 h-[44px] rounded-[6px] font-medium text-[15px] flex items-center gap-2 cursor-pointer" type="submit">
+<span>Add receipt</span>
+</button>
+</div>
+</form>
+</div>
+</section>
+</main>
+<!-- Inline vanilla micro-logic for weight normalization calculation and figure entrance -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const qtyInput = document.getElementById('quantity');
+      const unitSelect = document.getElementById('entered-unit');
+      const normInput = document.getElementById('norm-pounds');
+
+      function calculateNormalizedPounds() {
+        const val = parseFloat(qtyInput.value);
+        if (isNaN(val) || val <= 0) {
+          normInput.value = '0.00';
+          return;
+        }
+
+        const unit = unitSelect.value;
+        let pounds = val;
+
+        if (unit === 'ton') {
+          pounds = val * 2000;
+        } else if (unit === 'cwt') {
+          pounds = val * 100;
+        } else if (unit === 'bu') {
+          pounds = val * 56; // Standard US corn bushel weight
+        }
+
+        normInput.value = pounds.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      qtyInput.addEventListener('input', calculateNormalizedPounds);
+      unitSelect.addEventListener('change', calculateNormalizedPounds);
+
+      // Trigger headline digit entrance once
+      const signatureStat = document.getElementById('signature-stat');
+      if (signatureStat) {
+        requestAnimationFrame(() => {
+          signatureStat.classList.add('is-visible');
+        });
+      }
+    });
+  </script>
+</body></html>

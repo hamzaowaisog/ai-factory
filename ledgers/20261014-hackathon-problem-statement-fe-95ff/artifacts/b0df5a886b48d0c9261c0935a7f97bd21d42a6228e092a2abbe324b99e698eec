@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "components/screens/frame.ts",
+    "start": 58,
+    "end": 86
+   },
+   "ms": 1,
+   "resultChars": 929,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;components/screens/frame.ts&quot;,&quot;start&quot;:58,&quot;end&quot;:86}\">\ncomponents/screens/frame.ts lines 58-86\n58\t      },\n59\t      {\n60\t        \"label\": \"Yard summary\",\n61\t        \"route\": \"/yard-summary\"\n62\t      },\n63\t      {\n64\t        \"label\": \"Feed-to-Gain\",\n65\t        \"route\": \"/reports/feed-to-gain\"\n66\t      },\n67\t      {\n68\t        \"label\": \"Accounts\",\n69\t        \"route\": \"/admin/accounts\"\n70\t      },\n71\t      {\n72\t        \"label\": \"Sync\",\n73\t        \"route\": \"/admin/sync\"\n74\t      },\n75\t      {\n76\t        \"label\": \"Demo\",\n77\t        \"route\": \"/admin/demo\"\n78\t      },\n79\t      {\n80\t        \"label\": \"Lot performance\",\n81\t        \"route\": \"/lots/L-241/performance\"\n82\t      },\n83\t      {\n84\t        \"label\": \"Lot financials\",\n85\t        \"route\": \"/lots/L-241/financials\"\n86\t      }\n… (110 lines total; ask for start=87)\n</untrusted_document>"
+  }
+ ]
+}

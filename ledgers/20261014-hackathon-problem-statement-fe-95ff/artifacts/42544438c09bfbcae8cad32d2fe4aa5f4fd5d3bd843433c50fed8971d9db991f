@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ration optimizer - Feedlot Operations Workspace</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "error-container": "#ffdad6",
+            "primary-container": "#526f82",
+            "secondary-container": "#d9e4ee",
+            "surface-container": "#efeeea",
+            "tertiary-container": "#856640",
+            "surface-container-highest": "#e3e2df",
+            "on-secondary": "#ffffff",
+            "inverse-on-surface": "#f2f1ed",
+            "on-secondary-fixed": "#121d24",
+            "on-secondary-container": "#5b666e",
+            "inverse-primary": "#accbe0",
+            "surface-dim": "#dbdad6",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#bdc8d1",
+            "on-primary-fixed": "#001e2d",
+            "tertiary-fixed": "#ffddb7",
+            "surface-container-high": "#e9e8e4",
+            "on-tertiary-container": "#ffebd6",
+            "background": "#faf9f5",
+            "primary-fixed": "#c8e7fd",
+            "primary-fixed-dim": "#accbe0",
+            "on-tertiary-fixed": "#2a1700",
+            "on-background": "#1b1c1a",
+            "secondary-fixed": "#d9e4ee",
+            "on-primary-container": "#ddf0ff",
+            "on-error-container": "#93000a",
+            "on-tertiary": "#ffffff",
+            "surface-variant": "#e3e2df",
+            "on-surface-variant": "#42474c",
+            "tertiary": "#6a4e2a",
+            "outline": "#72787c",
+            "on-secondary-fixed-variant": "#3d4850",
+            "on-primary": "#ffffff",
+            "on-error": "#ffffff",
+            "on-primary-fixed-variant": "#2d4a5c",
+            "outline-variant": "#c2c7cc",
+            "on-tertiary-fixed-variant": "#5c421f",
+            "inverse-surface": "#30312e",
+            "error": "#ba1a1a",
+            "surface-bright": "#faf9f5",
+            "primary": "#3a5769",
+            "surface-tint": "#456274",
+            "secondary": "#556068",
+            "surface": "#faf9f5",
+            "tertiary-fixed-dim": "#e7c093",
+            "surface-container-low": "#f5f4f0",
+            "on-surface": "#1b1c1a"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .font-figure {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .font-head {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    /* Keyframes for entrance sequence and signature moment */
+    @keyframes pageEnter {
+      0% {
+        opacity: 0.65;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes figureRoll {
+      0% {
+        opacity: 0.65;
+        transform: translateY(0.65em);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .anim-enter {
+      animation: pageEnter var(--dur-base) var(--ease-out) both;
+    }
+
+    .anim-enter-delayed {
+      animation: pageEnter var(--dur-base) var(--ease-out) 70ms both;
+    }
+
+    .anim-enter-delayed-2 {
+      animation: pageEnter var(--dur-base) var(--ease-out) 140ms both;
+    }
+
+    .anim-figure-roll {
+      display: inline-block;
+      animation: figureRoll 600ms var(--ease-out) both;
+    }
+
+    /* Interaction states */
+    .btn-primary {
+      background-color: #526F82;
+      color: #FFFFFF;
+      border: 1px solid #526F82;
+      border-radius: 6px;
+      height: 44px;
+      min-height: 44px;
+      transition: background-color var(--dur-quick) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+    }
+    .btn-primary:hover {
+      background-color: #455e6f;
+      border-color: #455e6f;
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: #262A2D;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      height: 44px;
+      min-height: 44px;
+      transition: background-color var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+    }
+    .btn-secondary:hover {
+      background-color: #F4F3EF;
+      border-color: #262A2D;
+    }
+    .btn-secondary:active {
+      transform: scale(0.97);
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .nav-item {
+      transition: color var(--dur-quick) var(--ease-out);
+      position: relative;
+    }
+    .nav-item:hover {
+      color: #262A2D;
+    }
+    .nav-item:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .table-row-hover {
+      transition: background-color var(--dur-quick) var(--ease-out);
+    }
+    .table-row-hover:hover {
+      background-color: #FAF9F7;
+    }
+    .table-row-hover:active {
+      background-color: #F4F3EF;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-duration: 100ms !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] flex flex-col antialiased bg-[#F4F3EF] text-[#262A2D]">
+<!-- TOP APP BAR / HEADER (Strict specs verbatim) -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D9DAD7]">
+<div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+<!-- Brand & Navigation Group -->
+<div class="flex items-center space-x-8">
+<!-- Brand Wordmark with F Grain Mark -->
+<div class="flex items-center space-x-2.5 shrink-0">
+<div class="w-7 h-7 rounded-[4px] bg-[#526F82] flex items-center justify-center text-[#FFFFFF] font-head font-semibold text-sm select-none">
+            F
+          </div>
+<span class="font-head font-semibold text-base tracking-tight text-[#262A2D]">Feedlot</span>
+</div>
+<!-- Desktop Navigation Items -->
+<nav class="hidden md:flex items-center space-x-6 text-[14px]">
+<a class="nav-item text-[#626A6F] py-4" href="#">Overview</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Lots</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Inventory</a>
+<!-- Active Menu Item: Rations -->
+<a class="nav-item font-semibold text-[#526F82] py-4 relative" href="#">
+            Rations
+            <span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#526F82]"></span>
+</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Feeding plans</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Feeding log</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Lot weights</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Yard summary</a>
+<a class="nav-item text-[#626A6F] py-4" href="#">Feed-to-Gain</a>
+</nav>
+</div>
+<!-- Right User Profile -->
+<div class="flex items-center space-x-3 shrink-0">
+<div class="w-8 h-8 rounded-full bg-[#efeeea] border border-[#D9DAD7] text-[#262A2D] flex items-center justify-center font-head font-medium text-xs">
+          MC
+        </div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-semibold leading-tight text-[#262A2D]">Mara Chen</span>
+<span class="text-[11px] leading-tight text-[#626A6F]">Feed Operations, Administrator</span>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN OPERATIONAL WORKSPACE (Max 1440px) -->
+<main class="w-full max-w-[1440px] mx-auto px-6 py-7 flex-1 flex flex-col">
+<!-- Page Header & Single Contextual Figure -->
+<div class="anim-enter flex flex-col md:flex-row md:items-baseline md:justify-between pb-4">
+<div>
+<h1 class="font-head text-[clamp(24px,2.2vw,28px)] font-semibold text-[#262A2D] tracking-[-0.03em] leading-tight m-0">
+          Ration optimizer
+        </h1>
+<p class="text-sm text-[#626A6F] mt-1 max-w-xl">
+          Candidate formulations computed against current bulk yard commodities for late-stage steer groups.
+        </p>
+</div>
+<!-- Single Signature Headline Figure: Rolling digits into place -->
+<div class="mt-4 md:mt-0 flex items-baseline space-x-2">
+<span class="text-xs uppercase tracking-[0.08em] font-semibold text-[#626A6F]">Optimal Benchmark:</span>
+<span class="font-figure font-semibold text-2xl text-[#262A2D] overflow-hidden inline-flex">
+<span class="anim-figure-roll">$0.1254</span>
+<span class="text-sm font-normal text-[#626A6F] ml-1">/lb dry matter</span>
+</span>
+</div>
+</div>
+<!-- 28px pause before new section marked with hairline rule -->
+<div class="w-full border-t border-[#D9DAD7] mb-7"></div>
+<!-- SECTION 1: Submitted Constraints Panel -->
+<section class="anim-enter-delayed mb-7">
+<div class="bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] p-5">
+<div class="flex items-center justify-between pb-3 mb-4 border-b border-[#D9DAD7]">
+<h2 class="font-head text-base font-semibold text-[#262A2D] tracking-tight">
+            Submitted Constraints
+          </h2>
+<span class="text-xs text-[#626A6F] flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+            Active Yard Feeder Intake Profile #04
+          </span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Constraint Item 1 -->
+<div class="flex flex-col">
+<span class="text-xs text-[#626A6F] mb-1">Cattle Target</span>
+<div class="flex items-baseline gap-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">850–1,350</span>
+<span class="text-xs text-[#626A6F]">lb live weight</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+<span class="text-xs text-[#356A55]">Within finisher band</span>
+</div>
+</div>
+<!-- Constraint Item 2 -->
+<div class="flex flex-col">
+<span class="text-xs text-[#626A6F] mb-1">Crude Protein</span>
+<div class="flex items-baseline gap-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">≥ 13.0%</span>
+<span class="text-xs text-[#626A6F]">dry basis</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+<span class="text-xs text-[#356A55]">NRC minimum satisfied</span>
+</div>
+</div>
+<!-- Constraint Item 3 -->
+<div class="flex flex-col">
+<span class="text-xs text-[#626A6F] mb-1">TDN (Total Digestible Nutrients)</span>
+<div class="flex items-baseline gap-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">≥ 76.0%</span>
+<span class="text-xs text-[#626A6F]">energy density</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+<span class="text-xs text-[#356A55]">Target density met</span>
+</div>
+</div>
+<!-- Constraint Item 4 -->
+<div class="flex flex-col">
+<span class="text-xs text-[#626A6F] mb-1">Target Cost</span>
+<div class="flex items-baseline gap-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">&lt; $0.13</span>
+<span class="text-xs text-[#626A6F]">per lb mix</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+<span class="text-xs text-[#356A55]">Ceiling verified</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: Policy & Staging Notice -->
+<div class="anim-enter-delayed bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] p-4 mb-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-[#986321] shrink-0"></div>
+<p class="text-sm text-[#262A2D] m-0">
+<strong class="font-semibold text-[#262A2D]">Staging Policy:</strong> Candidates are not saved, assigned, or used until a person explicitly chooses “Save mix” or “Assign to Pen 4”.
+        </p>
+</div>
+<div class="text-xs text-[#626A6F] shrink-0 font-figure">
+        Run ID: <span class="text-[#262A2D]">RO-8842-N4</span> • Status: Waiting confirmation
+      </div>
+</div>
+<!-- SECTION 3: Candidate Mixes Table -->
+<section class="anim-enter-delayed-2 mb-7">
+<div class="bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] overflow-hidden">
+<!-- Table Header & Filter Summary -->
+<div class="p-4 border-b border-[#D9DAD7] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div>
+<h2 class="font-head text-base font-semibold text-[#262A2D] tracking-tight">
+              Candidate Mixes Comparison
+            </h2>
+<p class="text-xs text-[#626A6F] mt-0.5">
+              3 linear solver solutions matching moisture balance, rumen roughage ratio, and protein floor.
+            </p>
+</div>
+<div class="text-xs text-[#626A6F] flex items-center gap-4">
+<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#356A55]"></span> Good criteria</span>
+<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#986321]"></span> Waiting action</span>
+</div>
+</div>
+<!-- Table Container -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="h-11 border-b border-[#D9DAD7] bg-[#FAF9F7] text-[11px] font-semibold text-[#626A6F] uppercase tracking-[0.08em]">
+<th class="px-4 py-2 text-left">Candidate Mix</th>
+<th class="px-4 py-2 text-left">Ingredient Proportions</th>
+<th class="px-4 py-2 text-right">Cost ($/lb)</th>
+<th class="px-4 py-2 text-right">Crude Protein</th>
+<th class="px-4 py-2 text-right">TDN</th>
+<th class="px-4 py-2 text-right">Net Energy</th>
+<th class="px-4 py-2 text-left">Trade-off Rationale</th>
+<th class="px-4 py-2 text-right pr-6">Operational Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D9DAD7] text-sm text-[#262A2D]">
+<!-- Mix A -->
+<tr class="table-row-hover h-16">
+<td class="px-4 py-3 align-middle">
+<div class="font-semibold text-sm text-[#262A2D]">Mix A</div>
+<div class="text-xs text-[#626A6F]">Budget variant</div>
+</td>
+<td class="px-4 py-3 align-middle">
+<div class="text-xs space-y-0.5 font-figure">
+<div>Corn <span class="font-medium text-[#262A2D]">72%</span> • Hay <span class="font-medium text-[#262A2D]">19%</span></div>
+<div class="text-[#626A6F]">Cottonseed meal <span class="text-[#262A2D]">6%</span> • Premix <span class="text-[#262A2D]">3%</span></div>
+</div>
+</td>
+<td class="px-4 py-3 align-middle text-right font-figure font-medium text-[#262A2D]">
+                  $0.1218
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure">
+                  13.0%
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure">
+                  76.4%
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure text-[#626A6F]">
+                  0.80 Mcal/lb
+                </td>
+<td class="px-4 py-3 align-middle text-xs text-[#626A6F] max-w-xs">
+                  Lowest cost, less energy margin
+                </td>
+<td class="px-4 py-3 align-middle text-right pr-6">
+<div class="flex items-center justify-end space-x-2">
+<button class="btn-primary text-xs font-medium px-3.5" type="button">
+                      Save mix
+                    </button>
+<button class="btn-secondary text-xs font-medium px-3" type="button">
+                      Assign to Pen 4
+                    </button>
+</div>
+</td>
+</tr>
+<!-- Mix B (Recommended / Benchmark) -->
+<tr class="table-row-hover h-16 bg-[#F8F9FA]/60">
+<td class="px-4 py-3 align-middle">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-sm text-[#262A2D]">Mix B</span>
+<span class="inline-flex items-center gap-1 text-[11px] text-[#356A55] font-medium bg-[#356A55]/10 px-1.5 py-0.5 rounded-[4px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+                      Recommended
+                    </span>
+</div>
+<div class="text-xs text-[#626A6F]">Baseline Finisher benchmark</div>
+</td>
+<td class="px-4 py-3 align-middle">
+<div class="text-xs space-y-0.5 font-figure">
+<div>Corn <span class="font-medium text-[#262A2D]">70%</span> • Hay <span class="font-medium text-[#262A2D]">20%</span></div>
+<div class="text-[#626A6F]">Cottonseed meal <span class="text-[#262A2D]">7%</span> • Premix <span class="text-[#262A2D]">3%</span></div>
+</div>
+</td>
+<td class="px-4 py-3 align-middle text-right font-figure font-semibold text-[#526F82]">
+                  $0.1254
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure font-medium">
+                  13.2%
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure font-medium">
+                  77.4%
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure font-medium text-[#262A2D]">
+                  0.82 Mcal/lb
+                </td>
+<td class="px-4 py-3 align-middle text-xs text-[#262A2D] max-w-xs">
+                  Balanced gain &amp; energy density
+                </td>
+<td class="px-4 py-3 align-middle text-right pr-6">
+<div class="flex items-center justify-end space-x-2">
+<button class="btn-primary text-xs font-medium px-3.5" type="button">
+                      Save mix
+                    </button>
+<button class="btn-secondary text-xs font-medium px-3" type="button">
+                      Assign to Pen 4
+                    </button>
+</div>
+</td>
+</tr>
+<!-- Mix C -->
+<tr class="table-row-hover h-16">
+<td class="px-4 py-3 align-middle">
+<div class="font-semibold text-sm text-[#262A2D]">Mix C</div>
+<div class="text-xs text-[#626A6F]">High-density growth</div>
+</td>
+<td class="px-4 py-3 align-middle">
+<div class="text-xs space-y-0.5 font-figure">
+<div>Corn <span class="font-medium text-[#262A2D]">67%</span> • Hay <span class="font-medium text-[#262A2D]">21%</span></div>
+<div class="text-[#626A6F]">Cottonseed meal <span class="text-[#262A2D]">9%</span> • Premix <span class="text-[#262A2D]">3%</span></div>
+</div>
+</td>
+<td class="px-4 py-3 align-middle text-right font-figure font-medium text-[#262A2D]">
+                  $0.1291
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure">
+                  13.6%
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure">
+                  78.1%
+                </td>
+<td class="px-4 py-3 align-middle text-right font-figure text-[#626A6F]">
+                  0.84 Mcal/lb
+                </td>
+<td class="px-4 py-3 align-middle text-xs text-[#626A6F] max-w-xs">
+                  Higher cost, more energy margin
+                </td>
+<td class="px-4 py-3 align-middle text-right pr-6">
+<div class="flex items-center justify-end space-x-2">
+<button class="btn-primary text-xs font-medium px-3.5" type="button">
+                      Save mix
+                    </button>
+<button class="btn-secondary text-xs font-medium px-3" type="button">
+                      Assign to Pen 4
+                    </button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- SECTION 4: Ingredient Unit Pricing Reference -->
+<section class="anim-enter-delayed-2 mb-10">
+<div class="bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] p-5">
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between pb-3 mb-4 border-b border-[#D9DAD7]">
+<div>
+<h2 class="font-head text-base font-semibold text-[#262A2D] tracking-tight">
+              Ingredient Unit Pricing Reference
+            </h2>
+<p class="text-xs text-[#626A6F] mt-0.5">
+              Current bulk commodity contract rates on file for North Yard supply bays.
+            </p>
+</div>
+<span class="text-xs text-[#626A6F] mt-2 sm:mt-0 font-figure">
+            Updated today, 05:30 AM Shift Audit
+          </span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="p-3.5 rounded-[6px] border border-[#D9DAD7] bg-[#FAF9F7]/50 flex flex-col justify-between">
+<span class="text-xs text-[#626A6F]">Steam-flaked corn</span>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">$0.11</span>
+<span class="text-xs font-figure text-[#626A6F]">/ lb as-fed</span>
+</div>
+<div class="mt-2 text-[11px] text-[#356A55] flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+              Bay 12 Active (420 ton)
+            </div>
+</div>
+<div class="p-3.5 rounded-[6px] border border-[#D9DAD7] bg-[#FAF9F7]/50 flex flex-col justify-between">
+<span class="text-xs text-[#626A6F]">Alfalfa hay</span>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">$0.09</span>
+<span class="text-xs font-figure text-[#626A6F]">/ lb as-fed</span>
+</div>
+<div class="mt-2 text-[11px] text-[#356A55] flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+              Stack 4 Active (280 ton)
+            </div>
+</div>
+<div class="p-3.5 rounded-[6px] border border-[#D9DAD7] bg-[#FAF9F7]/50 flex flex-col justify-between">
+<span class="text-xs text-[#626A6F]">Cottonseed meal</span>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">$0.25</span>
+<span class="text-xs font-figure text-[#626A6F]">/ lb as-fed</span>
+</div>
+<div class="mt-2 text-[11px] text-[#356A55] flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+              Silo 02 Active (95 ton)
+            </div>
+</div>
+<div class="p-3.5 rounded-[6px] border border-[#D9DAD7] bg-[#FAF9F7]/50 flex flex-col justify-between">
+<span class="text-xs text-[#626A6F]">Mineral premix</span>
+<div class="flex items-baseline justify-between mt-2">
+<span class="font-figure text-lg font-semibold text-[#262A2D]">$0.43</span>
+<span class="text-xs font-figure text-[#626A6F]">/ lb as-fed</span>
+</div>
+<div class="mt-2 text-[11px] text-[#356A55] flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+              Micro-Bin 01 (18 ton)
+            </div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

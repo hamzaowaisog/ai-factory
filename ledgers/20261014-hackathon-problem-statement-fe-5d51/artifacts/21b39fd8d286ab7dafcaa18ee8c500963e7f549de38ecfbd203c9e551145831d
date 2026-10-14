@@ -1,0 +1,96 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "I-1"
+      ],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-1"
+      ],
+      "answers": []
+     },
+     {
+      "n": 3,
+      "spans": [],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 4,
+      "spans": [],
+      "answers": [
+       "Q-3",
+       "Q-4"
+      ]
+     },
+     {
+      "n": 5,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 6,
+      "spans": [
+       "I-1"
+      ],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 7,
+      "spans": [
+       "I-2"
+      ],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 8,
+      "spans": [
+       "I-3",
+       "I-4"
+      ],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 9,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 10,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

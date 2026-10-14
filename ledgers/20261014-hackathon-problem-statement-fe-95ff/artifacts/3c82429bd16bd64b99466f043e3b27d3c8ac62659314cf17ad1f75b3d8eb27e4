@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-page: #F4F3EF;
+      --surface: #FFFFFF;
+      --text-main: #262A2D;
+      --text-quiet: #626A6F;
+      --border-color: #D9DAD7;
+      --primary-accent: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: var(--font-heading);
+    }
+
+    .mono-font {
+      font-family: var(--font-mono);
+    }
+
+    /* Keyframes & Motion Tokens */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Form control states */
+    .field-control {
+      height: 44px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 20px;
+      padding: 0 12px;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+      width: 100%;
+    }
+
+    .field-control:hover {
+      border-color: #B5B7B3;
+    }
+
+    .field-control:focus {
+      outline: none;
+      border-color: var(--primary-accent);
+      box-shadow: 0 0 0 2px var(--primary-accent);
+    }
+
+    .btn-primary {
+      height: 44px;
+      border-radius: 6px;
+      background-color: var(--primary-accent);
+      color: #FFFFFF;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      cursor: pointer;
+      transition: background-color 150ms ease, opacity 150ms ease, transform 100ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.94;
+    }
+
+    .btn-primary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--bg-page), 0 0 0 4px var(--primary-accent);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+      opacity: 0.9;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-[#526F82]/20">
+
+  <main class="w-full flex flex-col items-center animate-entrance" style="max-width: 440px;">
+    
+    <!-- Feedlot Brand Mark & Wordmark -->
+    <div class="flex items-center gap-3 mb-6 select-none" aria-label="Feedlot">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0" aria-hidden="true">
+        <!-- Crisp rectilinear pen/feedlot cattle yard geometry -->
+        <rect x="2" y="2" width="28" height="28" rx="4" stroke="#262A2D" stroke-width="2" fill="none"/>
+        <line x1="2" y1="12" x2="30" y2="12" stroke="#262A2D" stroke-width="2"/>
+        <line x1="16" y1="12" x2="16" y2="30" stroke="#262A2D" stroke-width="2"/>
+        <path d="M8 7H24" stroke="#526F82" stroke-width="2.5" stroke-linecap="round"/>
+        <rect x="6" y="17" width="5" height="8" rx="1.5" fill="#526F82"/>
+        <rect x="21" y="17" width="5" height="8" rx="1.5" fill="#262A2D"/>
+      </svg>
+      <span class="heading-font text-[24px] font-semibold tracking-tight text-[#262A2D]">Feedlot</span>
+    </div>
+
+    <!-- Centered Sign-in Panel -->
+    <div class="w-full bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] p-6 sm:p-8">
+      
+      <!-- Heading 28px/600 Hanken Grotesk -->
+      <h1 class="heading-font text-[28px] leading-[34px] font-semibold text-[#262A2D] m-0">
+        Sign in
+      </h1>
+
+      <!-- One sentence guidance -->
+      <p class="text-[14px] leading-relaxed text-[#626A6F] mt-2 mb-7">
+        An account must be provided by a Feedlot administrator.
+      </p>
+
+      <!-- Form -->
+      <form action="#" method="POST" onsubmit="event.preventDefault();" class="space-y-5">
+        
+        <!-- Email field -->
+        <div>
+          <label for="email" class="block text-[14px] font-medium text-[#262A2D] mb-1.5">
+            Email
+          </label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            value="mara.chen@feedlot.example" 
+            autocomplete="username" 
+            required 
+            class="field-control"
+          />
+        </div>
+
+        <!-- Password field -->
+        <div>
+          <label for="password" class="block text-[14px] font-medium text-[#262A2D] mb-1.5">
+            Password
+          </label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            value="••••••••••••" 
+            autocomplete="current-password" 
+            required 
+            class="field-control font-medium tracking-wider"
+          />
+        </div>
+
+        <!-- Primary Sign in Button -->
+        <div class="pt-2">
+          <button type="submit" class="btn-primary">
+            Sign in
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

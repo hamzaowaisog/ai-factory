@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/SeedData.cs"
+   },
+   "ms": 0,
+   "resultChars": 521,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/SeedData.cs&quot;}\">\nApp.Api/SeedData.cs lines 1-11\n1\tnamespace App.Api;\n2\t\n3\t// Sample rows for a person trying the product. The app calls Run at startup, after the tables exist, only when the setting\n4\t// Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\n5\tpublic static class SeedData\n6\t{\n7\t    public static void Run(AppDb db)\n8\t    {\n9\t    }\n10\t}\n11\t\n</untrusted_document>"
+  }
+ ]
+}

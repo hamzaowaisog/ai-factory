@@ -1,0 +1,360 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feeding log - Feedlot</title>
+  <!-- Google Fonts: Hanken Grotesk (Headings), Source Sans 3 (Body/Controls), IBM Plex Mono (Numbers/Codes/Times) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#526F82',
+            bgmain: '#F4F3EF',
+            bodytext: '#262A2D',
+            quiet: '#626A6F',
+            bordercol: '#D9DAD7',
+            statusgood: '#356A55',
+            statuswait: '#986321',
+            statusfail: '#B4473C',
+          },
+          fontFamily: {
+            headline: ['"Hanken Grotesk"', 'sans-serif'],
+            body: ['"Source Sans 3"', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Exact token enforcement */
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUpDigit {
+      from {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: rollUpDigit 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .live-dot-pulse {
+      animation: ambientBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive state rules */
+    button, a, input, select {
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease, box-shadow 150ms ease;
+    }
+
+    button:hover, a:hover {
+      opacity: 0.95;
+    }
+
+    button:active, a:active {
+      transform: scale(0.98);
+    }
+
+    input:focus, select:focus, button:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #526F82;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#F4F3EF] text-[#262A2D]">
+
+  <!-- Global Header (Exact across all pages) -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D9DAD7]">
+    <div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+      <!-- Left: Brand mark + Wordmark + Menu items in exact shared order -->
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 bg-[#526F82] rounded-[4px] flex items-center justify-center text-[#FFFFFF] font-bold text-sm select-none">
+            F
+          </div>
+          <span class="font-headline font-semibold text-base text-[#262A2D] tracking-tight">Feedlot</span>
+        </div>
+
+        <nav class="hidden md:flex items-center space-x-5 text-[14px]">
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Overview</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Lots</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Inventory</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Rations</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Feeding plans</a>
+          <a href="#" class="text-[#526F82] font-semibold border-b-2 border-[#526F82] py-4 select-none">Feeding log</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Lot weights</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Yard summary</a>
+          <a href="#" class="text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors">Feed-to-Gain</a>
+        </nav>
+      </div>
+
+      <!-- Right: User initials avatar beside name & role -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-[#D9DAD7] text-[#262A2D] font-mono text-xs flex items-center justify-center font-medium select-none">
+          MC
+        </div>
+        <div class="text-left hidden sm:block">
+          <div class="text-[13px] font-semibold text-[#262A2D] leading-tight">Mara Chen</div>
+          <div class="text-[11px] text-[#626A6F] leading-tight">Feed Operations, Administrator</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Viewport Area -->
+  <main class="max-w-[1440px] mx-auto px-6 py-7">
+
+    <!-- Page Title: One heading reads "Feeding log" -->
+    <div class="mb-7">
+      <h1 class="font-headline text-[28px] leading-[34px] font-semibold text-[#262A2D]">Feeding log</h1>
+    </div>
+
+    <!-- Inline Error Banner: "the data failed to load, with an inline error message and a retry action" -->
+    <div class="bg-[#FFFFFF] rounded-[8px] border border-[#B4473C] p-4 mb-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-entrance shadow-none">
+      <div class="flex items-start sm:items-center space-x-3">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#B4473C] shrink-0 mt-1 sm:mt-0"></span>
+        <div>
+          <div class="text-[14px] font-semibold text-[#B4473C]">Data failed to load</div>
+          <div class="text-[13px] text-[#626A6F]">Unable to retrieve recent feeding records from yard service at this time. Please check network connection and try again.</div>
+        </div>
+      </div>
+      <button type="button" class="px-4 py-2 h-[44px] rounded-[6px] border border-[#526F82] text-[#526F82] text-[14px] font-medium hover:bg-[#526F82]/5 focus:ring-2 focus:ring-[#526F82] transition-colors shrink-0">
+        Retry
+      </button>
+    </div>
+
+    <!-- Section: Operator's Feeding Work Page / Activity Table -->
+    <section class="mb-7">
+      <div class="flex items-baseline justify-between pb-2 mb-4 border-b border-[#D9DAD7]">
+        <h2 class="font-headline text-[22px] leading-[28px] font-semibold text-[#262A2D]">Recent feeding activity</h2>
+        <span class="text-[13px] text-[#626A6F]">Local date: <span class="font-mono text-[#262A2D]">Apr 17, 2025</span> · America/Denver</span>
+      </div>
+
+      <!-- Activity Table Panel with Error State Placeholder Content -->
+      <div class="bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[#D9DAD7] bg-[#FFFFFF] text-[12px] uppercase text-[#626A6F] font-semibold">
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Pen</th>
+                <th class="py-3 px-4">Ration</th>
+                <th class="py-3 px-4 text-right">Planned Qty</th>
+                <th class="py-3 px-4 text-right">Actual Qty</th>
+                <th class="py-3 px-4 text-right">Variance</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row showing load error state in-table -->
+              <tr>
+                <td colspan="8" class="py-12 px-4 text-center">
+                  <div class="max-w-md mx-auto flex flex-col items-center">
+                    <span class="inline-block w-3 h-3 rounded-full bg-[#B4473C] mb-2"></span>
+                    <div class="text-[15px] font-semibold text-[#262A2D] mb-1">Failed to load feeding records</div>
+                    <div class="text-[13px] text-[#626A6F] mb-4">The server encountered an error while retrieving the operational log for Pens 4 and 7.</div>
+                    <button type="button" class="px-4 py-2 h-[44px] rounded-[6px] border border-[#526F82] text-[#526F82] text-[14px] font-medium hover:bg-[#526F82]/5 focus:ring-2 focus:ring-[#526F82]">
+                      Retry loading
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Usable Activity Form: "linked to a plan or entered without one, with date, pen, ration, bunk rate, actual quantity, head count, and lot allocations. Make 'Save feeding' primary. Provide row actions 'Edit' and 'Cancel activity'; put 'This can't be undone' beside cancellation and require confirmation. Include a 'Feeding plans' link." -->
+    <section class="mt-7">
+      <div class="flex items-baseline justify-between pb-2 mb-4 border-b border-[#D9DAD7]">
+        <h2 class="font-headline text-[22px] leading-[28px] font-semibold text-[#262A2D]">Record feeding activity</h2>
+        <a href="#" class="text-[14px] text-[#526F82] hover:underline font-medium">Feeding plans</a>
+      </div>
+
+      <div class="bg-[#FFFFFF] rounded-[8px] border border-[#D9DAD7] p-6">
+        <form class="space-y-6">
+          
+          <!-- Plan linking indicator -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#D9DAD7]">
+            <div class="flex items-center space-x-2">
+              <span class="text-[14px] text-[#626A6F]">Plan reference:</span>
+              <span class="text-[14px] font-mono text-[#262A2D]">Apr 17, 2025 · Pen 4 (1,728 lb planned)</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="inline-flex items-center space-x-2 text-[14px] text-[#262A2D] cursor-pointer">
+                <input type="checkbox" checked="" class="w-4 h-4 rounded text-[#526F82] border-[#D9DAD7] focus:ring-[#526F82]">
+                <span>Linked to scheduled plan</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Form Fields Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Date -->
+            <div>
+              <label class="block text-[13px] font-medium text-[#626A6F] mb-1.5">Delivery date</label>
+              <input type="date" value="2025-04-17" class="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] font-mono text-[14px] text-[#262A2D] focus:border-[#526F82] focus:ring-2 focus:ring-[#526F82]">
+            </div>
+
+            <!-- Pen -->
+            <div>
+              <label class="block text-[13px] font-medium text-[#626A6F] mb-1.5">Pen</label>
+              <select class="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] text-[14px] text-[#262A2D] focus:border-[#526F82] focus:ring-2 focus:ring-[#526F82]">
+                <option value="pen-4">Pen 4 (96 head · 24 free)</option>
+                <option value="pen-7">Pen 7 (82 head · 28 free)</option>
+              </select>
+            </div>
+
+            <!-- Ration -->
+            <div>
+              <label class="block text-[13px] font-medium text-[#626A6F] mb-1.5">Ration</label>
+              <select class="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] text-[14px] text-[#262A2D] focus:border-[#526F82] focus:ring-2 focus:ring-[#526F82]">
+                <option value="finisher-18">Finisher 18 ($0.1254/lb norm)</option>
+              </select>
+            </div>
+
+            <!-- Bunk Rate -->
+            <div>
+              <label class="block text-[13px] font-medium text-[#626A6F] mb-1.5">Bunk rate (lb as-fed / animal / day)</label>
+              <input type="text" value="18.5" class="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] font-mono text-[14px] text-[#262A2D] focus:border-[#526F82] focus:ring-2 focus:ring-[#526F82]">
+            </div>
+
+            <!-- Head Count -->
+            <div>
+              <label class="block text-[13px] font-medium text-[#626A6F] mb-1.5">Head count</label>
+              <input type="text" value="96" class="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] font-mono text-[14px] text-[#262A2D] focus:border-[#526F82] focus:ring-2 focus:ring-[#526F82]">
+            </div>
+
+            <!-- Actual Quantity -->
+            <div>
+              <label class="block text-[13px] font-medium text-[#626A6F] mb-1.5">Actual quantity delivered (lb)</label>
+              <input type="text" value="1,776" class="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] font-mono text-[14px] text-[#262A2D] focus:border-[#526F82] focus:ring-2 focus:ring-[#526F82]">
+            </div>
+          </div>
+
+          <!-- Lot Allocations Section: split by 64:32 head counts -->
+          <div class="bg-[#F4F3EF] rounded-[6px] p-4 border border-[#D9DAD7]">
+            <div class="text-[13px] font-semibold text-[#262A2D] uppercase tracking-wider mb-2">Lot Allocations (Proportional to head count)</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="bg-[#FFFFFF] p-3 rounded-[6px] border border-[#D9DAD7] flex items-center justify-between">
+                <div>
+                  <div class="font-mono font-medium text-[#262A2D]">L-241</div>
+                  <div class="text-[12px] text-[#626A6F]">64 head · Angus steers (66.7%)</div>
+                </div>
+                <div class="text-right">
+                  <div class="font-mono font-semibold text-[15px] text-[#262A2D]">1,184 lb</div>
+                </div>
+              </div>
+              <div class="bg-[#FFFFFF] p-3 rounded-[6px] border border-[#D9DAD7] flex items-center justify-between">
+                <div>
+                  <div class="font-mono font-medium text-[#262A2D]">L-242</div>
+                  <div class="text-[12px] text-[#626A6F]">32 head · Angus heifers (33.3%)</div>
+                </div>
+                <div class="text-right">
+                  <div class="font-mono font-semibold text-[15px] text-[#262A2D]">592 lb</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions Row: Primary "Save feeding", row action "Edit", and "Cancel activity" with "This can't be undone" & confirmation -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+            <div class="flex items-center space-x-3">
+              <button type="button" class="h-[44px] px-6 rounded-[6px] bg-[#526F82] text-[#FFFFFF] font-medium text-[14px] hover:bg-[#526F82]/90 focus:ring-2 focus:ring-[#526F82]">
+                Save feeding
+              </button>
+              <button type="button" class="h-[44px] px-4 rounded-[6px] border border-[#D9DAD7] bg-[#FFFFFF] text-[#262A2D] font-medium text-[14px] hover:bg-[#F4F3EF]">
+                Edit
+              </button>
+            </div>
+
+            <!-- Cancel activity with required warning and confirmation -->
+            <div class="flex items-center space-x-3 text-[13px]">
+              <span class="text-[#B4473C] font-normal">This can't be undone</span>
+              <button type="button" class="h-[44px] px-4 rounded-[6px] border border-[#B4473C] text-[#B4473C] bg-[#FFFFFF] font-medium hover:bg-[#B4473C]/10 focus:ring-2 focus:ring-[#B4473C]">
+                Cancel activity
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding plans":"S-9","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-10";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

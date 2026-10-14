@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetLotFinancialsResponseMock|function getGetLotFinancialsResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 34,
+   "resultChars": 769,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetLotFinancialsResponseMock|function getGetLotFinancialsResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:113: export const getGetLotFinancialsResponseMock = (): LotFinancials => ({\"lotId\":241,\"lotCode\":\"L-241\",\"feedCostOfGainUsdPerLb\":1.92,\"purchaseCostUsd\":600,\"feedCostUsd\":12480,\"saleRevenueUsd\":null,\"broad\nlib/api/client.msw.ts:493: : getGetLotFinancialsResponseMock()),\ntests/acceptance.part4.test.tsx:24: getGetLotFinancialsResponseMock,\ntests/acceptance.part4.test.tsx:62: const example = getGetLotFinancialsResponseMock();\ntests/acceptance.part4.test.tsx:213: server.use(getGetLotFinancialsMockHandler(getGetLotFinancialsResponseMock()));\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetDemoMaterialsResponseMock|function getGetDemoMaterialsResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 12,
+   "resultChars": 656,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetDemoMaterialsResponseMock|function getGetDemoMaterialsResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:107: export const getGetDemoMaterialsResponseMock = (): DemoMaterials => ({\"operationalData\":{\"activeLots\":3,\"activePens\":2,\"totalHead\":120,\"totalFeedCostUsd\":37440},\"rules\":[{\"ruleId\":\"ASM-7\",\"description\nlib/api/client.msw.ts:457: : getGetDemoMaterialsResponseMock()),\ntests/acceptance.part4.test.tsx:22: getGetDemoMaterialsResponseMock,\ntests/acceptance.part4.test.tsx:425: const materials = getGetDemoMaterialsResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

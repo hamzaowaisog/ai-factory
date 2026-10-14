@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-sol",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation in contracts/openapi.yaml at its declared path and method, with the specified schemas, status codes, media types, behavior, errors, and security, and expose a matching public OpenAPI document."
+     },
+     {
+      "n": 2,
+      "text": "Provide sign-in, overview, and lot operations with the contract-defined account, procurement, pen allocation, lifecycle, weight, performance, financial, and recommendation information."
+     },
+     {
+      "n": 3,
+      "text": "Provide inventory records, stock projections, movements, and validated receipts with entered units and pounds-normalized quantities and costs."
+     },
+     {
+      "n": 4,
+      "text": "Provide ration listing and creation with ingredient, nutrition, and cost information, plus optimization and explicit saving or assignment of optimization candidates."
+     },
+     {
+      "n": 5,
+      "text": "Provide dated feeding plans with pen, ration, planned quantity, status, and separate allocations for each lot served."
+     },
+     {
+      "n": 6,
+      "text": "Provide feeding activity listing, creation, correction, and cancellation with calculated variances, ingredient consumption, costs, energy, and inventory deductions, reversing deductions on cancellation and rejecting insufficient stock without changing records."
+     },
+     {
+      "n": 7,
+      "text": "For a delivery serving multiple lots, attribute only each lot's share to its distinct allocation and record a separate feeding activity containing only that lot's share."
+     },
+     {
+      "n": 8,
+      "text": "Provide weight measurement listing, creation, and correction with updated metrics and weight trends, as well as yard summaries and a filterable feed-to-gain report with CSV and PDF exports."
+     },
+     {
+      "n": 9,
+      "text": "Provide contract-authorized account administration, procurement synchronization with record-level results, demo information, and a demo flow."
+     },
+     {
+      "n": 10,
+      "text": "Require bearer authentication where the contract declares it, leave sign-in unauthenticated, and enforce role restrictions only where declared, returning the specified unauthorized and forbidden errors."
+     },
+     {
+      "n": 11,
+      "text": "Persist contract-backed operational records in PostgreSQL through the configured ConnectionStrings:App connection, apply the required data model without deleting, resetting, or changing pre-existing records, and preserve created or updated records across restarts."
+     },
+     {
+      "n": 12,
+      "text": "Run SeedData.Run only when Seed:Demo is true, adding two or three believable contract-example-based rows to every contract-backed domain table, while allowing duplicates on repeated runs and adding no demo rows when the setting is false or unset."
+     },
+     {
+      "n": 13,
+      "text": "Configure Seed:Demo as false in the test factory unless demo seeding is explicitly requested."
+     },
+     {
+      "n": 14,
+      "text": "Use 2,000 pounds per ton when normalizing inventory, ration, and feeding quantities and unit costs, while retaining entered units and quantities for display."
+     },
+     {
+      "n": 15,
+      "text": "Deliver the feedlot functionality through HTTP API operations without separate product screens in this repository, leaving browser-visible pages for API documentation or health information only."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

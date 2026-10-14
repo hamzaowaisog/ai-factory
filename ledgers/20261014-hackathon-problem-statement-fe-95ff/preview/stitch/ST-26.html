@@ -1,0 +1,502 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lot performance — L-241</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Exact colors prescribed by specification */
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-panel: #FFFFFF;
+      --text-main: #262A2D;
+      --text-muted: #626A6F;
+      --border-color: #D9DAD7;
+      --brand-primary: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: var(--text-main);
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollDigitUp {
+      from {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes breatheSync {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .page-enter {
+      animation: entranceFadeUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: rollDigitUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .digit-roll-1 { animation-delay: 0ms; }
+    .digit-roll-2 { animation-delay: 35ms; }
+    .digit-roll-3 { animation-delay: 70ms; }
+    .digit-roll-4 { animation-delay: 105ms; }
+
+    .sync-breathe {
+      animation: breatheSync 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Controls: min 44px height, hover, focus, pressed */
+    .btn-primary {
+      background-color: var(--brand-primary);
+      color: #FFFFFF;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 160ms ease, transform 90ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #435c6d;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--brand-primary);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 160ms ease, border-color 160ms ease, transform 90ms ease;
+    }
+    .btn-secondary:hover {
+      background-color: #FAF9F6;
+      border-color: #c4c5c2;
+    }
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--brand-primary);
+      outline-offset: 2px;
+    }
+
+    .nav-item {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 16px 0;
+      display: inline-flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .nav-item:hover {
+      color: var(--text-main);
+    }
+    .nav-item.active {
+      color: var(--brand-primary);
+      border-bottom-color: var(--brand-primary);
+      font-weight: 600;
+    }
+    .nav-item:focus-visible {
+      outline: 2px solid var(--brand-primary);
+      outline-offset: 2px;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Shared Header -->
+  <header class="w-full bg-white border-b border-[#D9DAD7] sticky top-0 z-50">
+    <div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+      
+      <!-- Brand & Navigation Menu -->
+      <div class="flex items-center gap-8 h-full">
+        <!-- Brand: small square grain mark with a white F beside Feedlot wordmark -->
+        <a href="#" class="flex items-center gap-2.5 text-decoration-none group">
+          <div class="w-7 h-7 rounded bg-[#526F82] flex items-center justify-center text-white font-bold text-sm tracking-tight select-none">
+            F
+          </div>
+          <span class="font-bold text-lg text-[#262A2D] tracking-tight font-['Hanken_Grotesk']">Feedlot</span>
+        </a>
+
+        <!-- Shared Navigation links in exact order -->
+        <nav class="flex items-center gap-6 h-full">
+          <a href="#" class="nav-item">Overview</a>
+          <a href="#" class="nav-item active">Lots</a>
+          <a href="#" class="nav-item">Inventory</a>
+          <a href="#" class="nav-item">Rations</a>
+          <a href="#" class="nav-item">Feeding plans</a>
+          <a href="#" class="nav-item">Feeding log</a>
+          <a href="#" class="nav-item">Lot weights</a>
+          <a href="#" class="nav-item">Yard summary</a>
+          <a href="#" class="nav-item">Feed-to-Gain</a>
+        </nav>
+      </div>
+
+      <!-- Right: Signed-in User Initials Avatar beside Name & Role -->
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-[#E5E5E2] flex items-center justify-center text-xs font-semibold text-[#262A2D] select-none font-mono-num">
+          MC
+        </div>
+        <div class="flex flex-col text-left">
+          <span class="text-xs font-semibold text-[#262A2D] leading-tight">Mara Chen</span>
+          <span class="text-[11px] text-[#626A6F] leading-tight">Feed Operations, Administrator</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-6 py-7 page-enter">
+    
+    <!-- Page Single Heading -->
+    <div class="mb-7">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-[28px] font-semibold leading-tight text-[#262A2D]">Lot performance</h1>
+          <div class="flex items-center gap-2 mt-1 text-sm text-[#626A6F]">
+            <span>Lot <strong class="text-[#262A2D] font-mono-num font-semibold">L-241</strong></span>
+            <span>·</span>
+            <span>Angus steers in Pen 4</span>
+            <span>·</span>
+            <span>64 head</span>
+          </div>
+        </div>
+
+        <!-- Latest returned refresh info & accepted event indicator -->
+        <div class="text-right flex flex-col items-end">
+          <div class="flex items-center gap-2 text-xs text-[#626A6F]">
+            <span class="w-2 h-2 rounded-full bg-[#356A55] sync-breathe inline-block"></span>
+            <span>Accepted feeding or weight events refresh these values</span>
+          </div>
+          <span class="text-xs text-[#626A6F] mt-0.5">
+            Latest refresh: <span class="font-mono-num text-[#262A2D]">Apr 17, 2025 08:00</span> <span class="font-mono-num">America/Denver</span>
+          </span>
+        </div>
+      </div>
+      <div class="w-full h-px bg-[#D9DAD7] mt-5"></div>
+    </div>
+
+    <!-- Hero Metric Banner: Single headline figure with signature motion roll -->
+    <div class="bg-white border border-[#D9DAD7] rounded-lg p-6 mb-7">
+      <div class="flex flex-col md:flex-row md:items-baseline justify-between gap-4">
+        <div>
+          <div class="text-xs uppercase tracking-wider text-[#626A6F] font-semibold mb-1">
+            Measured Average Daily Gain
+          </div>
+          <div class="flex items-baseline gap-2 text-[#262A2D]">
+            <div class="text-5xl font-bold font-mono-num tracking-tight overflow-hidden inline-flex items-baseline">
+              <span class="digit-roll digit-roll-1">2</span>
+              <span class="digit-roll digit-roll-2">.</span>
+              <span class="digit-roll digit-roll-3">0</span>
+              <span class="digit-roll digit-roll-4">7</span>
+            </div>
+            <span class="text-xl font-medium text-[#626A6F]">lb/day ADG</span>
+          </div>
+          <div class="mt-2 text-sm text-[#626A6F] flex items-center gap-2">
+            <span>Measured-period context:</span>
+            <span class="text-[#262A2D] font-medium font-mono-num">Jan 8 – Apr 16, 2025</span>
+            <span>·</span>
+            <span>Pen 4 cohort</span>
+          </div>
+        </div>
+
+        <!-- Action: Lot weights primary link for recording next measurement -->
+        <div class="flex items-center gap-3 self-start md:self-center">
+          <a href="#" class="btn-primary">
+            Record lot weight
+          </a>
+          <a href="#" class="btn-secondary">
+            Lot weights
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tight Metric Table -->
+    <div class="bg-white border border-[#D9DAD7] rounded-lg overflow-hidden mb-7">
+      <div class="px-6 py-4 border-b border-[#D9DAD7] flex items-center justify-between">
+        <h2 class="text-base font-semibold text-[#262A2D]">Cohort Metrics &amp; Feed Utilization</h2>
+        <span class="text-xs text-[#626A6F] font-mono-num">64 head · Pen 4 (120 capacity)</span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="h-11 border-b border-[#D9DAD7] bg-[#FAF9F6] text-xs font-semibold text-[#626A6F] uppercase tracking-wider">
+              <th class="px-6 py-2">Days on Feed</th>
+              <th class="px-6 py-2">Total Gain</th>
+              <th class="px-6 py-2">Total As-Fed Feed Consumed</th>
+              <th class="px-6 py-2">FCR</th>
+              <th class="px-6 py-2">Feed Cost of Gain</th>
+              <th class="px-6 py-2 text-right">Projected Ship Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D9DAD7]">
+            <tr class="h-11 text-sm text-[#262A2D]">
+              <td class="px-6 py-3 font-mono-num font-semibold">99 days</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">205 lb</td>
+              <td class="px-6 py-3 font-mono-num">17,814 lb</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">8.69</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">$1.09 / lb</td>
+              <td class="px-6 py-3 font-mono-num font-semibold text-right">Oct 9, 2025</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Operational Context Footer inside table panel -->
+      <div class="px-6 py-3 bg-[#FAF9F6] border-t border-[#D9DAD7] flex items-center justify-between text-xs text-[#626A6F]">
+        <div class="flex items-center gap-3">
+          <span>Target market weight: <strong class="text-[#262A2D] font-mono-num">1,350 lb</strong></span>
+          <span>·</span>
+          <span>Remaining to target: <strong class="text-[#262A2D] font-mono-num">363 lb</strong></span>
+          <span>·</span>
+          <span>Cumulative feed cost: <strong class="text-[#262A2D] font-mono-num">$10,580.40</strong></span>
+        </div>
+        <div>
+          <span>Bunk allocation: Finisher 18 (64:32 pen split with L-242)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restrained Dated Weight Trend Section -->
+    <div class="bg-white border border-[#D9DAD7] rounded-lg p-6 mb-7">
+      <div class="flex items-center justify-between pb-4 border-b border-[#D9DAD7] mb-6">
+        <div>
+          <h2 class="text-base font-semibold text-[#262A2D]">Weight Progression &amp; History</h2>
+          <p class="text-xs text-[#626A6F] mt-0.5">Scale-verified measurements across 4 weigh events (782 lb received to 987 lb latest)</p>
+        </div>
+        <div class="text-xs text-[#626A6F]">
+          Target weight: <span class="font-mono-num font-semibold text-[#262A2D]">1,350 lb</span>
+        </div>
+      </div>
+
+      <!-- Restrained SVG Trend Visualization -->
+      <div class="w-full bg-[#FAF9F6] border border-[#D9DAD7] rounded-lg p-6 mb-6">
+        <div class="h-36 w-full relative">
+          <svg viewBox="0 0 800 130" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+            <!-- Grid Lines -->
+            <line x1="40" y1="20" x2="760" y2="20" stroke="#D9DAD7" stroke-width="1" stroke-dasharray="4,4"></line>
+            <line x1="40" y1="70" x2="760" y2="70" stroke="#D9DAD7" stroke-width="1" stroke-dasharray="4,4"></line>
+            <line x1="40" y1="120" x2="760" y2="120" stroke="#D9DAD7" stroke-width="1"></line>
+
+            <!-- Area Fill -->
+            <polygon points="80,120 80,105 280,72 500,46 720,24 720,120" fill="#526F82" fill-opacity="0.08"></polygon>
+
+            <!-- Connecting Trend Line -->
+            <polyline points="80,105 280,72 500,46 720,24" fill="none" stroke="#526F82" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+
+            <!-- Data Points: 782 lb, 870 lb, 932 lb, 987 lb -->
+            <!-- Point 1: Jan 8 (782 lb) -->
+            <circle cx="80" cy="105" r="5" fill="#FFFFFF" stroke="#526F82" stroke-width="2.5"></circle>
+            <!-- Point 2: Feb 19 (870 lb) -->
+            <circle cx="280" cy="72" r="5" fill="#FFFFFF" stroke="#526F82" stroke-width="2.5"></circle>
+            <!-- Point 3: Mar 19 (932 lb) -->
+            <circle cx="500" cy="46" r="5" fill="#FFFFFF" stroke="#526F82" stroke-width="2.5"></circle>
+            <!-- Point 4: Apr 16 (987 lb) -->
+            <circle cx="720" cy="24" r="5" fill="#FFFFFF" stroke="#356A55" stroke-width="2.5"></circle>
+          </svg>
+
+          <!-- Label Overlays -->
+          <div class="absolute inset-0 flex justify-between px-10 pointer-events-none">
+            <div class="flex flex-col items-center justify-between h-full pt-1">
+              <span class="font-mono-num font-semibold text-xs text-[#262A2D] bg-white px-1.5 py-0.5 rounded border border-[#D9DAD7]">782 lb</span>
+              <span class="font-mono-num text-[11px] text-[#626A6F]">Jan 8, 2025</span>
+            </div>
+            <div class="flex flex-col items-center justify-between h-full pt-1">
+              <span class="font-mono-num font-semibold text-xs text-[#262A2D] bg-white px-1.5 py-0.5 rounded border border-[#D9DAD7]">870 lb</span>
+              <span class="font-mono-num text-[11px] text-[#626A6F]">Feb 19, 2025</span>
+            </div>
+            <div class="flex flex-col items-center justify-between h-full pt-1">
+              <span class="font-mono-num font-semibold text-xs text-[#262A2D] bg-white px-1.5 py-0.5 rounded border border-[#D9DAD7]">932 lb</span>
+              <span class="font-mono-num text-[11px] text-[#626A6F]">Mar 19, 2025</span>
+            </div>
+            <div class="flex flex-col items-center justify-between h-full pt-1">
+              <span class="font-mono-num font-semibold text-xs text-[#356A55] bg-white px-1.5 py-0.5 rounded border border-[#356A55]">987 lb</span>
+              <span class="font-mono-num text-[11px] text-[#626A6F]">Apr 16, 2025</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shared Event Records Table -->
+      <div class="overflow-x-auto border border-[#D9DAD7] rounded-lg">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="h-11 border-b border-[#D9DAD7] bg-[#FAF9F6] text-xs font-semibold text-[#626A6F] uppercase tracking-wider">
+              <th class="px-6 py-2">Date &amp; Time</th>
+              <th class="px-6 py-2">Average Weight</th>
+              <th class="px-6 py-2">Period Gain</th>
+              <th class="px-6 py-2">Period ADG</th>
+              <th class="px-6 py-2">Head Count</th>
+              <th class="px-6 py-2">Operator</th>
+              <th class="px-6 py-2 text-right">Event Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D9DAD7]">
+            <tr class="h-11 text-sm text-[#262A2D]">
+              <td class="px-6 py-3 font-mono-num">Apr 16, 2025 · 07:10</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">987 lb</td>
+              <td class="px-6 py-3 font-mono-num">+55 lb</td>
+              <td class="px-6 py-3 font-mono-num">1.96 lb/d</td>
+              <td class="px-6 py-3 font-mono-num">64</td>
+              <td class="px-6 py-3">Luis Ortega</td>
+              <td class="px-6 py-3 text-right">
+                <span class="inline-flex items-center gap-1.5 text-xs text-[#356A55]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+                  accepted
+                </span>
+              </td>
+            </tr>
+            <tr class="h-11 text-sm text-[#262A2D]">
+              <td class="px-6 py-3 font-mono-num">Mar 19, 2025 · 07:00</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">932 lb</td>
+              <td class="px-6 py-3 font-mono-num">+62 lb</td>
+              <td class="px-6 py-3 font-mono-num">2.21 lb/d</td>
+              <td class="px-6 py-3 font-mono-num">64</td>
+              <td class="px-6 py-3">Luis Ortega</td>
+              <td class="px-6 py-3 text-right">
+                <span class="inline-flex items-center gap-1.5 text-xs text-[#356A55]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+                  accepted
+                </span>
+              </td>
+            </tr>
+            <tr class="h-11 text-sm text-[#262A2D]">
+              <td class="px-6 py-3 font-mono-num">Feb 19, 2025 · 07:00</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">870 lb</td>
+              <td class="px-6 py-3 font-mono-num">+88 lb</td>
+              <td class="px-6 py-3 font-mono-num">2.10 lb/d</td>
+              <td class="px-6 py-3 font-mono-num">64</td>
+              <td class="px-6 py-3">Luis Ortega</td>
+              <td class="px-6 py-3 text-right">
+                <span class="inline-flex items-center gap-1.5 text-xs text-[#356A55]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+                  accepted
+                </span>
+              </td>
+            </tr>
+            <tr class="h-11 text-sm text-[#262A2D]">
+              <td class="px-6 py-3 font-mono-num">Jan 8, 2025 · 08:20</td>
+              <td class="px-6 py-3 font-mono-num font-semibold">782 lb</td>
+              <td class="px-6 py-3 font-mono-num">—</td>
+              <td class="px-6 py-3 font-mono-num">—</td>
+              <td class="px-6 py-3 font-mono-num">64</td>
+              <td class="px-6 py-3">Luis Ortega</td>
+              <td class="px-6 py-3 text-right">
+                <span class="inline-flex items-center gap-1.5 text-xs text-[#356A55]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#356A55]"></span>
+                  accepted
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Action link back to Lot weights for recording -->
+      <div class="mt-5 flex items-center justify-between">
+        <span class="text-xs text-[#626A6F]">
+          Scale calibration verified to yard standard (tolerance: ±0.1%).
+        </span>
+        <a href="#" class="text-sm font-semibold text-[#526F82] hover:underline focus:outline-none focus:ring-2 focus:ring-[#526F82] rounded">
+          Record next measurement in Lot weights →
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding plans":"S-9","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","financials":"S-18","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-17";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

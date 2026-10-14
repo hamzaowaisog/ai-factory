@@ -1,0 +1,108 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-3.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test creates a two-lot plan, checks the returned planned quantity and separate lot allocations summing to it, then checks the GET status and required plan fields."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "AC_3_2_ListsSavedActivitiesWithInventoryAndLotTotals",
+      "verdict": "weak",
+      "why": "Assert that each of the three activities created by the test appears in the response; the filtered foreach can check no matching activity while the length assertion passes."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test posts the 950 lb delivery against the seeded 900 lb plan and asserts status, variance, two distinct lot IDs, and allocation quantities summing to 950 lb."
+     },
+     {
+      "acId": "AC-3.4",
+      "testId": "AC_3_4_RecalculatesAnUpdateAndReversesInventoryWhenCanceled",
+      "verdict": "weak",
+      "why": "Assert the updated inventory totals’ values, not just their presence, so a response with incorrect update totals cannot pass."
+     },
+     {
+      "acId": "AC-3.5",
+      "testId": "AC_3_5_RejectsInsufficientStockWithoutChangingInventoryOrActivities",
+      "verdict": "weak",
+      "why": "Compare the complete inventory row and activity list before and after the request; currently only the closing balance and activity count are compared."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "AC_4_1_ReturnsMeasurementsAndTrendsForAllLotsOrOneLot",
+      "verdict": "weak",
+      "why": "Assert date and averageWeightLb on the filtered response’s trend entries too; that response currently checks only that the trend is nonempty."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_CreatesAndCorrectsMeasurementsWithMetricsAndTrend",
+      "verdict": "weak",
+      "why": "Assert the submitted measurement values and recalculated metric values on both responses; the test currently checks only a subset of measurement data and metric field presence."
+     },
+     {
+      "acId": "AC-4.3",
+      "testId": "AC_4_3_ReturnsYardTotalsAndActivePenAndLotSummaries",
+      "verdict": "weak",
+      "why": "Assert the expected totalHead and the summary values, since the test currently checks totalHead only for presence and summaries mainly for names and counts."
+     },
+     {
+      "acId": "AC-4.4",
+      "testId": "AC_4_4_FiltersReportRowsAndReturnsKnownFilterChoices",
+      "verdict": "weak",
+      "why": "Exercise date, breed, sex, and penId filters independently or with distinguishing nonmatching rows; the combined query can pass if some filters are ignored."
+     },
+     {
+      "acId": "AC-4.5",
+      "testId": "AC_4_5_ExportsFilteredReportAsCsvAndPdf",
+      "verdict": "weak",
+      "why": "Use export cases that distinguish each supported filter, since the combined-filter assertions can pass when an individual filter is ignored."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test seeds and checks three accounts, asserts every documented field is present, verifies the list status, and ensures passwordHash is absent."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "AC_5_2_CreatesAnAccountAndUpdatesItsRole",
+      "verdict": "weak",
+      "why": "Assert the returned account field values against the create request and update a pre-seeded account, rather than checking only some returned values on the newly created account."
+     },
+     {
+      "acId": "AC-5.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test uses a configured source with three records and asserts status, a nonempty source, an allowed status, and targetLots and error fields on every returned record."
+     },
+     {
+      "acId": "AC-5.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both 200 statuses, required demo and flow fields, nonempty rules and sections, and started=true for the start request."
+     },
+     {
+      "acId": "AC-5.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test calls an administrator operation as an Operator and asserts the 403 status and exact Forbidden error and code."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

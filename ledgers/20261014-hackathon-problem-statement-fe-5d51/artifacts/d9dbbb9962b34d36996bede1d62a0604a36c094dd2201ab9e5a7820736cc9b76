@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "/work/App.Tests/AcceptancePart2Tests.cs"
+   },
+   "ms": 0,
+   "resultChars": 197,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;/work/App.Tests/AcceptancePart2Tests.cs&quot;}\">\nERROR: No such file: work/App.Tests/AcceptancePart2Tests.cs\n</untrusted_document>"
+  }
+ ]
+}

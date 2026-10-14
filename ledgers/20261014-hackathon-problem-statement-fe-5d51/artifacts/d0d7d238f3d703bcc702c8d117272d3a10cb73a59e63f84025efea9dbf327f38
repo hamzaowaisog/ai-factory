@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "sealed class AppFactory|class AppFactory",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 1,
+   "resultChars": 270,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;sealed class AppFactory|class AppFactory&quot;,&quot;glob&quot;:&quot;App.Tests/**/*.cs&quot;}\">\nApp.Tests/AppFactory.cs:14: public class AppFactory : WebApplicationFactory<Program>\n</untrusted_document>"
+  }
+ ]
+}

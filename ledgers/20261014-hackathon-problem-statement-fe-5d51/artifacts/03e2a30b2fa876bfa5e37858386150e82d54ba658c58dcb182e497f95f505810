@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "AC_3_1_ListsPlans",
+    "glob": "**/*"
+   },
+   "ms": 2,
+   "resultChars": 269,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;AC_3_1_ListsPlans&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Tests/AcceptancePart2Tests.cs:42: public async Task AC_3_1_ListsPlansAndReturnsSeparateProportionalLotAllocations()\n</untrusted_document>"
+  }
+ ]
+}

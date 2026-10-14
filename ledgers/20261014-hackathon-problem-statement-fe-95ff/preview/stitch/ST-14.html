@@ -1,0 +1,549 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Feeding log — Feedlot Operations</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary-container": "#5b666e",
+            "secondary-fixed": "#d9e4ee",
+            "surface-container-high": "#e9e8e4",
+            "on-secondary-fixed": "#121d24",
+            "outline-variant": "#D9DAD7",
+            "surface-variant": "#e3e2df",
+            "on-primary-fixed": "#001e2d",
+            "surface-dim": "#dbdad6",
+            "primary": "#526F82",
+            "error-container": "#ffdad6",
+            "on-error-container": "#93000a",
+            "on-background": "#262A2D",
+            "on-tertiary": "#ffffff",
+            "tertiary-container": "#856640",
+            "surface-container-highest": "#e3e2df",
+            "surface-container": "#efeeea",
+            "inverse-on-surface": "#f2f1ed",
+            "surface-bright": "#faf9f5",
+            "primary-container": "#526F82",
+            "inverse-primary": "#accbe0",
+            "surface-tint": "#456274",
+            "on-surface-variant": "#626A6F",
+            "surface-container-lowest": "#ffffff",
+            "primary-fixed-dim": "#accbe0",
+            "secondary-fixed-dim": "#bdc8d1",
+            "on-surface": "#262A2D",
+            "on-secondary-fixed-variant": "#3d4850",
+            "inverse-surface": "#30312e",
+            "secondary-container": "#d9e4ee",
+            "primary-fixed": "#c8e7fd",
+            "tertiary-fixed-dim": "#e7c093",
+            "tertiary": "#6a4e2a",
+            "on-primary-fixed-variant": "#2d4a5c",
+            "on-primary-container": "#ddf0ff",
+            "secondary": "#626A6F",
+            "outline": "#72787c",
+            "on-tertiary-fixed": "#2a1700",
+            "surface": "#F4F3EF",
+            "on-primary": "#ffffff",
+            "surface-container-low": "#f5f4f0",
+            "on-tertiary-fixed-variant": "#5c421f",
+            "on-tertiary-container": "#ffebd6",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed": "#ffddb7",
+            "error": "#B4473C",
+            "on-error": "#ffffff",
+            "background": "#F4F3EF"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "sm": "0.375rem",
+            "md": "0.5rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+    }
+
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: "Source Sans 3", sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono-numbers {
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes page-enter {
+      from { opacity: 0.65; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes figure-roll {
+      0% { opacity: 0.4; transform: translateY(0.65em); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-enter {
+      animation: page-enter var(--dur-base) var(--ease-out) both;
+    }
+
+    .figure-roll-anim {
+      display: inline-block;
+      animation: figure-roll 600ms var(--ease-out) forwards;
+    }
+
+    .btn-action {
+      transition: background-color var(--dur-quick) var(--ease-out),
+                  border-color var(--dur-quick) var(--ease-out),
+                  transform var(--dur-instant) var(--ease-out);
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    .field-input {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      min-height: 44px;
+      font-size: 14px;
+      color: #262A2D;
+      transition: border-color var(--dur-quick) var(--ease-out),
+                  box-shadow var(--dur-quick) var(--ease-out);
+    }
+    .field-input:focus {
+      outline: none;
+      border-color: #526F82;
+      box-shadow: 0 0 0 2px rgba(82, 111, 130, 0.25);
+    }
+
+    /* Modal dialog backdrops */
+    dialog::backdrop {
+      background: rgba(38, 42, 45, 0.4);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition-duration: 100ms !important;
+        transform: none !important;
+      }
+      .figure-roll-anim {
+        transform: none !important;
+        opacity: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] flex flex-col bg-[#F4F3EF] text-[#262A2D]">
+<!-- Header -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D9DAD7] sticky top-0 z-40">
+<div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+<!-- Left: Square Grain Mark + Wordmark + Navigation -->
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 bg-[#526F82] rounded-[4px] flex items-center justify-center font-headline font-semibold text-white text-base leading-none select-none">
+            F
+          </div>
+<span class="font-headline font-semibold text-[17px] tracking-tight text-[#262A2D]">Feedlot</span>
+</div>
+<!-- Navigation Menu -->
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Overview</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Lots</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Inventory</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Rations</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Feeding plans</a>
+<a class="text-sm font-semibold text-[#526F82] border-b-2 border-[#526F82] py-4" href="#">Feeding log</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Lot weights</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Yard summary</a>
+<a class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] py-4 transition-colors" href="#">Feed-to-Gain</a>
+</nav>
+</div>
+<!-- Right: User Initials Circle + Mara Chen -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#E9E8E4] border border-[#D9DAD7] flex items-center justify-center font-mono-numbers text-xs font-semibold text-[#262A2D] select-none">
+          MC
+        </div>
+<div class="text-left leading-tight hidden sm:block">
+<div class="font-headline text-xs font-semibold text-[#262A2D]">Mara Chen</div>
+<div class="font-body text-[11px] text-[#626A6F]">Feed Operations, Administrator</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas Container (Centered Max-width 1440px) -->
+<main class="w-full max-w-[1440px] mx-auto px-6 py-7 page-enter flex-1 flex flex-col gap-7">
+<!-- Headline & Contextual Summary -->
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-3 border-b border-[#D9DAD7] pb-5">
+<div>
+<h1 class="font-headline font-semibold text-[28px] text-[#262A2D] tracking-tight leading-tight">
+          Feeding log
+        </h1>
+</div>
+<div class="flex items-center gap-2 text-sm text-[#626A6F]">
+<span class="text-[#262A2D] font-medium">Today's recorded as-fed</span>
+<span class="font-mono-numbers font-semibold text-[#262A2D] figure-roll-anim text-base">1,776 lb</span>
+<span class="text-[#626A6F]">(Target: <span class="font-mono-numbers">1,728 lb</span> (<span class="font-mono-numbers font-medium text-[#262A2D]">+48 lb</span> variance))</span>
+</div>
+</div>
+<!-- Section 1: Compact Activity Table -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-semibold text-[17px] text-[#262A2D]">Recent feeding activities</h2>
+<span class="text-xs text-[#626A6F]">Scale-validated deliveries · 3 shifts logged</span>
+</div>
+<!-- Table Panel -->
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-[8px] overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-[#D9DAD7] bg-[#FAF9F5] text-[11px] font-semibold text-[#626A6F] tracking-[0.08em] uppercase">
+<th class="py-3 px-4">Date</th>
+<th class="py-3 px-4">Pen</th>
+<th class="py-3 px-4">Ration</th>
+<th class="py-3 px-4 text-right">Planned</th>
+<th class="py-3 px-4 text-right">Actual</th>
+<th class="py-3 px-4 text-right">Variance</th>
+<th class="py-3 px-4">Status</th>
+<th class="py-3 px-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="text-sm divide-y divide-[#D9DAD7]">
+<!-- Row 1: Apr 17 (Expanded with Execution Rollup) -->
+<tr class="bg-[#FFFFFF] hover:bg-[#FAF9F5] transition-colors">
+<td class="py-3 px-4 font-mono-numbers font-medium text-[#262A2D]">Apr 17</td>
+<td class="py-3 px-4 font-medium text-[#262A2D]">Pen 4</td>
+<td class="py-3 px-4 text-[#262A2D]">Finisher 18</td>
+<td class="py-3 px-4 font-mono-numbers text-right text-[#626A6F]">1,728 lb</td>
+<td class="py-3 px-4 font-mono-numbers text-right font-medium text-[#262A2D]">1,776 lb</td>
+<td class="py-3 px-4 font-mono-numbers text-right text-[#262A2D] font-medium">+48 lb</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-xs text-[#262A2D]">
+<span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+                    Completed
+                  </span>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="inline-flex items-center gap-3">
+<button class="text-xs font-semibold text-[#526F82] hover:underline btn-action" type="button">Edit</button>
+<span class="text-[#D9DAD7]">|</span>
+<button class="text-xs font-semibold text-[#B4473C] hover:underline btn-action" type="button">Cancel activity</button>
+</div>
+</td>
+</tr>
+<!-- Apr 17 Returned Execution Details Panel Sub-row -->
+<tr>
+<td class="p-0 bg-[#FAF9F5] border-b border-[#D9DAD7]" colspan="8">
+<div class="p-4 sm:p-5 flex flex-col gap-4 text-xs text-[#262A2D]">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Col 1: Returned Inventory Consumption -->
+<div class="flex flex-col gap-2">
+<div class="font-headline font-semibold text-xs tracking-wider uppercase text-[#626A6F]">Returned inventory consumption</div>
+<ul class="divide-y divide-[#D9DAD7] bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] p-2.5 space-y-1">
+<li class="flex justify-between items-center py-1">
+<span class="text-[#262A2D]">Steam-flaked corn</span>
+<span class="font-mono-numbers font-medium">1,243.2 lb</span>
+</li>
+<li class="flex justify-between items-center py-1">
+<span class="text-[#262A2D]">Alfalfa hay</span>
+<span class="font-mono-numbers font-medium">355.2 lb</span>
+</li>
+<li class="flex justify-between items-center py-1">
+<span class="text-[#262A2D]">Cottonseed meal</span>
+<span class="font-mono-numbers font-medium">124.3 lb</span>
+</li>
+<li class="flex justify-between items-center py-1">
+<span class="text-[#262A2D]">Mineral premix</span>
+<span class="font-mono-numbers font-medium">53.3 lb</span>
+</li>
+</ul>
+</div>
+<!-- Col 2: Metrics & Lot Allocations -->
+<div class="flex flex-col gap-2">
+<div class="font-headline font-semibold text-xs tracking-wider uppercase text-[#626A6F]">Lot allocations (64:32 split)</div>
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] p-2.5 flex flex-col justify-between h-full gap-2">
+<div class="space-y-1 divide-y divide-[#D9DAD7]">
+<div class="flex justify-between items-center py-1">
+<span>Lot L-241 <span class="text-[#626A6F]">(64 head)</span></span>
+<span class="font-mono-numbers font-medium">1,184 lb</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span>Lot L-242 <span class="text-[#626A6F]">(32 head)</span></span>
+<span class="font-mono-numbers font-medium">592 lb</span>
+</div>
+</div>
+<div class="pt-2 border-t border-[#D9DAD7] flex justify-between items-center font-medium">
+<span>Returned lot rollups</span>
+<span class="font-mono-numbers font-semibold">1,776 lb total</span>
+</div>
+</div>
+</div>
+<!-- Col 3: Financials & Operational Scale Note -->
+<div class="flex flex-col gap-2">
+<div class="font-headline font-semibold text-xs tracking-wider uppercase text-[#626A6F]">Calculated output &amp; scale note</div>
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-[6px] p-3 flex flex-col justify-between gap-3 h-full">
+<div class="grid grid-cols-2 gap-2 text-xs">
+<div>
+<span class="text-[#626A6F] block">Total feed cost</span>
+<span class="font-mono-numbers font-semibold text-[#262A2D] text-sm">$222.71</span>
+</div>
+<div>
+<span class="text-[#626A6F] block">Net energy</span>
+<span class="font-mono-numbers font-semibold text-[#262A2D] text-sm">1,456.3 Mcal</span>
+</div>
+</div>
+<div class="p-2 bg-[#F4F3EF] border-l-2 border-[#526F82] rounded-r-[4px]">
+<p class="text-[11px] leading-relaxed text-[#626A6F]">
+<strong class="font-semibold text-[#262A2D]">Operational note:</strong> Do not calculate or claim a web-side stock decrement. Mill scale systems handle stock balance automatically upon batch discharge.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</td>
+</tr>
+<!-- Row 2: Apr 16 -->
+<tr class="bg-[#FFFFFF] hover:bg-[#FAF9F5] transition-colors">
+<td class="py-3 px-4 font-mono-numbers font-medium text-[#262A2D]">Apr 16</td>
+<td class="py-3 px-4 font-medium text-[#262A2D]">Pen 7</td>
+<td class="py-3 px-4 text-[#262A2D]">Finisher 18</td>
+<td class="py-3 px-4 font-mono-numbers text-right text-[#626A6F]">1,476 lb</td>
+<td class="py-3 px-4 font-mono-numbers text-right font-medium text-[#262A2D]">1,476 lb</td>
+<td class="py-3 px-4 font-mono-numbers text-right text-[#626A6F]">0 lb</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-xs text-[#262A2D]">
+<span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+                    Completed
+                  </span>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="inline-flex items-center gap-3">
+<button class="text-xs font-semibold text-[#526F82] hover:underline btn-action" type="button">Edit</button>
+<span class="text-[#D9DAD7]">|</span>
+<button class="text-xs font-semibold text-[#B4473C] hover:underline btn-action" type="button">Cancel activity</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Apr 15 -->
+<tr class="bg-[#FFFFFF] hover:bg-[#FAF9F5] transition-colors">
+<td class="py-3 px-4 font-mono-numbers font-medium text-[#262A2D]">Apr 15</td>
+<td class="py-3 px-4 font-medium text-[#262A2D]">Pen 4</td>
+<td class="py-3 px-4 text-[#262A2D]">Finisher 18</td>
+<td class="py-3 px-4 font-mono-numbers text-right text-[#626A6F]">1,728 lb</td>
+<td class="py-3 px-4 font-mono-numbers text-right font-medium text-[#262A2D]">1,728 lb</td>
+<td class="py-3 px-4 font-mono-numbers text-right text-[#626A6F]">0 lb</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1.5 text-xs text-[#262A2D]">
+<span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+                    Completed
+                  </span>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="inline-flex items-center gap-3">
+<button class="text-xs font-semibold text-[#526F82] hover:underline btn-action" type="button">Edit</button>
+<span class="text-[#D9DAD7]">|</span>
+<button class="text-xs font-semibold text-[#B4473C] hover:underline btn-action" type="button">Cancel activity</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Pause before section 2 -->
+<div class="h-1"></div>
+<!-- Section 2: Record Feeding Activity Form -->
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-[#D9DAD7] pb-3">
+<h2 class="font-headline font-semibold text-[20px] text-[#262A2D]">Record feeding activity</h2>
+<a class="text-xs font-semibold text-[#526F82] hover:underline flex items-center gap-1" href="#">
+<span>Feeding plans</span>
+<span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+</a>
+</div>
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-[8px] p-6">
+<form class="flex flex-col gap-6">
+<!-- Plan Association Radio Toggle -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-6 pb-4 border-b border-[#D9DAD7]">
+<span class="text-xs font-semibold text-[#626A6F] uppercase tracking-wider">Plan association</span>
+<div class="flex items-center gap-5">
+<label class="flex items-center gap-2 cursor-pointer text-sm text-[#262A2D]">
+<input checked="" class="w-4 h-4 text-[#526F82] focus:ring-[#526F82] border-[#D9DAD7]" name="plan_type" type="radio">
+<span>Linked to planned schedule</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer text-sm text-[#626A6F]">
+<input class="w-4 h-4 text-[#526F82] focus:ring-[#526F82] border-[#D9DAD7]" name="plan_type" type="radio">
+<span>Entered without a plan</span>
+</label>
+</div>
+</div>
+<!-- Schedule Selector (Active when Linked) -->
+<div class="flex flex-col gap-1.5 max-w-xl"><label class="text-xs font-semibold text-[#262A2D]" for="select-schedule">Select schedule</label>
+<div class="relative">
+<select aria-label="Select schedule" class="field-input w-full px-3 pr-8 appearance-none cursor-pointer" id="select-schedule">
+<option selected="">Apr 17, 2025 · Pen 4 (1,728 lb planned)</option>
+<option>Apr 17, 2025 · Pen 7 (1,476 lb planned)</option>
+<option>Apr 18, 2025 · Pen 4 (1,728 lb planned)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#626A6F] pointer-events-none text-lg">expand_more</span>
+</div></div>
+<!-- Form Fields Grid (6 Columns) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+<!-- Delivery date -->
+<div class="flex flex-col gap-1.5"><label class="text-xs font-semibold text-[#262A2D]" for="delivery-date">Delivery date</label>
+<input aria-label="Delivery date" class="field-input px-3 font-mono-numbers" id="delivery-date" type="text" value="04/17/2025"></div>
+<!-- Pen -->
+<div class="flex flex-col gap-1.5"><label class="text-xs font-semibold text-[#262A2D]" for="pen-select">Pen</label>
+<div class="relative">
+<select aria-label="Pen" class="field-input w-full px-3 pr-8 appearance-none cursor-pointer" id="pen-select">
+<option selected="">Pen 4 (96 head · 24 free)</option>
+<option>Pen 7 (82 head · 18 free)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#626A6F] pointer-events-none text-lg">expand_more</span>
+</div></div>
+<!-- Ration -->
+<div class="flex flex-col gap-1.5"><label class="text-xs font-semibold text-[#262A2D]" for="ration-select">Ration</label>
+<div class="relative">
+<select aria-label="Ration" class="field-input w-full px-3 pr-8 appearance-none cursor-pointer" id="ration-select">
+<option selected="">Finisher 18 ($0.1254/lb norm)</option>
+<option>Grower 14 ($0.1082/lb norm)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#626A6F] pointer-events-none text-lg">expand_more</span>
+</div></div>
+<!-- Bunk rate -->
+<div class="flex flex-col gap-1.5"><label class="text-xs font-semibold text-[#262A2D]" for="bunk-rate">Bunk rate (lb as-fed / animal / day)</label>
+<input aria-label="Bunk rate (lb as-fed / animal / day)" class="field-input px-3 font-mono-numbers" id="bunk-rate" type="text" value="18.5"></div>
+<!-- Planned head count / Head count -->
+<div class="flex flex-col gap-1.5"><label class="text-xs font-semibold text-[#262A2D]" for="head-count">Head count</label>
+<input aria-label="Head count" class="field-input px-3 font-mono-numbers" id="head-count" type="text" value="96"></div>
+<!-- Actual quantity delivered (lb) -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold text-[#262A2D]">Actual quantity delivered (lb)</label>
+<input class="field-input px-3 font-mono-numbers font-medium text-[#262A2D]" type="text" value="1,776">
+</div>
+</div>
+<!-- Lot Allocations Preview Card -->
+<div class="bg-[#FAF9F5] border border-[#D9DAD7] rounded-[6px] p-4 flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<span class="font-headline font-semibold text-xs tracking-[0.08em] text-[#626A6F] uppercase">
+                LOT ALLOCATIONS (PROPORTIONAL TO HEAD COUNT)
+              </span>
+<span class="text-xs font-mono-numbers text-[#626A6F]">Total: 1,776 lb</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] p-3 rounded-[6px] flex justify-between items-center">
+<div>
+<span class="font-medium text-[#262A2D]">Lot L-241</span>
+<span class="text-xs text-[#626A6F] ml-1.5">(64 head · Angus steers 66.7%)</span>
+</div>
+<span class="font-mono-numbers font-semibold text-[#262A2D]">1,184 lb</span>
+</div>
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] p-3 rounded-[6px] flex justify-between items-center">
+<div>
+<span class="font-medium text-[#262A2D]">Lot L-242</span>
+<span class="text-xs text-[#626A6F] ml-1.5">(32 head · Angus heifers 33.3%)</span>
+</div>
+<span class="font-mono-numbers font-semibold text-[#262A2D]">592 lb</span>
+</div>
+</div>
+</div>
+<!-- Form Actions Footer -->
+<div class="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-[#D9DAD7]">
+<div class="flex items-center gap-3">
+<button class="btn-action bg-[#526F82] hover:bg-[#435b6b] text-white font-medium text-sm h-11 px-6 rounded-[6px] inline-flex items-center justify-center" type="submit">
+                Save feeding
+              </button>
+<button class="btn-action bg-transparent border border-[#D9DAD7] hover:border-[#262A2D] text-[#262A2D] font-medium text-sm h-11 px-5 rounded-[6px]" type="reset">
+                Reset fields
+              </button>
+</div>
+<!-- Cancel activity indicator with "This can't be undone" text notice -->
+<div class="flex items-center gap-3">
+<span class="text-xs text-[#626A6F]">This can't be undone</span>
+<button class="btn-action border border-[#D9DAD7] hover:border-[#B4473C] text-[#B4473C] text-sm font-medium h-11 px-4 rounded-[6px] bg-white" type="button">
+                Cancel activity
+              </button>
+</div>
+</div>
+</form>
+</div>
+</section>
+</main>
+<!-- Confirmation Dialog for Cancel Activity -->
+<dialog class="p-0 rounded-[8px] border border-[#D9DAD7] bg-white shadow-none max-w-md w-full" id="cancel-confirm-modal">
+<div class="p-6 flex flex-col gap-4">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-[#ffdad6] text-[#B4473C] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-lg">warning</span>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="font-headline font-semibold text-base text-[#262A2D]">Cancel feeding activity?</h3>
+<p class="text-xs text-[#626A6F] leading-normal">
+            This will nullify delivery records and rollback associated pen ration consumption. <strong>This can't be undone.</strong>
+</p>
+</div>
+</div>
+<div class="flex justify-end items-center gap-3 pt-3 border-t border-[#D9DAD7]">
+<button class="btn-action text-sm font-medium text-[#262A2D] h-10 px-4 rounded-[6px] border border-[#D9DAD7] hover:border-[#262A2D]" type="button">
+          Keep record
+        </button>
+<button class="btn-action text-sm font-medium text-white bg-[#B4473C] hover:bg-[#96372d] h-10 px-4 rounded-[6px]" type="button">
+          Confirm cancellation
+        </button>
+</div>
+</div>
+</dialog>
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding plans":"S-9","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-10";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

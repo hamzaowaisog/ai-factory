@@ -1,0 +1,84 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "AC_1_1_OpenApiDocumentListsEveryContractOperationSchemaResponseAndSecurityRule",
+      "verdict": "weak",
+      "why": "Lines 91–94 verify only that component schema names exist, so empty or incorrectly defined schemas can pass without documenting the contract fields."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_EveryContractOperationReturnsItsDeclaredAuthenticationErrorWithoutCredentials",
+      "verdict": "weak",
+      "why": "Lines 111–142 exercise unauthenticated calls and one admin denial, but do not assert valid successful calls or the declared validation and per-operation authorization responses."
+     },
+     {
+      "acId": "AC-1.3",
+      "testId": "AC_1_3_SignInAndOperationalLotResponsesExposeTheirContractFields",
+      "verdict": "weak",
+      "why": "Line 156 counts all lots before filtering and the test permits no matching fixture lots or empty milestones, cost breakdowns, and recommendations, so those required lot details can be absent."
+     },
+     {
+      "acId": "AC-1.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test uses an authenticated client and asserts the unknown-lot response’s 404 status, JSON media type, exact error, and exact code."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test creates three distinct inventory fixtures with movements, checks both 200 statuses, and verifies the required stock, movement, wastage, and projection fields on the fixture’s returned rows."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits the specified 2-ton, USD 360 receipt and checks 201, entered quantity and unit, 4,000 normalized pounds, and normalized unit cost within a suitable tolerance of 0.18."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "AC_2_3_SavedRationListIncludesEnteredAndNormalizedIngredientPricing",
+      "verdict": "weak",
+      "why": "Lines 278–282 check property names but not the returned animal range, nutrition and cost values, entered units, normalized quantities, proportions, or ingredient pricing values."
+     },
+     {
+      "acId": "AC-2.4",
+      "testId": "AC_2_4_RationCreationRetainsTonUnitsAndReturnsNormalizedNutritionAndCost",
+      "verdict": "weak",
+      "why": "Lines 316–320 verify the unit and only require positive ingredient numbers, while the parent nutrition and cost fields are checked for presence alone, so incorrect conversions or values can pass."
+     },
+     {
+      "acId": "AC-2.5",
+      "testId": "AC_2_5_OptimizationReturnsCandidateMixesWithNutritionCostAndTradeoffs",
+      "verdict": "weak",
+      "why": "Lines 342–346 check candidate field presence and status but never validate the ingredient proportions, cost, nutrition values, or tradeoff."
+     },
+     {
+      "acId": "AC-2.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test uses the candidate ID returned by optimization, waits for both action responses, and checks each 200 status, requested candidate ID, and exact Saved or Assigned status."
+     },
+     {
+      "acId": "AC-2.7",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test submits an invalid receipt and asserts 422, the exact contract error and code, and a nonempty field-validation message for quantity."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

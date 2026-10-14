@@ -1,0 +1,96 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-6.1",
+      "testId": "AC_6_1_ShowsEveryProjectionHorizonAndWastageRatio",
+      "verdict": "weak",
+      "why": "Assert each horizon label with its estimate and identify 8% as the wastage ratio; lines 86–89 only find bare numbers and a percentage."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "AC_6_2_ShowsReturnedMovementsWithoutAWastageMovement",
+      "verdict": "weak",
+      "why": "Assert date, type, and quantity together within each movement row; lines 104–109 check types and amounts separately, so they do not prove the returned movements appear as corresponding records."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "AC_7_1_ShowsTheSavedRationsReturnedNutritionAndCost",
+      "verdict": "weak",
+      "why": "Enter the ration type and assert the cost is displayed as USD per pound, since lines 139–155 omit the type and only match the bare cost value."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_RetainsEnteredUnitsAndShowsCostsPerPound",
+      "verdict": "weak",
+      "why": "Open the ration cost details and assert the calculated cost is labeled USD per pound; lines 168–182 render the list and match bare cost values."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "AC_8_1_ShowsEachOptimizationCandidateAndItsTradeOffs",
+      "verdict": "weak",
+      "why": "Assert ingredient proportions within every candidate, because the page-wide 55% and 45% checks at lines 210–211 do not establish proportions for the other candidates."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "AC_8_2_UpdatesCandidateStatusOnlyAfterSaveIsAccepted",
+      "verdict": "weak",
+      "why": "Keep the save response pending or reject it and assert the candidate remains unsaved until acceptance, since the immediate-success path at lines 219–235 also passes with an optimistic status update."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_GeneratesAPlanForTheBunkRateAndAnimalCount",
+      "verdict": "weak",
+      "why": "Assert that the displayed 1000 quantity is labeled in pounds; line 260 matches only the bare number."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "AC_9_2_ShowsSeparateLotAllocationsForThePlan",
+      "verdict": "weak",
+      "why": "Assert 600 within lot L-241's allocation and 400 within L-242's; the page-wide checks at lines 287–288 do not establish which quantity belongs to which lot and violate the lookup rule."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test creates four distinct plans and verifies each row contains its date, pen, ration, quantity, and one of the four required statuses."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_ShowsPlannedActualVarianceAndActivityDetails",
+      "verdict": "weak",
+      "why": "Open the activity detail and assert the pound units and named activity fields there; this test checks the list row for 900, 950, and 50 and uses page-wide bare values at lines 334–336."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "AC_11_2_SubmitsAndShowsMixedLotAllocationsAndRollups",
+      "verdict": "weak",
+      "why": "Scope each delivered quantity, consumption, and cost to its lot, and compare submitted allocations without order because the criterion specifies none; the current lookups and ordered array assertion at lines 377–390 do not prove those associations and violate the lookup and order rules."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "AC_11_3_ShowsAnUnplannedSavedActivityAndLotTotals",
+      "verdict": "weak",
+      "why": "Assert identifying fields of the returned activity, such as date, pen, ration, and actual quantity, and tie each lot total to its lot; lines 429–437 only show Unplanned, unscoped lot values, and an inventory balance."
+     },
+     {
+      "acId": "AC-11.4",
+      "testId": "AC_11_4_IndicatesWhenAnActivityDoesNotMatchItsPlan",
+      "verdict": "weak",
+      "why": "Set up an available plan and an activity whose date, pen, or lot differs before asserting the indicator; line 443 sets planMismatch directly without creating the mismatch condition."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

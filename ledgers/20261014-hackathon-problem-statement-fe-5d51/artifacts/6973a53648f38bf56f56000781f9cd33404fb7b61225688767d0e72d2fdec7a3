@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "performance|daysOnFeed|adgLbPerDay|fcr|feedCostOfGain|projectedShipDate|openapi",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 3,
+   "resultChars": 2724,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;performance|daysOnFeed|adgLbPerDay|fcr|feedCostOfGain|projectedShipDate|openapi&quot;,&quot;glob&quot;:&quot;contracts/openapi.y\">\ncontracts/openapi.yaml:1: openapi: 3.0.3\ncontracts/openapi.yaml:80: fcr: 6.4\ncontracts/openapi.yaml:85: daysOnFeed: 72\ncontracts/openapi.yaml:183: daysOnFeed: 68\ncontracts/openapi.yaml:186: periodAdgLbPerDay: 3.2\ncontracts/openapi.yaml:855: periodAdgLbPerDay: 3.2\ncontracts/openapi.yaml:902: periodAdgLbPerDay: 1\ncontracts/openapi.yaml:904: adgLbPerDay: 3.1\ncontracts/openapi.yaml:957: periodAdgLbPerDay: 3.25\ncontracts/openapi.yaml:959: adgLbPerDay: 3.25\ncontracts/openapi.yaml:987: averageAdgLbPerDay: 3.1\ncontracts/openapi.yaml:1003: daysOnFeed: 72\ncontracts/openapi.yaml:1004: adgLbPerDay: 3.2\ncontracts/openapi.yaml:1005: fcr: 6.4\ncontracts/openapi.yaml:1076: daysOnFeed: 72\ncontracts/openapi.yaml:1079: adgLbPerDay: 3.2\ncontracts/openapi.yaml:1080: fcr: 6.4\ncontracts/openapi.yaml:1140: example: \"Lot,Pen,Breed,Sex,Head Count,ADG,FCR,Cost of Gain\\nL-241,North 2,Angus,Female,40,3.2,6.4,1.92\"\ncontracts/openapi.yaml:1362: /lots/{lotId}/performance:\ncontracts/openapi.yaml:1364: operationId: getLotPerformance\ncontracts/openapi.yaml:1365: summary: \"Get performance metrics, feed utilization, and weight progression.\"\ncontracts/openapi.yaml:1374: $ref: '#/components/schemas/LotPerformance'\ncontracts/openapi.yaml:1379: daysOnFeed: 72\ncontracts/openapi.yaml:1381: adgLbPerDay: 3.2\ncontracts/openapi.yaml:1383: fcr: 6.4\ncontracts/openapi.yaml:1384: feedCostOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1385: projectedShipDate: '2026-07-10'\ncontracts/openapi.yaml:1390: periodAdgLbPerDay: 3.2\ncontracts/openapi.yaml:1416: feedCostOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1434: projectedShipDate: '2026-07-10'\ncontracts/openapi.yaml:1675: - fcr\ncontracts/openapi.yaml:1680: - daysOnFeed\ncontracts/openapi.yaml:1691: fcr:\ncontracts/openapi.yaml:1701: daysOnFeed:\ncontracts/openapi.yaml:1901: - daysOnFeed\ncontracts/openapi.yaml:1904: - periodAdgLbPerDay\ncontracts/openapi.yaml:1911: daysOnFeed:\ncontracts/openapi.yaml:1917: periodAdgLbPerDay:\ncontracts/openapi.yaml:2638: - periodAdgLbPerDay\ncontracts/openapi.yaml:2663: periodAdgLbPerDay:\ncontracts/openapi.yaml:2714: - adgLbPerDay\ncontracts/openapi.yaml:2717: adgLbPerDay:\ncontracts/openapi.yaml:2729: - averageAdgLbPerDay\ncontracts/openapi.yaml:2739: averageAdgLbPerDay:\ncontracts/openapi.yaml:2779: - daysOnFeed\ncontracts/openapi.yaml:2780: - adgLbPerDay\ncontracts/openapi.yaml:2781: - fcr\ncontracts/openapi.yaml:2799: daysOnFeed:\ncontracts/openapi.yaml:2801: adgLbPerDay:\ncontracts/openapi.yaml:2803: fcr:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

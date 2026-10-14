@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Main.*Accounts|\"Demo\"|\"Sync\"|\"Configuration\"",
+    "glob": "components/**/*.tsx"
+   },
+   "ms": 14,
+   "resultChars": 238,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Main.*Accounts|\\&quot;Demo\\&quot;|\\&quot;Sync\\&quot;|\\&quot;Configuration\\&quot;&quot;,&quot;glob&quot;:&quot;components/**/*.tsx&quot;}\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Main.*Accounts|\"Demo\"|\"Sync\"|\"Configuration\"",
+    "glob": "**/*.{md,tsx,ts}"
+   },
+   "ms": 13,
+   "resultChars": 677,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Main.*Accounts|\\&quot;Demo\\&quot;|\\&quot;Sync\\&quot;|\\&quot;Configuration\\&quot;&quot;,&quot;glob&quot;:&quot;**/*.{md,tsx,ts}&quot;}\">\ncomponents/screens/frame.ts:72: \"label\": \"Sync\",\ncomponents/screens/frame.ts:76: \"label\": \"Demo\",\ntests/acceptance.part1.test.tsx:177: for (const name of [\"Accounts\", \"Sync\", \"Overview\", \"Feeding plans\", \"Feeding log\", \"Lot weights\", \"Feed-to-Gain\"]) {\ntests/acceptance.part1.test.tsx:188: for (const name of [\"Accounts\", \"Sync\", \"Demo\"]) {\ntests/acceptance.part4.test.tsx:434: expect(await screen.findByRole(\"heading\", { name: \"Demo\" })).toBeTruthy();\n</untrusted_document>"
+  }
+ ]
+}

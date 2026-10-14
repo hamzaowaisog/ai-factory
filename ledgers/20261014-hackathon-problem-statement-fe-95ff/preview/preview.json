@@ -1,0 +1,261 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "S-1 /sign-in",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "S-2 /overview",
+        "req": "REQ-18"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "S-3 /lots",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "S-4 /lots/L-241/lifecycle",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "S-5 /inventory",
+        "req": "REQ-5"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "S-6 /inventory/projections",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "S-7 /rations",
+        "req": "REQ-7"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "S-8 /rations/optimize",
+        "req": "REQ-8"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "S-9 /feeding-plans",
+        "req": "REQ-9"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "S-10 /feeding-log",
+        "req": "REQ-11"
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "S-11 /lot-weights",
+        "req": "REQ-15"
+      },
+      {
+        "path": "index.html#S-12",
+        "title": "S-12 /yard-summary",
+        "req": "REQ-19"
+      },
+      {
+        "path": "index.html#S-13",
+        "title": "S-13 /reports/feed-to-gain",
+        "req": "REQ-20"
+      },
+      {
+        "path": "index.html#S-14",
+        "title": "S-14 /admin/accounts",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-15",
+        "title": "S-15 /admin/sync",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-16",
+        "title": "S-16 /admin/demo",
+        "req": "REQ-22"
+      },
+      {
+        "path": "index.html#S-17",
+        "title": "S-17 /lots/L-241/performance",
+        "req": "REQ-16"
+      },
+      {
+        "path": "index.html#S-18",
+        "title": "S-18 /lots/L-241/financials",
+        "req": "REQ-17"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "frames/stitch-S-1-normal-37209f23.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-normal-de9b29f0.png",
+      "screen": "S-2 /overview",
+      "req": "REQ-18",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-normal-1d6b9b8c.png",
+      "screen": "S-3 /lots",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-empty-f29be593.png",
+      "screen": "S-3 /lots",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-phone-381ec0f3.png",
+      "screen": "S-3 /lots",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-normal-3f89a800.png",
+      "screen": "S-4 /lots/L-241/lifecycle",
+      "req": "REQ-4",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-normal-dfacf035.png",
+      "screen": "S-5 /inventory",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-phone-98889cdf.png",
+      "screen": "S-5 /inventory",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-normal-387b3614.png",
+      "screen": "S-6 /inventory/projections",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-normal-082eea29.png",
+      "screen": "S-7 /rations",
+      "req": "REQ-7",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-normal-732461cd.png",
+      "screen": "S-8 /rations/optimize",
+      "req": "REQ-8",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-normal-c14c434f.png",
+      "screen": "S-9 /feeding-plans",
+      "req": "REQ-9",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-phone-debefc57.png",
+      "screen": "S-9 /feeding-plans",
+      "req": "REQ-9",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-normal-5805a368.png",
+      "screen": "S-10 /feeding-log",
+      "req": "REQ-11",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-error-d33de632.png",
+      "screen": "S-10 /feeding-log",
+      "req": "REQ-11",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-phone-d45fc038.png",
+      "screen": "S-10 /feeding-log",
+      "req": "REQ-11",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-normal-ed291ded.png",
+      "screen": "S-11 /lot-weights",
+      "req": "REQ-15",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-phone-b3aefca8.png",
+      "screen": "S-11 /lot-weights",
+      "req": "REQ-15",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-normal-3c2cf447.png",
+      "screen": "S-12 /yard-summary",
+      "req": "REQ-19",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-normal-3943a6f3.png",
+      "screen": "S-13 /reports/feed-to-gain",
+      "req": "REQ-20",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-13-empty-414469e2.png",
+      "screen": "S-13 /reports/feed-to-gain",
+      "req": "REQ-20",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-14-normal-0ced8d0c.png",
+      "screen": "S-14 /admin/accounts",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-15-normal-4845da17.png",
+      "screen": "S-15 /admin/sync",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-15-error-cf14d209.png",
+      "screen": "S-15 /admin/sync",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-16-normal-19d7092c.png",
+      "screen": "S-16 /admin/demo",
+      "req": "REQ-22",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-17-normal-f27bfad2.png",
+      "screen": "S-17 /lots/L-241/performance",
+      "req": "REQ-16",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-18-normal-22b70b77.png",
+      "screen": "S-18 /lots/L-241/financials",
+      "req": "REQ-17",
+      "viewport": "desktop"
+    }
+  ]
+}

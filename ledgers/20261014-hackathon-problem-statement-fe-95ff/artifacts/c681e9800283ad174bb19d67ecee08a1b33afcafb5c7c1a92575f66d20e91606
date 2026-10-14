@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 105,
+    "end": 120
+   },
+   "ms": 1,
+   "resultChars": 3148,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:105,&quot;end&quot;:120}\">\nlib/api/client.msw.ts lines 105-120\n105\texport const getSynchronizeSourceRecordsResponseMock = (): SyncResult => ({\"source\":\"Configured mock procurement source\",\"status\":\"Partial\",\"records\":[{\"sourceId\":\"PO-7301-1\",\"sourceRecordId\":\"REC-5518\",\"vendor\":\"Prairie Cattle Co.\",\"costUsd\":1000,\"headCount\":60,\"averageWeightLb\":620,\"breed\":\"Angus\",\"ageMonths\":16,\"sex\":\"Unknown\",\"result\":\"Updated\",\"targetLots\":[\"L-241\"],\"error\":null},{\"sourceId\":\"PO-7302-1\",\"sourceRecordId\":\"REC-5520\",\"result\":\"Failed\",\"targetLots\":[],\"error\":\"Source record validation failed\"}]})\n106\t\n107\texport const getGetDemoMaterialsResponseMock = (): DemoMaterials => ({\"operationalData\":{\"activeLots\":3,\"activePens\":2,\"totalHead\":120,\"totalFeedCostUsd\":37440},\"rules\":[{\"ruleId\":\"ASM-7\",\"description\":\"Mixed-lot pen allocations are proportional to current head count.\",\"sampleDataTarget\":\"Pen North 2\",\"verifiedOutput\":\"600 lb and 400 lb lot allocations\",\"status\":\"Verified\"}],\"sections\":[\"Proposed Solution\",\"Architecture Diagram\",\"Demo Flow\",\"Coding Super Prompt and Other Prompts\",\"Testing and Validation\",\"Challenges\",\"Production Readiness\",\"Go-to-Market Analysis\"]})\n108\t\n109\texport const getStartDemoFlowResponseMock = (): DemoFlowResult => ({\"started\":true,\"currentStep\":1,\"stepTitle\":\"Mixed-Lot Pen Allocations\",\"status\":\"In progress\"})\n110\t\n111\texport const getGetLotPerformanceResponseMock = (): LotPerformance => ({\"lotId\":241,\"lotCode\":\"L-241\",\"refreshedAt\":\"2026-04-14T15:30:00Z\",\"daysOnFeed\":72,\"totalWeightGainLb\":128,\"adgLbPerDay\":3.2,\"totalAsFedFeedConsumedLb\":18400,\"fcr\":6.4,\"feedCostOfGainUsdPerLb\":1.92,\"projectedShipDate\":\"2026-07-10\",\"events\":[{\"date\":\"2026-04-10\",\"averageWeightLb\":748,\"periodGainLb\":128,\"periodAdgLbPerDay\":3.2,\"headCount\":40,\"operator\":\"Morgan Lee\",\"status\":\"Accepted\"}]})\n112\t\n113\texport const getGetLotFinancialsResponseMock = (): LotFinancials => ({\"lotId\":241,\"lotCode\":\"L-241\",\"feedCostOfGainUsdPerLb\":1.92,\"purchaseCostUsd\":600,\"feedCostUsd\":12480,\"saleRevenueUsd\":null,\"broaderRoiStatus\":\"Unavailable\",\"broaderRoiUsd\":null,\"costBreakdown\":[{\"itemDescription\":\"Purchase cost\",\"accountingDetail\":\"Allocated purchase cost\",\"recordedAmountUsd\":600,\"status\":\"Available\"},{\"itemDescription\":\"Feed cost\",\"accountingDetail\":\"Accumulated feed cost\",\"recordedAmountUsd\":12480,\"status\":\"Available\"}],\"recommendations\":[{\"type\":\"Feeding adjustment\",\"description\":\"Review ration energy density against recent gain.\"}],\"projectedShipDate\":\"2026-07-10\",\"targetWeightLb\":1250})\n114\t\n115\t\n116\texport const getSignInMockHandler = (overrideResponse?: Session | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<Session> | Session), options?: RequestHandlerOptions) => {\n117\t  return http.post('*/auth/sign-in', async (info) => {await delay(0);\n118\t  \n119\t    return new HttpResponse(JSON.stringify(overrideResponse !== undefined\n120\t    ? (typeof overrideResponse === \"function\" ? await overrideResponse(info) : overrideResponse)\n… (533 lines total; ask for start=121)\n</untrusted_document>"
+  }
+ ]
+}

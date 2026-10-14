@@ -1,0 +1,66 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-17.1",
+      "testId": "AC_17_1_ShowsAvailableCostsAndUnavailableBroaderRoi",
+      "verdict": "weak",
+      "why": "The unscoped “Unavailable” assertion does not establish that the broader ROI itself is marked unavailable; assert that label within the broader-ROI region."
+     },
+     {
+      "acId": "AC-17.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies sale proceeds, broader ROI, and both recommendation types, then asserts their returned values and exact recommendation text."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "AC_18_1_ShowsDashboardOperationsAndPerformanceData",
+      "verdict": "weak",
+      "why": "The test omits several required dashboard details, including pen head counts, out-of-stock inventory, total feed quantity, and a verified best/worst-lot display; assert each required metric in its relevant row or section."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies and asserts total head, average ADG, average cost of gain, and total feed cost."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks ADG, FCR, and cost of gain within each of three rows, including the unknown-sex row, and verifies known sex options are offered while Unknown is excluded."
+     },
+     {
+      "acId": "AC-20.2",
+      "testId": "AC_20_2_RefreshesRowsForSelectedReportFilters",
+      "verdict": "weak",
+      "why": "The mock returns only L-241 whenever both date parameters are present, so the assertions can pass when breed, sex, or pen filtering is ignored; assert each filter’s effect independently and verify the selected date values."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "AC_21_1_DownloadsCsvAndPdfWithDisplayedReportData",
+      "verdict": "weak",
+      "why": "The displayed fixture has three distinct rows, but the mocked CSV and PDF contain only L-241; include and assert all displayed report rows in both downloads."
+     },
+     {
+      "acId": "AC-22.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts sample operational values, the demo rule row, every required presentation section, and the started flow’s returned step and status."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,54 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-6.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The grouped tests assert 200 for sign-in without a bearer token, 401 for an unauthenticated protected request, and 403 for an Operator on the Administrator-only operation, including the contract error code."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test inserts a known row into an isolated App database before startup, then checks its returned fields and stored values after startup."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_CreatedInventoryReceiptPersistsAcrossApiRestart",
+      "verdict": "weak",
+      "why": "The POST response assertions do not compare the returned supplier with the requested value `AC72 Feed Supply` (lines 170–179), so an incorrect supplier value can pass."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "AC_8_2_DisabledDemoSeedLeavesOnlyIndependentRowsInTheDatabaseAndLists",
+      "verdict": "weak",
+      "why": "The false and unset cases create no independently added rows and only assert empty lists (lines 244–256), so code that hides independent records can pass; add three distinct independent records and assert they appear."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_DemoSeedMatchesContractExamplesAndPopulatesLists",
+      "verdict": "weak",
+      "why": "The list helper only requires one returned row per endpoint (lines 487–497), rather than asserting three differing sample rows in each list as required by the data rule."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "AC_9_2_DisabledDemoSeedProducesNoDemoRowsOrListEntries",
+      "verdict": "weak",
+      "why": "The false and unset cases create no independently added rows and only assert empty lists (lines 332–348), so code that hides independent records can pass; add three distinct independent records and assert they appear."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

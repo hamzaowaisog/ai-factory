@@ -1,0 +1,55 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "roles",
+      "text": "How should authentication and authorization be applied to contract operations?",
+      "options": [
+       "Enforce authentication and authorization only where contracts/openapi.yaml explicitly declares them.",
+       "Require an authenticated administrator for every business operation, even when the contract does not declare that requirement.",
+       "Do not enforce authentication or authorization, even where the contract declares it."
+      ],
+      "recommended": "Enforce authentication and authorization only where contracts/openapi.yaml explicitly declares them.",
+      "reason": "This follows the locked contract without adding or omitting access requirements.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "This determines which callers can access operations and change or view data.",
+      "difference": "D-1",
+      "topic": "roles"
+     },
+     {
+      "id": "Q-2",
+      "category": "existing-data",
+      "text": "What should happen if demo seeding runs more than once?",
+      "options": [
+       "Repeated runs may insert duplicate copies of the sample rows.",
+       "Skip sample rows that are already present so repeated runs do not add duplicates."
+      ],
+      "recommended": "Repeated runs may insert duplicate copies of the sample rows.",
+      "reason": "The request requires sample rows when seeding is enabled but does not require repeat-run deduplication.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "This determines whether repeated seeding adds records to the database.",
+      "difference": "D-2"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

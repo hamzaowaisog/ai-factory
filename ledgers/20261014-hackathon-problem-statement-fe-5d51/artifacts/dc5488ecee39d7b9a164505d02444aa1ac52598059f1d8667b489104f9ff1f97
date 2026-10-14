@@ -1,0 +1,62 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Authentication and authorization behavior",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 3,
+        "summary": "Apply authentication and authorization as specified by the contract, including its defined responses for unauthorized or disallowed callers."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Honor the contract-defined request details and responses, without explicitly specifying authentication or authorization behavior."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Enforce contract-declared authentication and authorization requirements and return the specified denial response."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-3",
+      "topic": "Repeat-seed idempotency",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Repeated seeding must not grow the demo dataset with duplicate copies of the sample rows."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Provide sample rows when demo seeding is enabled, without specifying repeat-seed duplicate handling."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 0,
+        "summary": "Persist sample rows when seeding runs, without specifying repeat-seed duplicate handling."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

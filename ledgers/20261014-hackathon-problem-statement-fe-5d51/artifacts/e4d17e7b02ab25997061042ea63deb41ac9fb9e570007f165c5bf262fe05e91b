@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "^  [A-Za-z].*:|^    [A-Za-z].*:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2153,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;^  [A-Za-z].*:|^    [A-Za-z].*:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:3: title: Feedlot Operations API\ncontracts/openapi.yaml:4: version: 1.0.0\ncontracts/openapi.yaml:5: description: \"Shared API contract for the responsive Feedlot web application and API implementation.\"\ncontracts/openapi.yaml:12: post:\ncontracts/openapi.yaml:58: get:\ncontracts/openapi.yaml:118: get:\ncontracts/openapi.yaml:151: get:\ncontracts/openapi.yaml:198: get:\ncontracts/openapi.yaml:241: post:\ncontracts/openapi.yaml:288: get:\ncontracts/openapi.yaml:323: get:\ncontracts/openapi.yaml:355: post:\ncontracts/openapi.yaml:406: post:\ncontracts/openapi.yaml:451: post:\ncontracts/openapi.yaml:484: post:\ncontracts/openapi.yaml:518: get:\ncontracts/openapi.yaml:553: post:\ncontracts/openapi.yaml:603: get:\ncontracts/openapi.yaml:641: post:\ncontracts/openapi.yaml:712: patch:\ncontracts/openapi.yaml:785: delete:\ncontracts/openapi.yaml:826: get:\ncontracts/openapi.yaml:865: post:\ncontracts/openapi.yaml:918: patch:\ncontracts/openapi.yaml:975: get:\ncontracts/openapi.yaml:1016: get:\ncontracts/openapi.yaml:1091: get:\ncontracts/openapi.yaml:1153: get:\ncontracts/openapi.yaml:1175: post:\ncontracts/openapi.yaml:1217: patch:\ncontracts/openapi.yaml:1258: post:\ncontracts/openapi.yaml:1297: get:\ncontracts/openapi.yaml:1333: post:\ncontracts/openapi.yaml:1363: get:\ncontracts/openapi.yaml:1401: get:\ncontracts/openapi.yaml:1443: securitySchemes:\ncontracts/openapi.yaml:1444: bearerAuth:\ncontracts/openapi.yaml:1448: parameters:\ncontracts/openapi.yaml:1449: LotId:\ncontracts/openapi.yaml:1455: CandidateId:\ncontracts/openapi.yaml:1461: ActivityId:\ncontracts/openapi.yaml:1467: MeasurementId:\ncontracts/openapi.yaml:1473: AccountId:\ncontracts/openapi.yaml:1479: responses:\ncontracts/openapi.yaml:1480: BadRequest:\ncontracts/openapi.yaml:1489: Unauthorized:\ncontracts/openapi.yaml:1498: Forbidden:\ncontracts/openapi.yaml:1507: NotFound:\ncontracts/openapi.yaml:1516: Conflict:\ncontracts/openapi.yaml:1525: ValidationError:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

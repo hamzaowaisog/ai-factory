@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* CSS Variables matching exact design system tokens */
+    :root {
+      --color-bg: #F4F3EF;
+      --color-surface: #FFFFFF;
+      --color-text: #262A2D;
+      --color-text-muted: #626A6F;
+      --color-border: #D9DAD7;
+      --color-primary: #526F82;
+      --color-status-good: #356A55;
+      --color-status-waiting: #986321;
+      --color-status-failed: #B4473C;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion tokens */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes digitRoll {
+      0% {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes liveBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: digitRoll 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .stagger-1 { animation-delay: 0ms; }
+    .stagger-2 { animation-delay: 35ms; }
+    .stagger-3 { animation-delay: 70ms; }
+
+    .sync-dot-breathe {
+      animation: liveBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive state styles */
+    .btn-primary {
+      background-color: #526F82;
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 6px;
+      padding: 0 16px;
+      font-weight: 500;
+      transition: background-color 150ms ease, transform 90ms ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+    }
+    .btn-primary:hover {
+      background-color: #435b6b;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: #262A2D;
+      height: 44px;
+      border-radius: 6px;
+      padding: 0 16px;
+      font-weight: 500;
+      border: 1px solid #D9DAD7;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-secondary:hover {
+      background-color: #F4F3EF;
+      border-color: #C0C1BE;
+    }
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .btn-table-action {
+      background-color: #FFFFFF;
+      color: #262A2D;
+      height: 36px;
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid #D9DAD7;
+      transition: background-color 150ms ease, border-color 150ms ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-table-action:hover {
+      background-color: #F4F3EF;
+    }
+    .btn-table-action:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .form-input, .form-select {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      height: 44px;
+      padding: 0 12px;
+      color: #262A2D;
+      width: 100%;
+      font-size: 14px;
+      transition: border-color 150ms ease;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: 2px solid #526F82;
+      outline-offset: 0;
+      border-color: #526F82;
+    }
+
+    .panel-box {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Shared Application Header -->
+  <header class="bg-white border-b border-[#D9DAD7] h-14 sticky top-0 z-50 px-6 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <!-- Feedlot wordmark beside a small square grain mark with a white F -->
+      <a href="#" class="flex items-center gap-2 text-[#262A2D] text-decoration-none">
+        <span class="w-6 h-6 bg-[#526F82] text-white flex items-center justify-center rounded-[3px] text-xs font-semibold leading-none">F</span>
+        <span class="font-heading text-lg font-semibold tracking-tight text-[#262A2D]">Feedlot</span>
+      </a>
+
+      <!-- Navigation menu: Overview, Lots, Inventory, Rations, Feeding plans, Feeding log, Lot weights, Yard summary, Feed-to-Gain -->
+      <nav class="flex items-center gap-6">
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Overview</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Lots</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Inventory</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Rations</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Feeding plans</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Feeding log</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Lot weights</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Yard summary</a>
+        <a href="#" class="text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors py-4">Feed-to-Gain</a>
+      </nav>
+    </div>
+
+    <!-- Right user block: signed-in user's initials avatar to the left of their name and role -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-[#E5E6E3] text-[#262A2D] flex items-center justify-center font-medium text-xs font-heading">
+        MC
+      </div>
+      <div class="flex flex-col text-left">
+        <span class="text-xs font-semibold text-[#262A2D] leading-tight">Mara Chen</span>
+        <span class="text-[11px] text-[#626A6F] leading-tight">Feed Operations, Administrator</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Area -->
+  <main class="flex-1 w-full max-w-[1360px] mx-auto px-6 py-7 animate-entrance">
+    
+    <!-- Page Header: One heading reading "Accounts" -->
+    <div class="flex items-center justify-between pb-7 border-b border-[#D9DAD7]">
+      <div class="flex items-baseline gap-4">
+        <h1 class="text-[28px] font-semibold text-[#262A2D] leading-none m-0">Accounts</h1>
+        <span class="text-sm text-[#626A6F]">
+          Administrative directory &amp; access control &middot; <span class="font-mono-num font-medium text-[#262A2D]">America/Denver</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-xs text-[#626A6F]">
+          Yard active date: <span class="font-mono-num font-medium text-[#262A2D]">Apr 17, 2025</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 28px pause between sections -->
+    <div class="mt-7 grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+      
+      <!-- Left Column: Compact Account Table (8 cols on lg) -->
+      <div class="lg:col-span-8 flex flex-col">
+        
+        <!-- Summary Context Banner -->
+        <div class="panel-box p-6 mb-7 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider font-semibold text-[#626A6F] mb-1">Active Credentials</div>
+            <div class="text-3xl font-heading font-semibold text-[#262A2D] flex items-center gap-2">
+              <span class="digit-roll stagger-1 font-mono-num">3</span>
+              <span class="text-lg font-normal text-[#626A6F]">authorized yard personnel</span>
+            </div>
+            <div class="text-xs text-[#626A6F] mt-1">All accounts active &middot; Managed via yard operational policy</div>
+          </div>
+          <div class="flex items-center gap-3 bg-[#F4F3EF] px-4 py-2.5 rounded-md border border-[#D9DAD7]">
+            <span class="w-2 h-2 rounded-full bg-[#356A55] sync-dot-breathe inline-block"></span>
+            <span class="text-xs font-medium text-[#262A2D]">Directory synchronized</span>
+          </div>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="panel-box overflow-hidden">
+          <div class="px-6 py-4 border-b border-[#D9DAD7] flex items-center justify-between">
+            <h2 class="text-[16px] font-semibold text-[#262A2D] m-0">Active Accounts Directory</h2>
+            <span class="text-xs text-[#626A6F]">Showing <span class="font-mono-num font-medium text-[#262A2D]">3</span> of <span class="font-mono-num font-medium text-[#262A2D]">3</span> accounts</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-[#FAF9F6] border-b border-[#D9DAD7] text-xs font-semibold text-[#626A6F]">
+                  <th class="py-3 px-6 w-24">Photo</th>
+                  <th class="py-3 px-4">Name &amp; Department</th>
+                  <th class="py-3 px-4">Email</th>
+                  <th class="py-3 px-4">Role</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#D9DAD7] text-sm text-[#262A2D]">
+                
+                <!-- Mara Chen -->
+                <tr class="h-[52px] hover:bg-[#FAF9F6] transition-colors">
+                  <td class="py-2 px-6">
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDlhcKSLZA7tiINOwPo2oYY7bembPfQv1tI7e8swEFNW5n7yfJftW-nNLvcGT1qdXycDeRHNsfNyWKWSljPzWlxvHQI8HgNzSCirX2xcppZBtk95pFOIOGuK8gZQ8MbI1adzTNbzYQhIebCIJ5OQnO_q6jMeUsghpL9vhnN6WLzXhXC0Reto5hex3_zLuWtQntSg15srxJRhKtNntMk-8y9giDmApIdCYs8qzRh6IpbIP1UlE4uFw-Q9AY68NA0ZzU2bvUQDbnvg" alt="Mara Chen portrait" class="w-14 h-[42px] object-cover rounded-[4px] border border-[#D9DAD7]" />
+                  </td>
+                  <td class="py-2 px-4">
+                    <div class="font-semibold text-[#262A2D]">Mara Chen</div>
+                    <div class="text-xs text-[#626A6F]">Feed Operations</div>
+                  </td>
+                  <td class="py-2 px-4 font-mono-num text-xs text-[#262A2D]">
+                    mara.chen@feedlot.example
+                  </td>
+                  <td class="py-2 px-4">
+                    <span class="inline-flex items-center text-xs font-medium text-[#262A2D]">
+                      Administrator
+                    </span>
+                  </td>
+                  <td class="py-2 px-4">
+                    <span class="inline-flex items-center gap-1.5 text-xs text-[#262A2D]">
+                      <span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+                      good
+                    </span>
+                  </td>
+                  <td class="py-2 px-6 text-right">
+                    <div class="inline-flex items-center gap-2">
+                      <button type="button" class="btn-table-action">Edit role</button>
+                      <button type="button" class="btn-table-action">Reset password</button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Luis Ortega -->
+                <tr class="h-[52px] hover:bg-[#FAF9F6] transition-colors">
+                  <td class="py-2 px-6">
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLi0CcAFxQROFgatFryyrlAODKApHZ7y8fD1WVXSpDBTXhFXOwcrai--84qSFAp7zQKhHBCJvd_P4cF0Of1BQ3ePSBdhDsrQHZUZv7p6pL7gd44qVkmc2NXoUmgxvernCUvmDMdtNEjNMBXH86yCSRYVu8cBOf_U9N1VRMCbjuwR1C7UlNIQOgnthEbPbWIqQQoPtGCYF6kxj7S79PpL8veRWAsSW8qIRE_AZwM5hQhr0OY9A7oVSlYt6GgoVwmbPPWs-edpiAhA" alt="Luis Ortega portrait" class="w-14 h-[42px] object-cover rounded-[4px] border border-[#D9DAD7]" />
+                  </td>
+                  <td class="py-2 px-4">
+                    <div class="font-semibold text-[#262A2D]">Luis Ortega</div>
+                    <div class="text-xs text-[#626A6F]">Yard Operations</div>
+                  </td>
+                  <td class="py-2 px-4 font-mono-num text-xs text-[#262A2D]">
+                    luis.ortega@feedlot.example
+                  </td>
+                  <td class="py-2 px-4">
+                    <span class="inline-flex items-center text-xs font-medium text-[#262A2D]">
+                      Operator
+                    </span>
+                  </td>
+                  <td class="py-2 px-4">
+                    <span class="inline-flex items-center gap-1.5 text-xs text-[#262A2D]">
+                      <span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+                      good
+                    </span>
+                  </td>
+                  <td class="py-2 px-6 text-right">
+                    <div class="inline-flex items-center gap-2">
+                      <button type="button" class="btn-table-action">Edit role</button>
+                      <button type="button" class="btn-table-action">Reset password</button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Nia Brooks -->
+                <tr class="h-[52px] hover:bg-[#FAF9F6] transition-colors">
+                  <td class="py-2 px-6">
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpvlhcQ9u7hozXOBOuDlQgLUypWsPen6G86TMUNh1E4z6INMBhKSfkbPgI0ITqqr4HPno05dL4npMZpcSGxpLC4Ojiz0eS0SGH-NLHLFOPk7IHTQmvQxU0nF9ecJ6aL_onSULlCfThMem3tZLT4_9W-U9hnRko8vsPgq-Vi3ZNCHtwGMKGrLPdwmXKTzynhhTAjapkHHVUIffHHJtCDpenXmHqEDSI7f9U93mwRxLgoCwGzloSypkDLfKEf2cB28JQugQTPswuEA" alt="Nia Brooks portrait" class="w-14 h-[42px] object-cover rounded-[4px] border border-[#D9DAD7]" />
+                  </td>
+                  <td class="py-2 px-4">
+                    <div class="font-semibold text-[#262A2D]">Nia Brooks</div>
+                    <div class="text-xs text-[#626A6F]">Feed Operations</div>
+                  </td>
+                  <td class="py-2 px-4 font-mono-num text-xs text-[#262A2D]">
+                    nia.brooks@feedlot.example
+                  </td>
+                  <td class="py-2 px-4">
+                    <span class="inline-flex items-center text-xs font-medium text-[#262A2D]">
+                      Operator
+                    </span>
+                  </td>
+                  <td class="py-2 px-4">
+                    <span class="inline-flex items-center gap-1.5 text-xs text-[#262A2D]">
+                      <span class="w-2 h-2 rounded-full bg-[#356A55]"></span>
+                      good
+                    </span>
+                  </td>
+                  <td class="py-2 px-6 text-right">
+                    <div class="inline-flex items-center gap-2">
+                      <button type="button" class="btn-table-action">Edit role</button>
+                      <button type="button" class="btn-table-action">Reset password</button>
+                    </div>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="px-6 py-3 bg-[#FAF9F6] border-t border-[#D9DAD7] text-xs text-[#626A6F]">
+            Direct administrator management &middot; Roles restrict access to yard calculations, feeding logs, and inventory tickets.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Add account form (4 cols on lg) -->
+      <div class="lg:col-span-4">
+        <div class="panel-box p-6">
+          <div class="pb-4 mb-5 border-b border-[#D9DAD7]">
+            <h2 class="text-[18px] font-semibold text-[#262A2D] m-0">Add account</h2>
+            <p class="text-xs text-[#626A6F] mt-1 m-0">Create credentials for yard staff or administrators.</p>
+          </div>
+
+          <form class="space-y-4" onsubmit="return false;">
+            <!-- Name -->
+            <div>
+              <label for="acc_name" class="block text-xs font-semibold text-[#262A2D] mb-1.5">Full name</label>
+              <input type="text" id="acc_name" placeholder="e.g. Samuel Davis" class="form-input" />
+            </div>
+
+            <!-- Department -->
+            <div>
+              <label for="acc_dept" class="block text-xs font-semibold text-[#262A2D] mb-1.5">Department</label>
+              <select id="acc_dept" class="form-select">
+                <option value="Feed Operations">Feed Operations</option>
+                <option value="Yard Operations">Yard Operations</option>
+              </select>
+            </div>
+
+            <!-- Email -->
+            <div>
+              <label for="acc_email" class="block text-xs font-semibold text-[#262A2D] mb-1.5">Email address</label>
+              <input type="email" id="acc_email" placeholder="name@feedlot.example" class="form-input font-mono-num text-xs" />
+            </div>
+
+            <!-- Role (limited to Administrator or Operator) -->
+            <div>
+              <label for="acc_role" class="block text-xs font-semibold text-[#262A2D] mb-1.5">Assigned role</label>
+              <select id="acc_role" class="form-select">
+                <option value="Operator">Operator</option>
+                <option value="Administrator">Administrator</option>
+              </select>
+              <p class="text-[11px] text-[#626A6F] mt-1">Limited to Administrator or Operator per yard security policy.</p>
+            </div>
+
+            <!-- Administrator-set password -->
+            <div>
+              <label for="acc_password" class="block text-xs font-semibold text-[#262A2D] mb-1.5">Administrator-set password</label>
+              <input type="password" id="acc_password" placeholder="Enter temporary secure password" class="form-input font-mono-num" />
+              <p class="text-[11px] text-[#626A6F] mt-1">Initial password provided directly to personnel upon activation.</p>
+            </div>
+
+            <!-- Primary Action: Add account -->
+            <div class="pt-2">
+              <button type="submit" class="btn-primary w-full text-center">
+                Add account
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Administrative Security Note -->
+        <div class="panel-box p-4 mt-6 bg-[#FAF9F6]">
+          <div class="text-xs font-semibold text-[#262A2D] mb-1">Administrative Privileges</div>
+          <p class="text-xs text-[#626A6F] m-0 leading-relaxed">
+            Self-registration and external SSO are disabled. All account provisioning and password resets are executed directly by active administrators.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

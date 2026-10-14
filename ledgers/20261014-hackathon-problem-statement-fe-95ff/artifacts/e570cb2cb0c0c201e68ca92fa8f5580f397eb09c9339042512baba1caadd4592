@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 55,
+    "end": 60
+   },
+   "ms": 1,
+   "resultChars": 1804,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:55,&quot;end&quot;:60}\">\nlib/api/client.msw.ts lines 55-60\n55\texport const getListLotsResponseMock = (): LotList => ({\"lots\":[{\"id\":241,\"lotCode\":\"L-241\",\"sourceId\":\"PO-7301-1\",\"sourceRecordId\":\"REC-5518\",\"supplier\":\"Prairie Cattle Co.\",\"receivedDate\":\"2026-02-01\",\"breed\":\"Angus\",\"sex\":\"Unknown\",\"receivedHead\":40,\"purchaseCostAllocation\":600,\"pen\":\"North 2\",\"penCapacity\":120,\"penCount\":80,\"targetWeightLb\":1250}]})\n56\t\n57\texport const getGetLotLifecycleResponseMock = (): Lifecycle => ({\"lotId\":241,\"lotCode\":\"L-241\",\"receivedDate\":\"2026-02-01\",\"targetWeightLb\":1250,\"targetWeightSource\":\"Lot target\",\"growthAssumption\":\"Measured ADG\",\"growthRateLbPerDay\":3.2,\"projectedMarketDate\":\"2026-07-10\",\"milestones\":[{\"date\":\"2026-02-01\",\"label\":\"Received\",\"value\":620,\"unit\":\"lb average weight\"},{\"date\":\"2026-04-10\",\"label\":\"Weight measurement\",\"value\":748,\"unit\":\"lb average weight\"}],\"weightHistory\":[{\"date\":\"2026-04-10\",\"daysOnFeed\":68,\"averageWeightLb\":748,\"periodGainLb\":128,\"periodAdgLbPerDay\":3.2,\"operator\":\"Morgan Lee\",\"status\":\"Accepted\"}]})\n58\t\n59\texport const getListInventoryResponseMock = (): InventoryList => ({\"items\":[{\"id\":401,\"item\":\"Ground corn\",\"category\":\"Grain\",\"supplier\":\"Prairie Feed\",\"availableQuantity\":6.2,\"enteredUnit\":\"ton\",\"normalizedPounds\":12400,\"cost\":360,\"costUnit\":\"USD per ton\",\"normalizedCostUsdPerLb\":0.18,\"dryMatterPercent\":88,\"energyMcalPerLb\":1.52,\"storageLocation\":\"Bin 2\",\"openingLb\":10000,\"receivedLb\":5000,\"consumedLb\":2600,\"closingLb\":12400,\"movements\":[{\"date\":\"2026-04-12\",\"type\":\"Receipt\",\"quantityLb\":5000},{\"date\":\"2026-04-14\",\"type\":\"Feed consumption\",\"quantityLb\":2600}]}]})\n60\t\n… (533 lines total; ask for start=61)\n</untrusted_document>"
+  }
+ ]
+}

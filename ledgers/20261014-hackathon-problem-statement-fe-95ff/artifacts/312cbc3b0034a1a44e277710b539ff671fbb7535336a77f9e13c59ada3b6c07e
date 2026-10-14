@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getListAccountsResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 2,
+   "resultChars": 460,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getListAccountsResponseMock&quot;,&quot;glob&quot;:&quot;lib/api/client.msw.ts&quot;}\">\nlib/api/client.msw.ts:99: export const getListAccountsResponseMock = (): AccountList => ({\"accounts\":[{\"id\":18,\"name\":\"Morgan Lee\",\"department\":\"Feeding\",\"email\":\"morgan@example.com\",\"role\":\"Operator\",\"status\":\"Active\"}]})\nlib/api/client.msw.ts:409: : getListAccountsResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

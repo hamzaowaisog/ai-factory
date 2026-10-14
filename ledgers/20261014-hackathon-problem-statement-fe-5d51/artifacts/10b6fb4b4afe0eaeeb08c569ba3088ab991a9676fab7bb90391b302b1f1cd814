@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-6.1",
+      "testId": "AC_6_1_SignInSucceedsAndOverviewRejectsMissingBearerToken",
+      "verdict": "weak",
+      "why": "It checks successful sign-in and the unauthenticated 401, but does not assert a 403 for a disallowed role."
+     },
+     {
+      "acId": "AC-6.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts the 401 status, a nonblank error field, and the UNAUTHORIZED code field required by the criterion."
+     },
+     {
+      "acId": "AC-6.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts the Operator’s 403 and FORBIDDEN code, and the Administrator’s 200 response with an accounts array."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "AC_7_1_PreExistingInventoryRowSurvivesApiStartupAndIsReturnedUnchanged",
+      "verdict": "weak",
+      "why": "It checks only item, category, supplier, openingLb, and closingLb; the other values inserted for the row are not asserted unchanged."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_CreatedInventoryReceiptPersistsAcrossApiRestart",
+      "verdict": "weak",
+      "why": "It checks only some receipt fields in the create response and after restart, so changes to other stored fields could go undetected."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts at least two rows in every listed data table and at least one record in each listed contract response."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "AC_8_2_DisabledDemoSeedLeavesOnlyIndependentRowsInTheDatabaseAndLists",
+      "verdict": "weak",
+      "why": "It configures Seed:Demo to false but does not test the unset configuration case named in the criterion."
+     },
+     {
+      "acId": "AC-8.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It repeats seeding and allows counts to stay the same or grow, so it does not incorrectly require idempotent row counts."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "AC_9_1_DemoSeedMatchesContractExamplesAndPopulatesLists",
+      "verdict": "weak",
+      "why": "It checks only selected example fields and records, leaving other seeded values unchecked against the contract examples."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "AC_9_2_DisabledDemoSeedProducesNoDemoRowsOrListEntries",
+      "verdict": "weak",
+      "why": "It configures Seed:Demo to false but does not test the unset configuration case named in the criterion."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

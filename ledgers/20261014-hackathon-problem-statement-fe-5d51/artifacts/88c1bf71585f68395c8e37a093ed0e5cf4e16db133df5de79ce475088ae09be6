@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 9,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "InventoryItems",
+    "glob": "App.Data/**/*.cs"
+   },
+   "ms": 0,
+   "resultChars": 169,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;InventoryItems&quot;,&quot;glob&quot;:&quot;App.Data/**/*.cs&quot;}\">\nNo matches\n</untrusted_document>"
+  }
+ ]
+}

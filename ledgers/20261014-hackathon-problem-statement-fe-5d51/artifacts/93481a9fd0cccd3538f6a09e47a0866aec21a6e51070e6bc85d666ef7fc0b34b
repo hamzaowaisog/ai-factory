@@ -1,0 +1,106 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "errors",
+      "text": "When a feeding activity would consume more inventory than is available, what should the API do?",
+      "options": [
+       "Reject the activity, leave inventory unchanged, and return the contract-defined error response.",
+       "Allow inventory to go below zero and record the activity.",
+       "Consume the remaining inventory and record the activity with a shortfall."
+      ],
+      "recommended": "Reject the activity, leave inventory unchanged, and return the contract-defined error response.",
+      "reason": "This preserves inventory integrity and avoids recording an activity as fully supplied when stock is insufficient.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "Changes whether feeding activities and inventory writes are committed."
+     },
+     {
+      "id": "Q-2",
+      "category": "data-model",
+      "text": "A pen may contain animals from multiple lots, but a feeding activity identifies a lot. How should a pen-level delivery be attributed when it serves multiple lots?",
+      "options": [
+       "Record a separate activity per lot, with each activity containing only that lot's share of the delivered feed.",
+       "Attribute the entire delivery to one selected lot.",
+       "Record the full delivery against each lot in the pen."
+      ],
+      "recommended": "Record a separate activity per lot, with each activity containing only that lot's share of the delivered feed.",
+      "reason": "This retains the lot attribution needed for lot-level metrics without counting the same delivered feed multiple times.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "Changes feed consumption, inventory deductions, and lot-level performance totals."
+     },
+     {
+      "id": "Q-3",
+      "category": "data-model",
+      "text": "What unit-conversion rule should be used when feed inventory, ration ingredients, and feeding quantities use different units?",
+      "options": [
+       "Convert quantities to pounds for calculations and inventory deductions, treating a ton as 2,000 pounds; retain the entered units for display.",
+       "Only allow calculations when all quantities use the same unit; reject incompatible units.",
+       "Calculate quantities in the unit entered for each record without converting between units."
+      ],
+      "recommended": "Convert quantities to pounds for calculations and inventory deductions, treating a ton as 2,000 pounds; retain the entered units for display.",
+      "reason": "The requested feed-to-gain formula uses pounds, while inventory and ration inputs may use other units.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "Affects stock deductions, feed cost, and feed-to-gain results."
+     },
+     {
+      "id": "Q-4",
+      "category": "existing-data",
+      "text": "Should implementation preserve any records that may already exist in the PostgreSQL App database while adding the contract's data model?",
+      "options": [
+       "Preserve existing records and add the required model without resetting the database.",
+       "Treat the database as disposable and allow existing records to be removed.",
+       "Import existing records only if a separate mapping is provided."
+      ],
+      "recommended": "Preserve existing records and add the required model without resetting the database.",
+      "reason": "This keeps the requested PostgreSQL database usable without assuming its current contents can be discarded.",
+      "spans": [
+       "I-2",
+       "I-3"
+      ],
+      "topic": "data-migration",
+      "impact": 3,
+      "impactReason": "Determines whether existing persisted data can be lost or must remain available."
+     },
+     {
+      "id": "Q-5",
+      "category": "errors",
+      "text": "How should calculated metrics be represented when their formulas are undefined, such as zero days on feed, zero ADG, or no positive weight gain?",
+      "options": [
+       "Return the metric as unavailable/null and continue returning the other metrics.",
+       "Return zero for any undefined metric.",
+       "Fail the calculation response when any metric is undefined."
+      ],
+      "recommended": "Return the metric as unavailable/null and continue returning the other metrics.",
+      "reason": "It avoids presenting an invalid calculation as a real zero while keeping other usable metrics available.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Changes values and error behavior visible in calculation responses."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

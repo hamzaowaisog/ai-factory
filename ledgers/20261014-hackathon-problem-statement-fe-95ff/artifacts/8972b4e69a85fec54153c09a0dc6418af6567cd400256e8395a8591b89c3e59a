@@ -1,0 +1,72 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_ShowsReturnedIngredientConsumptionAndSeparateLotAllocations",
+      "verdict": "weak",
+      "why": "The page-wide text checks do not tie each ingredient quantity, delivered/consumed amount, or cost to its named ingredient or lot, so incorrect or merged allocations could still pass."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "AC_12_2_ShowsTheInventoryResultReturnedForTheSavedActivity",
+      "verdict": "weak",
+      "why": "The returned numbers and excluded calculated number are checked page-wide rather than in the affected inventory row, so an unrelated occurrence could pass without the inventory showing the returned result."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "AC_13_1_RetainsAnInsufficientStockActivityAndPriorTotals",
+      "verdict": "weak",
+      "why": "Lines 162–168 do not verify that the entered pen, ration, bunk rate, and head count are retained, and the page-wide total checks do not tie the prior totals to their inventory and lot regions."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "AC_14_1_ShowsTheAcceptedEditAndReturnedRecalculatedTotals",
+      "verdict": "weak",
+      "why": "The test covers only an accepted edit, not cancellation, and its page-wide checks do not verify the returned recalculated values in the affected inventory and lot-total regions."
+     },
+     {
+      "acId": "AC-14.2",
+      "testId": "AC_14_2_ShowsARefusedEditAndKeepsTheExistingActivityVisible",
+      "verdict": "weak",
+      "why": "The test covers only a refused edit, not cancellation, and checking just the existing row's quantity and status does not verify its other existing details remain visible."
+     },
+     {
+      "acId": "AC-15.1",
+      "testId": "AC_15_1_ShowsTheReturnedMeasurementInDatedLotHistory",
+      "verdict": "weak",
+      "why": "The history row never asserts the returned gain-since-prior value, and page-wide checks for the trend weights can be satisfied by the history rows without a trend showing them."
+     },
+     {
+      "acId": "AC-15.2",
+      "testId": "AC_15_2_ShowsTheCorrectedMeasurementAndReturnedWeightMetrics",
+      "verdict": "weak",
+      "why": "The test does not exercise the correction response and its page-wide metric/trend checks do not establish that returned recalculated metrics and trend values appear in their respective regions."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_ShowsLotPerformanceMetricsAndFeedBasedProjection",
+      "verdict": "weak",
+      "why": "The page-wide numeric checks do not associate values with the performance metrics, so event-row values such as total gain and ADG can satisfy checks even if those metric fields are absent."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_ShowsRefreshedLotMetricsReturnedAfterAnAcceptedEvent",
+      "verdict": "weak",
+      "why": "The page-wide checks do not tie returned values to their metric fields, and the repeated 3.25 can come from the event row even if the refreshed ADG metric is missing."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed-to-Gain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design Tokens */
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-surface: #FFFFFF;
+      --text-main: #262A2D;
+      --text-quiet: #626A6F;
+      --border-color: #D9DAD7;
+      --primary: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-refused: #B4473C;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUp {
+      0% {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: rollUp 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .digit-roll:nth-child(1) { animation-delay: 0ms; }
+    .digit-roll:nth-child(2) { animation-delay: 35ms; }
+    .digit-roll:nth-child(3) { animation-delay: 70ms; }
+    .digit-roll:nth-child(4) { animation-delay: 105ms; }
+    .digit-roll:nth-child(5) { animation-delay: 140ms; }
+
+    .sync-breathe {
+      animation: ambientBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--text-main);
+    }
+
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text-main);
+    }
+
+    .mono-num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .text-quiet {
+      color: var(--text-quiet);
+    }
+
+    /* Header */
+    header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .grain-icon {
+      width: 24px;
+      height: 24px;
+      background-color: var(--primary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    nav.nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      height: 56px;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      height: 56px;
+      color: var(--text-quiet);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    .nav-link.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #E2E4DE;
+      color: var(--text-main);
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    /* Layout Container */
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .section-separator {
+      height: 1px;
+      background-color: var(--border-color);
+      width: 100%;
+      margin-bottom: 28px;
+    }
+
+    /* Benchmark / Metric Summary Card */
+    .metric-summary-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 28px;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.2fr 1.2fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .headline-figure-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .headline-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-quiet);
+    }
+
+    .headline-val {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.1;
+      color: var(--text-main);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      overflow: hidden;
+    }
+
+    .headline-unit {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-quiet);
+      font-family: var(--font-body);
+    }
+
+    .metric-sub {
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+
+    .card-divider-col {
+      border-left: 1px solid var(--border-color);
+      padding-left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Controls & Filter Panel */
+    .filter-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group-cluster {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .control-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      letter-spacing: 0.02em;
+    }
+
+    .input-box, .select-box {
+      height: 44px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-main);
+      min-width: 140px;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-box.mono-val, .select-box.mono-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .input-box:hover, .select-box:hover {
+      border-color: #B5B8B4;
+    }
+
+    .input-box:focus, .select-box:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .action-button-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      height: 44px;
+      padding: 0 16px;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      border: 1px solid var(--primary);
+      color: #FFFFFF;
+    }
+
+    .btn-primary:hover {
+      background-color: #445D6E;
+      border-color: #445D6E;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background-color: #F8F8F6;
+      border-color: #B5B8B4;
+    }
+
+    /* Comparison Table */
+    .table-container {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .table-header-meta {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #FAFAF8;
+    }
+
+    .report-meta-text {
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+
+    table.dense-report-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead th {
+      height: 44px;
+      padding: 0 16px;
+      background-color: var(--bg-surface);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-quiet);
+      border-bottom: 1px solid var(--border-color);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    thead th.sortable {
+      cursor: pointer;
+      transition: color 150ms ease;
+    }
+
+    thead th.sortable:hover {
+      color: var(--text-main);
+    }
+
+    thead th .sort-indicator {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 10px;
+      vertical-align: middle;
+      color: var(--primary);
+    }
+
+    thead th.align-right, tbody td.align-right, tfoot td.align-right {
+      text-align: right;
+    }
+
+    tbody tr {
+      height: 44px;
+      border-bottom: 1px solid var(--border-color);
+      transition: background-color 120ms ease;
+    }
+
+    tbody tr:hover {
+      background-color: #F9F9F7;
+    }
+
+    tbody td {
+      padding: 0 16px;
+      font-size: 14px;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .lot-badge-mono {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Semantic Status Dot */
+    .status-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-dot.good {
+      background-color: var(--status-good);
+    }
+
+    .status-dot.waiting {
+      background-color: var(--status-waiting);
+    }
+
+    .status-dot.refused {
+      background-color: var(--status-refused);
+    }
+
+    /* Table Footer Summary Row */
+    tfoot tr {
+      height: 44px;
+      background-color: #FAFAF8;
+      border-top: 1px solid var(--border-color);
+      font-weight: 600;
+    }
+
+    tfoot td {
+      padding: 0 16px;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .quiet-note {
+      font-size: 12px;
+      color: var(--text-quiet);
+      margin-top: 8px;
+      padding: 0 4px;
+    }
+  </style>
+</head>
+<body class="animate-entrance">
+
+  <!-- Shared Header -->
+  <header>
+    <div class="header-left">
+      <a href="#" class="brand-mark">
+        <div class="grain-icon">F</div>
+        <span class="brand-name">Feedlot</span>
+      </a>
+      <nav class="nav-menu">
+        <a href="#" class="nav-link">Overview</a>
+        <a href="#" class="nav-link">Lots</a>
+        <a href="#" class="nav-link">Inventory</a>
+        <a href="#" class="nav-link">Rations</a>
+        <a href="#" class="nav-link">Feeding plans</a>
+        <a href="#" class="nav-link">Feeding log</a>
+        <a href="#" class="nav-link">Lot weights</a>
+        <a href="#" class="nav-link">Yard summary</a>
+        <a href="#" class="nav-link active">Feed-to-Gain</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="avatar-initials">MC</div>
+      <div class="user-info">
+        <span class="user-name">Mara Chen</span>
+        <span class="user-role">Feed Operations, Administrator</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="page-title-row">
+      <h1>Feed-to-Gain</h1>
+      <div class="status-cell sync-breathe">
+        <span class="status-dot good"></span>
+        <span class="text-quiet mono-num" style="font-size: 13px;">Apr 17, 2025 · America/Denver</span>
+      </div>
+    </div>
+
+    <!-- Benchmark Cards -->
+    <div class="metric-summary-card">
+      <div class="headline-figure-container">
+        <span class="headline-label">Weighted Average ADG</span>
+        <div class="headline-val">
+          <span class="digit-roll mono-num">1</span><span class="digit-roll mono-num">.</span><span class="digit-roll mono-num">9</span><span class="digit-roll mono-num">4</span>
+          <span class="headline-unit">lb / day</span>
+        </div>
+        <span class="metric-sub">Across 178 active cattle on feed</span>
+      </div>
+
+      <div class="card-divider-col">
+        <span class="headline-label">Weighted Cost of Gain</span>
+        <div class="headline-val">
+          <span class="mono-num">$1.13</span>
+          <span class="headline-unit">/ lb</span>
+        </div>
+        <span class="metric-sub">Returned operational yard average</span>
+      </div>
+
+      <div class="card-divider-col">
+        <span class="headline-label">Weighted Yard FCR</span>
+        <div class="headline-val">
+          <span class="mono-num">8.80</span>
+          <span class="headline-unit">F:G</span>
+        </div>
+        <span class="metric-sub">Feed conversion ratio</span>
+      </div>
+
+      <div class="card-divider-col">
+        <span class="headline-label">Total Feed Expenditure</span>
+        <div class="headline-val">
+          <span class="mono-num">$29,425.36</span>
+        </div>
+        <span class="metric-sub">Cumulative across 3 active lots</span>
+      </div>
+    </div>
+
+    <!-- Compact Immediate Filters -->
+    <div class="filter-panel">
+      <div class="filter-group-cluster">
+        <div class="control-field">
+          <label class="control-label" for="filter-date">Date Range</label>
+          <input type="text" id="filter-date" class="input-box mono-val" value="Apr 1–17, 2025" readonly style="width: 160px;">
+        </div>
+
+        <div class="control-field">
+          <label class="control-label" for="filter-breed">Breed</label>
+          <select id="filter-breed" class="select-box">
+            <option value="all">All breeds (Angus, Hereford)</option>
+            <option value="angus">Angus</option>
+            <option value="hereford">Hereford</option>
+          </select>
+        </div>
+
+        <div class="control-field">
+          <label class="control-label" for="filter-sex">Sex</label>
+          <select id="filter-sex" class="select-box">
+            <option value="all">All sexes (Steer, Heifer)</option>
+            <option value="steer">Steer</option>
+            <option value="heifer">Heifer</option>
+          </select>
+        </div>
+
+        <div class="control-field">
+          <label class="control-label" for="filter-pen">Pen</label>
+          <select id="filter-pen" class="select-box">
+            <option value="all">All pens (Pen 4, Pen 7)</option>
+            <option value="pen4">Pen 4</option>
+            <option value="pen7">Pen 7</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="action-button-group">
+        <button class="btn btn-secondary" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Download PDF
+        </button>
+        <button class="btn btn-primary" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Dense Comparison Table -->
+    <div class="table-container">
+      <div class="table-header-meta">
+        <span class="report-meta-text">Showing <strong style="color: var(--text-main);">3 of 3</strong> active lot cohorts · Filter applied immediately</span>
+        <span class="report-meta-text mono-num">Active head: 178 · Pen capacity: 230 (52 free)</span>
+      </div>
+
+      <table class="dense-report-table">
+        <thead>
+          <tr>
+            <th class="sortable">Lot <span class="sort-indicator">▲</span></th>
+            <th>Pen</th>
+            <th>Breed &amp; Sex</th>
+            <th class="align-right sortable">Head Count</th>
+            <th class="align-right sortable">Days on Feed</th>
+            <th class="align-right sortable">Received Avg</th>
+            <th class="align-right sortable">Latest Avg</th>
+            <th class="align-right sortable">ADG (lb/day) <span class="sort-indicator">▼</span></th>
+            <th class="align-right sortable">FCR</th>
+            <th class="align-right sortable">Cost of Gain</th>
+            <th class="align-right sortable">Cumulative Feed Cost</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="lot-badge-mono">L-241</span></td>
+            <td>Pen 4</td>
+            <td>Angus steer</td>
+            <td class="align-right mono-num">64</td>
+            <td class="align-right mono-num">99</td>
+            <td class="align-right mono-num">782 lb</td>
+            <td class="align-right mono-num">987 lb</td>
+            <td class="align-right mono-num" style="font-weight: 600;">2.07</td>
+            <td class="align-right mono-num">8.69</td>
+            <td class="align-right mono-num" style="font-weight: 600;">$1.09 / lb</td>
+            <td class="align-right mono-num">$10,580.40</td>
+            <td>
+              <div class="status-cell">
+                <span class="status-dot good"></span>
+                <span>good</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="lot-badge-mono">L-243</span></td>
+            <td>Pen 7</td>
+            <td>Hereford steer</td>
+            <td class="align-right mono-num">82</td>
+            <td class="align-right mono-num">47</td>
+            <td class="align-right mono-num">815 lb</td>
+            <td class="align-right mono-num">903 lb</td>
+            <td class="align-right mono-num" style="font-weight: 600;">1.87</td>
+            <td class="align-right mono-num">8.76</td>
+            <td class="align-right mono-num" style="font-weight: 600;">$1.14 / lb</td>
+            <td class="align-right mono-num">$13,554.76</td>
+            <td>
+              <div class="status-cell">
+                <span class="status-dot good"></span>
+                <span>good</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="lot-badge-mono">L-242</span></td>
+            <td>Pen 4</td>
+            <td>Angus heifer</td>
+            <td class="align-right mono-num">32</td>
+            <td class="align-right mono-num">99</td>
+            <td class="align-right mono-num">748 lb</td>
+            <td class="align-right mono-num">931 lb</td>
+            <td class="align-right mono-num" style="font-weight: 600;">1.85</td>
+            <td class="align-right mono-num">9.12</td>
+            <td class="align-right mono-num" style="font-weight: 600;">$1.18 / lb</td>
+            <td class="align-right mono-num">$5,290.20</td>
+            <td>
+              <div class="status-cell">
+                <span class="status-dot good"></span>
+                <span>good</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Aggregate Weighted Summary</td>
+            <td class="align-right mono-num">178</td>
+            <td class="align-right mono-num">—</td>
+            <td class="align-right mono-num">—</td>
+            <td class="align-right mono-num">—</td>
+            <td class="align-right mono-num" style="font-weight: 600;">1.94</td>
+            <td class="align-right mono-num">8.80</td>
+            <td class="align-right mono-num" style="font-weight: 600;">$1.13 / lb</td>
+            <td class="align-right mono-num">$29,425.36</td>
+            <td>—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="quiet-note">
+      * Lot performance figures and calculated cost metrics reflect verified yard scale and feed drop records as of Apr 17, 2025 (America/Denver).
+    </div>
+  </main>
+
+</body>
+</html>

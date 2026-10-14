@@ -1,0 +1,787 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feeding plans - Feedlot</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .phone-viewport {
+      width: 100%;
+      max-width: 390px;
+      min-height: 100vh;
+      background-color: #F4F3EF;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Typography */
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      color: #262A2D;
+    }
+    h1 {
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      font-size: 22px;
+      line-height: 1.25;
+    }
+    h3 {
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .quieter {
+      color: #626A6F;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes digitRoll {
+      from {
+        transform: translateY(0.65em);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes syncBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: bottom;
+    }
+    .digit-roll span {
+      display: inline-block;
+      animation: digitRoll 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .digit-roll span:nth-child(1) { animation-delay: 0ms; }
+    .digit-roll span:nth-child(2) { animation-delay: 35ms; }
+    .digit-roll span:nth-child(3) { animation-delay: 70ms; }
+    .digit-roll span:nth-child(4) { animation-delay: 105ms; }
+    .digit-roll span:nth-child(5) { animation-delay: 140ms; }
+    .digit-roll span:nth-child(6) { animation-delay: 175ms; }
+    .digit-roll span:nth-child(7) { animation-delay: 210ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header for Phone Width */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D9DAD7;
+      min-height: 44px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #262A2D;
+    }
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: #526F82;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .brand-wordmark {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+      color: #262A2D;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .avatar-initials {
+      width: 28px;
+      height: 28px;
+      background-color: #F4F3EF;
+      border: 1px solid #D9DAD7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #262A2D;
+    }
+
+    .menu-trigger {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #262A2D;
+      padding: 0;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+    .menu-trigger:hover {
+      background-color: #F4F3EF;
+      border-color: #D9DAD7;
+    }
+    .menu-trigger:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 1px;
+    }
+    .menu-trigger:active {
+      transform: scale(0.97);
+    }
+
+    /* Content Area */
+    main {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .heading-section {
+      margin-bottom: 24px;
+    }
+    .heading-rule {
+      height: 1px;
+      background-color: #D9DAD7;
+      margin-top: 12px;
+    }
+
+    /* Section Spacing Pause */
+    .section-pause {
+      margin-top: 28px;
+    }
+
+    /* Stacked Cards / Tables as stacked labeled records */
+    .records-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .record-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 8px;
+      padding: 12px 16px;
+      position: relative;
+      transition: border-color 150ms ease;
+    }
+    .record-card.is-selected {
+      border: 1px solid #526F82;
+      background-color: #FFFFFF;
+    }
+
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #D9DAD7;
+      margin-bottom: 8px;
+    }
+
+    .record-title-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .record-date-pen {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      color: #262A2D;
+    }
+
+    /* Status indicator: small semantic dot beside plain text, never a lozenge */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-good {
+      color: #356A55;
+    }
+    .status-good .status-dot {
+      background-color: #356A55;
+    }
+    .status-waiting {
+      color: #986321;
+    }
+    .status-waiting .status-dot {
+      background-color: #986321;
+    }
+    .status-refused {
+      color: #B4473C;
+    }
+    .status-refused .status-dot {
+      background-color: #B4473C;
+    }
+
+    .record-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      row-gap: 8px;
+      column-gap: 12px;
+      font-size: 13px;
+    }
+    .record-prop {
+      display: flex;
+      flex-direction: column;
+    }
+    .record-prop-label {
+      font-size: 12px;
+      color: #626A6F;
+      margin-bottom: 2px;
+    }
+    .record-prop-value {
+      color: #262A2D;
+      font-weight: 500;
+    }
+
+    /* Selected plan detail: Lot Allocations */
+    .detail-drawer {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #D9DAD7;
+      background-color: #FFFFFF;
+    }
+    .detail-drawer-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #626A6F;
+      margin-bottom: 8px;
+    }
+    .lot-split-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .lot-split-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding: 6px 8px;
+      background-color: #F4F3EF;
+      border-radius: 6px;
+      border: 1px solid #D9DAD7;
+    }
+
+    /* Form Panel */
+    .form-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .form-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #262A2D;
+    }
+
+    .input-field, .select-field {
+      height: 44px;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      padding: 0 12px;
+      background-color: #FFFFFF;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      color: #262A2D;
+      width: 100%;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .input-field.mono, .select-field.mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .input-field:focus, .select-field:focus {
+      border-color: #526F82;
+      box-shadow: 0 0 0 2px #526F82;
+    }
+
+    .calc-summary-box {
+      background-color: #F4F3EF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+    .calc-primary-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #D9DAD7;
+      margin-bottom: 8px;
+    }
+    .calc-stat-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #626A6F;
+    }
+    .calc-stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #262A2D;
+    }
+
+    .calc-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .calc-breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #262A2D;
+    }
+
+    /* Buttons & Actions */
+    .btn-primary {
+      height: 44px;
+      background-color: #526F82;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 150ms ease, transform 90ms ease;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .secondary-link-wrap {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 44px;
+    }
+    .link-subtle {
+      color: #262A2D;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: 6px;
+      transition: color 150ms ease;
+    }
+    .link-subtle:hover {
+      color: #526F82;
+    }
+    .link-subtle:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-viewport animate-entrance">
+    <!-- Header: Wordmark beside grain mark with white F, initials avatar MC, name & role, menu button -->
+    <header>
+      <a href="#" class="brand-group" aria-label="Feedlot Home">
+        <div class="brand-mark">F</div>
+        <span class="brand-wordmark">Feedlot</span>
+      </a>
+
+      <div class="header-right">
+        <div class="user-pill" title="Mara Chen — Feed Operations, Administrator">
+          <div class="avatar-initials">MC</div>
+        </div>
+        <!-- Menu trigger button for phone width: the navigation menu sits behind it -->
+        <button class="menu-trigger" aria-label="Open Navigation Menu" title="Menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#262A2D" stroke-width="1.8" stroke-linecap="round">
+            <line x1="3" y1="5" x2="17" y2="5"></line>
+            <line x1="3" y1="10" x2="17" y2="10"></line>
+            <line x1="3" y1="15" x2="17" y2="15"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Single Page Heading -->
+      <div class="heading-section">
+        <h1>Feeding plans</h1>
+        <div class="heading-rule"></div>
+      </div>
+
+      <!-- Dated Plan Schedule Stacked Records -->
+      <section aria-label="Plan Schedule">
+        <div class="records-list">
+          
+          <!-- Apr 15 Pen 4: Completed -->
+          <article class="record-card">
+            <div class="record-header">
+              <div class="record-title-group">
+                <span class="record-date-pen">Apr 15, 2025 · Pen 4</span>
+                <span class="quieter" style="font-size: 12px;">Finisher 18</span>
+              </div>
+              <div class="status-indicator status-good">
+                <span class="status-dot"></span>
+                <span>Completed</span>
+              </div>
+            </div>
+            <div class="record-grid">
+              <div class="record-prop">
+                <span class="record-prop-label">Bunk rate</span>
+                <span class="record-prop-value mono">18.0 lb/hd/d</span>
+              </div>
+              <div class="record-prop">
+                <span class="record-prop-label">Planned head</span>
+                <span class="record-prop-value mono">96 head</span>
+              </div>
+              <div class="record-prop" style="grid-column: span 2;">
+                <span class="record-prop-label">Planned quantity</span>
+                <span class="record-prop-value mono" style="font-size: 15px;">1,728 lb</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Apr 16 Pen 7: Completed -->
+          <article class="record-card">
+            <div class="record-header">
+              <div class="record-title-group">
+                <span class="record-date-pen">Apr 16, 2025 · Pen 7</span>
+                <span class="quieter" style="font-size: 12px;">Finisher 18</span>
+              </div>
+              <div class="status-indicator status-good">
+                <span class="status-dot"></span>
+                <span>Completed</span>
+              </div>
+            </div>
+            <div class="record-grid">
+              <div class="record-prop">
+                <span class="record-prop-label">Bunk rate</span>
+                <span class="record-prop-value mono">18.0 lb/hd/d</span>
+              </div>
+              <div class="record-prop">
+                <span class="record-prop-label">Planned head</span>
+                <span class="record-prop-value mono">82 head</span>
+              </div>
+              <div class="record-prop" style="grid-column: span 2;">
+                <span class="record-prop-label">Planned quantity</span>
+                <span class="record-prop-value mono" style="font-size: 15px;">1,476 lb</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Apr 17 Pen 4: Selected Plan Detail with proportional Lot Allocation -->
+          <article class="record-card is-selected" aria-label="Selected Plan Details">
+            <div class="record-header">
+              <div class="record-title-group">
+                <span class="record-date-pen">Apr 17, 2025 · Pen 4</span>
+                <span class="quieter" style="font-size: 12px;">Finisher 18</span>
+              </div>
+              <div class="status-indicator status-good">
+                <span class="status-dot"></span>
+                <span>Completed</span>
+              </div>
+            </div>
+            <div class="record-grid">
+              <div class="record-prop">
+                <span class="record-prop-label">Bunk rate</span>
+                <span class="record-prop-value mono">18.0 lb/hd/d</span>
+              </div>
+              <div class="record-prop">
+                <span class="record-prop-label">Planned head</span>
+                <span class="record-prop-value mono">96 head</span>
+              </div>
+              <div class="record-prop" style="grid-column: span 2;">
+                <span class="record-prop-label">Planned quantity</span>
+                <span class="record-prop-value mono digit-roll" style="font-size: 16px; font-weight: 600;">
+                  <span>1</span><span>,</span><span>7</span><span>2</span><span>8</span><span> </span><span>l</span><span>b</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Detail: Proportional lot allocations from 64 and 32 head -->
+            <div class="detail-drawer">
+              <div class="detail-drawer-title">Lot Allocations (Proportional to Head Count)</div>
+              <div class="lot-split-list">
+                <div class="lot-split-row">
+                  <div>
+                    <strong>L-241</strong> <span class="quieter">(64 head · Angus steers)</span>
+                  </div>
+                  <div class="mono" style="font-weight: 600;">1,152 lb</div>
+                </div>
+                <div class="lot-split-row">
+                  <div>
+                    <strong>L-242</strong> <span class="quieter">(32 head · Angus heifers)</span>
+                  </div>
+                  <div class="mono" style="font-weight: 600;">576 lb</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Apr 18 Pen 7: Planned -->
+          <article class="record-card">
+            <div class="record-header">
+              <div class="record-title-group">
+                <span class="record-date-pen">Apr 18, 2025 · Pen 7</span>
+                <span class="quieter" style="font-size: 12px;">Finisher 18</span>
+              </div>
+              <div class="status-indicator status-waiting">
+                <span class="status-dot"></span>
+                <span>Planned</span>
+              </div>
+            </div>
+            <div class="record-grid">
+              <div class="record-prop">
+                <span class="record-prop-label">Bunk rate</span>
+                <span class="record-prop-value mono">18.0 lb/hd/d</span>
+              </div>
+              <div class="record-prop">
+                <span class="record-prop-label">Planned head</span>
+                <span class="record-prop-value mono">82 head</span>
+              </div>
+              <div class="record-prop" style="grid-column: span 2;">
+                <span class="record-prop-label">Planned quantity</span>
+                <span class="record-prop-value mono" style="font-size: 15px;">1,476 lb</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Apr 19 Pen 4: Planned -->
+          <article class="record-card">
+            <div class="record-header">
+              <div class="record-title-group">
+                <span class="record-date-pen">Apr 19, 2025 · Pen 4</span>
+                <span class="quieter" style="font-size: 12px;">Finisher 18</span>
+              </div>
+              <div class="status-indicator status-waiting">
+                <span class="status-dot"></span>
+                <span>Planned</span>
+              </div>
+            </div>
+            <div class="record-grid">
+              <div class="record-prop">
+                <span class="record-prop-label">Bunk rate</span>
+                <span class="record-prop-value mono">18.5 lb/hd/d</span>
+              </div>
+              <div class="record-prop">
+                <span class="record-prop-label">Planned head</span>
+                <span class="record-prop-value mono">96 head</span>
+              </div>
+              <div class="record-prop" style="grid-column: span 2;">
+                <span class="record-prop-label">Planned quantity</span>
+                <span class="record-prop-value mono" style="font-size: 15px;">1,776 lb</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- Section Pause (28px) -->
+      <div class="section-pause">
+        <h2 style="margin-bottom: 4px;">Generate plan</h2>
+        <div class="heading-rule" style="margin-bottom: 16px;"></div>
+
+        <!-- Form: date, pen, ration, bunk rate, planned head count; calculate rate × count, show separately allocated lot quantities -->
+        <form class="form-panel">
+          <div class="form-group">
+            <label class="form-label" for="plan-date">Delivery date</label>
+            <input type="date" id="plan-date" class="input-field mono" value="2025-04-20">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="plan-pen">Pen</label>
+            <select id="plan-pen" class="select-field">
+              <option value="4" selected="">Pen 4 (96 head · 24 free)</option>
+              <option value="7">Pen 7 (82 head · 28 free)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="plan-ration">Ration</label>
+            <select id="plan-ration" class="select-field">
+              <option value="Finisher 18" selected="">Finisher 18 ($0.1254/lb norm)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="plan-rate">Bunk rate (lb as-fed / animal / day)</label>
+            <input type="text" id="plan-rate" class="input-field mono" value="18.5">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="plan-head">Planned head count</label>
+            <input type="text" id="plan-head" class="input-field mono" value="96">
+          </div>
+
+          <!-- Calculated planned quantity & lot allocations -->
+          <div class="calc-summary-box">
+            <div class="calc-primary-stat">
+              <span class="calc-stat-label">Planned quantity (rate × count)</span>
+              <span class="calc-stat-value mono">1,776 lb</span>
+            </div>
+            <div class="calc-breakdown">
+              <div class="quieter" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px;">
+                Allocated lot quantities (Pen 4)
+              </div>
+              <div class="calc-breakdown-row">
+                <span>L-241 (64 head · 66.7%)</span>
+                <span class="mono" style="font-weight: 500;">1,184 lb</span>
+              </div>
+              <div class="calc-breakdown-row">
+                <span>L-242 (32 head · 33.3%)</span>
+                <span class="mono" style="font-weight: 500;">592 lb</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Single primary action -->
+          <button type="submit" class="btn-primary">Generate plan</button>
+
+          <!-- Feeding log link -->
+          <div class="secondary-link-wrap">
+            <a href="#" class="link-subtle">Feeding log</a>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","projections":"S-6","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-9";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,62 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The API shall implement every HTTP operation in the OpenAPI contract with its declared paths, methods, request and response schemas, status codes, media types, security declarations, and behavior, and its public OpenAPI document shall list those declarations."
+     },
+     {
+      "n": 2,
+      "text": "Inventory and ration operations shall support the contract-defined listings, receipts, projections, ration creation, optimization, and explicit candidate saving and assignment, normalizing quantities and unit costs to pounds-based values at 2,000 pounds per ton while retaining entered units and returning the required inventory, ingredient, nutrition, pricing, and candidate details."
+     },
+     {
+      "n": 3,
+      "text": "Feeding-plan and feeding-activity operations shall calculate quantities, variances, lot allocations, ingredient consumption, costs, energy, and inventory deductions in pounds; represent each lot’s share separately; create a separate activity per lot for a multi-lot delivery; recalculate updates; reverse inventory on cancellation; and reject insufficient-stock requests without changing inventory or activity records."
+     },
+     {
+      "n": 4,
+      "text": "Weight-measurement operations shall support listing, creation, and correction with measurement trends and updated metrics, and the API shall provide the contract-defined yard summaries, filtered feed-to-gain reports, and matching CSV and PDF exports."
+     },
+     {
+      "n": 5,
+      "text": "Administrator account, synchronization, and demo operations shall return the contract-defined fields and statuses and enforce the contract’s authorization rules."
+     },
+     {
+      "n": 6,
+      "text": "Bearer authentication shall be required only for operations that declare it, sign-in shall remain unauthenticated, and role authorization shall be enforced only where the contract declares role access."
+     },
+     {
+      "n": 7,
+      "text": "The API shall persist contract-backed operational records in PostgreSQL through the configured App connection, preserve all pre-existing records unchanged during model deployment, and retain created or updated records across API restarts."
+     },
+     {
+      "n": 8,
+      "text": "The API shall run SeedData.Run only when Seed:Demo is true and, when enabled, insert two or three believable sample rows derived from contract examples into every contract domain table, with at least two rows in every contract-backed data table; repeated runs may create duplicates."
+     },
+     {
+      "n": 9,
+      "text": "When Seed:Demo is false or unset, the API shall insert no demo rows, and contract list responses shall reflect only records created independently of demo seeding."
+     },
+     {
+      "n": 10,
+      "text": "A test factory starting the application without an explicit demo-seed opt-in shall configure Seed:Demo as false."
+     },
+     {
+      "n": 11,
+      "text": "The repository shall provide the API functionality through HTTP operations without separate feedlot product screens; browser-visible routes shall show API documentation or health information only, and Swagger shall be limited to API documentation and testing."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

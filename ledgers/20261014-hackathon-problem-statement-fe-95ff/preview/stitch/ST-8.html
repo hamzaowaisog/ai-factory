@@ -1,0 +1,669 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory - Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .phone-container {
+      width: 100%;
+      max-width: 390px;
+      min-height: 100vh;
+      background-color: #F4F3EF;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Typography */
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: #262A2D;
+    }
+
+    h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: #262A2D;
+    }
+
+    h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #262A2D;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: #626A6F;
+    }
+
+    /* Header */
+    header {
+      height: 64px;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D9DAD7;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #262A2D;
+    }
+
+    .grain-mark {
+      width: 32px;
+      height: 32px;
+      background-color: #526F82;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: #262A2D;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar-initials {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: #D9DAD7;
+      color: #262A2D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .menu-btn {
+      width: 44px;
+      height: 44px;
+      background: transparent;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #262A2D;
+      padding: 0;
+    }
+
+    .menu-btn:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    /* Main Content */
+    main {
+      padding: 24px 16px 40px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .projections-link {
+      color: #626A6F;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 0;
+      display: inline-flex;
+      align-items: center;
+      transition: color 150ms ease;
+    }
+
+    .projections-link:hover {
+      color: #262A2D;
+    }
+
+    .projections-link:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    /* Section Subheadings */
+    .section-header {
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #262A2D;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #D9DAD7;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .date-badge {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: #626A6F;
+    }
+
+    /* Cards / Stacked Records */
+    .record-card {
+      background-color: #FFFFFF;
+      border-radius: 8px;
+      border: 1px solid #D9DAD7;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .record-header {
+      padding: 12px 16px;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D9DAD7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .item-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #262A2D;
+    }
+
+    .unit-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: #626A6F;
+      background-color: #F4F3EF;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #D9DAD7;
+    }
+
+    .record-body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .record-row {
+      height: 44px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #D9DAD7;
+    }
+
+    .record-row:last-child {
+      border-bottom: none;
+    }
+
+    .record-row.closing-row {
+      background-color: #FAF9F6;
+    }
+
+    .record-label {
+      font-size: 13px;
+      color: #626A6F;
+    }
+
+    .record-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      color: #262A2D;
+    }
+
+    .record-value.closing-val {
+      font-weight: 600;
+    }
+
+    /* 28px pause before next section */
+    .section-gap {
+      margin-top: 28px;
+    }
+
+    /* Form Container */
+    .form-panel {
+      background-color: #FFFFFF;
+      border-radius: 8px;
+      border: 1px solid #D9DAD7;
+      padding: 20px 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group:last-of-type {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      font-size: 13px;
+      color: #262A2D;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .input-field {
+      height: 44px;
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      padding: 0 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      color: #262A2D;
+      width: 100%;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .input-field.font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: #526F82;
+      box-shadow: 0 0 0 2px #526F82;
+    }
+
+    select.input-field {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23262A2D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 36px;
+    }
+
+    /* Two column row inside form */
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .normalized-info {
+      display: flex;
+      align-items: center;
+      height: 44px;
+      padding: 0 12px;
+      background-color: #F4F3EF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: #262A2D;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      background-color: #526F82;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 150ms ease, transform 100ms ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #435b6c;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUpDigit {
+      from {
+        transform: translateY(0.65em);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .entrance-load {
+      animation: entranceFadeUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .roll-digit {
+      display: inline-block;
+      animation: rollUpDigit 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .roll-d1 { animation-delay: 0ms; }
+    .roll-d2 { animation-delay: 35ms; }
+    .roll-d3 { animation-delay: 70ms; }
+    .roll-d4 { animation-delay: 105ms; }
+    .roll-d5 { animation-delay: 140ms; }
+    .roll-d6 { animation-delay: 175ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-container">
+    <!-- Header: Feedlot wordmark beside square grain mark with white F, initials avatar on right beside menu -->
+    <header>
+      <a href="#" class="brand">
+        <div class="grain-mark" aria-hidden="true">F</div>
+        <span class="brand-title">Feedlot</span>
+      </a>
+      <div class="header-actions">
+        <div class="avatar-initials" title="Mara Chen">MC</div>
+        <button class="menu-btn" aria-label="Navigation menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#262A2D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="entrance-load">
+      <!-- Page heading and quiet link -->
+      <div class="page-title-row">
+        <h1>Inventory</h1>
+        <a href="#" class="projections-link">Projections</a>
+      </div>
+
+      <!-- Stock-flow Section -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>Stock-flow movement</span>
+          <span class="date-badge">Apr 1–17, 2025</span>
+        </div>
+      </div>
+
+      <!-- Record 1: Steam-flaked corn -->
+      <div class="record-card">
+        <div class="record-header">
+          <span class="item-name">Steam-flaked corn</span>
+          <span class="unit-tag">lb</span>
+        </div>
+        <div class="record-body">
+          <div class="record-row">
+            <span class="record-label">Opening</span>
+            <span class="record-value">50,000</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Received</span>
+            <span class="record-value font-mono">5,000</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Consumed</span>
+            <span class="record-value font-mono">38,127.6</span>
+          </div>
+          <div class="record-row closing-row">
+            <span class="record-label">Closing</span>
+            <span class="record-value closing-val">
+              <span class="roll-digit roll-d1">1</span><span class="roll-digit roll-d2">6</span>,<span class="roll-digit roll-d3">8</span><span class="roll-digit roll-d4">7</span><span class="roll-digit roll-d5">2</span>.<span class="roll-digit roll-d6">4</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Record 2: Alfalfa hay -->
+      <div class="record-card">
+        <div class="record-header">
+          <span class="item-name">Alfalfa hay</span>
+          <span class="unit-tag">lb</span>
+        </div>
+        <div class="record-body">
+          <div class="record-row">
+            <span class="record-label">Opening</span>
+            <span class="record-value font-mono">20,000</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Received</span>
+            <span class="record-value font-mono">1,200</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Consumed</span>
+            <span class="record-value font-mono">10,893.6</span>
+          </div>
+          <div class="record-row closing-row">
+            <span class="record-label">Closing</span>
+            <span class="record-value closing-val font-mono">10,306.4</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Record 3: Cottonseed meal -->
+      <div class="record-card">
+        <div class="record-header">
+          <span class="item-name">Cottonseed meal</span>
+          <span class="unit-tag">lb</span>
+        </div>
+        <div class="record-body">
+          <div class="record-row">
+            <span class="record-label">Opening</span>
+            <span class="record-value font-mono">8,000</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Received</span>
+            <span class="record-value font-mono">0</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Consumed</span>
+            <span class="record-value font-mono">3,812.8</span>
+          </div>
+          <div class="record-row closing-row">
+            <span class="record-label">Closing</span>
+            <span class="record-value closing-val font-mono">4,187.2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Record 4: Mineral premix -->
+      <div class="record-card">
+        <div class="record-header">
+          <span class="item-name">Mineral premix</span>
+          <span class="unit-tag">lb</span>
+        </div>
+        <div class="record-body">
+          <div class="record-row">
+            <span class="record-label">Opening</span>
+            <span class="record-value font-mono">2,000</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Received</span>
+            <span class="record-value font-mono">300</span>
+          </div>
+          <div class="record-row">
+            <span class="record-label">Consumed</span>
+            <span class="record-value font-mono">1,634.0</span>
+          </div>
+          <div class="record-row closing-row">
+            <span class="record-label">Closing</span>
+            <span class="record-value closing-val font-mono">666.0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 28px pause before Add receipt section -->
+      <div class="section-gap">
+        <div class="section-header">
+          <div class="section-title">
+            <span>Add receipt</span>
+          </div>
+        </div>
+
+        <form class="form-panel">
+          <div class="form-group">
+            <label class="form-label" for="item-name">Item name</label>
+            <select id="item-name" class="input-field">
+              <option value="corn">Steam-flaked corn</option>
+              <option value="hay">Alfalfa hay</option>
+              <option value="cottonseed">Cottonseed meal</option>
+              <option value="mineral">Mineral premix</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="supplier">Supplier</label>
+            <input type="text" id="supplier" class="input-field" value="Prairie Creek Cattle Co." placeholder="Supplier name">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="quantity">Quantity</label>
+              <input type="text" id="quantity" class="input-field font-mono" value="5,000">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="unit">Entered unit</label>
+              <select id="unit" class="input-field font-mono">
+                <option value="lb">lb</option>
+                <option value="cwt">cwt</option>
+                <option value="ton">ton</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Normalized weight</label>
+            <div class="normalized-info">
+              <span>5,000 lb</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cost">Cost ($)</label>
+              <input type="text" id="cost" class="input-field font-mono" value="550.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="rec-date">Received date</label>
+              <input type="text" id="rec-date" class="input-field font-mono" value="Apr 17, 2025">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary">
+            Add receipt
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","rations":"S-7","feeding plans":"S-9","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13","projections":"S-6"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-5";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

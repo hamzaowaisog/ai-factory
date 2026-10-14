@@ -1,0 +1,72 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-3.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test creates three distinct activities, checks the GET status, and verifies every named response field and its key values for each created activity."
+     },
+     {
+      "acId": "AC-3.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the update status and recalculated variance, activity totals and inventory closing balance, then checks the cancel status, Canceled state and reversed closing balance."
+     },
+     {
+      "acId": "AC-3.5",
+      "testId": "AC_3_5_RejectsInsufficientStockWithoutChangingInventoryOrActivities",
+      "verdict": "weak",
+      "why": "Compare the before-and-after activity rows as an unordered set rather than raw JSON at line 223, because the criterion does not require list order."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks status, measurement records and date/averageWeightLb trend fields for both the all-lots request and the lotId-filtered request, using seeded records for three lots."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both response statuses, the accepted and corrected measurement values, recalculated metrics, and trend fields."
+     },
+     {
+      "acId": "AC-4.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the response status, yard totals and active counts, and the seeded pen and lot summaries."
+     },
+     {
+      "acId": "AC-4.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test seeds matching and nonmatching lots, checks matching rows for each supported filter, and verifies the known breed, sex and pen choices."
+     },
+     {
+      "acId": "AC-4.5",
+      "testId": "AC_4_5_ExportsFilteredReportAsCsvAndPdf",
+      "verdict": "weak",
+      "why": "Assert actual report field values in each export at lines 450 and 457; checking only lot-code presence and one excluded code allows files with incorrect report data to pass."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the create and update statuses, returned account fields and exact messages, and that the requested role change is reflected in the returned and subsequently listed account."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

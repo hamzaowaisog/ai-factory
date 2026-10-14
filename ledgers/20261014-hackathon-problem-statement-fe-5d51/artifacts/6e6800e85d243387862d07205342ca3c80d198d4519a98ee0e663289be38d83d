@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "contract list|contracts|/api/v1/lots|lots\"",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 3,
+   "resultChars": 2631,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;contract list|contracts|/api/v1/lots|lots\\&quot;&quot;,&quot;glob&quot;:&quot;App.Tests/**/*.cs&quot;}\">\nApp.Tests/AcceptancePart1Tests.cs:92: Assert.Equal(ContractSchemaNames.Length, schemas.EnumerateObject().Count());\nApp.Tests/AcceptancePart1Tests.cs:93: foreach (var schemaName in ContractSchemaNames)\nApp.Tests/AcceptancePart1Tests.cs:151: AssertHasProperties(overview.RootElement, \"headline\", \"activeLots\", \"activePens\", \"lots\", \"inventory\", \"rationFeeding\", \"estimatedEnergyMcal\", \"recentActivity\", \"recentSync\");\nApp.Tests/AcceptancePart1Tests.cs:154: using var lots = await GetJsonAsync(api.Client, $\"{ApiRoot}/lots\", HttpStatusCode.OK);\nApp.Tests/AcceptancePart1Tests.cs:155: var lotRows = lots.RootElement.GetProperty(\"lots\").EnumerateArray().ToArray();\nApp.Tests/AcceptancePart1Tests.cs:646: private static readonly string[] ContractSchemaNames =\nApp.Tests/AcceptancePart1Tests.cs:659: new(\"GET\", \"/lots\", \"listLots\", \"200\", [\"200\", \"401\", \"403\", \"500\"], \"LotList\"),\nApp.Tests/AcceptancePart2Tests.cs:282: Part2Json.HasProperties(summary, \"totalHead\", \"activeLots\", \"activePens\", \"pens\", \"lots\");\nApp.Tests/AcceptancePart2Tests.cs:283: Assert.Equal(3, summary.GetProperty(\"activeLots\").GetInt32());\nApp.Tests/AcceptancePart2Tests.cs:286: var lots = summary.GetProperty(\"lots\").EnumerateArray().ToArray();\nApp.Tests/AcceptancePart2Tests.cs:430: Part2Json.HasProperties(record, \"sourceId\", \"sourceRecordId\", \"result\", \"targetLots\", \"error\");\nApp.Tests/AcceptancePart2Tests.cs:446: Part2Json.HasProperties(materials.RootElement.GetProperty(\"operationalData\"), \"activeLots\", \"activePens\", \"totalHead\", \"totalFeedCostUsd\");\nApp.Tests/AcceptancePart2Tests.cs:608: INSERT INTO \"Lots\"\nApp.Tests/AcceptancePart3Tests.cs:273: \"Accounts\", \"ApiSessions\", \"Pens\", \"Lots\", \"PenLotAllocations\", \"InventoryItems\",\nApp.Tests/AcceptancePart3Tests.cs:276: \"WeightMeasurements\", \"SyncBatches\", \"SyncRecords\", \"SyncRecordLots\"\nApp.Tests/AcceptancePart3Tests.cs:281: (\"/api/v1/lots\", \"lots\"),\nApp.Tests/AcceptancePart4Tests.cs:30: using var response = await app.Client.GetAsync(\"/api/v1/lots\");\nApp.Tests/AcceptancePart4Tests.cs:32: Assert.Empty(document.RootElement.GetProperty(\"lots\").EnumerateArray());\nApp.Tests/AcceptancePart4Tests.cs:236: Assert.Contains(\"/lots\", normalizedPaths);\nApp.Tests/AcceptancePart4Tests.cs:352: INSERT INTO \"Lots\"\nApp.Tests/AcceptancePart4Tests.cs:396: \"Accounts\", \"ApiSessions\", \"Pens\", \"Lots\", \"PenLotAllocations\", \"InventoryItems\",\nApp.Tests/AcceptancePart4Tests.cs:399: \"SyncBatches\", \"SyncRecords\", \"SyncRecordLots\"\n</untrusted_document>"
+  }
+ ]
+}

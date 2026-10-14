@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 8,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "CREATE TABLE.*InventoryItems|InventoryItems.*UNIQUE|UNIQUE.*item|CREATE UNIQUE INDEX.*InventoryItems",
+    "glob": "**/*"
+   },
+   "ms": 7,
+   "resultChars": 225,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;CREATE TABLE.*InventoryItems|InventoryItems.*UNIQUE|UNIQUE.*item|CREATE UNIQUE INDEX.*InventoryItems&quot;,&quot;glob&quot;\">\nNo matches\n</untrusted_document>"
+  }
+ ]
+}

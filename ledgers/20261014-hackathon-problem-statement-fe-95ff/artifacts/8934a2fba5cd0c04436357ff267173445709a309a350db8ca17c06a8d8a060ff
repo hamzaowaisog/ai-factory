@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lot financials — Cattle Lot L-241 | Feedlot Operations</title>
+<!-- Typography: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with custom configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline-variant": "#c2c7cc",
+            "tertiary-fixed": "#ffddb7",
+            "surface-variant": "#e3e2df",
+            "secondary-fixed": "#d9e4ee",
+            "on-secondary-fixed": "#121d24",
+            "on-primary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-dim": "#dbdad6",
+            "on-secondary-container": "#5b666e",
+            "background": "#faf9f5",
+            "surface-container-high": "#e9e8e4",
+            "primary": "#3a5769",
+            "on-primary-fixed": "#001e2d",
+            "on-primary-container": "#ddf0ff",
+            "on-tertiary-fixed-variant": "#5c421f",
+            "on-tertiary": "#ffffff",
+            "on-error-container": "#93000a",
+            "secondary": "#556068",
+            "tertiary-container": "#856640",
+            "on-surface": "#1b1c1a",
+            "on-background": "#1b1c1a",
+            "inverse-primary": "#accbe0",
+            "inverse-on-surface": "#f2f1ed",
+            "primary-container": "#526f82",
+            "surface-container": "#efeeea",
+            "on-surface-variant": "#42474c",
+            "on-primary-fixed-variant": "#2d4a5c",
+            "primary-fixed-dim": "#accbe0",
+            "surface-bright": "#faf9f5",
+            "secondary-fixed-dim": "#bdc8d1",
+            "outline": "#72787c",
+            "on-tertiary-container": "#ffebd6",
+            "surface-container-low": "#f5f4f0",
+            "surface": "#faf9f5",
+            "secondary-container": "#d9e4ee",
+            "inverse-surface": "#30312e",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed-dim": "#e7c093",
+            "surface-container-highest": "#e3e2df",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed": "#2a1700",
+            "surface-tint": "#456274",
+            "surface-container-lowest": "#ffffff",
+            "primary-fixed": "#c8e7fd",
+            "tertiary": "#6a4e2a",
+            "on-secondary-fixed-variant": "#3d4850",
+            "error": "#ba1a1a",
+            /* Strict Design System custom color tokens */
+            "mineral-canvas": "#F4F3EF",
+            "paper-surface": "#FFFFFF",
+            "graphite-ink": "#262A2D",
+            "quiet-steel": "#626A6F",
+            "soft-graphite-rule": "#D9DAD7",
+            "slate-action": "#526F82",
+            "field-green": "#356A55",
+            "harvest-ochre": "#986321",
+            "brick-red": "#B4473C"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["\"Source Sans 3\"", "sans-serif"],
+            "mono": ["\"IBM Plex Mono\"", "monospace"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    @keyframes page-enter {
+      from { opacity: 0.65; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-enter {
+      animation: page-enter var(--dur-base) var(--ease-out) both;
+    }
+
+    .figure-digit {
+      display: inline-block;
+      opacity: 0.65;
+      transform: translateY(0.65em);
+      transition: transform 600ms var(--ease-out), opacity 600ms var(--ease-out);
+    }
+
+    .is-visible .figure-digit {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tabular-numbers {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .button-action {
+      transition-duration: var(--dur-quick);
+      transition-timing-function: var(--ease-out);
+    }
+    .button-action:active {
+      transform: scale(0.97);
+      transition-duration: var(--dur-instant);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition-duration: 100ms !important;
+        transform: none !important;
+      }
+      .figure-digit {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-mineral-canvas text-graphite-ink font-body min-h-[1024px] flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-fixed">
+<!-- Desktop Top Navigation Bar (Feedlot exact standard) -->
+<header class="w-full bg-paper-surface border-b border-soft-graphite-rule sticky top-0 z-40">
+<div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+<!-- Left: Logo & Ordered Primary Navigation -->
+<div class="flex items-center gap-8 h-full">
+<!-- Feedlot brand with small square grain mark with white F -->
+<a aria-label="Feedlot home" class="flex items-center gap-2 text-graphite-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-action focus-visible:ring-offset-2 rounded" href="#overview">
+<span class="w-5 h-5 bg-slate-action rounded-[3px] flex items-center justify-center text-paper-surface font-headline font-bold text-xs leading-none select-none">F</span>
+<span class="font-headline font-semibold text-base tracking-tight text-graphite-ink">Feedlot</span>
+</a>
+<!-- Exact ordered navigation links -->
+<nav aria-label="Global Navigation" class="hidden md:flex items-center space-x-6 h-full font-headline text-sm">
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#overview">Overview</a>
+<!-- Active Tab: Lots with bottom border #526F82 -->
+<a aria-current="page" class="text-slate-action font-semibold h-full flex items-center border-b-2 border-slate-action pt-0.5" href="#lots">Lots</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#inventory">Inventory</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#rations">Rations</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#feeding-plans">Feeding plans</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#feeding-log">Feeding log</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#lot-weights">Lot weights</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#yard-summary">Yard summary</a>
+<a class="text-quiet-steel font-medium hover:text-graphite-ink h-full flex items-center transition-colors" href="#feed-to-gain">Feed-to-Gain</a>
+</nav>
+</div>
+<!-- Right: User Avatar & Identification -->
+<div class="flex items-center gap-3">
+<div aria-hidden="true" class="w-8 h-8 rounded-full bg-surface-container-high text-graphite-ink font-mono font-medium text-xs flex items-center justify-center border border-soft-graphite-rule select-none">
+          MC
+        </div>
+<div class="flex flex-col text-left">
+<span class="font-headline font-semibold text-xs text-graphite-ink leading-tight">Mara Chen</span>
+<span class="text-[11px] text-quiet-steel font-normal leading-tight">Feed Operations, Administrator</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas Container -->
+<main class="w-full max-w-[1440px] mx-auto px-6 py-7 flex-1 page-enter">
+<!-- Breadcrumb & Direct Context Header -->
+<div class="mb-7">
+<div class="flex items-center justify-between mb-2">
+<nav aria-label="Lot context breadcrumbs" class="flex items-center gap-2 text-xs font-medium text-quiet-steel">
+<a class="hover:text-graphite-ink hover:underline" href="#lots">Lots</a>
+<span class="text-soft-graphite-rule">/</span>
+<a class="hover:text-graphite-ink hover:underline font-mono" href="#lot-l241">Lot L-241</a>
+<span class="text-soft-graphite-rule">/</span>
+<span class="text-graphite-ink">Financials</span>
+</nav>
+<!-- Navigation control / link: Worded exactly "Performance" -->
+<div class="flex items-center gap-4">
+<a class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-action hover:text-graphite-ink border border-soft-graphite-rule bg-paper-surface hover:border-slate-action px-3 py-1.5 rounded-[6px] button-action focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-action" href="#lot-performance">
+<span class="material-symbols-outlined text-[15px]" data-icon="insights">insights</span>
+<span>Performance</span>
+</a>
+</div>
+</div>
+<!-- Page Title & Operational Context String -->
+<div class="border-b border-soft-graphite-rule pb-5">
+<h1 class="font-headline font-semibold text-[28px] tracking-[-0.02em] text-graphite-ink leading-tight">
+          Lot financials
+        </h1>
+<p class="text-xs text-quiet-steel mt-1 font-normal tracking-normal">
+          Lot L-241 · Angus steers · Pen 4 (64 head) · America/Denver · Apr 17, 2025
+        </p>
+</div>
+</div>
+<!-- Financial Performance Lead Context Section -->
+<section aria-labelledby="headline-cost-metric" class="mb-7">
+<div class="bg-paper-surface border border-soft-graphite-rule rounded-[8px] p-6">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- Lead Headline Context Figure -->
+<div class="lg:col-span-6 border-b lg:border-b-0 lg:border-r border-soft-graphite-rule pb-6 lg:pb-0 lg:pr-8">
+<span class="text-xs uppercase font-mono tracking-[0.08em] text-quiet-steel block mb-2 font-medium" id="headline-cost-metric">
+              Returned feed cost of gain
+            </span>
+<div class="flex items-baseline gap-2 is-visible" id="cost-figure-container">
+<span class="font-mono text-4xl lg:text-[44px] font-semibold text-graphite-ink tracking-tight tabular-numbers flex">
+<span class="figure-digit" style="transition-delay: 0ms;">$</span>
+<span class="figure-digit" style="transition-delay: 35ms;">1</span>
+<span class="figure-digit" style="transition-delay: 70ms;">.</span>
+<span class="figure-digit" style="transition-delay: 105ms;">0</span>
+<span class="figure-digit" style="transition-delay: 140ms;">9</span>
+</span>
+<span class="font-body text-base text-quiet-steel font-normal">
+                per lb gained
+              </span>
+</div>
+<p class="text-xs text-quiet-steel mt-3 max-w-md leading-relaxed">
+              Calculated on returned feed deliveries totaling 99 days against recorded net pen gain of 13,118 lb.
+            </p>
+</div>
+<!-- Prominent Operational Note / Caveat -->
+<div class="lg:col-span-6 flex flex-col justify-center h-full pt-1 lg:pt-0">
+<div class="bg-surface-container-low border border-soft-graphite-rule rounded-[6px] p-4 flex items-start gap-3">
+<div aria-hidden="true" class="w-2 h-2 rounded-full bg-harvest-ochre mt-1.5 flex-shrink-0"></div>
+<div>
+<p class="font-headline font-semibold text-sm text-graphite-ink">
+                  Broader ROI unavailable — sale revenue is missing
+                </p>
+<p class="text-xs text-quiet-steel mt-1 leading-relaxed">
+                  Steers remain actively on feed in Pen 4. Final closeout profitability, net margin per finished head, and realized feeder margin cannot be calculated until packing plant closeout weights and final grid revenue are realized.
+                </p>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-4 text-[11px] text-quiet-steel font-mono px-1">
+<span>ACTIVE INVENTORY: 64 HEAD</span>
+<span>•</span>
+<span>DAYS ON FEED: 99</span>
+<span>•</span>
+<span>STATUS: RECEPTIVE BUNK</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Detailed Cost Item Breakdown Section -->
+<section aria-labelledby="cost-breakdown-heading" class="mb-7">
+<div class="flex items-center justify-between mb-2">
+<h2 class="font-headline font-semibold text-base text-graphite-ink" id="cost-breakdown-heading">
+          Cost breakdown
+        </h2>
+<span class="text-xs text-quiet-steel font-mono">AS OF APR 17, 2025</span>
+</div>
+<!-- Plain Dense Table adhering to design system rules -->
+<div class="bg-paper-surface border border-soft-graphite-rule rounded-[8px] overflow-hidden">
+<table class="w-full text-left border-collapse" role="table">
+<thead>
+<tr class="h-10 border-b border-soft-graphite-rule bg-surface-container-low">
+<th class="text-[11px] font-mono tracking-[0.08em] uppercase text-quiet-steel px-4 font-semibold text-left" scope="col">
+                Item description
+              </th>
+<th class="text-[11px] font-mono tracking-[0.08em] uppercase text-quiet-steel px-4 font-semibold text-left hidden sm:table-cell" scope="col">
+                Accounting detail &amp; status
+              </th>
+<th class="text-[11px] font-mono tracking-[0.08em] uppercase text-quiet-steel px-4 font-semibold text-right w-44" scope="col">
+                Recorded amount
+              </th>
+</tr>
+</thead>
+<tbody class="divide-y divide-soft-graphite-rule text-sm">
+<!-- Row 1: Allocated purchase cost -->
+<tr class="h-11 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-body font-medium text-graphite-ink">
+                Allocated purchase cost
+              </td>
+<td class="px-4 text-xs text-quiet-steel hidden sm:table-cell font-mono">
+                64 of 96 received head on PO-5817 line 2 · $1,400/head
+              </td>
+<td class="px-4 text-right font-mono text-graphite-ink font-medium tabular-numbers">
+                $89,600.00
+              </td>
+</tr>
+<!-- Row 2: Recorded feed cost -->
+<tr class="h-11 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-body font-medium text-graphite-ink">
+                Recorded feed cost
+              </td>
+<td class="px-4 text-xs text-quiet-steel hidden sm:table-cell">
+                Returned feed drops through 99 days on feed
+              </td>
+<td class="px-4 text-right font-mono text-graphite-ink font-medium tabular-numbers">
+                $14,299.60
+              </td>
+</tr>
+<!-- Row 3: Sale revenue -->
+<tr class="h-11 hover:bg-surface-container-low transition-colors">
+<td class="px-4 font-body font-medium text-graphite-ink">
+                Sale revenue
+              </td>
+<td class="px-4 text-xs text-quiet-steel hidden sm:table-cell flex items-center gap-2 h-11">
+<span aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-harvest-ochre inline-block"></span>
+<span>Pending marketing and terminal harvest</span>
+</td>
+<td class="px-4 text-right font-mono text-quiet-steel italic text-xs tabular-numbers">
+                not recorded
+              </td>
+</tr>
+<!-- Row 4: Total recorded cost to date -->
+<tr class="h-11 bg-surface-container-low font-semibold border-t border-soft-graphite-rule">
+<td class="px-4 font-headline text-graphite-ink">
+                Total recorded cost to date
+              </td>
+<td class="px-4 text-xs text-quiet-steel hidden sm:table-cell font-normal">
+                Cumulative direct outlays (cattle procurement + feed issues)
+              </td>
+<td class="px-4 text-right font-mono text-graphite-ink text-sm tabular-numbers">
+                $103,899.60
+              </td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="text-[11px] text-quiet-steel font-mono mt-2 text-right">
+        EXCLUDES INDIRECT YARDAGE &amp; VETERINARY OVERHEAD PRIOR TO LOT CLOSEOUT
+      </p>
+</section>
+<!-- Operational Recommendation & Projections Panel -->
+<section aria-labelledby="recommendation-heading" class="mb-10">
+<div class="flex items-center justify-between mb-2">
+<h2 class="font-headline font-semibold text-base text-graphite-ink" id="recommendation-heading">
+          Operational recommendation &amp; projections
+        </h2>
+<span class="text-xs text-quiet-steel">Bunk Management System</span>
+</div>
+<div class="bg-paper-surface border border-soft-graphite-rule rounded-[8px] p-6">
+<!-- Primary Actionable Recommendation Banner -->
+<div class="border-b border-soft-graphite-rule pb-5 mb-5">
+<div class="flex items-start gap-3">
+<div aria-hidden="true" class="w-2 h-2 rounded-full bg-field-green mt-2 flex-shrink-0"></div>
+<div>
+<span class="text-xs font-mono uppercase tracking-[0.08em] text-quiet-steel font-medium block">
+                Current feed directive
+              </span>
+<p class="font-headline font-semibold text-lg text-graphite-ink mt-0.5">
+                Keep current 18.5 lb as-fed bunk rate per animal per day and check weights again Apr 23
+              </p>
+<p class="text-xs text-quiet-steel mt-1">
+                Stable consumption index observed over previous 14 bunk readings with zero unconsumed night-feed accumulation.
+              </p>
+</div>
+</div>
+</div>
+<!-- 8 Key Parameters Grid (clean, structured, dense) -->
+<div>
+<h3 class="text-xs font-mono uppercase tracking-[0.08em] text-quiet-steel mb-3 font-semibold">
+            Key lot parameters &amp; schedule
+          </h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<!-- Parameter 1 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Current bunk delivery</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block tabular-numbers">
+                18.5 lb as-fed
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5">animal / day</span>
+</div>
+<!-- Parameter 2 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Next weigh check</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block">
+                Apr 23, 2025
+              </span>
+<span class="text-[10px] text-field-green font-medium block mt-0.5">In 6 days</span>
+</div>
+<!-- Parameter 3 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Latest weight</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block tabular-numbers">
+                987 lb
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5 font-mono">Apr 16, 2025</span>
+</div>
+<!-- Parameter 4 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Target market weight</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block tabular-numbers">
+                1,350 lb
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5 font-mono">363 lb remaining</span>
+</div>
+<!-- Parameter 5 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Days on feed</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block tabular-numbers">
+                99 days
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5 font-mono">Started Jan 8, 2025</span>
+</div>
+<!-- Parameter 6 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Measured ADG</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block tabular-numbers">
+                2.07 lb/day
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5">Average daily gain</span>
+</div>
+<!-- Parameter 7 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Feed conversion ratio</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block tabular-numbers">
+                8.69
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5">lb feed / lb gain</span>
+</div>
+<!-- Parameter 8 -->
+<div class="p-3 bg-surface-container-low rounded-[6px] border border-soft-graphite-rule">
+<span class="text-[11px] text-quiet-steel block leading-tight">Projected ship date</span>
+<span class="font-mono text-sm font-semibold text-graphite-ink mt-1 block">
+                Oct 9, 2025
+              </span>
+<span class="text-[10px] text-quiet-steel block mt-0.5 font-mono">175 days remaining</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Inline Script for signature micro-interactions and motion token execution -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Signature Moment: Operational figure digits settle cleanly on view entry
+      const figureContainer = document.getElementById('cost-figure-container');
+      if (figureContainer) {
+        // Trigger roll-up settle transition
+        requestAnimationFrame(() => {
+          figureContainer.classList.add('is-visible');
+        });
+      }
+    });
+  </script>
+</body></html>

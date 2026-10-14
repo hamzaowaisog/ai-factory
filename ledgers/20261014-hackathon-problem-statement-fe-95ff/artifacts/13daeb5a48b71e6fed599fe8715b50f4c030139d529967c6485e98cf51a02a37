@@ -1,0 +1,127 @@
+
+> feed-lot-management-v4-web@0.1.0 build
+> next build
+
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+   ▲ Next.js 15.5.27
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.7s
+   Linting and checking validity of types ...
+ ⚠ Compiled with warnings in 4.1s
+
+./app/admin/demo/page.tsx
+Attempted import error: 'DemoContainer' is not exported from '@/components/screens/s-16/container' (imported as 'DemoContainer').
+
+Import trace for requested module:
+./app/admin/demo/page.tsx
+
+./app/admin/sync/page.tsx
+Attempted import error: 'SyncContainer' is not exported from '@/components/screens/s-15/container' (imported as 'SyncContainer').
+
+Import trace for requested module:
+./app/admin/sync/page.tsx
+
+./app/feeding-log/page.tsx
+Attempted import error: 'FeedingLogContainer' is not exported from '@/components/screens/s-10/container' (imported as 'FeedingLogContainer').
+
+Import trace for requested module:
+./app/feeding-log/page.tsx
+
+./app/feeding-plans/page.tsx
+Attempted import error: 'FeedingPlansContainer' is not exported from '@/components/screens/s-9/container' (imported as 'FeedingPlansContainer').
+
+Import trace for requested module:
+./app/feeding-plans/page.tsx
+
+./app/inventory/page.tsx
+Attempted import error: 'InventoryContainer' is not exported from '@/components/screens/s-5/container' (imported as 'InventoryContainer').
+
+Import trace for requested module:
+./app/inventory/page.tsx
+
+./app/inventory/projections/page.tsx
+Attempted import error: 'InventoryProjectionsContainer' is not exported from '@/components/screens/s-6/container' (imported as 'InventoryProjectionsContainer').
+
+Import trace for requested module:
+./app/inventory/projections/page.tsx
+
+./app/lot-weights/page.tsx
+Attempted import error: 'LotWeightsContainer' is not exported from '@/components/screens/s-11/container' (imported as 'LotWeightsContainer').
+
+Import trace for requested module:
+./app/lot-weights/page.tsx
+
+./app/lots/L-241/financials/page.tsx
+Attempted import error: 'LotFinancialsContainer' is not exported from '@/components/screens/s-18/container' (imported as 'LotFinancialsContainer').
+
+Import trace for requested module:
+./app/lots/L-241/financials/page.tsx
+
+./app/lots/L-241/lifecycle/page.tsx
+Attempted import error: 'LifecycleContainer' is not exported from '@/components/screens/s-4/container' (imported as 'LifecycleContainer').
+
+Import trace for requested module:
+./app/lots/L-241/lifecycle/page.tsx
+
+./app/lots/L-241/performance/page.tsx
+Attempted import error: 'LotPerformanceContainer' is not exported from '@/components/screens/s-17/container' (imported as 'LotPerformanceContainer').
+
+Import trace for requested module:
+./app/lots/L-241/performance/page.tsx
+
+./app/lots/page.tsx
+Attempted import error: 'LotsContainer' is not exported from '@/components/screens/s-3/container' (imported as 'LotsContainer').
+
+Import trace for requested module:
+./app/lots/page.tsx
+
+./app/overview/page.tsx
+Attempted import error: 'OverviewContainer' is not exported from '@/components/screens/s-2/container' (imported as 'OverviewContainer').
+
+Import trace for requested module:
+./app/overview/page.tsx
+
+./app/rations/optimize/page.tsx
+Attempted import error: 'RationOptimizerContainer' is not exported from '@/components/screens/s-8/container' (imported as 'RationOptimizerContainer').
+
+Import trace for requested module:
+./app/rations/optimize/page.tsx
+
+./app/rations/page.tsx
+Attempted import error: 'RationsContainer' is not exported from '@/components/screens/s-7/container' (imported as 'RationsContainer').
+
+Import trace for requested module:
+./app/rations/page.tsx
+
+./app/reports/feed-to-gain/page.tsx
+Attempted import error: 'FeedToGainContainer' is not exported from '@/components/screens/s-13/container' (imported as 'FeedToGainContainer').
+
+Import trace for requested module:
+./app/reports/feed-to-gain/page.tsx
+
+./app/sign-in/page.tsx
+Attempted import error: 'SignInContainer' is not exported from '@/components/screens/s-1/container' (imported as 'SignInContainer').
+
+Import trace for requested module:
+./app/sign-in/page.tsx
+
+./app/yard-summary/page.tsx
+Attempted import error: 'YardSummaryContainer' is not exported from '@/components/screens/s-12/container' (imported as 'YardSummaryContainer').
+
+Import trace for requested module:
+./app/yard-summary/page.tsx
+
+Failed to compile.
+
+./app/admin/accounts/page.tsx:7:29
+Type error: Type '{ fixture: string | undefined; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'fixture' does not exist on type 'IntrinsicAttributes'.
+
+[0m [90m 5 |[39m [36mexport[39m [36mdefault[39m [36masync[39m [36mfunction[39m [33mPage[39m({ searchParams }[33m:[39m { searchParams[33m:[39m [33mPromise[39m[33m<[39m[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m string [33m|[39m string[] [33m|[39m undefined[33m>>[39m }) {
+ [90m 6 |[39m   [36mconst[39m { fixture } [33m=[39m [36mawait[39m searchParams[33m;[39m
+[31m[1m>[22m[39m[90m 7 |[39m   [36mreturn[39m [33m<[39m[33mAccountsContainer[39m fixture[33m=[39m{fixtureState([36mtypeof[39m fixture [33m===[39m [32m"string"[39m [33m?[39m fixture [33m:[39m undefined[33m,[39m [32m"S-14"[39m)} [33m/[39m[33m>[39m[33m;[39m
+ [90m   |[39m                             [31m[1m^[22m[39m
+ [90m 8 |[39m }
+ [90m 9 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null

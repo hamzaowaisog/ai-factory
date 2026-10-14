@@ -1,0 +1,80 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Treat contracts/openapi.yaml as the complete, authoritative scope for API behavior; the broader hackathon description does not add API operations beyond that contract.",
+      "behaviours": [
+       {
+        "text": "For every operation declared in contracts/openapi.yaml, accept the contract-defined method, path, parameters, headers, and request body, and return the contract-defined response status, headers, and body.",
+        "kind": "happy"
+       },
+       {
+        "text": "For each operation, reject invalid or missing inputs and handle documented error cases with the error responses specified by the contract; do not substitute undocumented behavior for those contract responses.",
+        "kind": "error"
+       },
+       {
+        "text": "Requests to paths or methods not declared by the contract do not gain business-operation behavior from this change.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Read and write the API's persistent application data using the project's PostgreSQL database configured by the existing connection string named App.",
+        "kind": "data"
+       },
+       {
+        "text": "When the configured database cannot be reached or a database operation fails, the affected API operation does not report a successful persisted change.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When demo seeding is enabled, provide a few believable sample rows for each contract-backed table, using values based on the contract's examples, so list operations can return sample records.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "When Seed:Demo is true, startup runs the demo seed data; when it is false or unset, startup does not run that seed data.",
+        "kind": "data"
+       },
+       {
+        "text": "Tests do not rely on demo-seeded rows being present and must work when the database starts without those rows.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "This repository delivers API behavior and its API documentation interface; it does not deliver product web-app screens.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

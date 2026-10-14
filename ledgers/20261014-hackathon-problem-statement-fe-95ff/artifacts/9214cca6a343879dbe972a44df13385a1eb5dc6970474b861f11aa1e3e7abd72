@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lots - Feedlot</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    /* Design System Tokens */
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-surface: #FFFFFF;
+      --text-main: #262A2D;
+      --text-muted: #626A6F;
+      --border-color: #D9DAD7;
+      --primary-color: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    h1 {
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes (CSS only) */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rollUp {
+      from {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreath {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: rollUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-1 { animation-delay: 0ms; }
+    .digit-2 { animation-delay: 35ms; }
+    .digit-3 { animation-delay: 70ms; }
+
+    .sync-breath {
+      animation: ambientBreath 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive control states */
+    .btn-secondary {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 6px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #ECEAE4;
+      border-color: #C2C4C0;
+    }
+
+    .btn-secondary:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .btn-secondary:active {
+      background-color: #E2E0D8;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 64px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms ease, border-color 150ms ease;
+      white-space: nowrap;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+    }
+
+    .nav-item:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--primary-color);
+    }
+
+    .nav-item.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    /* Panels & Tables */
+    .feedlot-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .table-feedlot {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .table-feedlot th {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: #FAF9F6;
+    }
+
+    .table-feedlot td {
+      padding: 0 16px;
+      height: 44px;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .table-feedlot tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-feedlot tr:hover td {
+      background-color: #FAF9F6;
+    }
+
+    .section-divider {
+      height: 1px;
+      background-color: var(--border-color);
+      margin-top: 8px;
+      margin-bottom: 28px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+<!-- Header -->
+<header class="bg-white border-b border-[#D9DAD7] h-16 sticky top-0 z-30">
+<div class="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
+<!-- Left: Brand + Nav -->
+<div class="flex items-center gap-8 h-full overflow-x-auto no-scrollbar">
+<!-- Brand -->
+<div class="flex items-center gap-2.5 shrink-0">
+<div class="w-7 h-7 bg-[#526F82] rounded-[4px] flex items-center justify-center text-white font-semibold text-sm font-['Hanken_Grotesk'] leading-none">
+            F
+          </div>
+<span class="font-['Hanken_Grotesk'] font-semibold text-lg tracking-tight text-[#262A2D]">Feedlot</span>
+</div>
+<!-- Navigation Menu -->
+<nav class="flex items-center h-full">
+<a class="nav-item" href="#">Overview</a>
+<a class="nav-item active" href="#">Lots</a>
+<a class="nav-item" href="#">Inventory</a>
+<a class="nav-item" href="#">Rations</a>
+<a class="nav-item" href="#">Feeding plans</a>
+<a class="nav-item" href="#">Feeding log</a>
+<a class="nav-item" href="#">Lot weights</a>
+<a class="nav-item" href="#">Yard summary</a>
+<a class="nav-item" href="#">Feed-to-Gain</a>
+</nav>
+</div>
+<!-- Right: User Avatar + Name + Role -->
+<div class="flex items-center gap-3 shrink-0 pl-4 border-l border-[#D9DAD7] h-8">
+<div class="w-8 h-8 rounded-full bg-[#EAE8E2] border border-[#D9DAD7] flex items-center justify-center font-semibold text-xs text-[#262A2D] font-mono">
+          MC
+        </div>
+<div class="flex flex-col text-left leading-tight">
+<span class="font-semibold text-sm text-[#262A2D]">Mara Chen</span>
+<span class="text-xs text-[#626A6F]">Feed Operations, Administrator</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-[1440px] mx-auto px-6 pt-8 pb-16 animate-entrance">
+<!-- Page Title -->
+<div class="mb-2">
+<h1>Lots</h1>
+</div>
+<!-- Section hairline divider with 28px pause -->
+<div class="section-divider"></div>
+<!-- Contextual Summary Line (Lead) -->
+<div class="mb-6 flex items-baseline gap-2"><p class="text-base text-[#262A2D]"><span class="font-mono font-semibold text-xl text-[#262A2D]">0</span><span class="text-[#262A2D] font-medium"> head across </span><span class="font-mono font-semibold text-lg text-[#262A2D]">0</span><span class="text-[#262A2D] font-medium"> active lots</span></p></div>
+<!-- Traceability Table Panel (Desktop) / Stacked Records (Phone) -->
+<div class="feedlot-panel p-12 text-center flex flex-col items-center justify-center"><div class="w-12 h-12 rounded-full bg-[#EAE8E2] border border-[#D9DAD7] flex items-center justify-center mb-4 text-[#526F82]"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewbox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><h2 class="text-xl font-semibold text-[#262A2D] mb-1">No lots recorded yet</h2><p class="text-sm text-[#626A6F] max-w-sm mb-6">No active cattle lots have been received or allocated to pens. Receive cattle from a purchase order line to begin tracking.</p><div class="flex items-center gap-3"><a class="inline-flex items-center justify-center bg-[#526F82] text-white rounded-[6px] px-5 h-[44px] min-h-[44px] text-sm font-medium hover:bg-[#435c6d] transition-colors" href="#">Receive lot</a><a class="btn-secondary text-sm !min-h-[44px] !h-[44px] !px-4" href="#">Sync PO line</a></div></div>
+</main>
+</body>
+</html>

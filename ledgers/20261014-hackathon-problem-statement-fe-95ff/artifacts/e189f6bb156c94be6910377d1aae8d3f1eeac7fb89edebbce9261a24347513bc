@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Feeding plans — Feedlot Operations Workspace</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-tint": "#456274",
+            "surface-container-highest": "#e3e2df",
+            "outline-variant": "#c2c7cc",
+            "on-secondary-container": "#5b666e",
+            "surface-container": "#efeeea",
+            "primary-container": "#526f82",
+            "surface-container-low": "#f5f4f0",
+            "tertiary-fixed-dim": "#e7c093",
+            "error-container": "#ffdad6",
+            "surface-bright": "#faf9f5",
+            "primary": "#3a5769",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#121d24",
+            "surface-container-high": "#e9e8e4",
+            "secondary-fixed": "#d9e4ee",
+            "on-tertiary-fixed": "#2a1700",
+            "inverse-on-surface": "#f2f1ed",
+            "primary-fixed": "#c8e7fd",
+            "on-primary-fixed-variant": "#2d4a5c",
+            "inverse-surface": "#30312e",
+            "on-tertiary-container": "#ffebd6",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#3d4850",
+            "inverse-primary": "#accbe0",
+            "tertiary-fixed": "#ffddb7",
+            "tertiary-container": "#856640",
+            "secondary-container": "#d9e4ee",
+            "surface-variant": "#e3e2df",
+            "outline": "#72787c",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary-fixed-variant": "#5c421f",
+            "secondary-fixed-dim": "#bdc8d1",
+            "error": "#ba1a1a",
+            "surface": "#faf9f5",
+            "secondary": "#556068",
+            "on-surface": "#1b1c1a",
+            "on-background": "#1b1c1a",
+            "background": "#faf9f5",
+            "on-surface-variant": "#42474c",
+            "on-error": "#ffffff",
+            "on-primary-container": "#ddf0ff",
+            "on-primary-fixed": "#001e2d",
+            "on-secondary": "#ffffff",
+            "primary-fixed-dim": "#accbe0",
+            "surface-dim": "#dbdad6",
+            "tertiary": "#6a4e2a",
+            // Design system exact functional tokens
+            "canvas": "#F4F3EF",
+            "paper": "#FFFFFF",
+            "ink": "#262A2D",
+            "quiet": "#626A6F",
+            "rule": "#D9DAD7",
+            "action": "#526F82",
+            "field-green": "#356A55",
+            "harvest-ochre": "#986321",
+            "brick-red": "#B4473C"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    @keyframes page-enter {
+      from { opacity: 0.65; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-enter {
+      animation: page-enter var(--dur-base) var(--ease-out) both;
+    }
+
+    .figure-mono {
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .custom-focus:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .btn-action {
+      transition: background-color var(--dur-quick) var(--ease-out), transform var(--dur-instant) ease;
+    }
+    .btn-action:hover {
+      background-color: #435b6b;
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    .row-interactive {
+      transition: background-color var(--dur-quick) var(--ease-out);
+    }
+    .row-interactive:hover {
+      background-color: #faf9f6;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-duration: 100ms !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-canvas text-ink font-body min-h-[1024px] flex flex-col antialiased selection:bg-action selection:text-paper">
+<!-- TOP WEB NAVIGATION (Immutable Casing & Strict Design Hierarchy) -->
+<header class="w-full bg-paper border-b border-rule sticky top-0 z-30">
+<div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+<!-- Left: Wordmark & Exact Navigation Menu -->
+<div class="flex items-center gap-8 h-full">
+<!-- Brand Wordmark -->
+<a class="flex items-center gap-2.5 custom-focus text-ink hover:opacity-90 transition-opacity" href="#">
+<span class="w-6 h-6 rounded bg-action text-paper font-headline font-bold text-sm flex items-center justify-center leading-none">F</span>
+<span class="font-headline font-semibold text-base tracking-tight text-ink">Feedlot</span>
+</a>
+<!-- Shared Links in Exact Order -->
+<nav aria-label="Main Navigation" class="hidden md:flex items-center gap-6 h-full text-sm font-medium pt-1">
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Overview</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Lots</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Inventory</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Rations</a>
+<a aria-current="page" class="text-action font-semibold pb-3 border-b-2 border-action" href="#">Feeding plans</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Feeding log</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Lot weights</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Yard summary</a>
+<a class="text-quiet hover:text-ink transition-colors pb-3 border-b-2 border-transparent" href="#">Feed-to-Gain</a>
+</nav>
+</div>
+<!-- Right: User Credentials -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-action font-headline font-semibold text-xs flex items-center justify-center border border-rule select-none">
+          MC
+        </div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-semibold text-ink leading-tight">Mara Chen</span>
+<span class="text-[11px] text-quiet leading-tight">Feed Operations, Administrator</span>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN WORKSPACE CANVAS -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto px-6 py-7 page-enter">
+<!-- PAGE TITLE & HEADING AREA -->
+<div class="mb-7">
+<h1 class="font-headline text-[28px] font-semibold tracking-[-0.03em] text-ink leading-tight">
+        Feeding plans
+      </h1>
+<p class="text-sm text-quiet mt-1 max-w-[65ch]">
+        Daily bunk call delivery schedules, proportional lot splits, and yard ration requirements.
+      </p>
+</div>
+<!-- SCHEDULE & ALLOCATION DETAIL DUAL-PANEL LAYOUT -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT / MAIN: PLAN SCHEDULE TABLE (8 Cols) -->
+<section class="lg:col-span-8 bg-paper border border-rule rounded-lg overflow-hidden">
+<div class="px-5 py-4 border-b border-rule flex items-center justify-between bg-paper">
+<div>
+<h2 class="font-headline text-base font-semibold text-ink tracking-tight">Delivery schedule</h2>
+<p class="text-xs text-quiet mt-0.5">Active call sheet for the current 5-day delivery window</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 text-xs text-quiet font-medium">
+<span class="w-2 h-2 rounded-full bg-field-green"></span> 3 Completed
+            </span>
+<span class="text-rule mx-1">|</span>
+<span class="inline-flex items-center gap-1.5 text-xs text-quiet font-medium">
+<span class="w-2 h-2 rounded-full bg-harvest-ochre"></span> 2 Planned
+            </span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-sm">
+<thead>
+<tr class="border-b border-rule bg-canvas/40 text-[11px] font-semibold text-quiet uppercase tracking-[0.08em]">
+<th class="py-2.5 px-4 font-semibold" scope="col">Delivery Date</th>
+<th class="py-2.5 px-4 font-semibold" scope="col">Pen</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">Bunk Rate</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">Head Count</th>
+<th class="py-2.5 px-4 font-semibold" scope="col">Ration</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">Planned Qty</th>
+<th class="py-2.5 px-4 font-semibold" scope="col">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-rule font-body">
+<!-- Row 1: Apr 15 -->
+<tr class="h-[44px] row-interactive">
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium">Apr 15</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs">Pen 4</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">18.0 lb/hd/d</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">96 head</td>
+<td class="py-2.5 px-4 text-ink text-xs">Finisher 18</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium text-right">1,728 lb</td>
+<td class="py-2.5 px-4 text-xs whitespace-nowrap">
+<span class="inline-flex items-center gap-2 text-ink">
+<span class="w-2 h-2 rounded-full bg-field-green shrink-0"></span> Completed
+                  </span>
+</td>
+</tr>
+<!-- Row 2: Apr 16 -->
+<tr class="h-[44px] row-interactive">
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium">Apr 16</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs">Pen 7</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">18.0 lb/hd/d</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">82 head</td>
+<td class="py-2.5 px-4 text-ink text-xs">Finisher 18</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium text-right">1,476 lb</td>
+<td class="py-2.5 px-4 text-xs whitespace-nowrap">
+<span class="inline-flex items-center gap-2 text-ink">
+<span class="w-2 h-2 rounded-full bg-field-green shrink-0"></span> Completed
+                  </span>
+</td>
+</tr>
+<!-- Row 3: Apr 17 (SELECTED PLAN STATE) -->
+<tr class="h-[44px] bg-secondary-container/40 relative border-l-2 border-action">
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-semibold">Apr 17</td>
+<td class="py-2.5 px-4 figure-mono text-action text-xs font-semibold">Pen 4</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right font-medium">18.0 lb/hd/d</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right font-medium">96 head</td>
+<td class="py-2.5 px-4 text-ink text-xs font-medium">Finisher 18</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-semibold text-right">1,728 lb</td>
+<td class="py-2.5 px-4 text-xs whitespace-nowrap">
+<span class="inline-flex items-center gap-2 text-ink font-medium">
+<span class="w-2 h-2 rounded-full bg-field-green shrink-0"></span> Completed
+                  </span>
+</td>
+</tr>
+<!-- Row 4: Apr 18 -->
+<tr class="h-[44px] row-interactive">
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium">Apr 18</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs">Pen 7</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">18.0 lb/hd/d</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">82 head</td>
+<td class="py-2.5 px-4 text-ink text-xs">Finisher 18</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium text-right">1,476 lb</td>
+<td class="py-2.5 px-4 text-xs whitespace-nowrap">
+<span class="inline-flex items-center gap-2 text-ink">
+<span class="w-2 h-2 rounded-full bg-harvest-ochre shrink-0"></span> Planned
+                  </span>
+</td>
+</tr>
+<!-- Row 5: Apr 19 -->
+<tr class="h-[44px] row-interactive">
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium">Apr 19</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs">Pen 4</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">18.5 lb/hd/d</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs text-right">96 head</td>
+<td class="py-2.5 px-4 text-ink text-xs">Finisher 18</td>
+<td class="py-2.5 px-4 figure-mono text-ink text-xs font-medium text-right">1,776 lb</td>
+<td class="py-2.5 px-4 text-xs whitespace-nowrap">
+<span class="inline-flex items-center gap-2 text-ink">
+<span class="w-2 h-2 rounded-full bg-harvest-ochre shrink-0"></span> Planned
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- RIGHT: SELECTED PLAN DETAIL (4 Cols) -->
+<section class="lg:col-span-4 bg-paper border border-rule rounded-lg p-5">
+<div class="border-b border-rule pb-3.5 mb-4">
+<span class="text-[11px] font-semibold text-quiet uppercase tracking-[0.08em] block mb-1">Active selection</span>
+<h2 class="font-headline text-lg font-semibold text-ink tracking-tight">
+            Apr 17 · Pen 4 Allocation Breakdown
+          </h2>
+<p class="text-xs text-quiet mt-0.5">Proportional weight split based on pen head audit</p>
+</div>
+<!-- Headline Aggregate Figures -->
+<div class="bg-canvas/50 border border-rule rounded-md p-3 mb-4">
+<div class="flex items-baseline justify-between">
+<span class="text-xs text-quiet font-medium">Total Planned Quantity</span>
+<span class="figure-mono text-base font-semibold text-ink">1,728 lb</span>
+</div>
+<div class="flex items-center justify-between text-xs text-quiet mt-1">
+<span>Occupancy</span>
+<span class="figure-mono text-ink">96 head</span>
+</div>
+<div class="flex items-center justify-between text-xs text-quiet mt-0.5">
+<span>Ration</span>
+<span class="text-ink font-medium">Finisher 18</span>
+</div>
+<div class="flex items-center justify-between text-xs text-quiet mt-0.5">
+<span>Target bunk delivery</span>
+<span class="figure-mono text-ink">18.0 lb/head</span>
+</div>
+</div>
+<!-- Proportional Allocation Records -->
+<div class="space-y-3">
+<span class="text-xs font-semibold text-ink">Lot Breakdown</span>
+<!-- Lot L-241 -->
+<div class="border border-rule rounded-md p-3 bg-paper">
+<div class="flex items-center justify-between mb-1">
+<span class="figure-mono font-semibold text-xs text-ink">Lot L-241</span>
+<span class="figure-mono text-xs font-semibold text-ink">1,152 lb</span>
+</div>
+<div class="flex items-center justify-between text-xs text-quiet">
+<span class="figure-mono">64 head</span>
+<span class="figure-mono">66.7% share</span>
+</div>
+<!-- Proportion Bar -->
+<div class="w-full bg-rule h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-action h-full rounded-full" style="width: 66.7%"></div>
+</div>
+</div>
+<!-- Lot L-242 -->
+<div class="border border-rule rounded-md p-3 bg-paper">
+<div class="flex items-center justify-between mb-1">
+<span class="figure-mono font-semibold text-xs text-ink">Lot L-242</span>
+<span class="figure-mono text-xs font-semibold text-ink">576 lb</span>
+</div>
+<div class="flex items-center justify-between text-xs text-quiet">
+<span class="figure-mono">32 head</span>
+<span class="figure-mono">33.3% share</span>
+</div>
+<!-- Proportion Bar -->
+<div class="w-full bg-rule h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-action h-full rounded-full" style="width: 33.3%"></div>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-rule text-[11px] text-quiet">
+          Audit confirmed: Yard scale calibration aligned with batch mixer load cell tolerances.
+        </div>
+</section>
+</div>
+<!-- 28px OPERATIONAL PAUSE BEFORE NEW SECTION -->
+<div class="h-7"></div>
+<!-- GENERATE PLAN SECTION -->
+<section class="bg-paper border border-rule rounded-lg p-6">
+<div class="border-b border-rule pb-3 mb-6">
+<h2 class="font-headline text-lg font-semibold text-ink tracking-tight">Generate plan</h2>
+<p class="text-xs text-quiet mt-0.5">Calculate delivery requirements and schedule a batch bunk delivery</p>
+</div>
+<form action="#" method="POST" onsubmit="event.preventDefault();">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+<!-- Field: Date -->
+<div>
+<label class="block text-xs font-medium text-ink mb-1.5" for="plan-date">Date</label>
+<input class="w-full h-11 px-3 text-sm figure-mono bg-paper border border-rule rounded-md text-ink custom-focus" id="plan-date" name="plan_date" type="text" value="04/20/2025"/>
+</div>
+<!-- Field: Pen -->
+<div>
+<label class="block text-xs font-medium text-ink mb-1.5" for="plan-pen">Pen</label>
+<select class="w-full h-11 px-3 text-sm figure-mono bg-paper border border-rule rounded-md text-ink custom-focus" id="plan-pen" name="plan_pen">
+<option selected="" value="pen-4">Pen 4 (96 head)</option>
+<option value="pen-7">Pen 7 (82 head)</option>
+</select>
+</div>
+<!-- Field: Ration -->
+<div>
+<label class="block text-xs font-medium text-ink mb-1.5" for="plan-ration">Ration</label>
+<select class="w-full h-11 px-3 text-sm bg-paper border border-rule rounded-md text-ink custom-focus" id="plan-ration" name="plan_ration">
+<option selected="" value="finisher-18">Finisher 18</option>
+<option value="grower-14">Grower 14</option>
+<option value="starter-12">Starter 12</option>
+</select>
+</div>
+<!-- Field: Bunk Rate -->
+<div>
+<label class="block text-xs font-medium text-ink mb-1.5" for="plan-rate">Bunk rate (lb as-fed/hd/d)</label>
+<input class="w-full h-11 px-3 text-sm figure-mono bg-paper border border-rule rounded-md text-ink custom-focus" id="plan-rate" name="plan_rate" type="text" value="18.0 lb/hd/d"/>
+</div>
+<!-- Field: Planned Head Count -->
+<div>
+<label class="block text-xs font-medium text-ink mb-1.5" for="plan-count">Planned head count</label>
+<input class="w-full h-11 px-3 text-sm figure-mono bg-paper border border-rule rounded-md text-ink custom-focus" id="plan-count" name="plan_count" type="text" value="96 head"/>
+</div>
+</div>
+<!-- Dynamic / Calculated Preview Readout Area -->
+<div class="mt-6 p-4 bg-canvas/60 border border-rule rounded-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-6">
+<div>
+<span class="text-[11px] font-semibold text-quiet uppercase tracking-[0.08em] block">Planned quantity</span>
+<span class="figure-mono text-lg font-semibold text-ink">1,728 lb</span>
+<span class="text-xs text-quiet figure-mono ml-1.5">(18.0 × 96)</span>
+</div>
+<div class="h-8 w-px bg-rule hidden sm:block"></div>
+<div>
+<span class="text-[11px] font-semibold text-quiet uppercase tracking-[0.08em] block">Allocated lot quantities</span>
+<div class="flex items-center gap-4 text-xs font-medium text-ink mt-0.5">
+<span class="figure-mono">Lot L-241 (64 hd): <strong class="font-semibold text-ink">1,152 lb</strong></span>
+<span class="text-rule">•</span>
+<span class="figure-mono">Lot L-242 (32 hd): <strong class="font-semibold text-ink">576 lb</strong></span>
+</div>
+</div>
+</div>
+<div class="text-xs text-quiet figure-mono">
+            Mixer target: Batch #04-B
+          </div>
+</div>
+<!-- Form Actions Footer -->
+<div class="mt-6 flex items-center gap-4">
+<button class="btn-action h-11 px-5 rounded-[6px] bg-action text-paper font-semibold text-sm custom-focus flex items-center justify-center cursor-pointer shadow-none" type="submit">
+            Generate plan
+          </button>
+<a class="text-sm font-medium text-quiet hover:text-ink transition-colors custom-focus px-2 py-2 rounded" href="#">
+            Feeding log
+          </a>
+</div>
+</form>
+</section>
+</main>
+</body></html>

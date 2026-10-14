@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "Administrator|Operator|security:|operationId:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 3081,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;Administrator|Operator|security:|operationId:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:8: security:\ncontracts/openapi.yaml:13: operationId: signIn\ncontracts/openapi.yaml:14: summary: \"Sign in with an administrator-managed account.\"\ncontracts/openapi.yaml:15: security: []\ncontracts/openapi.yaml:23: email: operator@example.com\ncontracts/openapi.yaml:36: email: operator@example.com\ncontracts/openapi.yaml:37: role: Operator\ncontracts/openapi.yaml:59: operationId: getOverview\ncontracts/openapi.yaml:119: operationId: listLots\ncontracts/openapi.yaml:152: operationId: getLotLifecycle\ncontracts/openapi.yaml:187: operator: Morgan Lee\ncontracts/openapi.yaml:199: operationId: listInventory\ncontracts/openapi.yaml:242: operationId: createInventoryReceipt\ncontracts/openapi.yaml:289: operationId: getInventoryProjections\ncontracts/openapi.yaml:324: operationId: listRations\ncontracts/openapi.yaml:356: operationId: createRation\ncontracts/openapi.yaml:407: operationId: optimizeRation\ncontracts/openapi.yaml:452: operationId: saveRationCandidate\ncontracts/openapi.yaml:485: operationId: assignRationCandidate\ncontracts/openapi.yaml:519: operationId: listFeedingPlans\ncontracts/openapi.yaml:554: operationId: createFeedingPlan\ncontracts/openapi.yaml:604: operationId: listFeedingActivities\ncontracts/openapi.yaml:642: operationId: createFeedingActivity\ncontracts/openapi.yaml:713: operationId: updateFeedingActivity\ncontracts/openapi.yaml:786: operationId: cancelFeedingActivity\ncontracts/openapi.yaml:827: operationId: listWeightMeasurements\ncontracts/openapi.yaml:866: operationId: createWeightMeasurement\ncontracts/openapi.yaml:919: operationId: correctWeightMeasurement\ncontracts/openapi.yaml:976: operationId: getYardSummary\ncontracts/openapi.yaml:1017: operationId: getFeedToGainReport\ncontracts/openapi.yaml:1092: operationId: exportFeedToGainReport\ncontracts/openapi.yaml:1154: operationId: listAccounts\ncontracts/openapi.yaml:1155: summary: \"List administrator-managed accounts.\"\ncontracts/openapi.yaml:1169: role: Operator\ncontracts/openapi.yaml:1176: operationId: createAccount\ncontracts/openapi.yaml:1177: summary: \"Create an administrator-managed account.\"\ncontracts/openapi.yaml:1188: role: Operator\ncontracts/openapi.yaml:1203: role: Operator\ncontracts/openapi.yaml:1218: operationId: updateAccount\ncontracts/openapi.yaml:1229: role: Administrator\ncontracts/openapi.yaml:1244: role: Administrator\ncontracts/openapi.yaml:1259: operationId: synchronizeSourceRecords\ncontracts/openapi.yaml:1298: operationId: getDemoMaterials\ncontracts/openapi.yaml:1334: operationId: startDemoFlow\ncontracts/openapi.yaml:1364: operationId: getLotPerformance\ncontracts/openapi.yaml:1392: operator: Morgan Lee\ncontracts/openapi.yaml:1402: operationId: getLotFinancials\ncontracts/openapi.yaml:1505: error: Administrator access required\ncontracts/openapi.yaml:1614: - Administrator\ncontracts/openapi.yaml:1615: - Operator\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

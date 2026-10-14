@@ -1,0 +1,66 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 12,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_DoesNotExposeDemoSeedRowsWithoutOptIn",
+      "verdict": "weak",
+      "why": "The class fixture database is shared across these tests, and `EnsureAdministratorAsync` unconditionally inserts `Accounts` id 1 at line 386, so this fresh-database/zero-row assertion depends on test order and prior test state."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_NormalizesTwoTonReceiptAndRetainsEnteredUnit",
+      "verdict": "weak",
+      "why": "The request itself supplies `normalizedPounds: 4000` at line 53, so an implementation that echoes the supplied value can pass without converting 2 tons, and the shared database also makes the test order-dependent."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "AC_11_2_UsesPoundsForTonRationCostAndFeedingDeduction",
+      "verdict": "weak",
+      "why": "It reuses the class-scoped database and inserts the same `Accounts` id 1 at helper line 386 on every test start, so this test is not independent of other same-class tests."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "AC_11_3_DeductsPoundsAndRetainsRationEnteredUnit",
+      "verdict": "weak",
+      "why": "It reuses the class-scoped database and inserts the same `Accounts` id 1 at helper line 386 on every test start, so this test is not independent of other same-class tests."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_AttributesDeliveredFeedAndRollupsToEachLot",
+      "verdict": "weak",
+      "why": "It reuses the class-scoped database and inserts the same `Accounts` id 1 at helper line 386 on every test start, so this test is not independent of other same-class tests."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "AC_12_2_ReturnsLotSpecificSharesForOverPlanDelivery",
+      "verdict": "weak",
+      "why": "It reuses the class-scoped database and inserts the same `Accounts` id 1 at helper line 386 on every test start, so this test is not independent of other same-class tests."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "AC_13_1_RecordsOneActivityPerLotWithOnlyItsShare",
+      "verdict": "weak",
+      "why": "It reuses the class-scoped database and inserts the same `Accounts` id 1 at helper line 386 on every test start, so this test is not independent of other same-class tests."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_OpenApiPathsContainApiOperationsOnly",
+      "verdict": "weak",
+      "why": "The test excludes only `/` and `/swagger` at lines 238–239; a product screen route such as `/dashboard` could still appear and pass the per-path operation checks."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "tests/acceptance.part2.test.tsx",
+    "start": 393,
+    "end": 452
+   },
+   "ms": 1,
+   "resultChars": 3098,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;tests/acceptance.part2.test.tsx&quot;,&quot;start&quot;:393,&quot;end&quot;:452}\">\ntests/acceptance.part2.test.tsx lines 393-452\n393\t  it(\"AC_11_3_ShowsAnUnplannedSavedActivityAndLotTotals\", async () => {\n394\t    at(\"/feeding-log\");\n395\t    const accepted = getCreateFeedingActivityResponseMock();\n396\t    accepted.activity.plannedQuantityLb = null;\n397\t    accepted.activity.actualQuantityLb = 1000;\n398\t    accepted.activity.varianceLb = null;\n399\t    accepted.activity.status = \"Unplanned\";\n400\t    accepted.activity.lotAllocations = [\n401\t      { lotId: 241, lotCode: \"L-241\", deliveredQuantityLb: 600, lotConsumptionLb: 600, feedCostUsd: 120 },\n402\t      { lotId: 242, lotCode: \"L-242\", deliveredQuantityLb: 400, lotConsumptionLb: 400, feedCostUsd: 80 },\n403\t    ];\n404\t    accepted.activity.lotRollups = [\n405\t      { lotId: 241, lotCode: \"L-241\", totalFeedConsumedLb: 600, totalFeedCostUsd: 120 },\n406\t      { lotId: 242, lotCode: \"L-242\", totalFeedConsumedLb: 400, totalFeedCostUsd: 80 },\n407\t    ];\n408\t    accepted.inventoryTotals = [{ item: \"Ground corn\", closingLb: 11400 }];\n409\t    let submittedActivity: unknown;\n410\t    server.use(\n411\t      getListFeedingPlansMockHandler({ plans: [] }),\n412\t      getCreateFeedingActivityMockHandler(async ({ request }) => {\n413\t        submittedActivity = await request.json();\n414\t        return accepted;\n415\t      }),\n416\t    );\n417\t\n418\t    render(<FeedingLogContainer />);\n419\t    const user = makeUser();\n420\t    await user.click(screen.getByLabelText(\"Entered without a plan\"));\n421\t    await enter(user, \"Delivery date\", \"2026-04-14\");\n422\t    await choose(user, \"Pen\", \"North 2\");\n423\t    await choose(user, \"Ration\", \"Grower 2\");\n424\t    await enter(user, \"Bunk rate (lb as-fed / animal / day)\", \"10\");\n425\t    await enter(user, \"Head count\", \"100\");\n426\t    await enter(user, \"Actual quantity delivered (lb)\", \"1000\");\n427\t    await user.click(screen.getByRole(\"button\", { name: \"Save feeding\" }));\n428\t\n429\t    expect(await screen.findByText(\"Unplanned\")).toBeTruthy();\n430\t    expect(screen.getByText(\"L-241\")).toBeTruthy();\n431\t    expect(screen.getByText(\"L-242\")).toBeTruthy();\n432\t    expect(screen.getByText(/600/)).toBeTruthy();\n433\t    expect(screen.getByText(/400/)).toBeTruthy();\n434\t    expect(screen.getByText(/120/)).toBeTruthy();\n435\t    expect(screen.getByText(/80/)).toBeTruthy();\n436\t    expect(screen.getByText(/11400/)).toBeTruthy();\n437\t    expect(submittedActivity).toMatchObject({ planId: null });\n438\t  });\n439\t\n440\t  it(\"AC_11_4_IndicatesWhenAnActivityDoesNotMatchItsPlan\", async () => {\n441\t    at(\"/feeding-log\");\n442\t    const response = getListFeedingActivitiesResponseMock();\n443\t    response.activities[0].planMismatch = true;\n444\t    server.use(getListFeedingActivitiesMockHandler(response));\n445\t\n446\t    render(<FeedingLogContainer />);\n447\t\n448\t    const row = await screen.findByRole(\"row\", { name: /North 2.*Grower 2/ });\n449\t    expect(within(row).getByText(/mismatch/i)).toBeTruthy();\n450\t  });\n451\t});\n452\t\n</untrusted_document>"
+  }
+ ]
+}

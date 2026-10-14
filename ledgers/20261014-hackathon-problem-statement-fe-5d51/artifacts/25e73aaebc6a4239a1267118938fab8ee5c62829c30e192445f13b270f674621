@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "class AppFactory|Restarted\\(",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 2,
+   "resultChars": 1000,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;class AppFactory|Restarted\\\\(&quot;,&quot;glob&quot;:&quot;App.Tests/**/*.cs&quot;}\">\nApp.Tests/AcceptancePart1Tests.cs:707: _app = factory.Restarted();\nApp.Tests/AcceptancePart2Tests.cs:478: var restarted = factory.Restarted();\nApp.Tests/AcceptancePart3Tests.cs:92: using var restartedBase = factory.Restarted();\nApp.Tests/AcceptancePart3Tests.cs:145: using var restartedBase = factory.Restarted();\nApp.Tests/AcceptancePart3Tests.cs:202: using var restartedBase = factory.Restarted();\nApp.Tests/AcceptancePart4Tests.cs:464: _restarted = baseFactory.Restarted();\nApp.Tests/AppFactory.cs:11: /// restarts the app makes a second one on the same database: <c>using var again = factory.Restarted();</c>\nApp.Tests/AppFactory.cs:14: public class AppFactory : WebApplicationFactory<Program>\nApp.Tests/AppFactory.cs:33: public AppFactory Restarted() => new(new NpgsqlConnectionStringBuilder(ConnectionString).Database);\n</untrusted_document>"
+  }
+ ]
+}

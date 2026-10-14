@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "daysOnFeed:|adgLbPerDay:|fcr:|costOfGain|projectedShipDate|totalWeightGain|normalizedPounds:|Seed",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 2,
+   "resultChars": 2628,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;daysOnFeed:|adgLbPerDay:|fcr:|costOfGain|projectedShipDate|totalWeightGain|normalizedPounds:|Seed&quot;,&quot;glob&quot;:&quot;c\">\ncontracts/openapi.yaml:80: fcr: 6.4\ncontracts/openapi.yaml:81: costOfGain: 1.92\ncontracts/openapi.yaml:85: daysOnFeed: 72\ncontracts/openapi.yaml:183: daysOnFeed: 68\ncontracts/openapi.yaml:186: periodAdgLbPerDay: 3.2\ncontracts/openapi.yaml:216: normalizedPounds: 12400\ncontracts/openapi.yaml:255: normalizedPounds: 4000\ncontracts/openapi.yaml:272: normalizedPounds: 4000\ncontracts/openapi.yaml:855: periodAdgLbPerDay: 3.2\ncontracts/openapi.yaml:902: periodAdgLbPerDay: 1\ncontracts/openapi.yaml:904: adgLbPerDay: 3.1\ncontracts/openapi.yaml:957: periodAdgLbPerDay: 3.25\ncontracts/openapi.yaml:959: adgLbPerDay: 3.25\ncontracts/openapi.yaml:987: averageAdgLbPerDay: 3.1\ncontracts/openapi.yaml:988: averageCostOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1003: daysOnFeed: 72\ncontracts/openapi.yaml:1004: adgLbPerDay: 3.2\ncontracts/openapi.yaml:1005: fcr: 6.4\ncontracts/openapi.yaml:1006: costOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1076: daysOnFeed: 72\ncontracts/openapi.yaml:1079: adgLbPerDay: 3.2\ncontracts/openapi.yaml:1080: fcr: 6.4\ncontracts/openapi.yaml:1081: costOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1379: daysOnFeed: 72\ncontracts/openapi.yaml:1380: totalWeightGainLb: 128\ncontracts/openapi.yaml:1381: adgLbPerDay: 3.2\ncontracts/openapi.yaml:1383: fcr: 6.4\ncontracts/openapi.yaml:1384: feedCostOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1385: projectedShipDate: '2026-07-10'\ncontracts/openapi.yaml:1390: periodAdgLbPerDay: 3.2\ncontracts/openapi.yaml:1416: feedCostOfGainUsdPerLb: 1.92\ncontracts/openapi.yaml:1434: projectedShipDate: '2026-07-10'\ncontracts/openapi.yaml:1676: - costOfGain\ncontracts/openapi.yaml:1691: fcr:\ncontracts/openapi.yaml:1693: costOfGain:\ncontracts/openapi.yaml:1701: daysOnFeed:\ncontracts/openapi.yaml:1911: daysOnFeed:\ncontracts/openapi.yaml:1917: periodAdgLbPerDay:\ncontracts/openapi.yaml:1966: normalizedPounds:\ncontracts/openapi.yaml:2029: normalizedPounds:\ncontracts/openapi.yaml:2066: normalizedPounds:\ncontracts/openapi.yaml:2663: periodAdgLbPerDay:\ncontracts/openapi.yaml:2717: adgLbPerDay:\ncontracts/openapi.yaml:2730: - averageCostOfGainUsdPerLb\ncontracts/openapi.yaml:2739: averageAdgLbPerDay:\ncontracts/openapi.yaml:2741: averageCostOfGainUsdPerLb:\ncontracts/openapi.yaml:2782: - costOfGainUsdPerLb\ncontracts/openapi.yaml:2799: daysOnFeed:\ncontracts/openapi.yaml:2801: adgLbPerDay:\ncontracts/openapi.yaml:2803: fcr:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

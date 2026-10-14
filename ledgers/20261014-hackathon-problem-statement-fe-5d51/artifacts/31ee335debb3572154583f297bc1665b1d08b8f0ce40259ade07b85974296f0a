@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1660,
+    "end": 1725
+   },
+   "ms": 2,
+   "resultChars": 1913,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1660,&quot;end&quot;:1725}\">\ncontracts/openapi.yaml lines 1660-1725\n1660\t        recentActivity:\n1661\t          type: array\n1662\t          items:\n1663\t            $ref: '#/components/schemas/ActivitySummary'\n1664\t        recentSync:\n1665\t          type: array\n1666\t          items:\n1667\t            $ref: '#/components/schemas/SyncSummary'\n1668\t    OverviewLot:\n1669\t      type: object\n1670\t      required:\n1671\t        - lotCode\n1672\t        - pen\n1673\t        - head\n1674\t        - adg\n1675\t        - fcr\n1676\t        - costOfGain\n1677\t        - feedCost\n1678\t        - rank\n1679\t        - breed\n1680\t        - daysOnFeed\n1681\t        - latestWeight\n1682\t      properties:\n1683\t        lotCode:\n1684\t          type: string\n1685\t        pen:\n1686\t          type: string\n1687\t        head:\n1688\t          type: integer\n1689\t        adg:\n1690\t          type: number\n1691\t        fcr:\n1692\t          type: number\n1693\t        costOfGain:\n1694\t          type: number\n1695\t        feedCost:\n1696\t          type: number\n1697\t        rank:\n1698\t          type: integer\n1699\t        breed:\n1700\t          type: string\n1701\t        daysOnFeed:\n1702\t          type: integer\n1703\t        latestWeight:\n1704\t          type: number\n1705\t    OverviewInventory:\n1706\t      type: object\n1707\t      required:\n1708\t        - item\n1709\t        - closingLb\n1710\t        - dailyDemandLb\n1711\t        - date\n1712\t        - status\n1713\t      properties:\n1714\t        item:\n1715\t          type: string\n1716\t        closingLb:\n1717\t          type: number\n1718\t        dailyDemandLb:\n1719\t          type: number\n1720\t        date:\n1721\t          type: string\n1722\t          format: date\n1723\t        status:\n1724\t          type: string\n1725\t    OverviewFeeding:\n… (3256 lines total; ask for start=1726)\n</untrusted_document>"
+  }
+ ]
+}

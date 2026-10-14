@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "AC_10_1_DoesNotExposeDemoSeedRowsWithoutOptIn"
+   },
+   "ms": 2,
+   "resultChars": 247,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;AC_10_1_DoesNotExposeDemoSeedRowsWithoutOptIn&quot;}\">\nApp.Tests/AcceptancePart4Tests.cs:26: public async Task AC_10_1_DoesNotExposeDemoSeedRowsWithoutOptIn()\n</untrusted_document>"
+  }
+ ]
+}

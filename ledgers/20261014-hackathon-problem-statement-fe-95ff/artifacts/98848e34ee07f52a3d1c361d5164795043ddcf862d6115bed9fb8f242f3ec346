@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.msw.ts",
+    "start": 100,
+    "end": 112
+   },
+   "ms": 0,
+   "resultChars": 2472,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.msw.ts&quot;,&quot;start&quot;:100,&quot;end&quot;:112}\">\nlib/api/client.msw.ts lines 100-112\n100\t\n101\texport const getCreateAccountResponseMock = (): AccountResult => ({\"account\":{\"id\":19,\"name\":\"Casey Rowan\",\"department\":\"Operations\",\"email\":\"casey@example.com\",\"role\":\"Operator\",\"status\":\"Active\"},\"message\":\"Account created\"})\n102\t\n103\texport const getUpdateAccountResponseMock = (): AccountResult => ({\"account\":{\"id\":18,\"name\":\"Morgan Lee\",\"department\":\"Feeding\",\"email\":\"morgan@example.com\",\"role\":\"Administrator\",\"status\":\"Active\"},\"message\":\"Account updated\"})\n104\t\n105\texport const getSynchronizeSourceRecordsResponseMock = (): SyncResult => ({\"source\":\"Configured mock procurement source\",\"status\":\"Partial\",\"records\":[{\"sourceId\":\"PO-7301-1\",\"sourceRecordId\":\"REC-5518\",\"vendor\":\"Prairie Cattle Co.\",\"costUsd\":1000,\"headCount\":60,\"averageWeightLb\":620,\"breed\":\"Angus\",\"ageMonths\":16,\"sex\":\"Unknown\",\"result\":\"Updated\",\"targetLots\":[\"L-241\"],\"error\":null},{\"sourceId\":\"PO-7302-1\",\"sourceRecordId\":\"REC-5520\",\"result\":\"Failed\",\"targetLots\":[],\"error\":\"Source record validation failed\"}]})\n106\t\n107\texport const getGetDemoMaterialsResponseMock = (): DemoMaterials => ({\"operationalData\":{\"activeLots\":3,\"activePens\":2,\"totalHead\":120,\"totalFeedCostUsd\":37440},\"rules\":[{\"ruleId\":\"ASM-7\",\"description\":\"Mixed-lot pen allocations are proportional to current head count.\",\"sampleDataTarget\":\"Pen North 2\",\"verifiedOutput\":\"600 lb and 400 lb lot allocations\",\"status\":\"Verified\"}],\"sections\":[\"Proposed Solution\",\"Architecture Diagram\",\"Demo Flow\",\"Coding Super Prompt and Other Prompts\",\"Testing and Validation\",\"Challenges\",\"Production Readiness\",\"Go-to-Market Analysis\"]})\n108\t\n109\texport const getStartDemoFlowResponseMock = (): DemoFlowResult => ({\"started\":true,\"currentStep\":1,\"stepTitle\":\"Mixed-Lot Pen Allocations\",\"status\":\"In progress\"})\n110\t\n111\texport const getGetLotPerformanceResponseMock = (): LotPerformance => ({\"lotId\":241,\"lotCode\":\"L-241\",\"refreshedAt\":\"2026-04-14T15:30:00Z\",\"daysOnFeed\":72,\"totalWeightGainLb\":128,\"adgLbPerDay\":3.2,\"totalAsFedFeedConsumedLb\":18400,\"fcr\":6.4,\"feedCostOfGainUsdPerLb\":1.92,\"projectedShipDate\":\"2026-07-10\",\"events\":[{\"date\":\"2026-04-10\",\"averageWeightLb\":748,\"periodGainLb\":128,\"periodAdgLbPerDay\":3.2,\"headCount\":40,\"operator\":\"Morgan Lee\",\"status\":\"Accepted\"}]})\n112\t\n… (533 lines total; ask for start=113)\n</untrusted_document>"
+  }
+ ]
+}

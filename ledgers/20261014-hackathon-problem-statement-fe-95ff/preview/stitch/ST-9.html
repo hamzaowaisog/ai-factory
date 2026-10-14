@@ -1,0 +1,395 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Projections — Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* CSS Tokens & Strict Colors */
+    :root {
+      --bg-page: #F4F3EF;
+      --bg-panel: #FFFFFF;
+      --text-main: #262A2D;
+      --text-quiet: #626A6F;
+      --border-color: #D9DAD7;
+      --primary-color: #526F82;
+      --status-good: #356A55;
+      --status-waiting: #986321;
+      --status-failed: #B4473C;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* Motion Tokens */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes digitRoll {
+      0% {
+        opacity: 0;
+        transform: translateY(0.65em);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.84;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll {
+      display: inline-block;
+      animation: digitRoll 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .digit-roll-1 { animation-delay: 0ms; }
+    .digit-roll-2 { animation-delay: 35ms; }
+    .digit-roll-3 { animation-delay: 70ms; }
+    .digit-roll-4 { animation-delay: 105ms; }
+    .digit-roll-5 { animation-delay: 140ms; }
+    .digit-roll-6 { animation-delay: 175ms; }
+    .digit-roll-7 { animation-delay: 210ms; }
+
+    /* Interactive States */
+    .control-transition {
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 90ms ease;
+    }
+
+    .control-transition:hover {
+      opacity: 0.92;
+    }
+
+    .control-transition:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .control-transition:active {
+      transform: scale(0.98);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .digit-roll,
+      .control-transition {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="w-full bg-white border-b border-[#D9DAD7] px-6 py-0 h-14 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-8 h-full">
+      <!-- Wordmark beside small square grain mark with white F -->
+      <a href="#" class="flex items-center gap-2.5 text-[#262A2D] font-hanken font-bold text-lg tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#526F82] rounded">
+        <div class="w-7 h-7 bg-[#526F82] rounded flex items-center justify-center text-white font-hanken font-bold text-sm select-none">
+          F
+        </div>
+        <span>Feedlot</span>
+      </a>
+
+      <!-- Shared navigation labels in exact order -->
+      <nav class="flex items-center gap-6 h-full text-[14px]">
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Overview</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Lots</a>
+        <!-- Selected menu item with #526F82 and bottom border -->
+        <a href="#" class="h-full flex items-center text-[#526F82] font-semibold border-b-2 border-[#526F82] pt-[2px] control-transition focus-visible:ring-2 focus-visible:ring-[#526F82]">Inventory</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Rations</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Feeding plans</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Feeding log</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Lot weights</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Yard summary</a>
+        <a href="#" class="h-full flex items-center text-[#626A6F] hover:text-[#262A2D] font-medium control-transition focus-visible:ring-2 focus-visible:ring-[#526F82] rounded-sm">Feed-to-Gain</a>
+      </nav>
+    </div>
+
+    <!-- User Profile: initials avatar to the left of name and role -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-[#E5E7EB] text-[#262A2D] flex items-center justify-center text-xs font-semibold font-hanken select-none">
+        MC
+      </div>
+      <div class="text-left">
+        <div class="text-[13px] font-semibold text-[#262A2D] leading-tight">Mara Chen</div>
+        <div class="text-[11px] text-[#626A6F] leading-tight">Feed Operations, Administrator</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Canvas -->
+  <main class="w-full max-w-[1440px] mx-auto px-8 pt-8 pb-16 flex-1 animate-entrance">
+    
+    <!-- Breadcrumb / Back Navigation Action -->
+    <div class="mb-4 flex items-center justify-between">
+      <a href="#" class="inline-flex items-center gap-2 text-[14px] font-medium text-[#526F82] hover:text-[#3d5362] control-transition rounded px-1.5 py-1 -ml-1.5 focus-visible:ring-2 focus-visible:ring-[#526F82]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        <span>Inventory</span>
+      </a>
+
+      <!-- Total dry basis on hand headline figure with signature roll motion -->
+      <div class="text-[14px] text-[#626A6F] flex items-baseline gap-2">
+        <span>TOTAL ON HAND (DRY BASIS)</span>
+        <span class="text-[24px] font-semibold text-[#262A2D] font-mono-num inline-flex overflow-hidden">
+          <span class="digit-roll digit-roll-1">3</span>
+          <span class="digit-roll digit-roll-2">2</span>
+          <span class="digit-roll digit-roll-3">,</span>
+          <span class="digit-roll digit-roll-4">0</span>
+          <span class="digit-roll digit-roll-5">3</span>
+          <span class="digit-roll digit-roll-6">2</span>
+          <span class="digit-roll digit-roll-7">.0</span>
+          <span class="text-[16px] font-normal text-[#626A6F] ml-1">lb</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- The page's one heading -->
+    <h1 class="text-[28px] font-semibold text-[#262A2D] font-hanken leading-tight mb-2">
+      Inventory projections
+    </h1>
+
+    <!-- Subtitle stating the configured 4% wastage ratio once as an assumption in estimated demand -->
+    <p class="text-[14px] text-[#626A6F] leading-relaxed mb-7">
+      Estimated demand across planning horizons incorporates a configured 4% wastage ratio assumption. Rates reflect yard ration Finisher 18 allocations for 178 active head.
+    </p>
+
+    <!-- 1px continuous hairline divider -->
+    <div class="w-full h-[1px] bg-[#D9DAD7] mb-7"></div>
+
+    <!-- Inventory Projection Table (Clean, concise, tabular design edged by 1px hairline with 8px radius) -->
+    <div class="w-full bg-white rounded-[8px] border border-[#D9DAD7] overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-[#D9DAD7] bg-[#FAF9F7] text-[12px] font-semibold text-[#626A6F] tracking-wider uppercase">
+              <th scope="col" class="py-3 px-5 text-left font-semibold">Ingredient</th>
+              <th scope="col" class="py-3 px-4 text-right font-semibold">Remaining Stock</th>
+              <th scope="col" class="py-3 px-4 text-right font-semibold">Daily (1 d)</th>
+              <th scope="col" class="py-3 px-4 text-right font-semibold">Weekly (7 d)</th>
+              <th scope="col" class="py-3 px-4 text-right font-semibold">Monthly (30 d)</th>
+              <th scope="col" class="py-3 px-4 text-right font-semibold">Quarterly (90 d)</th>
+              <th scope="col" class="py-3 px-4 text-right font-semibold">Six months (180 d)</th>
+              <th scope="col" class="py-3 px-5 text-right font-semibold">Annual (365 d)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D9DAD7] text-[14px]">
+            <!-- Row 1: Steam-flaked corn -->
+            <!-- Remaining Stock: 16,872.4 lb -->
+            <!-- 1d: 2,333 | 7d: 16,331 | 30d: 69,990 (Deficit) | 90d: 209,970 (Deficit) | 180d: 419,940 (Deficit) | 365d: 851,545 (Deficit) -->
+            <tr class="h-[44px] hover:bg-[#FAF9F7] transition-colors">
+              <td class="py-2.5 px-5 font-medium text-[#262A2D]">Steam-flaked corn</td>
+              <td class="py-2.5 px-4 text-right font-mono-num font-medium text-[#262A2D]">16,872.4 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">2,333 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">16,331 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  69,990 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  209,970 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  419,940 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-5 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  851,545 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 2: Alfalfa hay -->
+            <!-- Remaining Stock: 10,306.4 lb -->
+            <!-- 1d: 666 | 7d: 4,662 | 30d: 19,980 (Deficit) | 90d: 59,940 (Deficit) | 180d: 119,880 (Deficit) | 365d: 243,090 (Deficit) -->
+            <tr class="h-[44px] hover:bg-[#FAF9F7] transition-colors">
+              <td class="py-2.5 px-5 font-medium text-[#262A2D]">Alfalfa hay</td>
+              <td class="py-2.5 px-4 text-right font-mono-num font-medium text-[#262A2D]">10,306.4 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">666 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">4,662 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  19,980 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  59,940 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  119,880 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-5 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  243,090 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 3: Cottonseed meal -->
+            <!-- Remaining Stock: 4,187.2 lb -->
+            <!-- 1d: 233 | 7d: 1,631 | 30d: 6,990 (Deficit) | 90d: 20,970 (Deficit) | 180d: 41,940 (Deficit) | 365d: 85,045 (Deficit) -->
+            <tr class="h-[44px] hover:bg-[#FAF9F7] transition-colors">
+              <td class="py-2.5 px-5 font-medium text-[#262A2D]">Cottonseed meal</td>
+              <td class="py-2.5 px-4 text-right font-mono-num font-medium text-[#262A2D]">4,187.2 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">233 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">1,631 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  6,990 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  20,970 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  41,940 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-5 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  85,045 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+            </tr>
+
+            <!-- Row 4: Mineral premix -->
+            <!-- Remaining Stock: 666.0 lb -->
+            <!-- 1d: 100 | 7d: 700 (Deficit!) | 30d: 3,000 (Deficit) | 90d: 9,000 (Deficit) | 180d: 18,000 (Deficit) | 365d: 36,500 (Deficit) -->
+            <tr class="h-[44px] hover:bg-[#FAF9F7] transition-colors">
+              <td class="py-2.5 px-5 font-medium text-[#262A2D]">Mineral premix</td>
+              <td class="py-2.5 px-4 text-right font-mono-num font-medium text-[#262A2D]">666.0 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#262A2D]">100 <span class="text-[#626A6F] text-[12px]">lb</span></td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  700 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  3,000 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  9,000 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  18,000 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-5 text-right font-mono-num text-[#B4473C] font-semibold bg-[#FDF2F2]/60">
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B4473C]"></span>
+                  36,500 <span class="text-[#B4473C]/80 text-[12px] font-normal">lb</span>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footnote inside panel container -->
+      <div class="px-5 py-3 border-t border-[#D9DAD7] bg-[#FAF9F7]/50 text-[12px] text-[#626A6F] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#B4473C] shrink-0"></span>
+          <span>Red indicator marks horizons where projected cumulative demand exceeds remaining physical inventory balance. Values are informational projections without ledger decrement.</span>
+        </div>
+        <div class="text-[12px] font-mono-num text-[#626A6F]">
+          As of Apr 17, 2025 · America/Denver
+        </div>
+      </div>
+    </div>
+
+    <!-- Space below the table rather than adding decorative panels -->
+    <div class="h-32"></div>
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["overview"],"words":["overview"]},{"id":"S-3","names":["lot"],"words":["lot"]},{"id":"S-5","names":["inventory"],"words":["inventory"]},{"id":"S-7","names":["ration"],"words":["ration"]},{"id":"S-9","names":["feeding plan"],"words":["feeding","plan"]},{"id":"S-10","names":["feeding log"],"words":["feeding","log"]},{"id":"S-11","names":["lot weight"],"words":["lot","weight"]},{"id":"S-12","names":["yard summary"],"words":["yard","summary"]},{"id":"S-6","names":["inventory projection","projection"],"words":["inventory","projection"]},{"id":"S-8","names":["ration optimizer","optimize","ration optimize"],"words":["ration","optimize"]},{"id":"S-13","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]},{"id":"S-14","names":["account","admin account"],"words":["account"]},{"id":"S-15","names":["sync","admin sync"],"words":["sync"]},{"id":"S-16","names":["demo","admin demo"],"words":["demo"]},{"id":"S-4","names":["lifecycle","lot l 241 lifecycle"],"words":["lot","241","lifecycle"]},{"id":"S-17","names":["lot performance","performance","lot l 241 performance"],"words":["lot","241","performance"]},{"id":"S-18","names":["lot financial","financial","lot l 241 financial"],"words":["lot","241","financial"]}],L={"overview":"S-2","lots":"S-3","inventory":"S-5","rations":"S-7","feeding plans":"S-9","feeding log":"S-10","lot weights":"S-11","yard summary":"S-12","feed to gain":"S-13"},A={"accounts":"S-14","sync":"S-15","demo":"S-16","lifecycle":"S-4","performance":"S-17","financials":"S-18","optimize ration":"S-8"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-6";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

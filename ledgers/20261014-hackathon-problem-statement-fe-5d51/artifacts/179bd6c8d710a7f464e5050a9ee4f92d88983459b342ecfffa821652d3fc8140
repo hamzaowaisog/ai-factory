@@ -1,0 +1,515 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The API shall implement every HTTP operation declared in contracts/openapi.yaml at its declared path and method, using its declared request and response schemas, status codes, and operation behavior.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "A running API backed by a test database",
+        "when": "A client requests GET /openapi/v1.json",
+        "then": "The response document lists every contract path, method, operationId, schema, response status, and security declaration.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "A valid administrator-managed account exists",
+        "when": "A client submits its valid email and password to POST /api/v1/auth/sign-in without a bearer token",
+        "then": "The response status is 200 and the response contains user, accessToken, and availablePages fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "An authenticated client and operational records exist",
+        "when": "The client requests GET /api/v1/overview",
+        "then": "The response status is 200 and the response contains headline, activeLots, activePens, lots, inventory, rationFeeding, estimatedEnergyMcal, recentActivity, and recentSync fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.4",
+        "given": "An authenticated client and active lots with procurement and pen allocations exist",
+        "when": "The client requests GET /api/v1/lots",
+        "then": "The response status is 200 and each returned lot contains the contract fields for source traceability, supplier, received data, breed, pen allocation, and target weight.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.5",
+        "given": "An authenticated client and an existing lot with weight history exist",
+        "when": "The client requests GET /api/v1/lots/{lotId}/lifecycle",
+        "then": "The response status is 200 and the response contains lifecycle dates, target weight, growth assumption, projectedMarketDate, milestones, and weightHistory.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.6",
+        "given": "An authenticated client and inventory items with stock movements exist",
+        "when": "The client requests GET /api/v1/inventory",
+        "then": "The response status is 200 and each returned item contains its entered and normalized quantities, cost, nutrition values, stock totals, and movements.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.7",
+        "given": "An authenticated client and an inventory item exist",
+        "when": "The client submits a valid inventory receipt to POST /api/v1/inventory/receipts",
+        "then": "The response status is 201 and the response contains the receipt's entered unit, normalizedPounds, normalizedCostUsdPerLb, receivedDate, and updated closingLb.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.8",
+        "given": "An authenticated client and inventory demand data exist",
+        "when": "The client requests GET /api/v1/inventory/projections",
+        "then": "The response status is 200 and the response contains wastageRatio, remaining stock, daily, weekly, monthly, quarterly, six-month and annual projections, and movements.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.9",
+        "given": "An authenticated client and saved rations exist",
+        "when": "The client requests GET /api/v1/rations",
+        "then": "The response status is 200 and each returned ration contains its name, intended animal range, nutrition and cost values, and ingredient pricing and quantity fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.10",
+        "given": "An authenticated client and valid ingredient records exist",
+        "when": "The client submits a valid ration to POST /api/v1/rations",
+        "then": "The response status is 201 and the response contains the saved ration with normalized ingredient quantities, ingredient costs, dryMatterPercent, energyMcalPerLb, and costUsdPerLb.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.11",
+        "given": "An authenticated client and ingredient nutrition and cost data exist",
+        "when": "The client submits valid constraints to POST /api/v1/rations/optimization",
+        "then": "The response status is 200 and the response contains candidate mixes with ingredient proportions, cost, nutrition values, tradeoff, and Candidate status.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.12",
+        "given": "An authenticated client and an existing unsaved optimization candidate",
+        "when": "The client submits an explicit save request to POST /api/v1/rations/candidates/{candidateId}/save",
+        "then": "The response status is 200 and the response contains the candidateId and Saved status.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.13",
+        "given": "An authenticated client and an existing optimization candidate and pen",
+        "when": "The client submits a pen and effectiveDate to POST /api/v1/rations/candidates/{candidateId}/assign",
+        "then": "The response status is 200 and the response contains the candidateId and Assigned status.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.14",
+        "given": "An authenticated client and dated pen feeding plans exist",
+        "when": "The client requests GET /api/v1/feeding-plans",
+        "then": "The response status is 200 and each returned plan contains its date, pen, ration, bunk rate, head count, planned quantity, status, and lotAllocations.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.15",
+        "given": "An authenticated client and a pen with a ration and lot allocations exist",
+        "when": "The client submits a valid dated plan to POST /api/v1/feeding-plans",
+        "then": "The response status is 201 and the response contains the calculated plannedQuantityLb and proportional lotAllocations.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.16",
+        "given": "An authenticated client and feeding activity records exist",
+        "when": "The client requests GET /api/v1/feeding-activities",
+        "then": "The response status is 200 and each returned activity contains planned and actual quantities, variance, status, inventoryConsumption, feedCostUsd, energyMcal, and lotAllocations.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.17",
+        "given": "An authenticated client, an available ration, and sufficient ingredient stock exist",
+        "when": "The client submits a valid planned or unplanned activity to POST /api/v1/feeding-activities",
+        "then": "The response status is 201 and the response contains the activity, inventory consumption and totals, feed cost, energy, lot allocations, and lot rollups.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.18",
+        "given": "An authenticated client and a saved feeding activity exist",
+        "when": "The client submits corrected activity data to PATCH /api/v1/feeding-activities/{activityId}",
+        "then": "The response status is 200 and the response contains the corrected activity and recalculated inventory totals and lot rollups.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.19",
+        "given": "An authenticated client and a saved feeding activity exist",
+        "when": "The client cancels it with DELETE /api/v1/feeding-activities/{activityId}",
+        "then": "The response status is 200, the activity status is Canceled, and the response contains restored inventory totals and recalculated lot rollups.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.20",
+        "given": "An authenticated client and weight measurements exist for multiple lots",
+        "when": "The client requests GET /api/v1/weight-measurements with and without the lotId query parameter",
+        "then": "Each response status is 200 and the response contains matching measurements and trend values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.21",
+        "given": "An authenticated client and an existing lot with prior weight history exist",
+        "when": "The client submits a valid measurement to POST /api/v1/weight-measurements",
+        "then": "The response status is 201 and the response contains the saved measurement, updated metrics, and trend.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.22",
+        "given": "An authenticated client and a saved measurement exist",
+        "when": "The client corrects it with PATCH /api/v1/weight-measurements/{measurementId}",
+        "then": "The response status is 200 and the response contains the corrected measurement, recalculated metrics, and trend.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.23",
+        "given": "An authenticated client and active lot and pen records exist",
+        "when": "The client requests GET /api/v1/yard-summary",
+        "then": "The response status is 200 and the response contains yard totals, active lot and pen counts, pen summaries, and lot performance rows.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.24",
+        "given": "An authenticated client and lot performance records exist",
+        "when": "The client requests GET /api/v1/reports/feed-to-gain with supported date, breed, sex, and penId filters",
+        "then": "The response status is 200 and the response contains filter choices and rows matching the supplied filters.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.25",
+        "given": "An authenticated client and feed-to-gain report data exist",
+        "when": "The client requests GET /api/v1/reports/feed-to-gain/export with format=csv and format=pdf",
+        "then": "Each response status is 200, the CSV response has text/csv content and the PDF response has application/pdf content, and each file contains the filtered report data.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.26",
+        "given": "An authenticated administrator exists",
+        "when": "The client requests GET /api/v1/admin/accounts",
+        "then": "The response status is 200 and the response contains an accounts list with each account's id, name, department, email, role, and status.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.27",
+        "given": "An authenticated administrator and a valid new account request exist",
+        "when": "The client submits the request to POST /api/v1/admin/accounts",
+        "then": "The response status is 201 and the response contains the created account and an Account created message.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.28",
+        "given": "An authenticated administrator and an existing account exist",
+        "when": "The client submits a role or password change to PATCH /api/v1/admin/accounts/{accountId}",
+        "then": "The response status is 200 and the response contains the updated account and an Account updated message.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.29",
+        "given": "An authenticated administrator and a configured mock procurement source exist",
+        "when": "The client requests synchronization with POST /api/v1/admin/sync",
+        "then": "The response status is 200 and the response contains the source, overall status, and record-level results including targetLots and any error values.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.30",
+        "given": "An authenticated administrator",
+        "when": "The client requests GET /api/v1/admin/demo",
+        "then": "The response status is 200 and the response contains operationalData, rules, and sections.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.31",
+        "given": "An authenticated administrator",
+        "when": "The client submits start=true to POST /api/v1/admin/demo/flow",
+        "then": "The response status is 200 and the response contains started, currentStep, stepTitle, and status fields.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.32",
+        "given": "An authenticated client and an existing lot with feeding and weight events exist",
+        "when": "The client requests GET /api/v1/lots/{lotId}/performance",
+        "then": "The response status is 200 and the response contains daysOnFeed, totalWeightGainLb, adgLbPerDay, totalAsFedFeedConsumedLb, fcr, feedCostOfGainUsdPerLb, projectedShipDate, and events.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.33",
+        "given": "An authenticated client and an existing lot with financial records exist",
+        "when": "The client requests GET /api/v1/lots/{lotId}/financials",
+        "then": "The response status is 200 and the response contains available costs, proceeds and ROI values, costBreakdown, recommendations, projectedShipDate, and targetWeightLb.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The API shall require bearer authentication for operations declaring it in the contract, leave sign-in unauthenticated, and enforce role authorization only where the contract declares role access.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "A running API and a valid sign-in request",
+        "when": "A client sends POST /api/v1/auth/sign-in without a bearer token and then sends GET /api/v1/overview without a token",
+        "then": "The sign-in response status is 200 and the overview response status is 401.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "A valid Operator bearer token",
+        "when": "The client requests GET /api/v1/admin/accounts",
+        "then": "The response status is 403 and the response error code is FORBIDDEN.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.3",
+        "given": "A valid Administrator bearer token",
+        "when": "The client requests GET /api/v1/admin/accounts",
+        "then": "The response status is 200 and the response contains an accounts list.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "The API shall persist contract-backed operational records in PostgreSQL through the configured ConnectionStrings:App database and add the required model without deleting pre-existing records or resetting the database.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 8,
+        "lineEnd": 9,
+        "quote": "builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\n    ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_10»")));",
+        "symbol": "Program"
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 22,
+        "quote": "using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();",
+        "symbol": "Program"
+       },
+       {
+        "path": "App.Api/AppDb.cs",
+        "lineStart": 5,
+        "lineEnd": 7,
+        "quote": "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n}",
+        "symbol": "AppDb"
+       }
+      ],
+      "sources": [
+       "I-2",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "An App database contains a pre-existing record before the API model is deployed",
+        "when": "The API starts with that database and a client retrieves the corresponding record through its contract operation",
+        "then": "The response contains the pre-existing record and the database row remains present after startup.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "A contract-backed record is created through an API operation",
+        "when": "The API is restarted using the same ConnectionStrings:App database and the record is retrieved again",
+        "then": "The response contains the record and its database row persists across the restart.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When Seed:Demo is true, the API shall use App.Api/SeedData.cs to insert two or three contract-example-derived sample rows into each persisted domain table; repeated runs may insert duplicate sample rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/SeedData.cs",
+        "lineStart": 7,
+        "lineEnd": 9,
+        "quote": "    public static void Run(AppDb db)\n    {\n    }",
+        "symbol": "SeedData.Run"
+       },
+       {
+        "path": "App.Api/AppDb.cs",
+        "lineStart": 5,
+        "lineEnd": 7,
+        "quote": "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n}",
+        "symbol": "AppDb"
+       },
+       {
+        "path": "contracts/openapi.yaml",
+        "lineStart": 68,
+        "lineEnd": 74,
+        "quote": "              example:\n                headline:\n                  label: Total feed cost today\n                  value: 4280.5\n                  unit: USD\n                activeLots: 3\n                activePens: 2"
+       }
+      ],
+      "sources": [
+       "I-3",
+       "I-4",
+       "Q-2",
+       "ASM-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "A fresh App database and application configuration with Seed:Demo=true",
+        "when": "The application starts and the contract list operations are queried",
+        "then": "Each persisted domain table contains two or three sample rows with values derived from contract examples, and each supported list response contains sample data.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When the test factory starts an application without an explicit demo-seed opt-in, the test factory shall configure Seed:Demo as false.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Tests/AppFactory.cs",
+        "lineStart": 35,
+        "lineEnd": 36,
+        "quote": "protected override void ConfigureWebHost(IWebHostBuilder builder) =>\n        builder.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?> { [\"ConnectionStrings:App\"] = ConnectionString }));",
+        "symbol": "AppFactory"
+       }
+      ],
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "A fresh test-factory database and no explicit demo-seed opt-in",
+        "when": "The factory starts the API and a client requests a contract list",
+        "then": "The response contains no demo-seed rows and the database contains no rows inserted by SeedData.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When inventory, ration, or feeding calculations use quantities expressed in different units, the API shall convert quantities to pounds using 2,000 pounds per ton and retain the entered units for display.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "An inventory item has 2 tons entered and a receipt request supplies normalizedPounds=4000",
+        "when": "The receipt is recorded and inventory is listed",
+        "then": "The response shows 2 in entered quantity, ton in enteredUnit, and 4000 in normalizedPounds and closingLb.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "A ration ingredient or feeding quantity is entered in tons",
+        "when": "The API calculates ration costs, feed consumption, and inventory deductions",
+        "then": "The response shows quantities and deductions calculated using 2,000 pounds per ton while retaining the entered unit in the returned display fields.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When a pen-level delivery serves animals from multiple lots, the API shall record a separate feeding activity per lot containing only that lot's share of the delivered feed.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "A pen contains two lots and a valid delivery request allocates 600 lb to one lot and 400 lb to the other",
+        "when": "The delivery is posted to POST /api/v1/feeding-activities and the feeding activities are then listed",
+        "then": "The response contains a separate activity record for each lot, each record contains only its lot's allocated quantity, and the returned activity quantities total 1000 lb.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "If a feeding activity would consume more inventory than is available, then the API shall return the contract-defined 409 INSUFFICIENT_STOCK error and leave inventory and feeding activity records unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "An authenticated client, a ration requiring an ingredient, and less ingredient stock than the requested activity would consume",
+        "when": "The client posts the activity to /api/v1/feeding-activities",
+        "then": "The response status is 409, the response error code is INSUFFICIENT_STOCK, the inventory row has its original quantity, and no feeding activity record is added.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When a calculated metric has undefined inputs, including zero days on feed, zero ADG, or no positive weight gain, the API shall return that metric as null or unavailable while continuing to return other calculable metrics.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "ASM-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "A lot has zero days on feed or a weight history with no positive gain and also has other calculable data",
+        "when": "An authenticated client requests the lot performance and feed-to-gain report",
+        "then": "The response metric values for undefined ADG, FCR, cost of gain, or projected ship date are null or unavailable, and other calculable response values remain present.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "The API repository shall remain limited to API and API-documentation surfaces without product web-app screens.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "The delivered API repository and a running application",
+        "when": "A person reviews the application's exposed routes and browser-visible pages",
+        "then": "No product web-app screen is present; the Swagger page is limited to API documentation and testing.",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Database model deployment preserves every record that exists in the App database before deployment.",
+      "metric": "0 pre-existing database rows deleted across 100% of existing tables in a migration test."
+     }
+    ],
+    "outOfScope": [],
+    "assumptions": [
+     "ASM-3: Interpret “a few” sample rows as two or three per persisted domain table; where a contract example has only one row, derive variations from its example values. "
+    ],
+    "suggestions": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

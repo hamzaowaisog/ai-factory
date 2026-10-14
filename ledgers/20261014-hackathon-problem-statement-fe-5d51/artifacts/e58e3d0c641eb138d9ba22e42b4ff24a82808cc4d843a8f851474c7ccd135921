@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "appsettings.json|ConnectionStrings|Seed:Demo",
+    "glob": "**/*"
+   },
+   "ms": 5,
+   "resultChars": 1323,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;appsettings.json|ConnectionStrings|Seed:Demo&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nApp.Api/Program.cs:6: // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is\nApp.Api/Program.cs:9: ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_2»")));\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\nApp.Tests/AppFactory.cs:12: /// The server and login come from ConnectionStrings__App, which the factory sets; only the database is new.\nApp.Tests/AppFactory.cs:24: _server = Environment.GetEnvironmentVariable(\"ConnectionStrings__App\")\nApp.Tests/AppFactory.cs:25: ?? throw new InvalidOperationException(\"ConnectionStrings__App is not set: the tests need a PostgreSQL server.\");\nApp.Tests/AppFactory.cs:36: builder.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?> { [\"ConnectionStrings:App\"] = ConnectionString }));\n</untrusted_document>"
+  }
+ ]
+}

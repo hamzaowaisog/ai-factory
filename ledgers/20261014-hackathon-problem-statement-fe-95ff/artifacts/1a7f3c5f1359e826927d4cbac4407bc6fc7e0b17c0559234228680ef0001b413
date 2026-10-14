@@ -1,0 +1,257 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "An authorized user imports procurement and receiving records from the connected source or an uploaded data file; the system creates or updates records for vendor, PO and PO line, costs, head count, weights, breed, age, and source.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system maps a PO line to one or more lots and records the source PO line for each lot, preserving traceability from procurement through lot and pen; a PO line may map to a single lot or be split across multiple lots.",
+        "kind": "data"
+       },
+       {
+        "text": "The system associates lots with source pen IDs and records pen capacity and current animal count, including pens containing animals from more than one lot.",
+        "kind": "data"
+       },
+       {
+        "text": "Before saving an import, the system reports missing required fields, invalid values, and unmatched or conflicting mappings; rejected records are identified and do not silently create incomplete lots or pens.",
+        "kind": "error"
+       },
+       {
+        "text": "Re-importing an already ingested source record does not silently create a duplicate; the user can see whether it was unchanged, updated, or rejected.",
+        "kind": "error"
+       },
+       {
+        "text": "A user without permission to import or change procurement mappings cannot commit the import or alter PO-to-lot-to-pen links.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "When incoming lot data includes receiving date and entry weight, the system calculates and displays days on feed, target weight, and a projected market or ship date for the lot.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system refreshes the projection when a new lot weight measurement is recorded or the target weight is changed, and displays the inputs used, including the current weight and average daily gain.",
+        "kind": "data"
+       },
+       {
+        "text": "If receiving date, target weight, or usable weight history is missing, or the projected gain is zero or negative, the system marks the date as unavailable rather than presenting a misleading forecast.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "An authorized user can maintain feed inventory items with name, category, available quantity, unit, unit cost, dry matter, energy value, and storage location.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system records opening stock, receipts, consumption, wastage, and closing stock as dated movements; each movement updates the displayed available quantity and retains a movement history.",
+        "kind": "data"
+       },
+       {
+        "text": "Users can configure a wastage ratio, and the system includes it in projected consumption and replenishment estimates while showing the ratio used.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system forecasts inventory remaining for daily, weekly, monthly, quarterly, bi-annual, and annual horizons using recorded stock, planned consumption, and wastage; users can inspect the resulting estimates by feed item and horizon.",
+        "kind": "happy"
+       },
+       {
+        "text": "If a movement would create negative stock, or a quantity, unit, or wastage value is invalid, the system rejects it or clearly flags the forecast as insufficient/invalid without silently showing a valid stock balance.",
+        "kind": "error"
+       },
+       {
+        "text": "When movement or planned-consumption data is absent for a forecast period, the system identifies the forecast as incomplete instead of treating unknown consumption as confirmed zero.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "An authorized user creates and edits a ration with a name, type, intended animal type or weight range, and ingredient quantities or proportions.",
+        "kind": "happy"
+       },
+       {
+        "text": "For each ration, the system calculates ingredient-mix cost per unit and the resulting dry matter and energy values from the ingredient data, and displays the values alongside the recipe.",
+        "kind": "data"
+       },
+       {
+        "text": "Users can compare candidate rations by nutritional values and cost and see which eligible mix has the lower cost for the selected nutritional/animal constraints.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system flags a recipe whose proportions do not total the required amount, whose ingredient is unavailable, or whose required nutrition or cost inputs are missing; it does not present invalid calculated totals as an optimized ration.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "An authorized user generates or edits a dated feeding plan for a pen by selecting a ration and entering the bunk rate, animal count, delivery time, and date.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system calculates planned total quantity from the bunk rate and animal count, quantity per animal, estimated feed cost, and expected energy intake, and displays the plan with its pen, assigned lot or lots, and status.",
+        "kind": "data"
+       },
+       {
+        "text": "Users can view plans by pen and date and set a plan status to Planned, In progress, Completed, or Skipped.",
+        "kind": "happy"
+       },
+       {
+        "text": "If a pen has no current animals, its count exceeds capacity, a ration is unavailable, or required rate/date data is invalid, the system flags the plan and does not generate a misleading quantity.",
+        "kind": "error"
+       },
+       {
+        "text": "A user without plan-management permission cannot create, edit, or change the status of a feeding plan.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "An authorized user records a feeding event with date, pen, lot, ration, planned and actual quantity, and feeding status; the system calculates and stores variance as actual quantity minus planned quantity.",
+        "kind": "happy"
+       },
+       {
+        "text": "On saving a valid feeding event, the system calculates feed cost and energy from the actual amount and ration, allocates ingredient consumption according to the ration mix, applies configured wastage to the inventory estimate, and records the resulting stock movements.",
+        "kind": "data"
+       },
+       {
+        "text": "The system updates lot-level cumulative feed consumption and feed cost from the saved feeding event and makes the updated totals available to performance views.",
+        "kind": "data"
+       },
+       {
+        "text": "If the ration, pen, lot, quantity, or inventory allocation is invalid, or required inventory is insufficient, the system reports the problem and does not save a partial event or partially decrement ingredients.",
+        "kind": "error"
+       },
+       {
+        "text": "If an event is edited or cancelled by an authorized user, the system adjusts the associated inventory movements and lot totals so the event is not counted twice.",
+        "kind": "data"
+       },
+       {
+        "text": "A user without feeding-activity permission cannot create, edit, or cancel a feeding event.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "An authorized user records a dated weight measurement for a lot, including number of animals weighed, average weight, total lot weight, and optional notes; the system calculates weight gain since the prior valid measurement when one exists.",
+        "kind": "happy"
+       },
+       {
+        "text": "The system retains dated measurements as a lot time series and displays the weight and gain trend over time.",
+        "kind": "data"
+       },
+       {
+        "text": "The system flags invalid dates, non-positive animal counts, or invalid weights, and does not calculate a gain when there is no earlier valid reading.",
+        "kind": "error"
+       },
+       {
+        "text": "A user without weight-recording permission cannot add or alter lot weight measurements.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "The system calculates and refreshes lot metrics when feeding or weight data changes: days on feed from current date minus receiving date; total weight gain from current average weight minus entry average weight; ADG from total gain divided by days on feed; total feed consumed and cost from feeding events; FCR from feed consumed divided by weight gained; and cost of gain from feed cost divided by weight gained.",
+        "kind": "happy"
+       },
+       {
+        "text": "For lots with a positive ADG and target weight, the system projects ship date from days on feed plus the remaining weight divided by ADG, and displays the assumptions and source measurements used.",
+        "kind": "data"
+       },
+       {
+        "text": "The system presents forecast or feeding-adjustment recommendations based on current weight-gain and feeding trends, with the supporting trend or variance visible to the user.",
+        "kind": "happy"
+       },
+       {
+        "text": "When dates, measurements, or feeding events are missing, or a denominator is zero or negative, the affected metric or forecast is shown as unavailable with the reason; the system does not display a misleading numeric result.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-9",
+      "behaviours": [
+       {
+        "text": "Users can view dashboards for active lots and pens, animal counts, inventory status, ration usage, pen bunk rates, planned versus actual feeding, feed consumed and cost, entry versus current weight, gain, ADG, FCR, cost of gain, energy consumed, and best- and worst-performing lots.",
+        "kind": "happy"
+       },
+       {
+        "text": "Users can open reports answering operational comparisons such as highest pen consumption, best lot FCR, highest lot ADG, most-used ration, plan adherence, over/underfeeding, remaining inventory, and feed cost per unit of gain.",
+        "kind": "happy"
+       },
+       {
+        "text": "Users can filter the feed-to-gain report by date range, breed, sex, or pen and compare ADG, FCR, and cost of gain across lots.",
+        "kind": "happy"
+       },
+       {
+        "text": "Users can export the currently selected report and filters as CSV or PDF; the exported values reflect the selected date range and filters.",
+        "kind": "happy"
+       },
+       {
+        "text": "If filters produce no matching records or source data is incomplete, the dashboard and report show an empty or qualified result rather than treating missing data as zero or omitting the condition silently.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-10",
+      "behaviours": [
+       {
+        "text": "The system provides clearly identified mock procurement, lot, pen, inventory, ration, feeding, and weight data that users can use to exercise the end-to-end feedlot workflows without confusing sample records with operational records.",
+        "kind": "data"
+       },
+       {
+        "text": "A demo view presents the proposed solution and architecture, including how procurement data flows through lots and pens into feeding, inventory, weight, and performance results.",
+        "kind": "happy"
+       },
+       {
+        "text": "The demo presents example validation and testing results, known challenges, an assessment of production readiness, and a go-to-market strategy and analysis.",
+        "kind": "happy"
+       },
+       {
+        "text": "Users can reset or reload the mock dataset to restore a repeatable demo state; mock data is not silently mixed into live operational records.",
+        "kind": "happy"
+       }
+      ],
+      "readingChosen": "Treat the requested presentation and demo materials as views within the responsive web app, alongside clearly separated mock data and a repeatable demo workflow."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

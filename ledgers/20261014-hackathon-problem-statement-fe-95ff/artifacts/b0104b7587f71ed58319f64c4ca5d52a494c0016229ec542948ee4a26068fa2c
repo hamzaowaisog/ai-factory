@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getSynchronizeSourceRecordsResponseMock|PO-7301-1|Source record validation failed",
+    "glob": "**/*"
+   },
+   "ms": 19,
+   "resultChars": 2339,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getSynchronizeSourceRecordsResponseMock|PO-7301-1|Source record validation failed&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\ncontracts/openapi.yaml:109: sourceId: PO-7301-1\ncontracts/openapi.yaml:132: sourceId: PO-7301-1\ncontracts/openapi.yaml:1272: - sourceId: PO-7301-1\ncontracts/openapi.yaml:1289: error: Source record validation failed\nlib/api/client.msw.ts:53: export const getGetOverviewResponseMock = (): Overview => ({\"headline\":{\"label\":\"Total feed cost today\",\"value\":4280.5,\"unit\":\"USD\"},\"activeLots\":3,\"activePens\":2,\"lots\":[{\"lotCode\":\"L-241\",\"pen\":\"Nor\nlib/api/client.msw.ts:55: export const getListLotsResponseMock = (): LotList => ({\"lots\":[{\"id\":241,\"lotCode\":\"L-241\",\"sourceId\":\"PO-7301-1\",\"sourceRecordId\":\"REC-5518\",\"supplier\":\"Prairie Cattle Co.\",\"receivedDate\":\"2026-02-0\nlib/api/client.msw.ts:105: export const getSynchronizeSourceRecordsResponseMock = (): SyncResult => ({\"source\":\"Configured mock procurement source\",\"status\":\"Partial\",\"records\":[{\"sourceId\":\"PO-7301-1\",\"sourceRecordId\":\"REC-551\nlib/api/client.msw.ts:445: : getSynchronizeSourceRecordsResponseMock()),\ntests/acceptance.part1.test.tsx:20: getSynchronizeSourceRecordsResponseMock,\ntests/acceptance.part1.test.tsx:58: sourceId: \"PO-7301-1\",\ntests/acceptance.part1.test.tsx:75: sourceId: \"PO-7301-1\",\ntests/acceptance.part1.test.tsx:201: const base = getSynchronizeSourceRecordsResponseMock();\ntests/acceptance.part1.test.tsx:221: expect(await screen.findByText(\"PO-7301-1\")).toBeTruthy();\ntests/acceptance.part1.test.tsx:226: [\"PO-7301-1\", \"REC-5518\", \"Prairie Cattle Co.\", \"1000\", \"60\", \"620\", \"Angus\", \"16\", \"Updated\"],\ntests/acceptance.part1.test.tsx:238: const base = getSynchronizeSourceRecordsResponseMock();\ntests/acceptance.part1.test.tsx:253: const updatedRow = await screen.findByRole(\"row\", { name: /PO-7301-1/ });\ntests/acceptance.part1.test.tsx:259: expect(within(failedRow).getByText(\"Source record validation failed\")).toBeTruthy();\ntests/acceptance.part1.test.tsx:276: for (const value of [\"PO-7301-1\", \"REC-5518\", \"Prairie Cattle Co.\", \"2026-02-01\", \"Angus\", \"Female\", \"60\", \"North 2\", \"600\", \"120\", \"80\"]) {\ntests/acceptance.part1.test.tsx:280: for (const value of [\"PO-7301-1\", \"REC-5518\", \"Hereford\", \"Male\", \"40\", \"South 1\", \"80\", \"45\"]) {\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getListInventoryResponseMock|getGetLotLifecycleResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 11,
+   "resultChars": 2168,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getListInventoryResponseMock|getGetLotLifecycleResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:57: export const getGetLotLifecycleResponseMock = (): Lifecycle => ({\"lotId\":241,\"lotCode\":\"L-241\",\"receivedDate\":\"2026-02-01\",\"targetWeightLb\":1250,\"targetWeightSource\":\"Lot target\",\"growthAssumption\":\"M\nlib/api/client.msw.ts:59: export const getListInventoryResponseMock = (): InventoryList => ({\"items\":[{\"id\":401,\"item\":\"Ground corn\",\"category\":\"Grain\",\"supplier\":\"Prairie Feed\",\"availableQuantity\":6.2,\"enteredUnit\":\"ton\",\"nor\nlib/api/client.msw.ts:157: : getGetLotLifecycleResponseMock()),\nlib/api/client.msw.ts:169: : getListInventoryResponseMock()),\ntests/acceptance.part1.test.tsx:10: getGetLotLifecycleResponseMock,\ntests/acceptance.part1.test.tsx:14: getListInventoryResponseMock,\ntests/acceptance.part1.test.tsx:314: const lifecycle = getGetLotLifecycleResponseMock();\ntests/acceptance.part1.test.tsx:329: const lifecycle = getGetLotLifecycleResponseMock();\ntests/acceptance.part1.test.tsx:350: const inventory = getListInventoryResponseMock();\ntests/acceptance.part1.test.tsx:368: const inventory = getListInventoryResponseMock();\ntests/acceptance.part2.test.tsx:22: getListInventoryResponseMock,\ntests/acceptance.part2.test.tsx:132: getListInventoryMockHandler(getListInventoryResponseMock()),\ntests/acceptance.part3.test.tsx:14: getGetLotLifecycleResponseMock,\ntests/acceptance.part3.test.tsx:18: getListInventoryResponseMock,\ntests/acceptance.part3.test.tsx:144: const inventory = getListInventoryResponseMock();\ntests/acceptance.part3.test.tsx:284: getGetLotLifecycleMockHandler(getGetLotLifecycleResponseMock()),\ntests/acceptance.part3.test.tsx:310: getGetLotLifecycleMockHandler(getGetLotLifecycleResponseMock()),\ntests/acceptance.part4.test.tsx:25: getGetLotLifecycleResponseMock,\ntests/acceptance.part4.test.tsx:30: getListInventoryResponseMock,\ntests/acceptance.part4.test.tsx:95: const inventoryItem = getListInventoryResponseMock().items[0];\ntests/acceptance.part4.test.tsx:241: const lifecycle = getGetLotLifecycleResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

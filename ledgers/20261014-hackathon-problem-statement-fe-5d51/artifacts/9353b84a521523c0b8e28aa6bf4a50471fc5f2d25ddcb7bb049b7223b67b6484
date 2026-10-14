@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 11,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "availableQuantity|enteredQuantity",
+    "glob": "App.Tests/AcceptancePart*.cs"
+   },
+   "ms": 2,
+   "resultChars": 2701,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;availableQuantity|enteredQuantity&quot;,&quot;glob&quot;:&quot;App.Tests/AcceptancePart*.cs&quot;}\">\nApp.Tests/AcceptancePart1Tests.cs:207: AssertHasProperties(item, \"item\", \"availableQuantity\", \"enteredUnit\", \"normalizedPounds\", \"cost\", \"costUnit\", \"normalizedCostUsdPerLb\", \"openingLb\", \"receivedLb\", \"consumedLb\", \"closingLb\", \"movements\nApp.Tests/AcceptancePart1Tests.cs:243: Assert.Equal(2m, received.GetProperty(\"enteredQuantity\").GetDecimal());\nApp.Tests/AcceptancePart1Tests.cs:477: await using var insert = new NpgsqlCommand(\"INSERT INTO \\\"InventoryItems\\\" (\\\"item\\\", \\\"category\\\", \\\"supplier\\\", \\\"enteredQuantity\\\", \\\"enteredUnit\\\", \\\"normalizedPounds\\\", \\\"cost\\\", \\\"costUnit\\\", \\\"\nApp.Tests/AcceptancePart1Tests.cs:481: insert.Parameters.AddWithValue(\"enteredQuantity\", 1m);\nApp.Tests/AcceptancePart1Tests.cs:505: private static async Task InsertMovementAsync(NpgsqlConnection connection, int inventoryItemId, string type, decimal quantityLb, decimal? enteredQuantity, string? enteredUnit)\nApp.Tests/AcceptancePart1Tests.cs:513: await using var command = new NpgsqlCommand($\"INSERT INTO \\\"InventoryMovements\\\" (\\\"inventoryItemId\\\", \\\"date\\\", \\\"type\\\", \\\"quantityLb\\\", \\\"enteredQuantity\\\", \\\"enteredUnit\\\") VALUES (@inventoryItemI\nApp.Tests/AcceptancePart1Tests.cs:517: command.Parameters.AddWithValue(\"enteredQuantity\", enteredQuantity is null ? DBNull.Value : enteredQuantity);\nApp.Tests/AcceptancePart2Tests.cs:589: (\"id\", \"item\", \"category\", \"supplier\", \"enteredQuantity\", \"enteredUnit\", \"normalizedPounds\", \"cost\", \"costUnit\", \"normalizedCostUsdPerLb\", \"dryMatterPercent\", \"energyMcalPerLb\", \"crudeProteinPercent\",\nApp.Tests/AcceptancePart2Tests.cs:691: INSERT INTO \"InventoryMovements\" (\"id\", \"inventoryItemId\", \"date\", \"type\", \"quantityLb\", \"enteredQuantity\", \"enteredUnit\", \"activityGroupId\")\nApp.Tests/AcceptancePart3Tests.cs:141: Assert.Equal(2.5m, savedItem.GetProperty(\"enteredQuantity\").GetDecimal());\nApp.Tests/AcceptancePart3Tests.cs:356: INSERT INTO \"InventoryItems\" (\"id\", \"item\", \"category\", \"supplier\", \"enteredQuantity\", \"enteredUnit\",\nApp.Tests/AcceptancePart4Tests.cs:59: Assert.Equal(2d, Number(receivedItem, \"enteredQuantity\"));\nApp.Tests/AcceptancePart4Tests.cs:67: Assert.Equal(2d, Number(item, \"availableQuantity\"));\nApp.Tests/AcceptancePart4Tests.cs:317: (\"item\", \"category\", \"supplier\", \"enteredQuantity\", \"enteredUnit\", \"normalizedPounds\",\nApp.Tests/AcceptancePart4Tests.cs:321: (@item, 'Grain', 'Acceptance Supplier', @enteredQuantity, 'ton', @normalizedPounds,\nApp.Tests/AcceptancePart4Tests.cs:326: command.Parameters.AddWithValue(\"enteredQuantity\", openingLb / 2000m);\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,66 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 14,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-10.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test starts a separate fresh factory without opting into demo seeding, asserts the lot-list response is empty, and checks that every listed application data table has zero rows."
+     },
+     {
+      "acId": "AC-11.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test posts a two-ton receipt with an intentionally incorrect supplied normalization, then asserts the receipt and inventory responses retain ton units and report quantity 2 and normalized and closing stock of 4,000 pounds."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies a two-ton ration ingredient is normalized to 4,000 pounds for its costs while retaining its entered unit, then checks feeding consumption and inventory deduction in pounds."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test creates a 1.5-ton ration ingredient, verifies the returned quantity and unit, and checks that a 500-pound feeding deducts 500 pounds from the known stock."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both lot-specific delivered shares and verifies each lot rollup contains only its corresponding share."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test establishes a 900-pound plan, posts a 950-pound delivery to two lots, and asserts their distinct returned shares sum to 950 pounds."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies the listed activities contain one allocation each for distinct target lots, that each activity quantity equals its lot's share, and that the two activity quantities total 1,000 pounds."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the public OpenAPI paths against the API-only path set and verifies every listed path has an HTTP operation with a nonempty operation ID."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

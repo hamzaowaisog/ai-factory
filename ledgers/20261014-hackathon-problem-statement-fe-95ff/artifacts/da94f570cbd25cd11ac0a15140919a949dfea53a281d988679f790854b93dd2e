@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Feedlot Operations — Rations</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed-dim": "#bdc8d1",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f5f4f0",
+            "on-tertiary-container": "#ffebd6",
+            "surface-tint": "#456274",
+            "on-surface": "#1b1c1a",
+            "primary-container": "#526f82",
+            "on-tertiary-fixed-variant": "#5c421f",
+            "error": "#ba1a1a",
+            "secondary-container": "#d9e4ee",
+            "inverse-primary": "#accbe0",
+            "surface-container": "#efeeea",
+            "outline": "#72787c",
+            "on-secondary-fixed": "#121d24",
+            "surface": "#faf9f5",
+            "inverse-on-surface": "#f2f1ed",
+            "surface-variant": "#e3e2df",
+            "outline-variant": "#c2c7cc",
+            "primary-fixed": "#c8e7fd",
+            "secondary-fixed": "#d9e4ee",
+            "on-primary-fixed-variant": "#2d4a5c",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface-bright": "#faf9f5",
+            "on-secondary": "#ffffff",
+            "background": "#faf9f5",
+            "tertiary-container": "#856640",
+            "surface-container-high": "#e9e8e4",
+            "on-tertiary-fixed": "#2a1700",
+            "on-primary-container": "#ddf0ff",
+            "on-secondary-container": "#5b666e",
+            "on-secondary-fixed-variant": "#3d4850",
+            "on-surface-variant": "#42474c",
+            "surface-container-highest": "#e3e2df",
+            "on-primary-fixed": "#001e2d",
+            "on-tertiary": "#ffffff",
+            "secondary": "#556068",
+            "primary-fixed-dim": "#accbe0",
+            "surface-dim": "#dbdad6",
+            "primary": "#3a5769",
+            "tertiary": "#6a4e2a",
+            "on-background": "#1b1c1a",
+            "tertiary-fixed-dim": "#e7c093",
+            "tertiary-fixed": "#ffddb7",
+            "on-error": "#ffffff",
+            "inverse-surface": "#30312e"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["\"Source Sans 3\"", "sans-serif"],
+            "mono": ["\"IBM Plex Mono\"", "monospace"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: 8px;
+    }
+
+    body {
+      background-color: #F4F3EF;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .num-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion Entrance */
+    @keyframes page-enter {
+      from { opacity: 0.65; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .page-enter {
+      animation: page-enter var(--dur-base) var(--ease-out) both;
+    }
+
+    /* Headline digit roll signature moment */
+    .figure-digit-wrapper {
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: bottom;
+      height: 1.25em;
+      line-height: 1.25em;
+    }
+    .figure-digit {
+      display: inline-block;
+      opacity: 0.65;
+      transform: translateY(0.65em);
+      transition: transform 600ms var(--ease-out), opacity 600ms var(--ease-out);
+    }
+    .is-visible .figure-digit {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Precision hairline & interaction styles */
+    .btn-primary {
+      background-color: #526F82;
+      color: #FFFFFF;
+      min-height: 44px;
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 500;
+      transition: background-color var(--dur-quick) var(--ease-out), transform var(--dur-instant);
+    }
+    .btn-primary:hover {
+      background-color: #456274;
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+    }
+
+    .field-input {
+      background-color: #FFFFFF;
+      border: 1px solid #D9DAD7;
+      border-radius: 6px;
+      height: 44px;
+      color: #262A2D;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      padding: 0 12px;
+      transition: border-color var(--dur-quick) var(--ease-out);
+    }
+    .field-input:focus {
+      outline: 2px solid #526F82;
+      outline-offset: 2px;
+      border-color: #526F82;
+    }
+
+    .quiet-link {
+      color: #526F82;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color var(--dur-quick);
+    }
+    .quiet-link:hover {
+      color: #3a5769;
+    }
+
+    /* Standardized row height and border */
+    .feedlot-row {
+      height: 44px;
+      border-bottom: 1px solid #D9DAD7;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition-duration: 100ms !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] flex flex-col justify-start">
+<!-- Desktop Header -->
+<header class="w-full bg-surface-container-lowest border-b border-[#D9DAD7] sticky top-0 z-30">
+<div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+<!-- Brand & Navigation Cluster -->
+<div class="flex items-center gap-8">
+<!-- Brand Mark & Wordmark -->
+<div class="flex items-center gap-2.5 shrink-0">
+<div class="w-7 h-7 rounded-[4px] bg-[#526F82] flex items-center justify-center text-white font-headline font-bold text-sm select-none">
+            F
+          </div>
+<span class="font-headline text-lg font-semibold tracking-tight text-[#262A2D]">
+            Feedlot
+          </span>
+</div>
+<!-- Navigation Menu -->
+<nav aria-label="Main Navigation" class="hidden md:flex items-center gap-6 h-14">
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Overview
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Lots
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Inventory
+          </a>
+<!-- Active "Rations" menu item -->
+<a aria-current="page" class="h-full flex items-center text-sm font-semibold text-[#526F82] border-b-2 border-[#526F82] transition-colors duration-160" href="#">
+            Rations
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Feeding plans
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Feeding log
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Lot weights
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Yard summary
+          </a>
+<a class="h-full flex items-center text-sm font-medium text-[#626A6F] hover:text-[#262A2D] transition-colors duration-160" href="#">
+            Feed-to-Gain
+          </a>
+</nav>
+</div>
+<!-- Signed-in User Identifier -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-8 h-8 rounded-full bg-[#efeeea] border border-[#D9DAD7] flex items-center justify-center font-headline font-semibold text-xs text-[#262A2D] select-none">
+          MC
+        </div>
+<div class="flex flex-col text-left">
+<span class="text-sm font-semibold text-[#262A2D] leading-tight">Mara Chen</span>
+<span class="text-xs text-[#626A6F] leading-tight">Feed Operations, Administrator</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-[1440px] mx-auto px-6 py-7 page-enter">
+<!-- Page Title & Operational Metric Headline -->
+<div class="flex flex-col md:flex-row md:items-baseline justify-between mb-7 pb-3 border-b border-[#D9DAD7]">
+<div>
+<h1 class="font-headline font-semibold text-[28px] leading-tight text-[#262A2D] tracking-tight">
+          Rations
+        </h1>
+<p class="text-sm text-[#626A6F] mt-1 font-body">
+          Ration definitions, dry-matter formulation bases, and nutritional cost benchmarks.
+        </p>
+</div>
+<!-- Signature contextual headline figure -->
+<div class="mt-4 md:mt-0 flex items-baseline gap-2" id="headlineFigure">
+<span class="text-xs uppercase tracking-wider text-[#626A6F] font-semibold">Active yard avg cost</span>
+<div class="text-[22px] font-semibold text-[#262A2D] flex items-baseline">
+<span class="num-mono figure-digit-wrapper">
+<span class="figure-digit font-mono">$0.1254</span>
+</span>
+<span class="text-xs text-[#626A6F] ml-1.5 font-normal">/ lb dry matter</span>
+</div>
+</div>
+</div>
+<!-- SECTION 1: Dense Saved-Ration Table -->
+<section aria-labelledby="saved-rations-heading" class="mb-9">
+<div class="flex items-center justify-between mb-2.5">
+<h2 class="font-headline font-semibold text-base text-[#262A2D]" id="saved-rations-heading">
+          Saved Rations
+        </h2>
+<span class="text-xs text-[#626A6F] num-mono">1 active formulation</span>
+</div>
+<!-- Flat Table Panel (8px rounded, 1px border #D9DAD7, paper surface) -->
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-lg overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[960px]">
+<thead>
+<tr class="feedlot-row bg-[#FAF9F5] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#626A6F]">
+<th class="px-4 text-left font-semibold" scope="col">Ration Name</th>
+<th class="px-4 text-left font-semibold" scope="col">Intended animal / weight range</th>
+<th class="px-4 text-left font-semibold" scope="col">Ingredients &amp; proportions</th>
+<th class="px-4 text-left font-semibold" scope="col">Nutrition values</th>
+<th class="px-4 text-right font-semibold" scope="col">Calculated cost</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D9DAD7] text-sm">
+<tr class="feedlot-row hover:bg-[#FAF9F5] transition-colors duration-160">
+<td class="px-4 font-semibold text-[#262A2D] whitespace-nowrap">
+                Finisher 18
+              </td>
+<td class="px-4 text-[#262A2D] whitespace-nowrap">
+<span class="num-mono">850–1,350</span> lb cattle
+              </td>
+<td class="px-4 text-[#262A2D] text-xs">
+                Steam-flaked corn <span class="num-mono font-medium">70%</span>, 
+                Alfalfa hay <span class="num-mono font-medium">20%</span>, 
+                Cottonseed meal <span class="num-mono font-medium">7%</span>, 
+                Mineral premix <span class="num-mono font-medium">3%</span>
+</td>
+<td class="px-4 text-[#262A2D] text-xs whitespace-nowrap">
+                CP <span class="num-mono font-medium">13.2%</span> · 
+                TDN <span class="num-mono font-medium">77.4%</span> · 
+                NE <span class="num-mono font-medium">0.82</span> Mcal/lb
+              </td>
+<td class="px-4 text-right font-medium text-[#262A2D] num-mono whitespace-nowrap">
+                $0.1254/lb
+              </td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- SECTION 2: Create-Ration Form -->
+<section aria-labelledby="create-ration-heading" class="mb-10">
+<!-- Continuous 1px hairline rule beneath section heading -->
+<div class="border-b border-[#D9DAD7] pb-2 mb-6">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-semibold text-[22px] text-[#262A2D] tracking-tight" id="create-ration-heading">
+            Create ration
+          </h2>
+<a class="quiet-link" href="#">Optimize ration</a>
+</div>
+<p class="text-sm text-[#626A6F] mt-1 max-w-3xl">
+          Record ration formulation and target animal weight range. Entered units are preserved while calculations use normalized pounds.
+        </p>
+</div>
+<!-- Form Container -->
+<form class="space-y-6" onsubmit="event.preventDefault();">
+<!-- Primary Fields Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#FFFFFF] border border-[#D9DAD7] rounded-lg p-5">
+<div class="flex flex-col">
+<label class="text-sm font-medium text-[#262A2D] mb-1.5" for="ration-name">
+              Ration name
+            </label>
+<input class="field-input w-full" id="ration-name" name="ration-name" required="" type="text" value="Finisher 19"/>
+</div>
+<div class="flex flex-col">
+<label class="text-sm font-medium text-[#262A2D] mb-1.5" for="weight-range">
+              Intended animal / weight range
+            </label>
+<input class="field-input w-full" id="weight-range" name="weight-range" placeholder="e.g. 850–1,350 lb" required="" type="text" value="850–1,350 lb"/>
+</div>
+</div>
+<!-- Formulation / Ingredients Table -->
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-lg overflow-hidden">
+<div class="px-5 py-3.5 border-b border-[#D9DAD7] flex items-center justify-between bg-[#FAF9F5]">
+<span class="font-headline text-sm font-semibold text-[#262A2D]">
+              Batch Formulation &amp; Ingredients
+            </span>
+<span class="text-xs text-[#626A6F]">Batch base: Normalized standard</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[760px]">
+<thead>
+<tr class="feedlot-row bg-[#FAF9F5] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#626A6F]">
+<th class="px-4 text-left font-semibold" scope="col">Ingredient name</th>
+<th class="px-4 text-right font-semibold" scope="col">Quantity</th>
+<th class="px-4 text-left font-semibold" scope="col">Entered unit</th>
+<th class="px-4 text-right font-semibold" scope="col">Normalized quantity</th>
+<th class="px-4 text-right font-semibold" scope="col">Proportion (%)</th>
+<th class="px-4 text-right font-semibold" scope="col">Unit cost ($/lb)</th>
+<th class="px-4 text-right font-semibold" scope="col">Total cost</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D9DAD7] text-sm text-[#262A2D]">
+<!-- Row 1: Steam-flaked corn -->
+<tr class="feedlot-row hover:bg-[#FAF9F5] transition-colors duration-160">
+<td class="px-4 font-medium">Steam-flaked corn</td>
+<td class="px-4 text-right num-mono font-medium">1,400</td>
+<td class="px-4 text-left text-xs text-[#626A6F]">lb</td>
+<td class="px-4 text-right num-mono font-medium">1,400.0 lb</td>
+<td class="px-4 text-right num-mono font-medium">70.0%</td>
+<td class="px-4 text-right num-mono">$0.11/lb</td>
+<td class="px-4 text-right num-mono font-medium">$154.00</td>
+</tr>
+<!-- Row 2: Alfalfa hay -->
+<tr class="feedlot-row hover:bg-[#FAF9F5] transition-colors duration-160">
+<td class="px-4 font-medium">Alfalfa hay</td>
+<td class="px-4 text-right num-mono font-medium">400</td>
+<td class="px-4 text-left text-xs text-[#626A6F]">lb</td>
+<td class="px-4 text-right num-mono font-medium">400.0 lb</td>
+<td class="px-4 text-right num-mono font-medium">20.0%</td>
+<td class="px-4 text-right num-mono">$0.09/lb</td>
+<td class="px-4 text-right num-mono font-medium">$36.00</td>
+</tr>
+<!-- Row 3: Cottonseed meal -->
+<tr class="feedlot-row hover:bg-[#FAF9F5] transition-colors duration-160">
+<td class="px-4 font-medium">Cottonseed meal</td>
+<td class="px-4 text-right num-mono font-medium">140</td>
+<td class="px-4 text-left text-xs text-[#626A6F]">lb</td>
+<td class="px-4 text-right num-mono font-medium">140.0 lb</td>
+<td class="px-4 text-right num-mono font-medium">7.0%</td>
+<td class="px-4 text-right num-mono">$0.25/lb</td>
+<td class="px-4 text-right num-mono font-medium">$35.00</td>
+</tr>
+<!-- Row 4: Mineral premix -->
+<tr class="feedlot-row hover:bg-[#FAF9F5] transition-colors duration-160">
+<td class="px-4 font-medium">Mineral premix</td>
+<td class="px-4 text-right num-mono font-medium">60</td>
+<td class="px-4 text-left text-xs text-[#626A6F]">lb</td>
+<td class="px-4 text-right num-mono font-medium">60.0 lb</td>
+<td class="px-4 text-right num-mono font-medium">3.0%</td>
+<td class="px-4 text-right num-mono">$0.43/lb</td>
+<td class="px-4 text-right num-mono font-medium">$25.80</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Summary & Nutrition Analysis Bar (Flat panel, 8px radius, 1px border #D9DAD7) -->
+<div class="bg-[#FFFFFF] border border-[#D9DAD7] rounded-lg p-5">
+<div class="text-xs uppercase font-semibold text-[#626A6F] tracking-[0.08em] mb-3">
+            Formulation Analysis &amp; Batch Metrics
+          </div>
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 pt-1">
+<!-- Total Batch -->
+<div class="flex flex-col border-r border-[#D9DAD7] pr-3">
+<span class="text-xs text-[#626A6F]">Total batch</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-base font-semibold text-[#262A2D] num-mono">2,000.0</span>
+<span class="text-xs text-[#626A6F]">lb (100%)</span>
+</div>
+</div>
+<!-- Total Cost -->
+<div class="flex flex-col border-r border-[#D9DAD7] pr-3">
+<span class="text-xs text-[#626A6F]">Total cost</span>
+<div class="flex flex-col mt-1">
+<span class="text-base font-semibold text-[#262A2D] num-mono">$250.80</span>
+<span class="text-[11px] text-[#626A6F] num-mono leading-none mt-0.5">$0.1254/lb norm</span>
+</div>
+</div>
+<!-- Crude Protein -->
+<div class="flex flex-col border-r border-[#D9DAD7] pr-3">
+<span class="text-xs text-[#626A6F]">Crude Protein (CP)</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-base font-semibold text-[#262A2D] num-mono">13.2%</span>
+</div>
+</div>
+<!-- TDN -->
+<div class="flex flex-col border-r border-[#D9DAD7] pr-3">
+<span class="text-xs text-[#626A6F]">TDN</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-base font-semibold text-[#262A2D] num-mono">77.4%</span>
+</div>
+</div>
+<!-- Net Energy -->
+<div class="flex flex-col">
+<span class="text-xs text-[#626A6F]">Net Energy (NE)</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-base font-semibold text-[#262A2D] num-mono">0.82</span>
+<span class="text-xs text-[#626A6F]">Mcal/lb</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Form Action Controls -->
+<div class="flex items-center gap-5 pt-2">
+<button class="btn-primary px-6 flex items-center justify-center text-sm font-medium shadow-none cursor-pointer" type="submit">
+            Save ration
+          </button>
+<a class="quiet-link" href="#">
+            Optimize ration
+          </a>
+</div>
+</form>
+</section>
+</main>
+<script>
+    // Trigger signature roll animation for operational headline metric on first entry
+    document.addEventListener('DOMContentLoaded', () => {
+      const headlineEl = document.getElementById('headlineFigure');
+      if (headlineEl) {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            headlineEl.classList.add('is-visible');
+          }, 60);
+        });
+      }
+    });
+  </script>
+</body></html>
