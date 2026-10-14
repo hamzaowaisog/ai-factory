@@ -31,7 +31,7 @@ import { LIVE_CSP, LIVE_DIR } from "../design/stitch-live.js";
 import { dataModelView } from "./erd.js";
 import { talkText } from "./talk.js";
 import { testsView } from "./tests.js";
-import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
+import { answerQuestions, checkRefs, decideCard, decideEstimate, editIntent, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
@@ -64,7 +64,8 @@ const notFound = (what: string): Reply => ({ status: 404, json: { error: what } 
 
 /**
  * Every API route. Besides starting runs, the only decisions are the ones a person makes with a typed name and the card's hash:
- * an estimate card, a design or plan card, and a question card's answers. Waivers, limits, unlocks, steering and pausing have no route.
+ * an estimate card, a design or plan card, a question card's answers, and a transcript run's client-intent card (approve, send back, edit).
+ * Waivers, limits, unlocks, steering and pausing have no route.
  */
 export const ROUTES: readonly Route[] = [
   { method: "GET", path: "/api/projects", what: "projects and whether Jira and Figma are set up", handle: async () => ok(await projectsView()) },
@@ -173,6 +174,19 @@ export const ROUTES: readonly Route[] = [
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await decideCard(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/intent-edit", what: "edit the open client-intent card like factory edit-intent: statuses, removals, added requirements, speaker roles (intent cards only; needs a typed name, the card hash and a reason)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await editIntent(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };

@@ -397,6 +397,15 @@ describe("factory ui: starting a run", () => {
     expect(s.info.sources?.map((x) => [x.kind, x.name])).toEqual([["docx", "req.docx"]]);
   });
 
+  it("an uploaded Meet transcript starts a transcript run", async () => {
+    const text = readFileSync(new URL("../sources/fixtures/meet-sample.txt", import.meta.url), "utf8");
+    const r = await post({ project: "web", file: { name: "meeting.docx", data: (await makeDocx(text.split("\n"))).toString("base64") } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.sources?.map((x) => x.kind)).toEqual(["transcript"]);
+    expect(s.info.transcriptSha).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it("a good request creates the run like factory start and executes it in the background", async () => {
     const r = await post({ project: "web", prompt: "Rename the orders heading to Your orders", file: { name: "notes.md", text: "# Notes\n\nKeep the count next to it." }, maxCost: "8" });
     expect(r.status).toBe(201);
@@ -2067,5 +2076,68 @@ describe("a preview page with frames of its own pages, in Safari", () => {
     expect(headerPolicyOnly(Buffer.from(page)).toString()).toBe(`<!doctype html><html><head><meta charset="utf-8"><title>d</title></head><body>x</body></html>`);
     const plain = Buffer.from("<!doctype html><title>d</title>");
     expect(headerPolicyOnly(plain)).toBe(plain);
+  });
+});
+
+describe("factory ui: the client-intent card of a transcript run (spec 2026-10-14 transcript-intent §5c)", () => {
+  const post = (id: string, path: string, body: unknown) =>
+    call(`/api/runs/${id}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const intent = {
+    project: { name: "Project Orbit", goal: "Track deliveries" },
+    requirements: [
+      { id: "R-1", text: "Doctors see only their own appointments", status: "decided", quote: "Each doctor sees only uh his own appointments", turn: "T-13", speaker: "Alex Morgan", role: "client" },
+      { id: "R-10", text: "Reminders go by SMS", status: "decided", quote: "the reminder goes by uh SMS", turn: "T-36", speaker: "Jordan Lee", role: "team" },
+    ],
+    constraints: [], openQuestions: [], warnings: [], dropped: [],
+    speakers: [{ name: "Alex Morgan", role: "client", source: "default" }, { name: "Jordan Lee", role: "team", source: "roster" }],
+    skill: { name: "transcript-distill", sha256: "a".repeat(64) }, edits: 0,
+  };
+  const waitOnIntent = async (id: string) => {
+    const l = Ledger.open(id);
+    const sha = l.putJson({ card: "intent", intent });
+    l.writeCard(`intent-${sha.slice(0, 8)}`, "# Client intent: Project Orbit\n\n## Decide\n  factory approve x y");
+    await addEvents(id, [
+      { type: "step.started", key: "distill/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "distill/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `intent-${sha.slice(0, 8)}`, kind: "intent", artifactSha: sha, step: "distill" } },
+    ]);
+    return { l, hash: sha.slice(0, 8) };
+  };
+
+  it("shows the card's requirements and speakers as data on the run page", async () => {
+    const id = await createRun("Project Orbit meeting", "web", "tester");
+    await waitOnIntent(id);
+    const v = (await call(`/api/runs/${id}`)).json();
+    expect(v.card.kind).toBe("intent");
+    expect(v.card.intent.requirements.map((r: { id: string }) => r.id)).toEqual(["R-1", "R-10"]);
+    expect(v.card.intent.speakers[1]).toEqual({ name: "Jordan Lee", role: "team", source: "roster" });
+  });
+
+  it("saves an edit like factory edit-intent: a typed name, the hash, a reason, checked against the card", async () => {
+    const id = await createRun("Project Orbit meeting (edit)", "web", "tester");
+    const { l, hash } = await waitOnIntent(id);
+    const ok = { hash, by: "Sam Lead", reason: "client confirmed by email", status: { "R-10": "open" }, add: "SMS when out for delivery" };
+    expect((await post(id, "intent-edit", { ...ok, reason: " " })).json().error).toMatch(/why/);
+    expect((await post(id, "intent-edit", { ...ok, status: { "R-99": "open" } })).json().error).toMatch(/R-99 is not a requirement/);
+    expect((await post(id, "intent-edit", { ...ok, roles: { Nobody: "team" } })).json().error).toMatch(/Nobody is not a speaker/);
+    const before = started.length;
+    const r = await post(id, "intent-edit", ok);
+    expect(r.status).toBe(200);
+    expect(started.length).toBe(before + 1);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "edit", by: "Sam Lead (via web)", reason: "client confirmed by email", edits: { status: { "R-10": "open" }, add: ["SMS when out for delivery"] } });
+  });
+
+  it("approves or sends back the intent card through the decision route", async () => {
+    const id = await createRun("Project Orbit meeting (approve)", "web", "tester");
+    const { l, hash } = await waitOnIntent(id);
+    expect((await post(id, "decision", { hash, decision: "approve", by: "Sam Lead" })).status).toBe(200);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "approve", by: "Sam Lead (via web)" });
+    const id2 = await createRun("Project Orbit meeting (send back)", "web", "tester");
+    const w2 = await waitOnIntent(id2);
+    expect((await post(id2, "decision", { hash: w2.hash, decision: "reject", by: "Sam Lead", reason: "missed the SMS reminder" })).status).toBe(200);
+  });
+
+  it("the edit route refuses a run whose open card is not an intent card", async () => {
+    expect((await post(ids.waiting, "intent-edit", { hash: "b".repeat(8), by: "Sam Lead", reason: "x", status: { "R-1": "open" } })).status).toBe(409);
   });
 });

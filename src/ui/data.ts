@@ -4,7 +4,7 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, join, sep } from "node:path";
 import type { z } from "zod";
-import type { Design as DesignSchema } from "../contracts/artifacts.js";
+import type { ClientIntentBody, Design as DesignSchema } from "../contracts/artifacts.js";
 import type { Breakdown, Estimate } from "../contracts/estimate.js";
 import { buildInventory, type DesignInventory } from "../design/inventory.js";
 import { depsOf, detectLayout } from "../design/layout.js";
@@ -243,7 +243,7 @@ export function gateChips(s: RunState): GateChip[] {
 export function cardCommands(markdown: string, runId: string, hash8: string): string[] {
   const out = [`factory show-card ${runId}`];
   for (const line of markdown.split("\n")) {
-    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|sign-off|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
+    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|edit-intent|sign-off|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
     if (m) out.push(m[1]!.replace(/\s+/g, " ").replace("<hash>", hash8).trim());
   }
   return [...new Set(out)];
@@ -261,6 +261,30 @@ function evidence(ledger: Ledger, seq: number) {
 }
 
 /** The questions on a run's question card, so the run page can ask them. */
+/** An open client-intent card as data for the run page's editor (spec 2026-10-14 transcript-intent §5c); undefined when its data is missing. */
+export interface IntentView {
+  project: { name?: string; goal: string };
+  requirements: { id: string; text: string; status: string; quote?: string; turn?: string; speaker?: string; role?: string; added?: string }[];
+  speakers: { name: string; role: string; source: string }[];
+  constraints: string[]; openQuestions: string[]; warnings: string[]; dropped: string[];
+}
+export function intentOf(ledger: Pick<Ledger, "getJson">, sha: string): IntentView | undefined {
+  let body: { intent?: ClientIntentBody } | undefined;
+  try { body = ledger.getJson<{ intent?: ClientIntentBody }>(sha); } catch { return undefined; }
+  const i = body?.intent;
+  if (!i) return undefined;
+  return {
+    project: i.project,
+    requirements: i.requirements.map((r) => ({
+      id: r.id, text: r.text, status: r.status, ...(r.quote ? { quote: r.quote } : {}), ...(r.turn ? { turn: r.turn } : {}),
+      ...(r.speaker ? { speaker: r.speaker } : {}), ...(r.role ? { role: r.role } : {}), ...(r.addedBy ? { added: `${r.addedBy.by}: ${r.addedBy.note}` } : {}),
+    })),
+    speakers: i.speakers,
+    constraints: i.constraints.map((c) => `${c.id}: ${c.text}`), openQuestions: i.openQuestions.map((q) => `${q.id}: ${q.text}`),
+    warnings: i.warnings, dropped: i.dropped.map((d) => `${d.id}: ${d.text} (${d.why})`),
+  };
+}
+
 function questionsOf(ledger: Ledger, sha: string) {
   const body = ledger.getJson<{ asked?: { id: string; text: string; options: string[]; recommended: string; reason: string; impactReason: string }[]; assumptions?: { id: string; text: string }[] }>(sha);
   if (!body?.asked?.length) return {};
@@ -316,7 +340,7 @@ export function runView(ledger: Ledger) {
     gates: gateChips(s),
     // the model each step was given when the run was created, and what was called on each
     models: runModels(events),
-    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...limitOf(s) } : undefined,
+    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...(s.openCard.kind === "intent" ? { intent: intentOf(ledger, s.openCard.artifactSha) } : {}), ...limitOf(s) } : undefined,
     trace,
     // what the factory asked each model and what came back (src/ui/talk.ts)
     talk: talkView(lines),
