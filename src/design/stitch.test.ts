@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _resetEnvCache } from "../config/env.js";
-import { answerShape, editedSince, files, pageOf, setStitchFactory, setStitchFileTries, stitchClient } from "./stitch.js";
+import { answerShape, dropped, editedSince, files, pageOf, setStitchFactory, setStitchFileTries, setStitchRetryWait, stitchClient } from "./stitch.js";
 
 describe("stitch client", () => {
   const saved = { home: process.env.FACTORY_HOME, key: process.env.STITCH_API_KEY };
@@ -80,5 +80,25 @@ describe("the files of a screen Stitch just drew", () => {
     expect(await files(late)).toEqual({ screenId: "scr-1", htmlUrl: "html-url", imageUrl: "img-url" });
     const never = { id: "scr-2", async getHtml() { return "html-url"; }, async getImage() { return ""; } };
     await expect(files(never)).rejects.toThrow("gave no picture");
+  });
+});
+
+describe("a Stitch call whose connection drops", () => {
+  const drop = () => Object.assign(new TypeError("fetch failed"), { cause: { code: "UND_ERR_SOCKET", message: "other side closed" } });
+  it("is tried once more and goes on; a second drop fails with the network's reason; other errors are not retried", async () => {
+    setStitchRetryWait(0);
+    process.env.STITCH_API_KEY = "test";
+    let calls = 0;
+    setStitchFactory(() => ({ generate: async () => { calls++; if (calls === 1) throw drop(); return { html: "<p/>" }; } }) as never);
+    await expect(stitchClient().generate("p", "x", "DESKTOP")).resolves.toEqual({ html: "<p/>" });
+    expect(calls).toBe(2);
+    setStitchFactory(() => ({ generate: async () => { throw drop(); } }) as never);
+    await expect(stitchClient().generate("p", "x", "DESKTOP")).rejects.toThrow("the connection dropped twice during generate_screen (UND_ERR_SOCKET other side closed)");
+    calls = 0;
+    setStitchFactory(() => ({ generate: async () => { calls++; throw new Error("quota exceeded"); } }) as never);
+    await expect(stitchClient().generate("p", "x", "DESKTOP")).rejects.toThrow("quota exceeded");
+    expect(calls).toBe(1);
+    expect(dropped(new Error("Unauthorized"))).toBe(false);
+    setStitchFactory(undefined); setStitchRetryWait(3_000);
   });
 });

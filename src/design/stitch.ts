@@ -106,10 +106,15 @@ function drawn(tools: { callTool<T>(name: string, args: Record<string, unknown>)
 
 function sdkClient(apiKey: string): StitchClient {
   let made: Promise<{ tools: { close(): Promise<void>; callTool<T>(name: string, args: Record<string, unknown>): Promise<T> }; stitch: import("@google/stitch-sdk").Stitch }> | undefined;
-  const sdk = () => (made ??= import("@google/stitch-sdk").then(({ Stitch, StitchToolClient }) => {
+  const connect = () => (made ??= import("@google/stitch-sdk").then(({ Stitch, StitchToolClient }) => {
     const tools = new StitchToolClient({ apiKey });
     return { tools, stitch: new Stitch(tools) };
   }));
+  // a dropped connection is not used again: the next call (timed's retry) connects afresh
+  const sdk = async () => {
+    const c = await connect();
+    return { ...c, tools: { close: () => c.tools.close(), callTool: <T>(name: string, args: Record<string, unknown>) => c.tools.callTool<T>(name, args).catch((e: unknown) => { if (dropped(e)) { made = undefined; void c.tools.close().catch(() => undefined); } throw e; }) } };
+  };
   return {
     async createProject(title) { return (await (await sdk()).stitch.createProject(title)).id; },
     async createDesignSystem(projectId, name, theme) {
@@ -165,14 +170,40 @@ function within<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   return Promise.race([p, late]).finally(() => clearTimeout(timer));
 }
 
-/** Every call and download with its time limit, whichever client is behind it. */
+/** A request whose connection dropped (Node's fetch says only "fetch failed"; the reason is in its cause). */
+export const dropped = (e: unknown): boolean => /fetch failed|socket hang up|ECONNRESET|other side closed/i.test(`${(e as Error)?.message ?? ""} ${causeOf(e)}`);
+const causeOf = (e: unknown): string => {
+  const c = (e as { cause?: { code?: string; message?: string } })?.cause;
+  return c ? [c.code, c.message].filter(Boolean).join(" ") : "";
+};
+
+/** Wait before the one retry of a dropped call; tests set 0. */
+let RETRY_WAIT_MS = 3_000;
+export function setStitchRetryWait(ms: number): void { RETRY_WAIT_MS = ms; }
+
+/**
+ * A call whose connection dropped is tried once more on a fresh connection (run ae5c parked twice on "fetch failed" with the
+ * calls just before it answered). A second drop fails with the network's reason, which "fetch failed" alone does not give.
+ * A generation the dropped call did start may leave one extra frame in the Stitch project; nothing reads it.
+ */
+function once<T>(f: () => Promise<T>, ms: number, what: string): Promise<T> {
+  return within(f(), ms, what).catch(async (e: unknown) => {
+    if (!dropped(e)) throw e;
+    await new Promise((r) => setTimeout(r, RETRY_WAIT_MS));
+    return within(f(), ms, what).catch((e2: unknown) => {
+      throw dropped(e2) ? new Error(`the connection dropped twice during ${what}${causeOf(e2) ? ` (${causeOf(e2)})` : ""}`) : e2;
+    });
+  });
+}
+
+/** Every call and download with its time limit, and one retry on a dropped connection, whichever client is behind it. */
 function timed(c: StitchClient): StitchClient {
   return {
-    createProject: (title) => within(c.createProject(title), timeouts.callMs, "create_project"),
-    createDesignSystem: (p, name, theme) => within(c.createDesignSystem(p, name, theme), timeouts.callMs, "create_design_system"),
-    generate: (p, prompt, device) => within(c.generate(p, prompt, device), timeouts.callMs, "generate_screen"),
-    edit: (p, id, prompt, device) => within(c.edit(p, id, prompt, device), timeouts.callMs, "edit_screens"),
-    download: (url) => within(c.download(url), timeouts.downloadMs, "download"),
+    createProject: (title) => once(() => c.createProject(title), timeouts.callMs, "create_project"),
+    createDesignSystem: (p, name, theme) => once(() => c.createDesignSystem(p, name, theme), timeouts.callMs, "create_design_system"),
+    generate: (p, prompt, device) => once(() => c.generate(p, prompt, device), timeouts.callMs, "generate_screen"),
+    edit: (p, id, prompt, device) => once(() => c.edit(p, id, prompt, device), timeouts.callMs, "edit_screens"),
+    download: (url) => once(() => c.download(url), timeouts.downloadMs, "download"),
     close: () => within(c.close(), timeouts.downloadMs, "close"),
   };
 }
