@@ -1122,8 +1122,6 @@ Before you return, check your list against the criteria: each of these needs at 
     }
     const run1 = storeRun(ctx, found);
     const only = [...tests.map((t) => t.testId), ...characterisation.map((c) => c.testId)];
-    ctx.log("author-tests: running the new tests on the old code again (2 of 2)");
-    const run2 = storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const acIds = new Set(acs.filter((a) => a.level === "api").map((a) => a.id));
     const lock: Lock = {
       tests, characterisation, probes: apiElsewhere(ctx.project) ? [] : out.probes.filter((p) => acIds.has(p.acId)),
@@ -1138,6 +1136,11 @@ Before you return, check your list against the criteria: each of these needs at 
       : undefined;
     // rules: which fails-on-base rules this lock was written under (verify-evidence re-checks old locks the old way)
     const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
+    // the second run only shows a first run's result is not a one-off: when the first already fails the check, the check is
+    // decided on it alone (run b587: two minutes a failed attempt)
+    const firstFails = !failsOnBase.predicate({ run1: found.testRun, run2: found.testRun, tests: { tests, characterisation, rules: { productionExceptionOk: true } } as never }, ctx.policy).passed;
+    if (!firstFails) ctx.log("author-tests: running the new tests on the old code again (2 of 2)");
+    const run2 = firstFails ? run1 : storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
     if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
     // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,

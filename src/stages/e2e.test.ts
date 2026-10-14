@@ -120,6 +120,8 @@ let rewriteVerdict: "keeps" | "loosened" | "partial" = "keeps";
 let rewriteChecks = 0;
 /** the spec also carries a criterion only a person can check */
 let manualCriterion = false;
+/** how many of the next runs of the new test on the old code crash in its own set-up instead of failing an assertion */
+let baseCrashes = 0;
 /** A scripted review must now account for every acceptance criterion, as a real one must. */
 function scriptedReview(user: string, findings: unknown[] = []) {
   reviewCalls += 1;
@@ -300,7 +302,8 @@ class Lab implements ContainerRuntime {
         if (pass.includes(false)) code = 1;
       } else if (existsSync(join(src, "tests/Api.Tests/GreetTests.cs"))) {
         const done = readFileSync(join(src, "src/Api/Greeter.cs"), "utf8").includes('"Hello "');
-        results.push(done ? { name: "AC_1_1_GreetsWithHello", outcome: "Passed" } : { name: "AC_1_1_GreetsWithHello", outcome: "Failed", message: "Assert.Equal() Failure: Expected Hello Ann, Actual Hi Ann" } as never);
+        const crash = !done && baseCrashes > 0 && baseCrashes--;
+        results.push(done ? { name: "AC_1_1_GreetsWithHello", outcome: "Passed" } : crash ? { name: "AC_1_1_GreetsWithHello", outcome: "Failed", message: "System.InvalidOperationException : no greeting row" } as never : { name: "AC_1_1_GreetsWithHello", outcome: "Failed", message: "Assert.Equal() Failure: Expected Hello Ann, Actual Hi Ann" } as never);
         if (!done) code = 1;
       }
       if (this.knownBroken) { results.push({ name: "Old_Broken", outcome: "Failed", message: "broken on main too" } as never); code = 1; }
@@ -352,6 +355,7 @@ let lab: Lab;
 beforeEach(() => {
   planGivesNoModel = false;
   planStubs = [];
+  baseCrashes = 0;
   const home = mkdtempSync(join(tmpdir(), "factory-e2e-"));
   process.env.FACTORY_HOME = home;
   writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
@@ -568,6 +572,24 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(s.steps.get("review")!.data!.weakTests).toBeUndefined();
     expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: review.criteria-have-tests (the probe covers it)");
     expect(testsView(ledger).proof).toMatchObject({ passed: false, waivedBy: "lead", reason: "the probe covers it" });
+  });
+
+  it("a test that crashes on the old code is sent back on the first run alone: no second run (run b587)", async () => {
+    baseCrashes = 1;
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const base = ledger.events().filter((e) => e.type === "gate.result" && (e.data as { gateId?: string }).gateId === "author-tests.fails-on-base");
+    expect(base.map((e) => (e.data as { passed: boolean }).passed)).toEqual([false, true]);
+    // the failed check was decided on the first run alone, given as both runs; the passing one ran twice (lab runs below)
+    const inputs = base.map((e) => (e.data as { inputs: { run1: string; run2: string } }).inputs);
+    expect(inputs[0]!.run1).toBe(inputs[0]!.run2);
+    expect(JSON.stringify(base[0]!.data)).toMatch(/fails with exception/);
+    const keys = [...lab.specs.values()].filter((sp) => sp.cmd[1] === "test").map((sp) => sp.labels?.key).filter((k) => k?.startsWith("author-tests/base-"));
+    expect(keys).toEqual(["author-tests/base-1", "author-tests/base-1", "author-tests/base-2"]);
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
 
   it("tests the check before the lock calls weak go back to the writer, then are locked as they are: the run never waits for a person", async () => {
