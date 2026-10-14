@@ -18,8 +18,17 @@ export const SCREEN_SUPPORT_DIR = "tests/support";
 export const SCREEN_SETUP = `${SCREEN_SUPPORT_DIR}/setup.ts`;
 export const SCREEN_HELPER = `${SCREEN_SUPPORT_DIR}/screen.ts`;
 
+/**
+ * The instant every test runs at (UTC, midday, so a run never crosses a day). A value worked out from "today" (an age, days
+ * since, a due date) is the same on every run and machine; run ae5c parked on a test that read the real date.
+ */
+export const TEST_NOW = "2026-01-15T12:00:00.000Z";
+
 /** What a screen test reads and sets about the address. */
 export const screenHelperFile = (tag: string): string => `// ${OWNED_MARK} from ${tag}.
+// Every test runs at TEST_NOW in UTC (set up in ./setup): work out expected dates and durations from it, never from the real clock.
+export const TEST_NOW = new Date("${TEST_NOW}");
+
 // What a screen test reads and sets about the address. In tests the app's navigation (lib/nav) is replaced by this:
 // nothing really navigates, and every place the page went to is kept in nav.went.
 export const nav = { path: "/", params: {} as Record<string, string>, went: [] as string[] };
@@ -80,8 +89,13 @@ export const screenSetupFile = (tag: string, next = true): string => `// ${OWNED
 // Runs before every test file. A screen test (a *.test.tsx file whose first line is "// @vitest-environment jsdom") renders
 // a page with no router and no browser: navigation is recorded in ./screen, and the few browser parts jsdom lacks are
 // filled in. A plain *.test.ts file is not affected.
-import { afterEach, vi } from "vitest";
-import { resetNav } from "./screen";
+import { afterEach, beforeEach, vi } from "vitest";
+import { resetNav, TEST_NOW } from "./screen";
+
+// The same instant and time zone on every run and machine. Only Date is faked, and it moves on with real time from TEST_NOW,
+// so waits, timers and debounces work as usual.
+process.env.TZ = "UTC";
+beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"], now: TEST_NOW, shouldAdvanceTime: true }); });
 
 vi.mock("@/lib/nav", async () => {
   const { createElement } = await import("react");
@@ -122,6 +136,7 @@ if (typeof window !== "undefined") {
 }
 
 afterEach(async () => {
+  vi.useRealTimers();
   resetNav();
   if (typeof document !== "undefined") (await import("@testing-library/react")).cleanup();
 });

@@ -46,6 +46,15 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
       `import { Tip } from "@/components/blocks/tip";`,
       `describe("tip", () => { it("AC_3_1_RendersAlone", () => { render(<Tip hint="Save it"><button>Save</button></Tip>); expect(screen.getByRole("button", { name: "Save" })).toBeTruthy(); }); });`, ``,
     ].join("\n"));
+    // every test runs at the fixed instant in UTC, and timers still run (run ae5c parked on a test that read the real date)
+    writeFileSync(join(repo, "tests", "clock.test.ts"), [
+      `import { describe, expect, it } from "vitest";`,
+      `describe("clock", () => { it("AC_4_1_RunsAtTheFixedInstant", async () => {`,
+      `  expect(new Date().toISOString().slice(0, 10)).toBe("2026-01-15");`,
+      `  expect(new Date().getTimezoneOffset()).toBe(0);`,
+      `  const t0 = Date.now(); await new Promise((r) => setTimeout(r, 30)); expect(Date.now()).toBeGreaterThan(t0);`,
+      `}); });`, ``,
+    ].join("\n"));
     execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });
     execFileSync("git", ["add", "-A"], { cwd: repo, env });
     execFileSync("git", ["commit", "-q", "-m", "app"], { cwd: repo, env });
@@ -64,7 +73,7 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
     expect(out.build, phases.join("\n")).toMatchObject({ ok: true });
     expect(out.testRun.runner).toBe("vitest");
     const byTitle = Object.fromEntries(out.testRun.results.map((r) => [r.id, r.outcome]));
-    expect(byTitle).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/later.test.ts::orders > AC_2_1_Later": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed" });
+    expect(byTitle).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/later.test.ts::orders > AC_2_1_Later": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed", "tests/clock.test.ts::clock > AC_4_1_RunsAtTheFixedInstant": "passed" });
     expect(out.testRun.results.find((r) => r.outcome === "failed")!.failureKind).toBe("assertion");
     expect(out.accept?.boot, phases.join("\n")).toMatchObject({ attempted: true, ok: true });
     expect(out.accept!.probes[0]).toMatchObject({ status: 200 });
@@ -81,7 +90,7 @@ describe.runIf(process.env.FACTORY_LAB_E2E === "1")("the Node lab, with real con
     expect(task.build, taskPhases.join("\n")).toMatchObject({ ok: true });
     expect(taskPhases.join("\n")).toContain("skipping 1 test file(s) of tasks that are not built yet");
     expect(task.testRun.valid, taskPhases.join("\n")).toBe(true);
-    expect(Object.fromEntries(task.testRun.results.map((r) => [r.id, r.outcome])), taskPhases.join("\n")).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed" });
+    expect(Object.fromEntries(task.testRun.results.map((r) => [r.id, r.outcome])), taskPhases.join("\n")).toEqual({ "tests/lab.test.ts::sign in > AC_1_1_Works": "passed", "tests/lab.test.ts::sign in > AC_1_2_NotYet": "failed", "tests/tip.test.tsx::tip > AC_3_1_RendersAlone": "passed", "tests/clock.test.ts::clock > AC_4_1_RunsAtTheFixedInstant": "passed" });
     rmSync(home, { recursive: true, force: true });
   });
 });

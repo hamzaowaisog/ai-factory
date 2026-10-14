@@ -49,6 +49,7 @@ Rules:
 - New APIs exist as stubs that throw new Error("not implemented"); tests must import them and fail for now.
 - Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today. A new app has little of its own: write none when there is nothing to keep.
 - Don't change production code, package.json, tsconfig or the vitest config.
+- Every test runs at a fixed instant in UTC, TEST_NOW (exported by tests/support/screen.ts): work out expected dates, ages and durations from TEST_NOW, never from the real clock, and never hard-code a value that only holds on one day.
 - You may run "npx tsc --noEmit" to check the tests compile. When every test is written, run your own new test files once (npx vitest run <your files>) and read how each test fails: on an assertion or "not implemented", never on a crash in the set-up or while rendering. Fix a test that crashes, or that passes, before you return. Run nothing else, and at most twice: the factory runs and judges every test itself in its test lab.
 - Test each criterion at its level: ${screens ? `"unit" criteria` : `"unit" and "ui" criteria`} call the module directly; ${apiSide ? API_SIDE_TESTS : `"api" criteria call the route handler (for example GET or POST exported from app/api/.../route.ts, with a Request).`} Skip "manual" criteria: a person checks those.
 ${outsideSystemsTestRule(stack)}${screens ? `\n${SCREEN_TEST_RULES}` : ""}`;
@@ -57,6 +58,8 @@ ${outsideSystemsTestRule(stack)}${screens ? `\n${SCREEN_TEST_RULES}` : ""}`;
 Rules:
 - Put tests in the existing test project that best fits (look for *Tests.csproj). Follow the style of existing tests there (xUnit, WebApplicationFactory if used).
 - Test through public surfaces only: HTTP endpoints, public service methods, database rows. Don't test private code.
+- Every test that starts the app or touches the database gets a database of its own: if the test project has AppFactory (App.Tests/AppFactory.cs), use it as the class fixture (IClassFixture<AppFactory>) and restart with factory.Restarted(). Never assume a table is empty unless your own class's database is the only one it could have been written to, and never depend on what another test left behind.
+- Don't compare against the current time exactly: assert on the values your test sent, or allow a margin.
 - Name each acceptance test method exactly AC_<req>_<n>_<Words> for acceptance criterion AC-<req>.<n>, e.g. AC_1_2_Returns404WhenOrderMissing. Name characterisation test methods CHAR_<Words>. The factory finds tests by these names.
 - New APIs exist as stubs that throw NotImplementedException; tests must compile against them and fail for now.
 - Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today.
