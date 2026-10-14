@@ -1,0 +1,598 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Reports & project brief",
+     "subtitle": "Feed-to-Gain · 01–30 Mar 2025 · refreshed 31 Mar, 06:20",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Cost of gain · 30 days",
+         "value": "USD 2.15/kg",
+         "delta": "−USD 0.08 vs Feb"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Highest feed-consuming pen",
+         "meta": "Pen 12 · 1,284 kg/day · Cedar 27",
+         "badge": "Rank 1"
+        },
+        {
+         "title": "Best feed-to-gain lot",
+         "meta": "North Ridge 24 · FCR 6.18:1 · USD 1.98/kg gain",
+         "badge": "Best"
+        },
+        {
+         "title": "Highest ADG lot",
+         "meta": "Larkspur 19 · 1.81 kg/day",
+         "badge": "Rank 1"
+        },
+        {
+         "title": "Most-used ration",
+         "meta": "18% Grower · 4,826 kg/day · 9 pens"
+        },
+        {
+         "title": "Plan alignment & remaining inventory",
+         "meta": "42.8 t planned / 41.3 t delivered · 96.5% · 186.4 t remaining, 8.6 days cover"
+        },
+        {
+         "title": "Feed exceptions",
+         "meta": "Underfed: Pen 03 −6%, Pen 21 −4% · Overfed: Pen 16 +8%",
+         "badge": "3 pens"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Date range",
+         "kind": "daterange",
+         "value": "01 Mar 2025 - 30 Mar 2025",
+         "required": true,
+         "help": "Report results use the selected delivery and weight dates."
+        },
+        {
+         "label": "Lot",
+         "kind": "combobox",
+         "value": "All lots",
+         "options": [
+          "All lots",
+          "North Ridge 24",
+          "Cedar 27",
+          "Prairie 31",
+          "Larkspur 19",
+          "Willow Bend 22"
+         ]
+        },
+        {
+         "label": "Breed",
+         "kind": "select",
+         "value": "All breeds",
+         "options": [
+          "All breeds",
+          "Angus",
+          "Hereford",
+          "Charolais",
+          "Angus × Simmental"
+         ]
+        },
+        {
+         "label": "Sex",
+         "kind": "radio",
+         "value": "All",
+         "options": [
+          "All",
+          "Steer",
+          "Heifer"
+         ]
+        },
+        {
+         "label": "Pen",
+         "kind": "combobox",
+         "value": "All pens",
+         "options": [
+          "All pens",
+          "Pen 03",
+          "Pen 04",
+          "Pen 08",
+          "Pen 12",
+          "Pen 16",
+          "Pen 21"
+         ]
+        }
+       ],
+       "submit": "Apply filters"
+      },
+      {
+       "type": "toolbar",
+       "buttons": [
+        {
+         "label": "Export report",
+         "variant": "primary",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "PDF"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot",
+        "Breed / sex",
+        "Pen",
+        "ADG (kg/day)",
+        "FCR (kg/kg)",
+        "Cost of gain"
+       ],
+       "rows": [
+        [
+         "North Ridge 24",
+         "Angus / Steer",
+         "Pen 08",
+         "1.72",
+         "6.18",
+         "USD 1.98/kg"
+        ],
+        [
+         "Cedar 27",
+         "Hereford / Steer",
+         "Pen 12",
+         "1.63",
+         "6.42",
+         "USD 2.07/kg"
+        ],
+        [
+         "Prairie 31",
+         "Angus × Simmental / Heifer",
+         "Pen 04",
+         "1.48",
+         "6.71",
+         "USD 2.19/kg"
+        ],
+        [
+         "Larkspur 19",
+         "Charolais / Steer",
+         "Pen 16",
+         "1.81",
+         "6.88",
+         "USD 2.20/kg"
+        ],
+        [
+         "Willow Bend 22",
+         "Angus / Heifer",
+         "Pen 03",
+         "1.39",
+         "7.06",
+         "USD 2.31/kg"
+        ]
+       ],
+       "sortBy": 4,
+       "sortDir": "asc"
+      },
+      {
+       "type": "accordion",
+       "title": "Project presentation",
+       "items": [
+        {
+         "title": "Proposed solution",
+         "body": "One traceable workspace connects lot and pen records, ration plans, feed deliveries, weights and inventory. Daily plan-versus-actual and Feed-to-Gain results help staff correct the next bunk or buying decision."
+        },
+        {
+         "title": "Architecture & data flow",
+         "body": "Flow: Responsive browser → web API → operational database (lots, pens, rations, deliveries, weights) → report service → CSV/PDF. Imports and edits write an audit log; yard roles scope access."
+        },
+        {
+         "title": "Demo walkthrough",
+         "body": "Open the yard overview; sync procurement and review pen exceptions; compare ADG, FCR and cost of gain for 01–30 Mar; export CSV or PDF for the selected scope; review validation and readiness."
+        },
+        {
+         "title": "Coding prompts",
+         "body": "Prompt A: Add date, lot, breed, sex and pen filters; calculate ADG, FCR and USD/kg gain from traceable weights and deliveries. Prompt B: export the exact filtered results to CSV/PDF and add scope-parity tests."
+        },
+        {
+         "title": "Testing & validation",
+         "body": "Check ADG, FCR and cost of gain against hand-calculated lots; reconcile planned feed, deliveries and inventory; verify exports match filtered rows. Validate empty scopes, stale syncs, permissions and phone, tablet and desktop layouts."
+        },
+        {
+         "title": "Challenges",
+         "body": "Delayed scale tickets, duplicate feed slips, ration-name drift and missing weigh-ins can skew results. Reconcile imports by source ID, flag missing or implausible values, retain the last good report and audit corrections."
+        },
+        {
+         "title": "Production readiness",
+         "body": "Readiness checks: yard-scoped roles, audit trail, encrypted data, backup and restore drills, export limits, error monitoring and feed-sync retries. Pilot gate: reconciled weights and inventory, reviewed access, documented support and rollback."
+        },
+        {
+         "title": "Go-to-market analysis",
+         "body": "Start with independent yards managing 150–2,000 head; lead with feed variance and cost-of-gain proof. Run a 30-day pilot, then annual per-head pricing. Onboard through feed consultants and co-ops; measure active pens, variance improvement and pilot conversion."
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Highest feed-consuming pen",
+       "to": "S-2"
+      },
+      {
+       "from": "Best feed-to-gain lot",
+       "to": "S-2"
+      },
+      {
+       "from": "Most-used ration",
+       "to": "S-3"
+      },
+      {
+       "from": "North Ridge 24",
+       "to": "S-2"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "menu",
+       "trigger": "Export report",
+       "title": "Choose a report format",
+       "items": [
+        "CSV",
+        "PDF"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "CSV",
+       "text": "CSV report exported for the selected scope.",
+       "tone": "ok"
+      },
+      {
+       "after": "PDF",
+       "text": "PDF report exported for the selected scope.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No Feed-to-Gain results for this scope",
+      "emptyHint": "Widen the dates or clear a lot, breed, sex or pen filter to compare lots.",
+      "error": "We couldn't refresh these reports. The last saved results are still shown.",
+      "success": "Filters applied. Results reflect the selected dates and scope.",
+      "validation": "Choose a valid start and end date before applying report filters."
+     }
+    },
+    "mockFull": {
+     "title": "Reports & project brief",
+     "subtitle": "Feed-to-Gain · 01–30 Mar 2025 · refreshed 31 Mar, 06:20",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Cost of gain · 30 days",
+         "value": "USD 2.15/kg",
+         "delta": "−USD 0.08 vs Feb"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Highest feed-consuming pen",
+         "meta": "Pen 12 · 1,284 kg/day · Cedar 27",
+         "badge": "Rank 1"
+        },
+        {
+         "title": "Best feed-to-gain lot",
+         "meta": "North Ridge 24 · FCR 6.18:1 · USD 1.98/kg gain",
+         "badge": "Best"
+        },
+        {
+         "title": "Highest ADG lot",
+         "meta": "Larkspur 19 · 1.81 kg/day",
+         "badge": "Rank 1"
+        },
+        {
+         "title": "Most-used ration",
+         "meta": "18% Grower · 4,826 kg/day · 9 pens"
+        },
+        {
+         "title": "Plan vs actual alignment",
+         "meta": "42.8 t planned / 41.3 t delivered · 96.5% for the period"
+        },
+        {
+         "title": "Pen 03 · underfed",
+         "meta": "6% below plan · 1,146 kg delivered vs 1,220 kg planned",
+         "badge": "Review"
+        },
+        {
+         "title": "Pen 21 · underfed",
+         "meta": "4% below plan · 982 kg delivered vs 1,023 kg planned",
+         "badge": "Review"
+        },
+        {
+         "title": "Pen 16 · overfed",
+         "meta": "8% above plan · 1,386 kg delivered vs 1,283 kg planned",
+         "badge": "Review"
+        },
+        {
+         "title": "Remaining inventory",
+         "meta": "186.4 t on hand · 8.6 days at current use"
+        },
+        {
+         "title": "Inventory by feed",
+         "meta": "Corn silage 92.6 t · dry-rolled corn 58.2 t · supplement blend 35.6 t"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Date range",
+         "kind": "daterange",
+         "value": "01 Mar 2025 - 30 Mar 2025",
+         "required": true,
+         "help": "Report results use the selected delivery and weight dates."
+        },
+        {
+         "label": "Lot",
+         "kind": "combobox",
+         "value": "All lots",
+         "options": [
+          "All lots",
+          "North Ridge 24",
+          "Cedar 27",
+          "Prairie 31",
+          "Larkspur 19",
+          "Willow Bend 22",
+          "Oak Hollow 14",
+          "Red Creek 08",
+          "Pine Flats 33",
+          "West Fork 16",
+          "Elm Ridge 29",
+          "Stone Mill 11",
+          "Timberline 06"
+         ]
+        },
+        {
+         "label": "Breed",
+         "kind": "select",
+         "value": "All breeds",
+         "options": [
+          "All breeds",
+          "Angus",
+          "Hereford",
+          "Charolais",
+          "Angus × Simmental",
+          "Simmental",
+          "Limousin",
+          "Angus × Hereford"
+         ]
+        },
+        {
+         "label": "Sex",
+         "kind": "radio",
+         "value": "All",
+         "options": [
+          "All",
+          "Steer",
+          "Heifer"
+         ]
+        },
+        {
+         "label": "Pen",
+         "kind": "combobox",
+         "value": "All pens",
+         "options": [
+          "All pens",
+          "Pen 02",
+          "Pen 03",
+          "Pen 04",
+          "Pen 06",
+          "Pen 08",
+          "Pen 09",
+          "Pen 11",
+          "Pen 12",
+          "Pen 14",
+          "Pen 16",
+          "Pen 19",
+          "Pen 21"
+         ]
+        }
+       ],
+       "submit": "Apply filters"
+      },
+      {
+       "type": "toolbar",
+       "buttons": [
+        {
+         "label": "Export report",
+         "variant": "primary",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "PDF"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot",
+        "Breed / sex",
+        "Pen",
+        "ADG (kg/day)",
+        "FCR (kg/kg)",
+        "Cost of gain"
+       ],
+       "rows": [
+        [
+         "North Ridge 24",
+         "Angus / Steer",
+         "Pen 08",
+         "1.72",
+         "6.18",
+         "USD 1.98/kg"
+        ],
+        [
+         "Oak Hollow 14",
+         "Simmental / Steer",
+         "Pen 06",
+         "1.76",
+         "6.22",
+         "USD 2.01/kg"
+        ],
+        [
+         "Red Creek 08",
+         "Angus / Steer",
+         "Pen 19",
+         "1.68",
+         "6.36",
+         "USD 2.05/kg"
+        ],
+        [
+         "Cedar 27",
+         "Hereford / Steer",
+         "Pen 12",
+         "1.63",
+         "6.42",
+         "USD 2.07/kg"
+        ],
+        [
+         "Pine Flats 33",
+         "Hereford / Heifer",
+         "Pen 11",
+         "1.54",
+         "6.58",
+         "USD 2.12/kg"
+        ],
+        [
+         "West Fork 16",
+         "Charolais / Steer",
+         "Pen 02",
+         "1.58",
+         "6.64",
+         "USD 2.15/kg"
+        ],
+        [
+         "Prairie 31",
+         "Angus × Simmental / Heifer",
+         "Pen 04",
+         "1.48",
+         "6.71",
+         "USD 2.19/kg"
+        ],
+        [
+         "Larkspur 19",
+         "Charolais / Steer",
+         "Pen 16",
+         "1.81",
+         "6.88",
+         "USD 2.20/kg"
+        ],
+        [
+         "Elm Ridge 29",
+         "Angus × Hereford / Heifer",
+         "Pen 21",
+         "1.44",
+         "6.93",
+         "USD 2.26/kg"
+        ],
+        [
+         "Willow Bend 22",
+         "Angus / Heifer",
+         "Pen 03",
+         "1.39",
+         "7.06",
+         "USD 2.31/kg"
+        ],
+        [
+         "Stone Mill 11",
+         "Limousin / Steer",
+         "Pen 14",
+         "1.52",
+         "7.12",
+         "USD 2.33/kg"
+        ],
+        [
+         "Timberline 06",
+         "Angus / Heifer",
+         "Pen 09",
+         "1.36",
+         "7.24",
+         "USD 2.38/kg"
+        ]
+       ],
+       "sortBy": 4,
+       "sortDir": "asc"
+      },
+      {
+       "type": "accordion",
+       "title": "Project presentation",
+       "items": [
+        {
+         "title": "Proposed solution",
+         "body": "One traceable workspace connects lot and pen records, ration plans, feed deliveries, weights and inventory. Daily plan-versus-actual and Feed-to-Gain results help staff correct the next bunk or buying decision."
+        },
+        {
+         "title": "Architecture & data flow",
+         "body": "Flow: Responsive browser → web API → operational database (lots, pens, rations, deliveries, weights) → report service → CSV/PDF. Imports and edits write an audit log; yard roles scope access."
+        },
+        {
+         "title": "Demo walkthrough",
+         "body": "Open the yard overview; sync procurement and review pen exceptions; compare ADG, FCR and cost of gain for 01–30 Mar; export CSV or PDF for the selected scope; review validation and readiness."
+        },
+        {
+         "title": "Coding prompts",
+         "body": "Prompt A: Add date, lot, breed, sex and pen filters; calculate ADG, FCR and USD/kg gain from traceable weights and deliveries. Prompt B: export the exact filtered results to CSV/PDF and add scope-parity tests."
+        },
+        {
+         "title": "Testing & validation",
+         "body": "Check ADG, FCR and cost of gain against hand-calculated lots; reconcile planned feed, deliveries and inventory; verify exports match filtered rows. Validate empty scopes, stale syncs, permissions and phone, tablet and desktop layouts."
+        },
+        {
+         "title": "Challenges",
+         "body": "Delayed scale tickets, duplicate feed slips, ration-name drift and missing weigh-ins can skew results. Reconcile imports by source ID, flag missing or implausible values, retain the last good report and audit corrections."
+        },
+        {
+         "title": "Production readiness",
+         "body": "Readiness checks: yard-scoped roles, audit trail, encrypted data, backup and restore drills, export limits, error monitoring and feed-sync retries. Pilot gate: reconciled weights and inventory, reviewed access, documented support and rollback."
+        },
+        {
+         "title": "Go-to-market analysis",
+         "body": "Start with independent yards managing 150–2,000 head; lead with feed variance and cost-of-gain proof. Run a 30-day pilot, then annual per-head pricing. Onboard through feed consultants and co-ops; measure active pens, variance improvement and pilot conversion."
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No Feed-to-Gain results for this scope",
+      "emptyHint": "Widen the dates or clear a lot, breed, sex or pen filter to compare lots.",
+      "error": "We couldn't refresh these reports. The last saved results are still shown.",
+      "success": "Filters applied. Results reflect the selected dates and scope.",
+      "validation": "Choose a valid start and end date before applying report filters."
+     }
+    }
+   },
+   "ms": 4,
+   "resultChars": 557,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.5.items.6.body: Too big: expected string to have <=240 characters; mock.blocks.5.items.7.body: Too big: expected string to have <=240 characters; mockFull.blocks.2.fields.1.options: Too big: expected array to have <=12 items; mockFull.blocks.2.fields.4.options: Too big: expected array to have <=12 items; mockFull.blocks.5.items.6.body: Too big: expected string to have <=240 characters; mockFull.blocks.5.items.7.body: Too big: expected string to have <=240 characters. Fix it and call submit_result again."
+  }
+ ]
+}

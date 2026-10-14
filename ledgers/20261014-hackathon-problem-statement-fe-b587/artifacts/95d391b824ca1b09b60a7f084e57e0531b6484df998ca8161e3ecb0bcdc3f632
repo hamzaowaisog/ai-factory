@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "tests/support/screen.ts"
+   },
+   "ms": 1,
+   "resultChars": 1301,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;tests/support/screen.ts&quot;}\">\ntests/support/screen.ts lines 1-21\n1\t// Written by ai-factory from ai-factory design 20261014-hackathon-problem-statement-fe-b587 v1 (297f41f7ada0), approved by Ahsan (via web) on 2026-10-14.\n2\t// Every test runs at TEST_NOW in UTC (set up in ./setup): work out expected dates and durations from it, never from the real clock.\n3\t// (the factory's environment check runs the tests once more at another instant, through FACTORY_TEST_NOW)\n4\texport const TEST_NOW = new Date(process.env.FACTORY_TEST_NOW ?? \"2026-01-15T12:00:00.000Z\");\n5\t\n6\t// What a screen test reads and sets about the address. In tests the app's navigation (lib/nav) is replaced by this:\n7\t// nothing really navigates, and every place the page went to is kept in nav.went.\n8\texport const nav = { path: \"/\", params: {} as Record<string, string>, went: [] as string[] };\n9\t\n10\t/** Put the test at an address before rendering, e.g. at(\"/orders/7\", { tab: \"paid\" }). */\n11\texport function at(path: string, params: Record<string, string> = {}): void {\n12\t  nav.path = path;\n13\t  nav.params = params;\n14\t}\n15\t\n16\texport function resetNav(): void {\n17\t  nav.path = \"/\";\n18\t  nav.params = {};\n19\t  nav.went = [];\n20\t}\n21\t\n</untrusted_document>"
+  }
+ ]
+}

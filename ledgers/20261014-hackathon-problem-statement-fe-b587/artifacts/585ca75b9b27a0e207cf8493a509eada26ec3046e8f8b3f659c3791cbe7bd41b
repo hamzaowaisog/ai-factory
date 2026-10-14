@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "lib/api/client.schemas.ts",
+    "start": 30,
+    "end": 60
+   },
+   "ms": 1,
+   "resultChars": 957,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;lib/api/client.schemas.ts&quot;,&quot;start&quot;:30,&quot;end&quot;:60}\">\nlib/api/client.schemas.ts lines 30-60\n30\t  date: string;\n31\t  deliveredTons: number;\n32\t}\n33\t\n34\texport interface LotSummary {\n35\t  lotId: number;\n36\t  lotName: string;\n37\t  headCount: number;\n38\t  breed: string;\n39\t  sex: string;\n40\t  penName: string;\n41\t  rationName: string;\n42\t  feedConsumedLb: number;\n43\t  startingWeightLb: number;\n44\t  currentWeightLb: number;\n45\t  adgLbPerDay: number;\n46\t  fcr: number;\n47\t  costOfGainPerLb: number;\n48\t  energyConsumedMcal?: number;\n49\t}\n50\t\n51\texport interface PenSummary {\n52\t  penId: number;\n53\t  penName: string;\n54\t  animalCount: number;\n55\t  capacity: number;\n56\t  rationName: string;\n57\t  dailyBunkRateLbPerHead: number;\n58\t  plannedFeedLb: number;\n59\t  actualFeedLb: number;\n60\t  currentWeightLb: number;\n… (831 lines total; ask for start=61)\n</untrusted_document>"
+  }
+ ]
+}

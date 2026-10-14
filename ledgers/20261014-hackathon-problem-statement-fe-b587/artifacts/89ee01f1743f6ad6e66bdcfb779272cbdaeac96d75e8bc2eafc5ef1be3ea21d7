@@ -1,0 +1,306 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "N-1",
+      "category": "existing-data",
+      "text": "When procurement/receiving data is synchronized again and source values or mappings have changed, how should the import reconcile them?",
+      "options": [
+       "Reject and report duplicate or conflicting imports without overwriting mappings; correct the issue and retry.",
+       "Update changed source values while preserving the original traceability.",
+       "Overwrite existing mapped values with the latest source values."
+      ],
+      "recommended": "Reject and report duplicate or conflicting imports without overwriting mappings; correct the issue and retry.",
+      "reason": "This avoids silently changing established lot mappings and is the smallest safe reconciliation behavior.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "The choice changes imported procurement values, mappings, and their traceability.",
+      "difference": "D-1"
+     },
+     {
+      "id": "N-2",
+      "category": "data-model",
+      "text": "What should inventory forecasts project and compare across the requested horizons?",
+      "options": [
+       "Estimate ingredient balances and shortages from available stock and expected feed demand, applying configured wastage to estimated consumption.",
+       "Apply configured wastage to estimated consumption across the horizons, without projecting ingredient balances or shortages.",
+       "Project ingredient balances from planned feed quantities without applying wastage."
+      ],
+      "recommended": "Estimate ingredient balances and shortages from available stock and expected feed demand, applying configured wastage to estimated consumption.",
+      "reason": "This combines the requested stock projections and wastage-adjusted consumption estimates without adding a separate forecasting model.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes forecast outputs and the inventory decisions users can make.",
+      "difference": "D-2"
+     },
+     {
+      "id": "N-3",
+      "category": "errors",
+      "text": "What should happen when a stock movement would make an ingredient's available balance negative?",
+      "options": [
+       "Block the movement and show the resulting shortage.",
+       "Allow the movement and show a negative balance with a warning.",
+       "Allow the movement only as an explicit stock-correction entry."
+      ],
+      "recommended": "Block the movement and show the resulting shortage.",
+      "reason": "This prevents a negative available-stock balance while still communicating the shortage.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "This determines whether inventory records can be written below zero and what stock is shown as available.",
+      "difference": "D-3"
+     },
+     {
+      "id": "N-4",
+      "category": "data-model",
+      "text": "When a pen contains multiple lots, how should an actual feeding quantity be attributed to those lots for lot-level consumption and cost metrics?",
+      "options": [
+       "Allocate the actual quantity to lots in proportion to their planned quantities.",
+       "Require the operator to enter the actual quantity delivered to each lot.",
+       "Record the actual quantity only at pen level, without allocating it to lots."
+      ],
+      "recommended": "Allocate the actual quantity to lots in proportion to their planned quantities.",
+      "reason": "This uses the per-lot plan allocations already required and avoids adding a separate actual-allocation step.",
+      "spans": [
+       "I-3",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines which lots receive feed consumption and cost in their performance metrics."
+     },
+     {
+      "id": "N-5",
+      "category": "data-model",
+      "text": "How should the projected ship date be calculated from current weight, target weight, and ADG?",
+      "options": [
+       "Use the current date plus the days needed to reach target weight at the current ADG; show no date when ADG is zero or negative.",
+       "Use receiving date plus DOF plus the days needed to reach target weight at the current ADG.",
+       "Use a fixed target date entered for each lot, rather than deriving it from ADG."
+      ],
+      "recommended": "Use the current date plus the days needed to reach target weight at the current ADG; show no date when ADG is zero or negative.",
+      "reason": "This turns the stated remaining-days calculation into a calendar date and handles cases where the calculation cannot yield a future date.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes a visible sale-timing forecast and its behavior for non-positive ADG.",
+      "},{": "N-6",
+      "difference": "D-7"
+     },
+     {
+      "id": "N-7",
+      "category": "scope",
+      "text": "Should date, lot, pen, breed, and sex filters be available only on the dedicated feed-to-gain report or across dashboards and other reports as well?",
+      "options": [
+       "Keep filters on the dedicated feed-to-gain report and retain its selected scope in exports.",
+       "Apply the filters across dashboards and all reports, with exports retaining the selected scope.",
+       "Apply the filters to dashboards and reports, but export each report's full dataset."
+      ],
+      "recommended": "Keep filters on the dedicated feed-to-gain report and retain its selected scope in exports.",
+      "reason": "The dedicated report's filters and scoped exports are explicitly requested; extending filtering is additional UI scope.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes which dashboard and report views can be narrowed and what exported data contains.",
+      "difference": "D-8"
+     },
+     {
+      "id": "N-8",
+      "category": "data-model",
+      "text": "Which ingredient cost should be used to calculate the cost of a saved feeding event when the ingredient's unit cost changes over time?",
+      "options": [
+       "Use the ingredient unit cost recorded when the feeding event is saved.",
+       "Use the current inventory item's unit cost whenever historical metrics are viewed.",
+       "Use a weighted-average cost based on received and remaining stock."
+      ],
+      "recommended": "Use the ingredient unit cost recorded when the feeding event is saved.",
+      "reason": "This preserves the cost basis used for the event without requiring an additional stock-valuation method.",
+      "spans": [
+       "I-2",
+       "I-3",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Cost valuation affects event costs, lot profitability, and cost-of-gain results."
+     },
+     {
+      "id": "N-9",
+      "category": "external",
+      "text": "For the hackathon build, what procurement integration is expected beyond the requested mock data fetched from other systems?",
+      "options": [
+       "Simulate synchronization using mock PO and receiving data; no live external connector is required.",
+       "Connect to a specified procurement system through its API; provide the system and integration details.",
+       "Import procurement and receiving data from CSV files."
+      ],
+      "recommended": "Simulate synchronization using mock PO and receiving data; no live external connector is required.",
+      "reason": "Mock data is explicitly requested, so a live connector would add external dependencies not needed to demonstrate the flow.",
+      "spans": [
+       "I-1",
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes integration scope and the data-entry flow."
+     },
+     {
+      "id": "N-10",
+      "category": "data-model",
+      "text": "How is the daily bunk rate supplied when generating a pen's feed plan?",
+      "options": [
+       "Enter a per-animal daily rate and multiply it by the pen's animal count.",
+       "Enter a total daily quantity for the pen.",
+       "Derive the rate automatically from recent feeding activity."
+      ],
+      "recommended": "Enter a per-animal daily rate and multiply it by the pen's animal count.",
+      "reason": "This directly supports plan generation from a bunk rate and animal count without introducing an automatic prediction rule.",
+      "spans": [
+       "I-2",
+       "I-3"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes the plan-generation inputs and calculated planned quantity."
+     },
+     {
+      "id": "N-11",
+      "category": "data-model",
+      "text": "Are ration ingredient proportions specified on an as-fed basis or a dry-matter basis?",
+      "options": [
+       "Use as-fed proportions, based on the ingredient quantities mixed.",
+       "Use dry-matter proportions, adjusting ingredient quantities by their dry-matter percentages."
+      ],
+      "recommended": "Use as-fed proportions, based on the ingredient quantities mixed.",
+      "reason": "This is the most direct basis for calculating recipe quantities and ingredient costs from inventory amounts.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "The basis changes recipe quantities, nutrient calculations, and ration cost."
+     },
+     {
+      "id": "N-12",
+      "category": "data-model",
+      "text": "How should the target weight used for lifecycle and sale-date forecasts be determined when it is not supplied by procurement data?",
+      "options": [
+       "Use one configurable yard-level target weight for all lots.",
+       "Set a configurable target weight for each lot.",
+       "Derive target weight from breed and age using a configured rule."
+      ],
+      "recommended": "Use one configurable yard-level target weight for all lots.",
+      "reason": "A single configurable target is the smallest explicit input needed to calculate the requested forecasts without assuming a breed-based model.",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes forecast targets and projected market dates."
+     },
+     {
+      "id": "N-13",
+      "category": "scope",
+      "text": "How should users sign in, given that all users have the same access level?",
+      "options": [
+       "No sign-in; anyone with the app link can access the shared workspace.",
+       "Require individual accounts, but give all signed-in users the same access.",
+       "Use one shared account for all users."
+      ],
+      "recommended": "No sign-in; anyone with the app link can access the shared workspace.",
+      "reason": "This avoids adding account workflows or permission distinctions that are not requested.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines who can view and change operational and financial records.",
+      "topic": "sign-in"
+     },
+     {
+      "id": "N-14",
+      "category": "existing-data",
+      "text": "After a feeding, weight, or inventory entry is saved, how may users correct it?",
+      "options": [
+       "Allow users to edit or delete entries and recalculate affected metrics, without keeping a separate change history.",
+       "Keep saved entries immutable; users correct them by adding a reversal or replacement entry.",
+       "Allow edits and deletions while retaining a history of prior values and changes."
+      ],
+      "recommended": "Allow users to edit or delete entries and recalculate affected metrics, without keeping a separate change history.",
+      "reason": "This is the smallest correction workflow because a separate audit history is not otherwise requested.",
+      "spans": [
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Corrections change operational records and downstream inventory, cost, and performance calculations.",
+      "topic": "audit"
+     },
+     {
+      "id": "N-15",
+      "category": "scope",
+      "text": "Which browsers and browser versions must the responsive web app support?",
+      "options": [
+       "Current and previous major versions of Chrome, Edge, Firefox, and Safari.",
+       "Only the latest version of Chrome and Safari.",
+       "A specified browser/version list supplied by the deployment team."
+      ],
+      "recommended": "Current and previous major versions of Chrome, Edge, Firefox, and Safari.",
+      "reason": "This gives a practical cross-browser baseline for a responsive web app without requiring legacy-browser support.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Browser support affects whether users can access the app and complete its visible workflows.",
+      "topic": "browsers"
+     },
+     {
+      "id": "N-16",
+      "category": "scope",
+      "text": "What accessibility conformance level should the web app target?",
+      "options": [
+       "Provide keyboard access and semantic controls, with no formal WCAG conformance target.",
+       "Target WCAG 2.2 Level AA.",
+       "Target WCAG 2.1 Level AA."
+      ],
+      "recommended": "Provide keyboard access and semantic controls, with no formal WCAG conformance target.",
+      "reason": "This establishes basic operability without imposing a formal conformance scope that the request does not specify.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "I-4",
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "The choice affects the design and implementation of visible controls and page interactions.",
+      "topic": "accessibility"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 5,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

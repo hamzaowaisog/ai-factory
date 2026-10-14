@@ -1,0 +1,28 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "Yard overview",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "Procurement & lot records",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "Feed management",
+        "req": "REQ-8"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "Reports & project brief",
+        "req": "REQ-25"
+      }
+    ]
+  },
+  "images": []
+}

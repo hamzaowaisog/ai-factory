@@ -1,0 +1,330 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Project presentation",
+     "subtitle": "Operational model, architecture, validation and launch plan",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "30-day ADG · active lots",
+         "value": "1.42 kg/head/day",
+         "delta": "+0.06 vs prior 30d"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Work item",
+        "Yard / lot",
+        "Head / qty",
+        "Latest measure",
+        "Status"
+       ],
+       "rows": [
+        [
+         "Yard snapshot",
+         "All pens",
+         "1,248 head",
+         "1.36 kg/day ADG",
+         "Current"
+        ],
+        [
+         "Lot 24-06",
+         "Pen B-12",
+         "126 head",
+         "1.42 kg/day ADG",
+         "On feed"
+        ],
+        [
+         "Lot 24-05",
+         "Pen C-03",
+         "118 head",
+         "409 kg avg",
+         "Weigh due"
+        ],
+        [
+         "Load 8041",
+         "North gate",
+         "62 head",
+         "$2.18/kg",
+         "Reconciled"
+        ],
+        [
+         "Steam-flaked corn",
+         "Bin 2",
+         "18.6 t",
+         "6.2 days cover",
+         "Reorder"
+        ],
+        [
+         "Ration R-04",
+         "Pen B-12",
+         "2.84 t/day",
+         "72% dry matter",
+         "Mixed"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "pages": 1,
+       "page": 1
+      },
+      {
+       "type": "text",
+       "body": "Proposed solution: one shared workspace connects receiving, pens, weights, feed stock and ration costs. Architecture: Web UI → API → operations services → PostgreSQL; scale and mixer events → validation → traceable ledger → reports."
+      },
+      {
+       "type": "steps",
+       "items": [
+        "Review yard signals",
+        "Trace a purchase lot",
+        "Inspect pen performance",
+        "Reconcile feed inventory",
+        "Compare ration cost"
+       ],
+       "current": 0
+      },
+      {
+       "type": "accordion",
+       "title": "Project plan",
+       "items": [
+        {
+         "title": "Coding prompts",
+         "body": "Build lot-to-pen traceability, unit-safe inventory movements, ration dry-matter calculations and feed-to-gain reporting. Keep receiving, weighing and feeding usable on a phone browser."
+        },
+        {
+         "title": "Testing & validation",
+         "body": "Test receiving through pen assignment, scale weight imports, ration totals and inventory deductions. Validate kg, lb, tonnes and dry-matter conversions; reconcile daily feed use against mixer tickets."
+        },
+        {
+         "title": "Challenges & mitigations",
+         "body": "Scale integrations can arrive late or repeat; retain source timestamps and make imports idempotent. Treat estimated shrink separately from measured stock, and flag stale weights before forecast decisions."
+        },
+        {
+         "title": "Production readiness",
+         "body": "Before launch: tenant backups and restore drill, audit trail, access logging, import retries, alerting, offline-friendly yard forms and performance checks on large lot histories. Pilot with reconciled opening stock."
+        },
+        {
+         "title": "Go-to-market",
+         "body": "Start with a paid pilot at one yard: receiving, pen traceability and feed inventory first. Demonstrate measured feed-to-gain and cost per head; expand to multi-yard reporting after staff validate daily records."
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Yard snapshot",
+       "to": "S-1"
+      },
+      {
+       "from": "Lot 24-06",
+       "to": "S-2"
+      },
+      {
+       "from": "Lot 24-05",
+       "to": "S-2"
+      },
+      {
+       "from": "Load 8041",
+       "to": "S-2"
+      },
+      {
+       "from": "Steam-flaked corn",
+       "to": "S-3"
+      },
+      {
+       "from": "Ration R-04",
+       "to": "S-3"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No operating records yet",
+      "emptyHint": "Add a receiving, weighing or feeding record to build the project walkthrough.",
+      "error": "Project data could not be refreshed. The last saved snapshot is still shown.",
+      "success": "Project notes saved.",
+      "validation": "Complete the required fields before saving."
+     }
+    },
+    "mockFull": {
+     "title": "Project presentation",
+     "subtitle": "Operational model, architecture, validation and launch plan",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "30-day ADG · active lots",
+         "value": "1.42 kg/head/day",
+         "delta": "+0.06 vs prior 30d"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Work item",
+        "Yard / lot",
+        "Head / qty",
+        "Latest measure",
+        "Status"
+       ],
+       "rows": [
+        [
+         "Yard snapshot",
+         "All pens",
+         "1,248 head",
+         "1.36 kg/day ADG",
+         "Current"
+        ],
+        [
+         "Lot 24-06",
+         "Pen B-12",
+         "126 head",
+         "1.42 kg/day ADG",
+         "On feed"
+        ],
+        [
+         "Lot 24-05",
+         "Pen C-03",
+         "118 head",
+         "409 kg avg",
+         "Weigh due"
+        ],
+        [
+         "Load 8041",
+         "North gate",
+         "62 head",
+         "$2.18/kg",
+         "Reconciled"
+        ],
+        [
+         "Steam-flaked corn",
+         "Bin 2",
+         "18.6 t",
+         "6.2 days cover",
+         "Reorder"
+        ],
+        [
+         "Ration R-04",
+         "Pen B-12",
+         "2.84 t/day",
+         "72% dry matter",
+         "Mixed"
+        ],
+        [
+         "Lot 24-07",
+         "Receiving",
+         "84 head",
+         "415 kg avg",
+         "Receiving"
+        ],
+        [
+         "Load 8046",
+         "East scale",
+         "47 head",
+         "$2.24/kg",
+         "Awaiting grade"
+        ],
+        [
+         "Haylage",
+         "Bunker 1",
+         "31.2 t",
+         "10.4 days cover",
+         "Available"
+        ],
+        [
+         "Ration R-02",
+         "Pen C-03",
+         "2.51 t/day",
+         "70% dry matter",
+         "Scheduled"
+        ],
+        [
+         "Lot 24-03",
+         "Pen A-08",
+         "104 head",
+         "1.31 kg/day ADG",
+         "Review"
+        ],
+        [
+         "Mineral premix",
+         "Store 4",
+         "1.8 t",
+         "12 days cover",
+         "Available"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "text",
+       "body": "Proposed solution: one shared workspace connects receiving, pens, weights, feed stock and ration costs. Architecture: Web UI → API → operations services → PostgreSQL; scale and mixer events → validation → traceable ledger → reports."
+      },
+      {
+       "type": "steps",
+       "items": [
+        "Review yard signals",
+        "Trace a purchase lot",
+        "Inspect pen performance",
+        "Reconcile feed inventory",
+        "Compare ration cost"
+       ],
+       "current": 0
+      },
+      {
+       "type": "accordion",
+       "title": "Project plan",
+       "items": [
+        {
+         "title": "Coding prompts",
+         "body": "Build lot-to-pen traceability, unit-safe inventory movements, ration dry-matter calculations and feed-to-gain reporting. Keep receiving, weighing and feeding usable on a phone browser."
+        },
+        {
+         "title": "Testing & validation",
+         "body": "Test receiving through pen assignment, scale weight imports, ration totals and inventory deductions. Validate kg, lb, tonnes and dry-matter conversions; reconcile daily feed use against mixer tickets."
+        },
+        {
+         "title": "Challenges & mitigations",
+         "body": "Scale integrations can arrive late or repeat; retain source timestamps and make imports idempotent. Treat estimated shrink separately from measured stock, and flag stale weights before forecast decisions."
+        },
+        {
+         "title": "Production readiness",
+         "body": "Before launch: tenant backups and restore drill, audit trail, access logging, import retries, alerting, offline-friendly yard forms and performance checks on large lot histories. Pilot with reconciled opening stock."
+        },
+        {
+         "title": "Go-to-market",
+         "body": "Start with a paid pilot at one yard: receiving, pen traceability and feed inventory first. Demonstrate measured feed-to-gain and cost per head; expand to multi-yard reporting after staff validate daily records."
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No operating records yet",
+      "emptyHint": "Add a receiving, weighing or feeding record to build the project walkthrough.",
+      "error": "Project data could not be refreshed. The last saved snapshot is still shown.",
+      "success": "Project notes saved.",
+      "validation": "Complete the required fields before saving."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

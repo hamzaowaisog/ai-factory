@@ -1,0 +1,626 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Lots & procurement",
+     "subtitle": "Trace PO lines through pen assignments, weights and ship forecasts.",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Sync procurement",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Yard overview & reports",
+         "variant": "ghost"
+        },
+        {
+         "label": "Feed operations",
+         "variant": "ghost"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot / PO line",
+        "Supplier / received",
+        "Pen · head / cap",
+        "Target / ship date",
+        "ADG",
+        "Source status"
+       ],
+       "rows": [
+        [
+         "LT-26-041 · PO-7842/03",
+         "Prairie Creek · 12 May 2026",
+         "P-14 · 118 / 125 hd",
+         "650 kg lot · 18 Sep 2026",
+         "1.34 kg/d",
+         "Matched"
+        ],
+        [
+         "LT-26-042 · PO-7842/03",
+         "Prairie Creek · 12 May 2026",
+         "P-15 · 112 / 120 hd",
+         "650 kg lot · 19 Sep 2026",
+         "1.28 kg/d",
+         "Changed"
+        ],
+        [
+         "LT-26-038 · PO-7839/01",
+         "High Mesa · 11 May 2026",
+         "P-08 · 96 / 110 hd",
+         "635 kg yard · —",
+         "0.00 kg/d",
+         "Conflict"
+        ],
+        [
+         "LT-26-039 · PO-7839/02",
+         "High Mesa · 11 May 2026",
+         "P-09 · 103 / 110 hd",
+         "635 kg yard · —",
+         "−0.08 kg/d",
+         "Duplicate"
+        ],
+        [
+         "LT-26-044 · PO-7850/01",
+         "Red Willow · 12 May 2026",
+         "P-22 · 120 / 130 hd",
+         "660 kg lot · 26 Sep 2026",
+         "1.11 kg/d",
+         "Matched"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        "Review conflicts",
+        "Edit selected record",
+        {
+         "label": "Void selected record",
+         "variant": "danger"
+        }
+       ],
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "detail",
+       "title": "LT-26-041 · lot performance",
+       "lead": {
+        "label": "Pen P-14",
+        "value": "118 of 125 head"
+       },
+       "rows": [
+        {
+         "label": "Target weight",
+         "value": "650 kg lot target · 635 kg yard target"
+        },
+        {
+         "label": "Gain assumption",
+         "value": "1.34 kg/head/day"
+        },
+        {
+         "label": "Days on feed",
+         "value": "92 days"
+        },
+        {
+         "label": "Total gain · ADG",
+         "value": "123 kg/head · 1.34 kg/head/day"
+        },
+        {
+         "label": "Feed consumed",
+         "value": "1,086 kg/head"
+        },
+        {
+         "label": "Feed conversion ratio",
+         "value": "8.83 kg feed / kg gain"
+        },
+        {
+         "label": "Feed cost / gain",
+         "value": "$3.14/kg gain · recorded feed costs only"
+        },
+        {
+         "label": "Projected ship date",
+         "value": "18 Sep 2026"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Measurement date",
+         "kind": "date",
+         "value": "12 May 2026",
+         "required": true
+        },
+        {
+         "label": "Animals weighed",
+         "kind": "number",
+         "value": "24",
+         "required": true,
+         "help": "Enter the number of head weighed."
+        },
+        {
+         "label": "Average animal weight",
+         "kind": "number",
+         "value": "612.4",
+         "required": true,
+         "help": "kg/head. Total measured weight is calculated from average × headcount."
+        },
+        {
+         "label": "Notes",
+         "kind": "textarea",
+         "value": "Post-ration check; scale A",
+         "placeholder": "Add a note about this measurement"
+        }
+       ],
+       "submit": "Save weight measurement"
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "5 May 2026",
+         "title": "Original measurement · 602.7 kg average",
+         "meta": "24 head · 14,464.8 kg total · baseline · original retained in history",
+         "status": "done"
+        },
+        {
+         "time": "7 May 2026",
+         "title": "Weight check · 604.8 kg average",
+         "meta": "24 head · 14,515.2 kg total · +2.1 kg/head · routine pen check",
+         "status": "done"
+        },
+        {
+         "time": "9 May 2026",
+         "title": "Weight check · 608.3 kg average",
+         "meta": "20 head · 12,166 kg total · +3.5 kg/head · scale A sample",
+         "status": "done"
+        },
+        {
+         "time": "12 May 2026",
+         "title": "Weight check · 612.4 kg average",
+         "meta": "24 head · 14,697.6 kg total · +4.1 kg/head · post-ration check; scale A",
+         "status": "now"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Yard overview & reports",
+       "to": "S-1"
+      },
+      {
+       "from": "Feed operations",
+       "to": "S-3"
+      },
+      {
+       "from": "Project presentation",
+       "to": "S-4"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "Review conflicts",
+       "title": "Procurement source conflicts",
+       "text": "Review returned source states and existing lot-to-pen mappings before applying changes.",
+       "blocks": [
+        {
+         "type": "table",
+         "columns": [
+          "PO line",
+          "Source status",
+          "Current mapping",
+          "Returned mapping"
+         ],
+         "rows": [
+          [
+           "PO-7839/01",
+           "Conflict",
+           "LT-26-038 · P-08",
+           "LT-26-038 · P-18"
+          ],
+          [
+           "PO-7842/03",
+           "Changed",
+           "LT-26-041 · P-14; LT-26-042 · P-15",
+           "Two lots · mapping unchanged"
+          ],
+          [
+           "PO-7839/02",
+           "Duplicate",
+           "LT-26-039 · P-09",
+           "Previously received · no new lot"
+          ]
+         ],
+         "statusColumn": 1
+        }
+       ],
+       "actions": [
+        {
+         "label": "Apply source mapping",
+         "variant": "primary"
+        },
+        {
+         "label": "Keep current mapping",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "kind": "modal",
+       "trigger": "Edit selected record",
+       "title": "Revise weight measurement",
+       "text": "Updates lot metrics and forecasts. The original measurement remains in record history.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Measurement date",
+           "kind": "date",
+           "value": "12 May 2026",
+           "required": true
+          },
+          {
+           "label": "Animals weighed",
+           "kind": "number",
+           "value": "24",
+           "required": true
+          },
+          {
+           "label": "Average animal weight",
+           "kind": "number",
+           "value": "612.4",
+           "required": true,
+           "help": "kg/head. Total measured weight is recalculated from average × headcount."
+          },
+          {
+           "label": "Notes",
+           "kind": "textarea",
+           "value": "Post-ration check; scale A"
+          }
+         ],
+         "submit": "Save revised measurement"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Void selected record",
+       "title": "Void this weight record?",
+       "text": "The record will be excluded from current balances and metrics. Its original values remain visible in lot history.",
+       "actions": [
+        {
+         "label": "Void record",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep record",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Sync procurement",
+       "text": "6 PO and receiving records synced. Lot mappings and source states are up to date.",
+       "tone": "ok"
+      },
+      {
+       "after": "Save revised measurement",
+       "text": "LT-26-041 metrics refreshed. Move finishing ration up 0.3 kg/head; review the 16–18 Sep sale window.",
+       "tone": "ok"
+      },
+      {
+       "after": "Void record",
+       "text": "Record voided. Revised balances are shown; the original remains in lot history.",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No procurement lines yet",
+      "emptyHint": "Sync the mock source to populate PO and receiving records.",
+      "error": "Couldn’t refresh source records. Last imported rows remain visible.",
+      "success": "Weight measurement saved. Lot metrics and the ship forecast have been refreshed.",
+      "validation": "Complete the required measurement fields and check the entered values."
+     }
+    },
+    "mockFull": {
+     "title": "Lots & procurement",
+     "subtitle": "Trace PO lines through pen assignments, weights and ship forecasts.",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Sync procurement",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Yard overview & reports",
+         "variant": "ghost"
+        },
+        {
+         "label": "Feed operations",
+         "variant": "ghost"
+        },
+        {
+         "label": "Project presentation",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Lot / PO line",
+        "Supplier / received",
+        "Pen · head / cap",
+        "Target / ship date",
+        "ADG",
+        "Source status"
+       ],
+       "rows": [
+        [
+         "LT-26-041 · PO-7842/03",
+         "Prairie Creek · 12 May 2026",
+         "P-14 · 118 / 125 hd",
+         "650 kg lot · 18 Sep 2026",
+         "1.34 kg/d",
+         "Matched"
+        ],
+        [
+         "LT-26-042 · PO-7842/03",
+         "Prairie Creek · 12 May 2026",
+         "P-15 · 112 / 120 hd",
+         "650 kg lot · 19 Sep 2026",
+         "1.28 kg/d",
+         "Changed"
+        ],
+        [
+         "LT-26-038 · PO-7839/01",
+         "High Mesa · 11 May 2026",
+         "P-08 · 96 / 110 hd",
+         "635 kg yard · —",
+         "0.00 kg/d",
+         "Conflict"
+        ],
+        [
+         "LT-26-039 · PO-7839/02",
+         "High Mesa · 11 May 2026",
+         "P-09 · 103 / 110 hd",
+         "635 kg yard · —",
+         "−0.08 kg/d",
+         "Duplicate"
+        ],
+        [
+         "LT-26-044 · PO-7850/01",
+         "Red Willow · 12 May 2026",
+         "P-22 · 120 / 130 hd",
+         "660 kg lot · 26 Sep 2026",
+         "1.11 kg/d",
+         "Matched"
+        ],
+        [
+         "LT-26-045 · PO-7851/02",
+         "Prairie Creek · 12 May 2026",
+         "P-23 · 115 / 125 hd",
+         "635 kg yard · 3 Oct 2026",
+         "0.92 kg/d",
+         "Received"
+        ],
+        [
+         "LT-26-046 · PO-7854/01",
+         "Cedar Draw · 13 May 2026",
+         "P-11 · 121 / 125 hd",
+         "675 kg lot · 8 Oct 2026",
+         "0.88 kg/d",
+         "Changed"
+        ],
+        [
+         "LT-26-047 · PO-7854/02",
+         "Cedar Draw · 13 May 2026",
+         "P-12 · 108 / 120 hd",
+         "635 kg yard · —",
+         "0.00 kg/d",
+         "Conflict"
+        ],
+        [
+         "LT-26-048 · PO-7857/01",
+         "Red Willow · 14 May 2026",
+         "P-26 · 117 / 130 hd",
+         "670 kg lot · 14 Oct 2026",
+         "1.02 kg/d",
+         "Matched"
+        ],
+        [
+         "LT-26-049 · PO-7860/01",
+         "High Mesa · 14 May 2026",
+         "P-05 · 99 / 105 hd",
+         "635 kg yard · 20 Oct 2026",
+         "0.74 kg/d",
+         "Received"
+        ],
+        [
+         "LT-26-050 · PO-7862/01",
+         "Prairie Creek · 15 May 2026",
+         "P-18 · 124 / 130 hd",
+         "660 kg lot · 22 Oct 2026",
+         "0.81 kg/d",
+         "Duplicate"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        "Review conflicts",
+        "Edit selected record",
+        {
+         "label": "Void selected record",
+         "variant": "danger"
+        }
+       ],
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "detail",
+       "title": "LT-26-041 · lot performance",
+       "lead": {
+        "label": "Pen P-14",
+        "value": "118 of 125 head"
+       },
+       "rows": [
+        {
+         "label": "Target weight",
+         "value": "650 kg lot target · 635 kg yard target"
+        },
+        {
+         "label": "Gain assumption",
+         "value": "1.34 kg/head/day"
+        },
+        {
+         "label": "Days on feed",
+         "value": "92 days"
+        },
+        {
+         "label": "Total gain · ADG",
+         "value": "123 kg/head · 1.34 kg/head/day"
+        },
+        {
+         "label": "Feed consumed",
+         "value": "1,086 kg/head"
+        },
+        {
+         "label": "Feed conversion ratio",
+         "value": "8.83 kg feed / kg gain"
+        },
+        {
+         "label": "Feed cost / gain",
+         "value": "$3.14/kg gain · recorded feed costs only"
+        },
+        {
+         "label": "Projected ship date",
+         "value": "18 Sep 2026"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Measurement date",
+         "kind": "date",
+         "value": "12 May 2026",
+         "required": true
+        },
+        {
+         "label": "Animals weighed",
+         "kind": "number",
+         "value": "24",
+         "required": true,
+         "help": "Enter the number of head weighed."
+        },
+        {
+         "label": "Average animal weight",
+         "kind": "number",
+         "value": "612.4",
+         "required": true,
+         "help": "kg/head. Total measured weight is calculated from average × headcount."
+        },
+        {
+         "label": "Notes",
+         "kind": "textarea",
+         "value": "Post-ration check; scale A",
+         "placeholder": "Add a note about this measurement"
+        }
+       ],
+       "submit": "Save weight measurement"
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "2 May 2026",
+         "title": "Weight check · 599.4 kg average",
+         "meta": "24 head · 14,385.6 kg total · baseline · arrival sample",
+         "status": "done"
+        },
+        {
+         "time": "4 May 2026",
+         "title": "Weight check · 601.2 kg average",
+         "meta": "24 head · 14,428.8 kg total · +1.8 kg/head · pen-side check",
+         "status": "done"
+        },
+        {
+         "time": "5 May 2026",
+         "title": "Original measurement · 602.7 kg average",
+         "meta": "24 head · 14,464.8 kg total · +1.5 kg/head · original retained in history",
+         "status": "done"
+        },
+        {
+         "time": "7 May 2026",
+         "title": "Weight check · 604.8 kg average",
+         "meta": "24 head · 14,515.2 kg total · +2.1 kg/head · routine pen check",
+         "status": "done"
+        },
+        {
+         "time": "9 May 2026",
+         "title": "Weight check · 608.3 kg average",
+         "meta": "20 head · 12,166 kg total · +3.5 kg/head · scale A sample",
+         "status": "done"
+        },
+        {
+         "time": "10 May 2026",
+         "title": "Weight check · 609.6 kg average",
+         "meta": "24 head · 14,630.4 kg total · +1.3 kg/head · midday check",
+         "status": "done"
+        },
+        {
+         "time": "11 May 2026",
+         "title": "Weight check · 611.0 kg average",
+         "meta": "24 head · 14,664 kg total · +1.4 kg/head · finishing ration review",
+         "status": "done"
+        },
+        {
+         "time": "12 May 2026",
+         "title": "Weight check · 612.4 kg average",
+         "meta": "24 head · 14,697.6 kg total · +1.4 kg/head · post-ration check; scale A",
+         "status": "now"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

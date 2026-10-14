@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "LotSummary|receivingDate|recordedFeedCost",
+    "glob": "**/*schemas*"
+   },
+   "ms": 1,
+   "resultChars": 341,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;LotSummary|receivingDate|recordedFeedCost&quot;,&quot;glob&quot;:&quot;**/*schemas*&quot;}\">\nlib/api/client.schemas.ts:25: lots: LotSummary[];\nlib/api/client.schemas.ts:34: export interface LotSummary {\nlib/api/client.schemas.ts:66: lots: LotSummary[];\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,90 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test renders the workspace, asserts representative workspace content and the absence of sign-in and role-selector UI, and verifies requests carry no authorization header."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_ShowsSameControlsInTwoSessions",
+      "verdict": "weak",
+      "why": "It renders each screen twice sequentially in the same browser context, so it does not compare controls across two independent browser sessions."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test captures the synchronization request and checks nonempty PO-line, vendor, cost, head-count, weight, breed, age, and source fields, along with receiving-record fields."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "For each of three distinct returned records, the test waits for the vendor to appear and checks the returned cost, head count, weight, breed, age, and source within that record's region."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "",
+      "verdict": "weak",
+      "why": "Both mapping tests verify lot-to-pen names, capacity, and animal count, but do not assert that the displayed association identifies the PO line and numeric pen ID."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks all three affected records with each returned status and any nonempty existing mapping in the record's region, and asserts that a review action is displayed."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "For three distinct lots, the test checks the returned target weight and projected date together in each lot's region using dates derived from the fixed test instant."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both zero- and negative-ADG lots retain their target and have no displayed date, while a positive-ADG lot displays its projected date."
+     },
+     {
+      "acId": "AC-6.1",
+      "testId": "AC_6_1_ShowsTargetSelectedByLotSpecificOrYardConfiguration",
+      "verdict": "weak",
+      "why": "The fixtures cover Lot and Yard forecast sources but omit the procurement-target case, so that target-selection case could be broken without failing the test."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test provides four distinct lot forecasts with the configured yard target and checks that value within every lot's region."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "AC_8_1_ShowsEveryInventoryItemWithDetailsAndStockTotals",
+      "verdict": "weak",
+      "why": "The generic `lb` assertion can be satisfied by quantity or stock labels even if an item's unit-of-measure value is not displayed."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "AC_8_2_ShowsReturnedItemWithSubmittedValuesAfterCreate",
+      "verdict": "weak",
+      "why": "The mock echoes submitted fields and the display assertion compares against that echoed object, so a locally rendered submission could pass; it also never asserts that the submitted category is Protein."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,215 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Project presentation",
+     "subtitle": "A shared, responsive operating workspace for traceable feedlot decisions.",
+     "blocks": [
+      {
+       "type": "text",
+       "body": "Proposed solution and sample snapshot: one workspace for receiving, lot-to-pen traceability, feeding, weighing and financial review. 1,284 head across 6 lots; 312 received this week; ADG 1.42 kg/day; DMI 7.1 kg/head/day; feed-to-gain 5.0:1; feed cost $3.18/head/day."
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "01 · Browser workspace",
+         "meta": "One responsive web app for desk, tablet and phone browser; shared controls, no sign-in screen."
+        },
+        {
+         "title": "02 · Operational modules",
+         "meta": "Yard, lots and feed modules share lot and pen IDs across stock, rations and events."
+        },
+        {
+         "title": "03 · Application services",
+         "meta": "Validate head counts, kg, dry matter, inventory movements, ration versions and cost allocations."
+        },
+        {
+         "title": "04 · Operational ledger",
+         "meta": "Timestamped records link receipts, feed issues, weigh-ins and costs for traceable reporting."
+        },
+        {
+         "title": "05 · Integration boundary",
+         "meta": "CSV import and export first; scale and accounting connections follow pilot validation."
+        }
+       ]
+      },
+      {
+       "type": "steps",
+       "items": [
+        "Review yard snapshot",
+        "Receive and trace a lot",
+        "Assign lot to pen",
+        "Record feed and weigh-ins",
+        "Review performance report"
+       ],
+       "current": 0
+      },
+      {
+       "type": "accordion",
+       "title": "Delivery plan",
+       "items": [
+        {
+         "title": "Coding prompts",
+         "body": "Prompt: implement receiving with supplier, lot ID, head count, arrival date and average weight. Flag negative counts and duplicate lines before committing a receipt."
+        },
+        {
+         "title": "Testing and validation",
+         "body": "Test kg and dry-matter conversions; trace receipt → pen assignment → ration issue → feeding event → weigh-in → ADG and feed-to-gain report. Reconcile opening stock + receipts − issues = closing stock."
+        },
+        {
+         "title": "Challenges",
+         "body": "Expect inconsistent supplier records, delayed scale readings and unit-conversion errors. Preserve source values, show converted units, and flag incomplete events without silently changing stock."
+        },
+        {
+         "title": "Production readiness",
+         "body": "Before launch, verify backups and restore, audit history, duplicate-safe imports, monitoring, tablet usability and data reconciliation. Keep shared controls consistent; do not introduce role-specific choices."
+        },
+        {
+         "title": "Go-to-market analysis",
+         "body": "Pilot with one feedlot for four weeks, onboarding managers and nutrition staff around receiving, daily feed issues and weigh days. Measure reconciliation time, data completeness and operator adoption before expanding."
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Open Yard overview & reports",
+       "to": "S-1"
+      },
+      {
+       "from": "Open Lots & procurement",
+       "to": "S-2"
+      },
+      {
+       "from": "Open Feed operations",
+       "to": "S-3"
+      }
+     ],
+     "actions": [
+      {
+       "label": "Open Yard overview & reports",
+       "variant": "primary"
+      },
+      {
+       "label": "Open Lots & procurement",
+       "variant": "secondary"
+      },
+      {
+       "label": "Open Feed operations",
+       "variant": "secondary"
+      }
+     ]
+    },
+    "mockFull": {
+     "title": "Project presentation",
+     "subtitle": "A shared, responsive operating workspace for traceable feedlot decisions.",
+     "blocks": [
+      {
+       "type": "text",
+       "body": "Proposed solution and sample snapshot: one workspace for receiving, lot-to-pen traceability, feeding, weighing and financial review. 1,284 head across 6 lots; 312 received this week; ADG 1.42 kg/day; DMI 7.1 kg/head/day; feed-to-gain 5.0:1; feed cost $3.18/head/day."
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "01 · Browser workspace",
+         "meta": "One responsive web app for desk, tablet and phone browser; shared controls, no sign-in screen."
+        },
+        {
+         "title": "02 · Shared workspace shell",
+         "meta": "Yard overview and reports lead into procurement and feed operations; navigation stays consistent."
+        },
+        {
+         "title": "03 · Receiving and procurement",
+         "meta": "Supplier, purchase, arrival date, head count and arrival weight stay attached to the receiving record."
+        },
+        {
+         "title": "04 · Lot and pen traceability",
+         "meta": "Each of 6 active lots maps to a pen; movement history preserves head counts and source details."
+        },
+        {
+         "title": "05 · Feed inventory",
+         "meta": "Receipts and issues update on-hand stock; dry matter and physical units remain visible."
+        },
+        {
+         "title": "06 · Rations and feeding events",
+         "meta": "Versioned rations connect ingredient quantities to dated pen-level feeding events."
+        },
+        {
+         "title": "07 · Weights and performance",
+         "meta": "Weigh-ins calculate ADG and feed-to-gain; the current demo snapshot is 1.42 kg/day and 5.0:1."
+        },
+        {
+         "title": "08 · Finance and integrations",
+         "meta": "Feed cost is allocated at $3.18/head/day; CSV import/export comes before scale and accounting adapters."
+        }
+       ]
+      },
+      {
+       "type": "steps",
+       "items": [
+        "Review yard snapshot",
+        "Receive and trace a lot",
+        "Assign lot to pen",
+        "Record feed and weigh-ins",
+        "Review performance report"
+       ],
+       "current": 0
+      },
+      {
+       "type": "accordion",
+       "title": "Delivery plan",
+       "items": [
+        {
+         "title": "Coding prompts",
+         "body": "Prompt: implement receiving with supplier, lot ID, head count, arrival date and average weight. Flag negative counts and duplicate lines before committing a receipt."
+        },
+        {
+         "title": "Testing and validation",
+         "body": "Test kg and dry-matter conversions; trace receipt → pen assignment → ration issue → feeding event → weigh-in → ADG and feed-to-gain report. Reconcile opening stock + receipts − issues = closing stock."
+        },
+        {
+         "title": "Challenges",
+         "body": "Expect inconsistent supplier records, delayed scale readings and unit-conversion errors. Preserve source values, show converted units, and flag incomplete events without silently changing stock."
+        },
+        {
+         "title": "Production readiness",
+         "body": "Before launch, verify backups and restore, audit history, duplicate-safe imports, monitoring, tablet usability and data reconciliation. Keep shared controls consistent; do not introduce role-specific choices."
+        },
+        {
+         "title": "Go-to-market analysis",
+         "body": "Pilot with one feedlot for four weeks, onboarding managers and nutrition staff around receiving, daily feed issues and weigh days. Measure reconciliation time, data completeness and operator adoption before expanding."
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Open Yard overview & reports",
+       "to": "S-1"
+      },
+      {
+       "from": "Open Lots & procurement",
+       "to": "S-2"
+      },
+      {
+       "from": "Open Feed operations",
+       "to": "S-3"
+      }
+     ]
+    }
+   },
+   "ms": 13,
+   "resultChars": 855,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.0.body: Too big: expected string to have <=240 characters; mock.blocks.1.items.0.meta: Too big: expected string to have <=80 characters; mock.blocks.1.items.1.meta: Too big: expected string to have <=80 characters; mock.blocks.1.items.2.meta: Too big: expected string to have <=80 characters; mock.blocks.1.items.3.meta: Too big: expected string to have <=80 characters; mock.blocks.1.items.4.meta: Too big: expected string to have <=80 characters; mockFull.blocks.0.body: Too big: expected string to have <=240 characters; mockFull.blocks.1.items.0.meta: Too big: expected string to have <=80 characters; mockFull.blocks.1.items.1.meta: Too big: expected string to have <=80 characters; mockFull.blocks.1.items.2.meta: Too big: expected string to have <=80 characters. Fix it and call submit_result again."
+  }
+ ]
+}

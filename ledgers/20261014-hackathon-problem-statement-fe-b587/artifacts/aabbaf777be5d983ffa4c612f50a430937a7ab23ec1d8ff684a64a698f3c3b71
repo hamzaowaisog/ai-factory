@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "max_tokens",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "__unparsable": true
+   },
+   "ms": 0,
+   "resultChars": 131,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock: Invalid input: expected object, received undefined. Fix it and call submit_result again."
+  }
+ ]
+}

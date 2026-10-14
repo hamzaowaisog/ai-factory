@@ -1,0 +1,321 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Project presentation",
+     "subtitle": "Operational model, architecture and a practical path from demo to yard pilot",
+     "blocks": [
+      {
+       "type": "text",
+       "body": "Shared responsive workspace connects receiving, pen feeding, weights and cost review. Flow: browser shell → yard, lot and feed modules → validated domain API → event ledger → reports and exports. Examples below use one consistent yard dataset."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Lot 26-014 · Red Angus",
+         "meta": "118 head · Pen B-04 · received 12 Mar 2026 · 318 kg average entry weight",
+         "badge": "Active"
+        },
+        {
+         "title": "Lot 26-009 · Angus cross",
+         "meta": "84 head · Pen C-02 · 1.62 kg average daily gain · last weighed 13 Mar",
+         "badge": "Watch"
+        },
+        {
+         "title": "Lot 26-006 · Hereford cross",
+         "meta": "102 head · Pen A-11 · 327 kg average entry weight · closeout 10 Mar",
+         "badge": "Closed"
+        },
+        {
+         "title": "Feed delivery · Alfalfa hay",
+         "meta": "22.4 t · North Valley Co-op · received 14 Mar 2026 · lot FH-882",
+         "badge": "Received"
+        },
+        {
+         "title": "Ration · Grower 68",
+         "meta": "68.1% dry matter · 7.2 kg/head/day · $2.84/head/day",
+         "badge": "Current"
+        },
+        {
+         "title": "Feed event · Pen B-04",
+         "meta": "5.1 t delivered · 14 Mar 2026, 06:20 · mixer 2",
+         "badge": "Logged"
+        }
+       ]
+      },
+      {
+       "type": "steps",
+       "items": [
+        "Responsive web shell",
+        "Yard + lot modules",
+        "Feed event service",
+        "Validated data ledger",
+        "Reports & exports"
+       ],
+       "current": 0
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "07:10 · 14 Mar",
+         "title": "Review yard exceptions",
+         "meta": "Check lot weights, feed stock and watch-status pens",
+         "status": "done"
+        },
+        {
+         "time": "07:25 · 14 Mar",
+         "title": "Receive and reconcile hay",
+         "meta": "Match 22.4 t delivery to supplier and inventory lot FH-882",
+         "status": "done"
+        },
+        {
+         "time": "07:40 · 14 Mar",
+         "title": "Review Pen B-04 ration",
+         "meta": "Confirm dry matter and daily cost before the morning mix",
+         "status": "now"
+        },
+        {
+         "time": "08:00 · 14 Mar",
+         "title": "Log the feeding event",
+         "meta": "Record 5.1 t delivered by mixer 2",
+         "status": "next"
+        },
+        {
+         "time": "08:20 · 14 Mar",
+         "title": "Compare latest weights",
+         "meta": "Review average daily gain against feed-to-gain trend",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "accordion",
+       "title": "Build, validate and launch",
+       "items": [
+        {
+         "title": "Coding prompts",
+         "body": "Build receiving for source, head count, entry weight, date and pen. Add a feed-event form that converts as-fed weight to dry matter from the active ration, then updates inventory and cost per head."
+        },
+        {
+         "title": "Testing and validation",
+         "body": "Unit-test kg/lb and as-fed/dry-matter conversions, rounding and cost allocation. Integration-test receiving-to-stock and feeding-to-inventory. Check required fields, duplicate tickets, out-of-range weights, and desktop, tablet and phone layouts."
+        },
+        {
+         "title": "Challenges and mitigations",
+         "body": "Supplier tickets use mixed units; retain the entered unit and conversion source. Flag stale weigh-ins by measurement date. Record partial deliveries and ration edits as dated events so current stock and historical costs remain explainable."
+        },
+        {
+         "title": "Production-readiness assessment",
+         "body": "The demo is not production-certified. Before rollout, verify organization access boundaries, audit history, backup and restore, monitoring, data retention, import reconciliation, and recovery after a yard-side network interruption."
+        },
+        {
+         "title": "Go-to-market strategy",
+         "body": "Pilot with 2–3 feedlots that receive cattle and mix feed daily. Train a yard manager and nutrition lead; measure reconciliation time, stock variance and cost per head/day. Convert successful pilots to a per-yard subscription with paid migration and a scheduled expansion review."
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Open Yard overview & reports",
+         "variant": "primary"
+        },
+        {
+         "label": "Open Lots & procurement",
+         "variant": "secondary"
+        },
+        {
+         "label": "Open Feed operations",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Open Yard overview & reports",
+       "to": "S-1"
+      },
+      {
+       "from": "Open Lots & procurement",
+       "to": "S-2"
+      },
+      {
+       "from": "Open Feed operations",
+       "to": "S-3"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No presentation data yet",
+      "emptyHint": "Operational examples and the project walkthrough will appear here when data is available.",
+      "error": "The project presentation could not be refreshed. The last saved version is still shown.",
+      "success": "Project presentation saved.",
+      "validation": "Check the highlighted fields and try again."
+     }
+    },
+    "mockFull": {
+     "title": "Project presentation",
+     "subtitle": "Operational model, architecture and a practical path from demo to yard pilot",
+     "blocks": [
+      {
+       "type": "text",
+       "body": "Shared responsive workspace connects receiving, pen feeding, weights and cost review. Flow: browser shell → yard, lot and feed modules → validated domain API → event ledger → reports and exports. Examples below use one consistent yard dataset."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Lot 26-014 · Red Angus",
+         "meta": "118 head · Pen B-04 · received 12 Mar 2026 · 318 kg average entry weight",
+         "badge": "Active"
+        },
+        {
+         "title": "Lot 26-009 · Angus cross",
+         "meta": "84 head · Pen C-02 · 1.62 kg average daily gain · last weighed 13 Mar",
+         "badge": "Watch"
+        },
+        {
+         "title": "Lot 26-006 · Hereford cross",
+         "meta": "102 head · Pen A-11 · 327 kg average entry weight · closeout 10 Mar",
+         "badge": "Closed"
+        },
+        {
+         "title": "Feed delivery · Alfalfa hay",
+         "meta": "22.4 t · North Valley Co-op · received 14 Mar 2026 · lot FH-882",
+         "badge": "Received"
+        },
+        {
+         "title": "Ration · Grower 68",
+         "meta": "68.1% dry matter · 7.2 kg/head/day · $2.84/head/day",
+         "badge": "Current"
+        },
+        {
+         "title": "Feed event · Pen B-04",
+         "meta": "5.1 t delivered · 14 Mar 2026, 06:20 · mixer 2",
+         "badge": "Logged"
+        },
+        {
+         "title": "Lot 26-011 · Charolais cross",
+         "meta": "96 head · Pen D-03 · received 9 Mar 2026 · 342 kg average entry weight",
+         "badge": "Receiving"
+        },
+        {
+         "title": "Feed delivery · Corn silage",
+         "meta": "18.6 t · Prairie Grain & Feed · received 13 Mar 2026 · lot CS-417",
+         "badge": "Reconciled"
+        },
+        {
+         "title": "Ration · Finisher 72",
+         "meta": "72.4% dry matter · 8.6 kg/head/day · $3.17/head/day",
+         "badge": "Review due"
+        }
+       ]
+      },
+      {
+       "type": "steps",
+       "items": [
+        "Responsive web shell",
+        "Yard + lot modules",
+        "Feed event service",
+        "Validated data ledger",
+        "Reports & exports"
+       ],
+       "current": 0
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "07:10 · 14 Mar",
+         "title": "Review yard exceptions",
+         "meta": "Check lot weights, feed stock and watch-status pens",
+         "status": "done"
+        },
+        {
+         "time": "07:25 · 14 Mar",
+         "title": "Receive and reconcile hay",
+         "meta": "Match 22.4 t delivery to supplier and inventory lot FH-882",
+         "status": "done"
+        },
+        {
+         "time": "07:40 · 14 Mar",
+         "title": "Review Pen B-04 ration",
+         "meta": "Confirm dry matter and daily cost before the morning mix",
+         "status": "now"
+        },
+        {
+         "time": "08:00 · 14 Mar",
+         "title": "Log the feeding event",
+         "meta": "Record 5.1 t delivered by mixer 2",
+         "status": "next"
+        },
+        {
+         "time": "08:20 · 14 Mar",
+         "title": "Compare latest weights",
+         "meta": "Review average daily gain against feed-to-gain trend",
+         "status": "next"
+        },
+        {
+         "time": "09:05 · 14 Mar",
+         "title": "Resolve unit discrepancy",
+         "meta": "Compare the CS-417 ticket with the recorded scale weight",
+         "status": "next"
+        },
+        {
+         "time": "10:30 · 14 Mar",
+         "title": "Review closeout performance",
+         "meta": "Compare Lot 26-006 final weight with feed cost history",
+         "status": "next"
+        },
+        {
+         "time": "11:00 · 14 Mar",
+         "title": "Export the daily review",
+         "meta": "Share receiving, inventory and pen performance summary",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "accordion",
+       "title": "Build, validate and launch",
+       "items": [
+        {
+         "title": "Coding prompts",
+         "body": "Build receiving for source, head count, entry weight, date and pen. Add a feed-event form that converts as-fed weight to dry matter from the active ration, then updates inventory and cost per head."
+        },
+        {
+         "title": "Testing and validation",
+         "body": "Unit-test kg/lb and as-fed/dry-matter conversions, rounding and cost allocation. Integration-test receiving-to-stock and feeding-to-inventory. Check required fields, duplicate tickets, out-of-range weights, and desktop, tablet and phone layouts."
+        },
+        {
+         "title": "Challenges and mitigations",
+         "body": "Supplier tickets use mixed units; retain the entered unit and conversion source. Flag stale weigh-ins by measurement date. Record partial deliveries and ration edits as dated events so current stock and historical costs remain explainable."
+        },
+        {
+         "title": "Production-readiness assessment",
+         "body": "The demo is not production-certified. Before rollout, verify organization access boundaries, audit history, backup and restore, monitoring, data retention, import reconciliation, and recovery after a yard-side network interruption."
+        },
+        {
+         "title": "Go-to-market strategy",
+         "body": "Pilot with 2–3 feedlots that receive cattle and mix feed daily. Train a yard manager and nutrition lead; measure reconciliation time, stock variance and cost per head/day. Convert successful pilots to a per-yard subscription with paid migration and a scheduled expansion review."
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

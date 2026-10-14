@@ -1,0 +1,660 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Lots & procurement",
+     "subtitle": "PO receiving, pen traceability, lifecycle forecasts and lot gain records",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Yard target weight",
+         "value": "1,360 lb",
+         "delta": "Configured for every lot"
+        }
+       ]
+      },
+      {
+       "type": "toolbar",
+       "search": "Search PO, lot or pen",
+       "selects": [
+        {
+         "label": "Import status",
+         "options": [
+          "All statuses",
+          "Synced",
+          "Changed",
+          "Duplicate",
+          "Conflict"
+         ],
+         "value": "All statuses"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Sync procurement",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Map PO line",
+         "variant": "secondary"
+        },
+        {
+         "label": "Record weight",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "PO line",
+        "Supplier · received",
+        "Lot → pen mapping",
+        "Head / capacity",
+        "Target · projected ship",
+        "Import status"
+       ],
+       "rows": [
+        [
+         "PO-58314 · line 01",
+         "Red Creek Cattle · 31 Jan",
+         "LOT-2408 → P-12",
+         "132 / 160 head",
+         "1,360 lb · 20 Sep 2026",
+         "Synced"
+        ],
+        [
+         "PO-58314 · line 02",
+         "Red Creek Cattle · 31 Jan",
+         "LOT-2409 + 2410 → P-14 / P-15",
+         "128 / 180 head (76/100; 52/80)",
+         "1,360 lb · 12 Oct 2026",
+         "Changed"
+        ],
+        [
+         "PO-58402 · line 01",
+         "High Mesa Livestock · 07 Feb",
+         "LOT-2411 → P-03",
+         "186 / 200 head",
+         "1,360 lb · — (ADG −0.12)",
+         "Conflict"
+        ],
+        [
+         "PO-58402 · line 02",
+         "High Mesa Livestock · 07 Feb",
+         "LOT-2412 → P-05",
+         "94 / 120 head",
+         "1,360 lb · 06 Nov 2026",
+         "Duplicate"
+        ],
+        [
+         "PO-58436 · line 01",
+         "Prairie Bend Ranch · 12 Feb",
+         "LOT-2413 → P-08",
+         "144 / 180 head",
+         "1,325 lb · 28 Oct 2026",
+         "Synced"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Review conflicts",
+         "variant": "secondary",
+         "icon": "eye"
+        }
+       ],
+       "pages": 5,
+       "page": 1
+      },
+      {
+       "type": "detail",
+       "title": "LOT-2408 · Current performance",
+       "lead": {
+        "label": "Pen",
+        "value": "P-12"
+       },
+       "rows": [
+        {
+         "label": "Target · assumption",
+         "value": "1,360 lb · 3.45 lb/day"
+        },
+        {
+         "label": "Days on feed",
+         "value": "73 days"
+        },
+        {
+         "label": "Total weight gain",
+         "value": "33,264 lb"
+        },
+        {
+         "label": "Average daily gain",
+         "value": "3.45 lb/day"
+        },
+        {
+         "label": "Feed consumed",
+         "value": "83,160 lb"
+        },
+        {
+         "label": "Feed conversion",
+         "value": "2.50:1"
+        },
+        {
+         "label": "Recorded feed cost / gain",
+         "value": "$1.24/lb"
+        },
+        {
+         "label": "Projected ship date",
+         "value": "20 Sep 2026"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "01 Feb 2026 · 560 lb avg",
+         "meta": "132 weighed · 73,920 lb total · Baseline; no prior measurement · Received weight"
+        },
+        {
+         "title": "01 Mar 2026 · 663 lb avg",
+         "meta": "132 weighed · 87,516 lb total · +103 lb since prior · Bunk adjustment complete"
+        },
+        {
+         "title": "01 Apr 2026 · 770 lb avg",
+         "meta": "132 weighed · 101,640 lb total · +107 lb since prior · Routine yard check"
+        },
+        {
+         "title": "14 Apr 2026 · 812 lb avg",
+         "meta": "132 weighed · 107,184 lb total · +42 lb since prior · Revised 15 Apr; original entry retained"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Returned feeding insight · LOT-2408",
+       "text": "Hold the 24.6 lb/head ration through 21 Apr and reweigh then. Current ship forecast is 20 Sep 2026; feed cost uses recorded feed costs only.",
+       "action": "Review feed adjustment"
+      }
+     ],
+     "crumbs": [
+      "Yard overview & reports"
+     ],
+     "links": [
+      {
+       "from": "Yard overview & reports",
+       "to": "S-1"
+      },
+      {
+       "from": "Review feed adjustment",
+       "to": "S-3"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "sheet",
+       "trigger": "Map PO line",
+       "title": "Map PO line to lots and pens",
+       "text": "Assign the received quantity across one or more lots, then connect each lot to a pen. Current head count and pen capacity are shown below.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "PO line",
+           "kind": "select",
+           "value": "PO-58314 · line 02",
+           "options": [
+            "PO-58314 · line 02",
+            "PO-58436 · line 01",
+            "PO-58510 · line 01"
+           ],
+           "required": true
+          },
+          {
+           "label": "Lots",
+           "kind": "multiselect",
+           "value": "LOT-2409, LOT-2410",
+           "options": [
+            "LOT-2409",
+            "LOT-2410",
+            "LOT-2413",
+            "LOT-2414"
+           ],
+           "required": true
+          },
+          {
+           "label": "Pens",
+           "kind": "multiselect",
+           "value": "P-14 · 76/100 head, P-15 · 52/80 head",
+           "options": [
+            "P-14 · 76/100 head",
+            "P-15 · 52/80 head",
+            "P-08 · 144/180 head",
+            "P-09 · 88/120 head"
+           ],
+           "help": "Selected lots map to selected pens in order; counts show current head / capacity."
+          }
+         ],
+         "submit": "Save mapping"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Save mapping",
+         "variant": "primary"
+        }
+       ]
+      },
+      {
+       "kind": "sheet",
+       "trigger": "Record weight",
+       "title": "Record or revise a weight measurement",
+       "text": "Total measured weight is calculated from average weight × animals weighed. There is no separate total-weight entry.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Lot",
+           "kind": "select",
+           "value": "LOT-2408 · P-12",
+           "options": [
+            "LOT-2408 · P-12",
+            "LOT-2409 · P-14",
+            "LOT-2410 · P-15"
+           ],
+           "required": true
+          },
+          {
+           "label": "Record action",
+           "kind": "select",
+           "value": "New measurement",
+           "options": [
+            "New measurement",
+            "Revise saved measurement",
+            "Void saved measurement"
+           ],
+           "required": true
+          },
+          {
+           "label": "Measurement date",
+           "kind": "date",
+           "value": "14 Apr 2026",
+           "required": true
+          },
+          {
+           "label": "Animals weighed",
+           "kind": "number",
+           "value": "132",
+           "required": true,
+           "help": "Whole animals weighed."
+          },
+          {
+           "label": "Average animal weight",
+           "kind": "number",
+           "value": "812",
+           "placeholder": "Weight in lb",
+           "required": true,
+           "help": "Average weight in lb per animal."
+          },
+          {
+           "label": "Notes",
+           "kind": "textarea",
+           "value": "Reweighed after bunk adjustment"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Save measurement",
+         "variant": "primary"
+        },
+        {
+         "label": "Manage saved entry",
+         "variant": "secondary",
+         "menu": [
+          "Save revision",
+          "Void record"
+         ]
+        }
+       ]
+      },
+      {
+       "kind": "drawer",
+       "trigger": "Review conflicts",
+       "title": "Procurement records to review",
+       "text": "The source adapter returned duplicate, changed and conflicting records. Existing lot-to-pen mappings remain visible until you apply a choice.",
+       "blocks": [
+        {
+         "type": "table",
+         "columns": [
+          "PO line",
+          "Returned status",
+          "Source detail",
+          "Current mapping"
+         ],
+         "rows": [
+          [
+           "PO-58314 · line 02",
+           "Changed",
+           "Received head revised: 124 → 128",
+           "LOT-2409 / LOT-2410 → P-14 / P-15"
+          ],
+          [
+           "PO-58402 · line 01",
+           "Conflict",
+           "Source target 1,320 lb differs from yard target 1,360 lb",
+           "LOT-2411 → P-03"
+          ],
+          [
+           "PO-58402 · line 02",
+           "Duplicate",
+           "Receiving record matches PO-58314 · line 04",
+           "LOT-2412 → P-05"
+          ]
+         ],
+         "statusColumn": 1
+        }
+       ],
+       "actions": [
+        {
+         "label": "Apply source update",
+         "variant": "primary"
+        },
+        {
+         "label": "Keep current mapping",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Sync procurement",
+       "text": "PO and receiving records refreshed from the mock source adapter.",
+       "tone": "ok"
+      },
+      {
+       "after": "Save revision",
+       "text": "Revised weight saved; lot metrics and ship forecast refreshed. Original entry remains in history.",
+       "tone": "ok"
+      },
+      {
+       "after": "Void record",
+       "text": "Weight entry voided; returned balances refreshed and the original remains in history.",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No lots match these filters",
+      "emptyHint": "Clear the import-status filter or search by a PO, lot or pen.",
+      "error": "Procurement could not refresh. Showing the last returned records; try syncing again.",
+      "success": "Records refreshed and lot metrics recalculated from returned data.",
+      "validation": "Enter a valid measurement date, a positive animal count and an average weight above zero."
+     }
+    },
+    "mockFull": {
+     "title": "Lots & procurement",
+     "subtitle": "PO receiving, pen traceability, lifecycle forecasts and lot gain records",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Yard target weight",
+         "value": "1,360 lb",
+         "delta": "Configured for every lot"
+        }
+       ]
+      },
+      {
+       "type": "toolbar",
+       "search": "Search PO, lot or pen",
+       "selects": [
+        {
+         "label": "Import status",
+         "options": [
+          "All statuses",
+          "Synced",
+          "Changed",
+          "Duplicate",
+          "Conflict"
+         ],
+         "value": "All statuses"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Sync procurement",
+         "variant": "primary",
+         "icon": "refresh"
+        },
+        {
+         "label": "Map PO line",
+         "variant": "secondary"
+        },
+        {
+         "label": "Record weight",
+         "variant": "secondary"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "PO line",
+        "Supplier · received",
+        "Lot → pen mapping",
+        "Head / capacity",
+        "Target · projected ship",
+        "Import status"
+       ],
+       "rows": [
+        [
+         "PO-58314 · line 01",
+         "Red Creek Cattle · 31 Jan",
+         "LOT-2408 → P-12",
+         "132 / 160 head",
+         "1,360 lb · 20 Sep 2026",
+         "Synced"
+        ],
+        [
+         "PO-58314 · line 02",
+         "Red Creek Cattle · 31 Jan",
+         "LOT-2409 + 2410 → P-14 / P-15",
+         "128 / 180 head (76/100; 52/80)",
+         "1,360 lb · 12 Oct 2026",
+         "Changed"
+        ],
+        [
+         "PO-58402 · line 01",
+         "High Mesa Livestock · 07 Feb",
+         "LOT-2411 → P-03",
+         "186 / 200 head",
+         "1,360 lb · — (ADG −0.12)",
+         "Conflict"
+        ],
+        [
+         "PO-58402 · line 02",
+         "High Mesa Livestock · 07 Feb",
+         "LOT-2412 → P-05",
+         "94 / 120 head",
+         "1,360 lb · 06 Nov 2026",
+         "Duplicate"
+        ],
+        [
+         "PO-58436 · line 01",
+         "Prairie Bend Ranch · 12 Feb",
+         "LOT-2413 → P-08",
+         "144 / 180 head",
+         "1,325 lb · 28 Oct 2026",
+         "Synced"
+        ],
+        [
+         "PO-58436 · line 02",
+         "Prairie Bend Ranch · 12 Feb",
+         "LOT-2414 → P-09",
+         "88 / 120 head",
+         "1,360 lb · 04 Nov 2026",
+         "Changed"
+        ],
+        [
+         "PO-58510 · line 01",
+         "North Fork Cattle · 18 Feb",
+         "LOT-2415 → P-02",
+         "156 / 180 head",
+         "1,360 lb · 19 Nov 2026",
+         "Synced"
+        ],
+        [
+         "PO-58510 · line 02",
+         "North Fork Cattle · 18 Feb",
+         "LOT-2416 → P-04",
+         "104 / 140 head",
+         "1,360 lb · — (ADG 0)",
+         "Conflict"
+        ],
+        [
+         "PO-58548 · line 01",
+         "Willow Draw Stock · 22 Feb",
+         "LOT-2417 → P-06",
+         "118 / 140 head",
+         "1,325 lb · 02 Dec 2026",
+         "Duplicate"
+        ],
+        [
+         "PO-58548 · line 02",
+         "Willow Draw Stock · 22 Feb",
+         "LOT-2418 → P-07",
+         "92 / 120 head",
+         "1,360 lb · 11 Dec 2026",
+         "Synced"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Review conflicts",
+         "variant": "secondary",
+         "icon": "eye"
+        }
+       ],
+       "pages": 4,
+       "page": 1
+      },
+      {
+       "type": "detail",
+       "title": "LOT-2408 · Current performance",
+       "lead": {
+        "label": "Pen",
+        "value": "P-12"
+       },
+       "rows": [
+        {
+         "label": "Target · assumption",
+         "value": "1,360 lb · 3.45 lb/day"
+        },
+        {
+         "label": "Days on feed",
+         "value": "73 days"
+        },
+        {
+         "label": "Total weight gain",
+         "value": "33,264 lb"
+        },
+        {
+         "label": "Average daily gain",
+         "value": "3.45 lb/day"
+        },
+        {
+         "label": "Feed consumed",
+         "value": "83,160 lb"
+        },
+        {
+         "label": "Feed conversion",
+         "value": "2.50:1"
+        },
+        {
+         "label": "Recorded feed cost / gain",
+         "value": "$1.24/lb"
+        },
+        {
+         "label": "Projected ship date",
+         "value": "20 Sep 2026"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "01 Feb 2026 · 560 lb avg",
+         "meta": "132 weighed · 73,920 lb total · Baseline; no prior measurement · Received weight"
+        },
+        {
+         "title": "15 Feb 2026 · 611 lb avg",
+         "meta": "132 weighed · 80,652 lb total · +51 lb since prior · Bunk adjustment complete"
+        },
+        {
+         "title": "01 Mar 2026 · 663 lb avg",
+         "meta": "132 weighed · 87,516 lb total · +52 lb since prior · Yard scale 2"
+        },
+        {
+         "title": "15 Mar 2026 · 711 lb avg",
+         "meta": "132 weighed · 93,852 lb total · +48 lb since prior · Routine weigh"
+        },
+        {
+         "title": "01 Apr 2026 · 770 lb avg",
+         "meta": "132 weighed · 101,640 lb total · +59 lb since prior · Routine yard check"
+        },
+        {
+         "title": "07 Apr 2026 · 790 lb avg",
+         "meta": "132 weighed · 104,280 lb total · +20 lb since prior · Pen-side spot check"
+        },
+        {
+         "title": "14 Apr 2026 · 810 lb avg · Original",
+         "meta": "132 weighed · 106,920 lb total · +20 lb since prior · Superseded on 15 Apr; retained in history"
+        },
+        {
+         "title": "14 Apr 2026 · 812 lb avg · Revised",
+         "meta": "132 weighed · 107,184 lb total · +22 lb since prior · Revised 15 Apr after bunk adjustment"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Returned feeding insight · LOT-2408",
+       "text": "Hold the 24.6 lb/head ration through 21 Apr and reweigh then. Current ship forecast is 20 Sep 2026; feed cost uses recorded feed costs only.",
+       "action": "Review feed adjustment"
+      }
+     ],
+     "crumbs": [
+      "Yard overview & reports"
+     ]
+    }
+   },
+   "ms": 8,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
