@@ -720,6 +720,7 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
     for (let attempt = 0; attempt < 2; attempt++) {
       const r = await think({ ...ctx, priorFailures: failures }, {
         stage: "design", label: `design ${entry.id} "${title}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
+        timeoutSec: PAGE_TIMEOUT_SEC, hardTimeout: true,
         sections: [
           S.template("tpl", PAGE_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
           ...tasteOf(b.rules),
@@ -734,7 +735,14 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
           S.task(`Draw page ${entry.id}, "${title}".`),
         ],
       });
-      if (!r.ok) return { outcome: r.outcome };
+      if (!r.ok) {
+        // a page that ran past its time or the model's output limit is drawn again on its own, and the pages already drawn stand
+        // (run b587: one page wrote 128,000 tokens in 12 minutes, and the whole design was drawn again)
+        const cut = r.outcome.kind === "fail" ? r.outcome.failures.find((f) => f.check === "runner-timeout" || (f.check === "runner-bad-output" && /cut off/.test(f.message))) : undefined;
+        if (!cut) return { outcome: r.outcome };
+        failures = [failure("design-page-too-long", `Your answer for page ${entry.id} did not finish (${cut.message}). Draw the page within the rules above: its blocks, rows and words as the rules size them, nothing more.`)];
+        continue;
+      }
       const screen: ScreenT = { ...entry, ...r.output };
       // the page alone: its app is checked with the list, its links against the list's ids
       const bad = designQuality({ flow: plan.flow, noScreen: [], screens: [{ ...screen, app: undefined }], ...(plan.theme ? { theme: plan.theme } : {}) } as never, b.existing, undefined, [], true, false, ids);
@@ -755,6 +763,9 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
   const { screens: _listed, ...rest } = plan;
   return { ok: true, output: { ...rest, screens: drawn.map((d) => (d as { screen: ScreenT }).screen) }, model: p.model, risks: [...risks, ...drawn.flatMap((d) => ("risks" in d && d.risks ? d.risks : []))] };
 }
+
+/** How long one page may take: the longest of run b587's pages took about three minutes, a runaway one twelve. */
+export const PAGE_TIMEOUT_SEC = 360;
 
 /** The links between requirements, screens and frames, as failures. */
 function mapFailures(map: ReturnType<typeof mapDesign>): Failure[] {

@@ -43,9 +43,11 @@ const page = (title: string) => {
 interface Call { system: string; user: string }
 let calls: Call[] = [];
 let answer: (c: Call) => unknown = () => { throw new Error("the model must not be called"); };
+/** an answer the model stops at its output limit, before it is complete */
+const CUT = Symbol("cut off");
 const provider: Provider = {
   start(_m, _e, system, user): Conversation {
-    return { async next(): Promise<Turn> { const c = { system, user }; calls.push(c); return { calls: [{ id: "s", name: "submit_result", input: answer(c) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+    return { async next(): Promise<Turn> { const c = { system, user }; calls.push(c); const a = answer(c); return a === CUT ? { calls: [], text: "{\"mock\":", stop: "max_tokens", usage: U } : { calls: [{ id: "s", name: "submit_result", input: a }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 const isPlan = (c: Call) => c.system.includes("PAGES ARE DRAWN NEXT");
@@ -138,6 +140,18 @@ describe("a design is drawn in parts", () => {
     expect(s2).toHaveLength(2);
     expect(s2[1]!.user).toContain("design-generic-title");
     expect(calls.filter((c) => pageOf(c) === "S-1")).toHaveLength(1);
+  });
+
+  it("a page cut off at the output limit is drawn again on its own; the step goes on with the pages already drawn (run b587)", async () => {
+    let tries = 0;
+    answer = (c) => (isPlan(c) ? listed() : pageOf(c) === "S-2" && tries++ === 0 ? CUT : page(titleOf(c)));
+    const out = await draw(await newRun());
+    expect(out.kind).toBe("done");
+    const s2 = calls.filter((c) => pageOf(c) === "S-2");
+    expect(s2).toHaveLength(2);
+    expect(s2[1]!.user).toContain("design-page-too-long");
+    expect(calls.filter((c) => pageOf(c) === "S-1")).toHaveLength(1);
+    expect(calls.filter(isPlan)).toHaveLength(1);
   });
 
   it("a page that fails twice fails the step with its failures, and the retry pays only for that page", async () => {
