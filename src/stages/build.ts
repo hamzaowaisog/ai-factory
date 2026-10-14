@@ -983,7 +983,10 @@ Before you return, check your list against the criteria: each of these needs at 
             tracePack(ctx.trace, `test writer ${p.index}`, packs[i]!, ctx.ledger.putJson(packs[i]!));
             const res = await session(`test writer ${p.index}`, `author-tests/${ctx.attempt}-w${p.index}`, writerScope(p.index), dir, packs[i]!, p.limits);
             // only the writer's own test file comes back; anything else it left is dropped
-            const left = UNFINISHED.has(res.status) || res.status === "ok" || res.error === NO_CREDIT_TEXT ? (await dirtyPaths(dir)).filter((f) => existsSync(join(dir, f))) : [];
+            // a tightening writer that did not finish leaves its file as it was: its tests stand as the previous attempt returned them,
+            // and a half-edited file would not match that list (Hamza's review of 16b41d9)
+            const unfinished = !p.keep && (UNFINISHED.has(res.status) || res.error === NO_CREDIT_TEXT);
+            const left = res.status === "ok" || unfinished ? (await dirtyPaths(dir)).filter((f) => existsSync(join(dir, f))) : [];
             const mine = left.filter((f) => matchesAny(f, writerScope(p.index)) && matchesAny(f, TEST_SCOPE));
             const dropped = left.filter((f) => !mine.includes(f));
             if (dropped.length) ctx.log(`author-tests: test writer ${p.index} left ${dropped.length} file(s) outside its own test file; not taken: ${dropped.slice(0, 5).join(", ")}`);
