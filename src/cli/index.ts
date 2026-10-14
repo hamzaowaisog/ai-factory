@@ -357,6 +357,23 @@ program.command("waive-budget").argument("<run>").argument("<hash>", "first char
     await runAndReport(l.runId);
   });
 
+program.command("dispute-test").argument("<run>").argument("<test>", "the locked test's id, or its name (AC_1_2_...)")
+  .requiredOption("--reason <text>", "why the test is wrong (recorded with your name and named on the pull request)")
+  .description("take a locked test you judge wrong out of this run's checks: its file stays locked, and the pull request names it as not proven (terminal only; then factory resume)")
+  .action(async (run: string, test: string, o: { reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const sha = replay(l.events()).steps.get("author-tests")?.outputs[0];
+    if (!sha) throw new DecisionError("This run has no locked tests yet.");
+    const lock = l.getJson<{ tests: { testId: string; acId: string; file: string; name: string }[] }>(sha);
+    const hits = lock.tests.filter((t) => t.testId === test || t.name === test || t.testId.endsWith(` > ${test}`) || t.testId.endsWith(`.${test}`));
+    if (hits.length !== 1) throw new DecisionError(hits.length ? `"${test}" matches ${hits.length} locked tests; give the full id: ${hits.map((t) => t.testId).join(", ")}` : `No locked test "${test}" in this run.`);
+    const t = hits[0]!;
+    if (!o.reason.trim()) throw new DecisionError("Say why the test is wrong with --reason.");
+    await l.append({ type: "test.disputed", data: { step: "person", testId: t.testId, acId: t.acId, file: t.file, why: o.reason.trim(), by: userInfo().username } }, HUMAN_WRITER);
+    log(`${t.testId} (${t.acId}) is left out of this run's checks and named on the pull request as not proven. Continue with: factory resume ${l.runId}`);
+  });
+
 program.command("unlock").argument("<run>").argument("<files...>", "locked files that are not tests")
   .requiredOption("--reason <text>", "why the file has to change")
   .description("take a locked file that is not a test out of this run's locked set, so a task that has it in its file scope can change it (terminal only; then factory resume)")

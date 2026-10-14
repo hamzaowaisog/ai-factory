@@ -1403,6 +1403,26 @@ describe("implement loop across tasks (fakes)", () => {
     } finally { delete process.env.FACTORY_LENIENT_TESTS; }
   }, 30_000);
 
+  it("a person disputes a locked test the run parked on: it leaves the checks, the run delivers, and the PR names who and why", async () => {
+    multi = true;
+    proofVerdict = "proves-it";
+    judgeVerdict = "test";
+    lab.edits = {
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }],
+      [TEST_FILE]: [{ [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:ANYTHING */ }\n" }, { [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:ANYTHING */ }\n" }],
+    };
+    const { runId, ledger } = await approved();
+    expect((await execute(runId)).status).toBe("parked");
+    const [j] = judgedIn(ledger);
+    // what factory dispute-test records
+    await ledger.append({ type: "test.disputed", data: { step: "person", testId: j!.testId, acId: j!.acId, file: j!.file, why: "it wants a value no correct code returns", by: "ahsan" } }, HUMAN_WRITER);
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    expect(ledger.readCard(`pr-${runId}`)).toMatch(/Not proven: locked test left out.*by ahsan, who disputed it: it wants a value no correct code returns/);
+  }, 30_000);
+
   it("a refused rewrite goes back to the test writer once, and the second one is locked", async () => {
     multi = true;
     judgeVerdict = "test";

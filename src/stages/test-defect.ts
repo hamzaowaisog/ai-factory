@@ -148,7 +148,7 @@ export function parkReason(open: Judged[]): string {
 }
 
 /** A locked test left out of the checks in a lenient run (lenientTests), with why. */
-export interface Disputed { step: string; testId: string; acId: string; file: string; why: string }
+export interface Disputed { step: string; testId: string; acId: string; file: string; why: string; /** a person who disputed it (factory dispute-test) */ by?: string }
 
 /** Every locked test disputed in this run, oldest first, once each. */
 export function disputedTests(events: LedgerEvent[]): Disputed[] {
