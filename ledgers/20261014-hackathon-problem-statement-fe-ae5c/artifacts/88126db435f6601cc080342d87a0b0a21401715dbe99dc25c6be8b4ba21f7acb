@@ -1,0 +1,276 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "N-1",
+      "category": "external",
+      "text": "Which procurement/receiving source and connection method should the demo support, given that no primary system is named?",
+      "options": [
+       "Use the stated mock upstream data only; demonstrate PO and receiving synchronization with supplied sample records.",
+       "Import PO and receiving records from CSV files.",
+       "Connect to a named procurement system through its API; the system and API details must be supplied."
+      ],
+      "recommended": "Use the stated mock upstream data only; demonstrate PO and receiving synchronization with supplied sample records.",
+      "reason": "The request explicitly describes mock data fetched from other systems, so a live connector is not needed to demonstrate the requested workflow.",
+      "spans": [
+       "I-1",
+       "I-10"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines what external data enters the product and how procurement records are created."
+     },
+     {
+      "id": "N-2",
+      "category": "errors",
+      "text": "How should imported PO lines or receiving records that cannot be mapped to a lot or pen be handled?",
+      "options": [
+       "Keep them visibly pending and exclude them from pen operations until mapped.",
+       "Reject the entire import if any record cannot be mapped.",
+       "Import them and allow them to participate in operations without a lot or pen mapping."
+      ],
+      "recommended": "Keep them visibly pending and exclude them from pen operations until mapped.",
+      "reason": "This preserves the imported record for follow-up without allowing untraceable animals into operational calculations.",
+      "spans": [
+       "I-1"
+      ],
+      "difference": "D-1",
+      "impact": 3,
+      "impactReason": "The choice affects whether incomplete animal records enter operational data and downstream calculations."
+     },
+     {
+      "id": "N-3",
+      "category": "errors",
+      "text": "What should happen when a PO-line-to-lot assignment would exceed the fetched pen capacity?",
+      "options": [
+       "Reject the over-capacity assignment and explain the capacity limit.",
+       "Allow the assignment but flag the pen as over capacity.",
+       "Allow the assignment without a warning."
+      ],
+      "recommended": "Reject the over-capacity assignment and explain the capacity limit.",
+      "reason": "Rejecting the invalid assignment is the smallest way to prevent current counts from contradicting the fetched capacity.",
+      "spans": [
+       "I-1"
+      ],
+      "difference": "D-1",
+      "impact": 3,
+      "impactReason": "The choice changes animal-to-pen assignments and the counts used by feeding and performance workflows."
+     },
+     {
+      "id": "N-4",
+      "category": "identifiers",
+      "text": "How should repeated imports of the same PO or receiving records be recognized and handled?",
+      "options": [
+       "Use upstream record identifiers when available, skip records already imported, and report that they were duplicates.",
+       "Import every run as new records and leave duplicate resolution to users.",
+       "Treat matching vendor, date, quantity, and cost values as duplicates even when upstream identifiers differ."
+      ],
+      "recommended": "Use upstream record identifiers when available, skip records already imported, and report that they were duplicates.",
+      "reason": "This avoids silent double-counting while relying on identifiers from the source rather than speculative matching rules.",
+      "spans": [
+       "I-1"
+      ],
+      "difference": "D-1",
+      "impact": 3,
+      "impactReason": "Duplicate imports can change animal counts, receipts, inventory, and cost totals."
+     },
+     {
+      "id": "N-5",
+      "category": "data-model",
+      "text": "Which target weight and gain-rate assumptions should drive market-date forecasts when incoming data alone does not provide them?",
+      "options": [
+       "Use a configurable target weight and gain-rate assumption for each lot, editable by users and retained with its forecast.",
+       "Use the lot’s observed ADG when available, with one configured default ADG and target weight otherwise.",
+       "Require users to enter a target weight and ADG for every lot before forecasting."
+      ],
+      "recommended": "Use a configurable target weight and gain-rate assumption for each lot, editable by users and retained with its forecast.",
+      "reason": "This lets forecasts run from incoming animal data while making the necessary assumptions explicit and adjustable.",
+      "spans": [
+       "I-2"
+      ],
+      "difference": "D-2",
+      "impact": 2,
+      "impactReason": "The choice changes forecast dates and target weights shown to users, but does not itself alter operational records."
+     },
+     {
+      "id": "N-6",
+      "category": "scope",
+      "text": "Should inventory forecasts also generate low-stock or stockout alerts, or only show projected levels across the requested horizons?",
+      "options": [
+       "Show projected inventory levels across the requested horizons without adding alerts.",
+       "Flag items projected to run low or out of stock within a selected horizon.",
+       "Send an in-app notice or email when a projected low-stock threshold is reached."
+      ],
+      "recommended": "Show projected inventory levels across the requested horizons without adding alerts.",
+      "reason": "Forecasts are requested; alerting is an additional notification behavior not required to provide them.",
+      "spans": [
+       "I-3"
+      ],
+      "difference": "D-3",
+      "topic": "notifications",
+      "impact": 2,
+      "impactReason": "Alerts add a visible operational flow and may prompt users to act on forecasted shortages."
+     },
+     {
+      "id": "N-7",
+      "category": "data-model",
+      "text": "What should ration optimization treat as its objective and constraints, and should a suggested ration ever be applied automatically?",
+      "options": [
+       "Present feasible low-cost mixes for user-specified nutritional targets or constraints; require the user to select a suggestion before using it.",
+       "Rank mixes by estimated cost for an intended animal or weight range, without enforcing nutritional constraints.",
+       "Automatically apply the lowest-cost mix that meets configured nutritional constraints to eligible pen plans."
+      ],
+      "recommended": "Present feasible low-cost mixes for user-specified nutritional targets or constraints; require the user to select a suggestion before using it.",
+      "reason": "This makes the optimization objective explicit while keeping the requested management decision with the user.",
+      "spans": [
+       "I-4",
+       "I-5"
+      ],
+      "difference": "D-4",
+      "impact": 3,
+      "impactReason": "The choice affects ration composition, costs, and potentially what feed is assigned to animals."
+     },
+     {
+      "id": "N-8",
+      "category": "data-model",
+      "text": "Must each actual feeding activity be linked to an existing feed plan, or may operators record feedings when no plan exists?",
+      "options": [
+       "Allow an activity against a pen and date without a plan; link it to a plan when one exists so variance can be shown.",
+       "Require every activity to reference a plan, and reject activity entry when no plan exists.",
+       "Allow unplanned activities but do not compare them with planned quantities."
+      ],
+      "recommended": "Allow an activity against a pen and date without a plan; link it to a plan when one exists so variance can be shown.",
+      "reason": "This supports actual activity logging even when plans are missing while still enabling the requested planned-versus-actual comparison.",
+      "spans": [
+       "I-5"
+      ],
+      "difference": "D-5",
+      "impact": 3,
+      "impactReason": "The choice determines whether feeding records can be saved and whether inventory and performance totals update for them."
+     },
+     {
+      "id": "N-9",
+      "category": "errors",
+      "text": "How may a saved lot weight measurement be corrected if an entry is later found to be wrong or out of order?",
+      "options": [
+       "Allow an authorized user to edit or delete the reading, validate the resulting series, and recalculate affected metrics.",
+       "Keep readings append-only and record a correction that supersedes the erroneous reading.",
+       "Allow edits without validating date order or recalculating dependent metrics."
+      ],
+      "recommended": "Allow an authorized user to edit or delete the reading, validate the resulting series, and recalculate affected metrics.",
+      "reason": "This enables straightforward correction while protecting the time series and dependent calculations from invalid ordering.",
+      "spans": [
+       "I-6",
+       "I-7"
+      ],
+      "difference": "D-6",
+      "impact": 3,
+      "impactReason": "Corrections change weight history and can change ADG, FCR, cost of gain, and projected dates."
+     },
+     {
+      "id": "N-10",
+      "category": "data-model",
+      "text": "How should lot-level total weight gain be derived when measurements record an average weight and a number of animals weighed?",
+      "options": [
+       "Calculate lot total gain from the average-weight change multiplied by the lot headcount applicable at the measurement dates.",
+       "Calculate gain only for the number of animals weighed, and use that same cohort for the corresponding feed-to-gain calculation.",
+       "Report average gain per animal and label feed-to-gain as a per-animal metric."
+      ],
+      "recommended": "Calculate lot total gain from the average-weight change multiplied by the lot headcount applicable at the measurement dates.",
+      "reason": "This makes the gain denominator comparable to total feed consumed and supports the requested lot-level FCR and cost-of-gain metrics.",
+      "spans": [
+       "I-6",
+       "I-7",
+       "I-9"
+      ],
+      "difference": "D-7",
+      "impact": 3,
+      "impactReason": "The selected population basis directly changes lot weight gain, FCR, ADG rollups, and cost of gain."
+     },
+     {
+      "id": "N-11",
+      "category": "errors",
+      "text": "What should happen when an activity would consume more feed than the inventory currently shows as available?",
+      "options": [
+       "Reject the activity and explain the shortage; let the user correct inventory or quantity before saving.",
+       "Save the activity and allow inventory to become negative, visibly flagging the shortage.",
+       "Save the activity but cap its inventory deduction at the available quantity."
+      ],
+      "recommended": "Reject the activity and explain the shortage; let the user correct inventory or quantity before saving.",
+      "reason": "This avoids silently recording stock consumption that the available inventory cannot support.",
+      "spans": [
+       "I-3",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "The choice governs whether feeding records can commit and whether inventory balances remain consistent."
+     },
+     {
+      "id": "N-12",
+      "category": "errors",
+      "text": "How should the feed-to-gain report respond to an invalid date range or an unsupported filter value?",
+      "options": [
+       "Keep the report unapplied and show a field-level explanation of the invalid filter.",
+       "Silently ignore invalid filters and show results using the remaining filters.",
+       "Apply the nearest valid date range or filter value automatically."
+      ],
+      "recommended": "Keep the report unapplied and show a field-level explanation of the invalid filter.",
+      "reason": "A clear validation message prevents users from mistaking altered filters for the results they requested.",
+      "spans": [
+       "I-9"
+      ],
+      "difference": "D-9",
+      "topic": "reporting",
+      "impact": 2,
+      "impactReason": "This changes the report’s visible failure and recovery flow, not the underlying records."
+     },
+     {
+      "id": "N-13",
+      "category": "errors",
+      "text": "What should users see if loading the sample dataset encounters duplicates or only some records can be loaded?",
+      "options": [
+       "Report added, already-present, and failed records separately, and do not label a partial load as complete.",
+       "Load what is possible and show only a general success or failure message.",
+       "Stop on the first conflict and roll back all sample records loaded in that attempt."
+      ],
+      "recommended": "Report added, already-present, and failed records separately, and do not label a partial load as complete.",
+      "reason": "This makes repeated demo loads understandable and avoids presenting incomplete sample data as a successful complete load.",
+      "spans": [
+       "I-10"
+      ],
+      "difference": "D-10",
+      "impact": 2,
+      "impactReason": "This affects the sample-data loading flow and whether users can trust the demo dataset’s completeness."
+     },
+     {
+      "id": "N-14",
+      "category": "scope",
+      "text": "Should the yard-level aggregate dashboard be included in the core deliverable or treated as the stated stretch goal?",
+      "options": [
+       "Treat it as a stretch goal; prioritize lot- and pen-level dashboards and reports.",
+       "Include the yard-level summary in the core deliverable.",
+       "Include a yard-level summary only if the core workflows are completed first."
+      ],
+      "recommended": "Treat it as a stretch goal; prioritize lot- and pen-level dashboards and reports.",
+      "reason": "The request explicitly labels the yard-level summary a stretch goal, so excluding it from the required core keeps scope to the stated baseline.",
+      "spans": [
+       "I-8"
+      ],
+      "impact": 2,
+      "impactReason": "This changes which dashboard flows are delivered, but not the underlying operational data."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

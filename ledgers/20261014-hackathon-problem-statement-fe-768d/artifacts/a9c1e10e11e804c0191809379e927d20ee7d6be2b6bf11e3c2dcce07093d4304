@@ -1,0 +1,41 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 3,
+      "spans": [
+       "I-3",
+       "I-4"
+      ],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Overview - Cedar Draw Feedlot</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design System Tokens */
+    :root {
+      --color-bg: #F6F7F5;
+      --color-surface: #FFFFFF;
+      --color-text: #252A27;
+      --color-text-quiet: #66706A;
+      --color-border: #D9DEDA;
+      --color-primary: #AD5C2A;
+      --color-status-good: #28734F;
+      --color-status-waiting: #94600C;
+      --color-status-failed: #AE3D36;
+
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+
+      --dur-quick: 160ms;
+      --radius-panel: 8px;
+      --radius-element: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .font-heading {
+      font-family: var(--font-heading);
+    }
+
+    .font-mono {
+      font-family: var(--font-mono);
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* Motion specifications */
+    @keyframes row-settle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-settle {
+      animation: row-settle var(--dur-quick) ease-out forwards;
+    }
+
+    .stagger-1 { animation-delay: 0ms; }
+    .stagger-2 { animation-delay: 50ms; }
+    .stagger-3 { animation-delay: 100ms; }
+    .stagger-4 { animation-delay: 150ms; }
+    .stagger-5 { animation-delay: 200ms; }
+    .stagger-6 { animation-delay: 250ms; }
+
+    .live-dot {
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    /* Interactive state styles */
+    .touch-target {
+      min-height: 44px;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .touch-target:hover {
+      background-color: #F0F2EF;
+    }
+
+    .touch-target:active {
+      background-color: #E6EAE7;
+    }
+
+    .touch-target:focus-visible,
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    /* Details dropdown styling */
+    details > summary {
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Shared Header -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D9DEDA] sticky top-0 z-40">
+    <div class="px-4 py-3 flex items-center justify-between">
+      <!-- Brand at left beside small square mark with white 'C' -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-[6px] bg-[#252A27] flex items-center justify-center flex-shrink-0">
+          <span class="text-[#FFFFFF] font-heading font-bold text-[18px] leading-none">C</span>
+        </div>
+        <span class="font-heading font-semibold text-[17px] text-[#252A27] tracking-tight">Cedar Draw Feedlot</span>
+      </div>
+
+      <!-- Menu toggle for mobile phone navigation -->
+      <details class="relative">
+        <summary class="w-11 h-11 flex items-center justify-center rounded-[6px] border border-[#D9DEDA] bg-[#FFFFFF] touch-target cursor-pointer select-none" aria-label="Open menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5H17M3 10H17M3 15H17" stroke="#252A27" stroke-width="1.75" stroke-linecap="round"></path>
+          </svg>
+        </summary>
+
+        <!-- Dropdown Menu Sheet containing exact shared menu list and user Mara Ortega -->
+        <div class="absolute right-0 mt-2 w-[310px] bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-2 shadow-lg z-50">
+          <!-- Signed-in user profile block -->
+          <div class="p-3 border-b border-[#D9DEDA] mb-2 flex items-center gap-3 bg-[#F6F7F5] rounded-[6px]">
+            <div class="w-8 h-8 rounded-[6px] bg-[#D9DEDA] text-[#252A27] font-mono font-semibold text-[13px] flex items-center justify-center flex-shrink-0">
+              MO
+            </div>
+            <div class="leading-tight">
+              <div class="text-[14px] font-semibold text-[#252A27]">Mara Ortega</div>
+              <div class="text-[12px] text-[#66706A]">Feed manager</div>
+            </div>
+          </div>
+
+          <!-- Navigation Links in exact order -->
+          <nav class="flex flex-col gap-0.5 text-[15px]">
+            <!-- Overview (Selected) -->
+            <div class="h-11 px-3 flex items-center justify-between rounded-[6px] bg-[#AD5C2A] text-[#FFFFFF] font-medium">
+              <span>Overview</span>
+              <span class="text-[11px] font-mono uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded">Active</span>
+            </div>
+
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Import records</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Lots &amp; pens</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Feed inventory</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Inventory outlook</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Rations</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Feeding plans</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Feeding log</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Weight records</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Operational reports</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Feed-to-gain</span>
+            </div>
+            <div class="h-11 px-3 flex items-center rounded-[6px] text-[#252A27] touch-target cursor-pointer">
+              <span>Project &amp; demo</span>
+            </div>
+          </nav>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 w-full max-w-[440px] mx-auto px-4 pt-4 pb-12 flex flex-col gap-6">
+
+    <!-- Page Heading -->
+    <div class="flex items-baseline justify-between border-b border-[#D9DEDA] pb-3">
+      <h1 class="font-heading font-[650] text-[26px] leading-[32px] text-[#252A27]">
+        Overview
+      </h1>
+      <span class="text-[13px] text-[#66706A] font-mono">
+        As of 23 Apr 2025
+      </span>
+    </div>
+
+    <!-- First thing the eye meets: Single large headline + smaller context -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-5 animate-settle stagger-1">
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#28734F] inline-block live-dot"></span>
+        <span class="text-[13px] font-medium text-[#66706A] uppercase tracking-wide">Live yard count</span>
+      </div>
+      <div class="font-heading font-[650] text-[34px] leading-[40px] text-[#252A27] tracking-tight">
+        188 head on pens
+      </div>
+      <p class="text-[15px] leading-[22px] text-[#66706A] mt-2">
+        2 active pens · 212 head received across 3 lots · 24 head awaiting a pen
+      </p>
+    </section>
+
+    <!-- Supporting documentary photograph crop of cattle in feed pen (modest crop) -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] overflow-hidden p-3 animate-settle stagger-2">
+      <div class="w-full aspect-[4/3] rounded-[6px] overflow-hidden bg-[#D9DEDA] relative">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB84iZ2nJXYSals8iVXZjX0k1EKPstpWwoYXKUG2YLEsVr2CXPwPZwRZD4bYDG_D5cdjPdPGXrZzWlQx9Ox8AJNKh2s4FQ1-t_AgPt2eFKe1FDrNQx4HSzvze6kgDhDPZ8JSBJc4EG795lpxSic9M2VcSWIlQZRud2VaASzmL6NeRN8XvwXglRpgpYkXIk4Ndmry8dafOijfab4GdR1C20w_2sQL1Lw5fZwAsuWlyRMzarspnKqe8eZ3SUu5FERT7zeSzevVhhzkVI" alt="Angus and Angus-Hereford steers in Cedar Draw Feedlot open dirt feed pen" class="w-full h-full object-cover object-center">
+      </div>
+      <div class="mt-2.5 px-1 flex items-center justify-between text-[13px] text-[#66706A]">
+        <span>Feed bunks · Pen P-04 &amp; P-02</span>
+        <span class="font-mono">America/Denver</span>
+      </div>
+    </section>
+
+    <!-- Pen Occupancy Table (Phone reflowed into touch-friendly stacked rows) -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 flex flex-col gap-3 animate-settle stagger-3">
+      <div class="flex items-center justify-between border-b border-[#D9DEDA] pb-2.5">
+        <h2 class="font-heading font-[650] text-[17px] leading-[22px] text-[#252A27]">
+          Pen occupancy
+        </h2>
+        <span class="font-mono text-[13px] text-[#66706A]">
+          188 / 270 head total
+        </span>
+      </div>
+
+      <!-- Pen Row 1: P-04 -->
+      <div class="min-h-[56px] py-3 border-b border-[#D9DEDA] flex flex-col justify-center gap-1.5 animate-settle stagger-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-semibold text-[16px] text-[#252A27]">P-04</span>
+            <span class="text-[13px] text-[#66706A]">(L-241: 60 · L-242: 56)</span>
+          </div>
+          <span class="font-mono font-medium text-[15px] text-[#252A27]">
+            116 / 150 <span class="text-[13px] text-[#66706A]">head</span>
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="text-[#66706A]">Open capacity</span>
+          <span class="font-mono font-semibold text-[#28734F]">34 open</span>
+        </div>
+      </div>
+
+      <!-- Pen Row 2: P-02 -->
+      <div class="min-h-[56px] py-3 flex flex-col justify-center gap-1.5 animate-settle stagger-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-semibold text-[16px] text-[#252A27]">P-02</span>
+            <span class="text-[13px] text-[#66706A]">(L-239: 72)</span>
+          </div>
+          <span class="font-mono font-medium text-[15px] text-[#252A27]">
+            72 / 120 <span class="text-[13px] text-[#66706A]">head</span>
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="text-[#66706A]">Open capacity</span>
+          <span class="font-mono font-semibold text-[#28734F]">48 open</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Best / Worst Lot Performance Summary (Phone stacked) -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 flex flex-col gap-3 animate-settle stagger-6">
+      <div class="flex items-center justify-between border-b border-[#D9DEDA] pb-2.5">
+        <h2 class="font-heading font-[650] text-[17px] leading-[22px] text-[#252A27]">
+          Lot comparison
+        </h2>
+        <span class="text-[13px] text-[#66706A]">ADG measured</span>
+      </div>
+
+      <!-- Lot 1: L-239 (Best) -->
+      <div class="min-h-[56px] py-2.5 border-b border-[#D9DEDA] flex items-center justify-between">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-semibold text-[15px] text-[#252A27]">L-239</span>
+            <!-- Explicit text with thin matching outline -->
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-[11px] font-medium leading-none">
+              best
+            </span>
+          </div>
+          <span class="text-[13px] text-[#66706A]">Angus steers</span>
+        </div>
+        <div class="text-right">
+          <div class="font-mono font-semibold text-[15px] text-[#252A27]">
+            2.95 <span class="text-[12px] text-[#66706A] font-normal">lb/day</span>
+          </div>
+          <div class="text-[12px] text-[#66706A]">ADG</div>
+        </div>
+      </div>
+
+      <!-- Lot 2: L-241 -->
+      <div class="min-h-[56px] py-2.5 border-b border-[#D9DEDA] flex items-center justify-between">
+        <div class="flex flex-col">
+          <span class="font-mono font-semibold text-[15px] text-[#252A27]">L-241</span>
+          <span class="text-[13px] text-[#66706A]">Angus–Hereford steers</span>
+        </div>
+        <div class="text-right">
+          <div class="font-mono font-semibold text-[15px] text-[#252A27]">
+            2.35 <span class="text-[12px] text-[#66706A] font-normal">lb/day</span>
+          </div>
+          <div class="text-[12px] text-[#66706A]">ADG</div>
+        </div>
+      </div>
+
+      <!-- Lot 3: L-242 (Worst) -->
+      <div class="min-h-[56px] py-2.5 flex items-center justify-between">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-semibold text-[15px] text-[#252A27]">L-242</span>
+            <!-- Explicit text with thin matching outline -->
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-[4px] border border-[#AE3D36] text-[#AE3D36] text-[11px] font-medium leading-none">
+              worst
+            </span>
+          </div>
+          <span class="text-[13px] text-[#66706A]">Charolais-cross heifers</span>
+        </div>
+        <div class="text-right">
+          <div class="font-mono font-semibold text-[15px] text-[#252A27]">
+            2.05 <span class="text-[12px] text-[#66706A] font-normal">lb/day</span>
+          </div>
+          <div class="text-[12px] text-[#66706A]">ADG</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Calm whitespace after dense data -->
+    <div class="h-8"></div>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["188 head on pen","pen occupancy","overview"],"words":["overview"]},{"id":"S-2","names":["import record","import"],"words":["import"]},{"id":"S-3","names":["lot pen"],"words":["lot","pen"]},{"id":"S-4","names":["feed inventory","inventory"],"words":["inventory"]},{"id":"S-6","names":["ration"],"words":["ration"]},{"id":"S-9","names":["weight record","weight"],"words":["weight"]},{"id":"S-12","names":["project demo"],"words":["project","demo"]},{"id":"S-5","names":["inventory outlook","outlook"],"words":["inventory","outlook"]},{"id":"S-7","names":["feeding plan","plan"],"words":["feeding","plan"]},{"id":"S-8","names":["feeding log","log"],"words":["feeding","log"]},{"id":"S-10","names":["operational report","operation","report operation"],"words":["report","operation"]},{"id":"S-11","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]}],L={"import records":"S-2","lots pens":"S-3","feed inventory":"S-4","inventory outlook":"S-5","rations":"S-6","feeding plans":"S-7","feeding log":"S-8","weight records":"S-9","operational reports":"S-10","feed to gain":"S-11","project demo":"S-12"},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-1";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

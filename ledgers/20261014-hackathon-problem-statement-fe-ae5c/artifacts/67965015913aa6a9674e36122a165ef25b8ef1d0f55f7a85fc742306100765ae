@@ -1,0 +1,23 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "verdicts": [
+     {
+      "testId": "tests/acceptance.part3.test.tsx::weight records and lot performance acceptance > AC_12_4_ShowsLatestMetricsAsSoonAsAWeightRecordIsSaved",
+      "verdict": "keeps",
+      "why": "The rewrite only wraps the existing `assertMetrics(editedResponse.metrics)` assertion in `waitFor`, addressing the stated async timing issue. It still checks the same returned metric values, and no assertion was lost."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

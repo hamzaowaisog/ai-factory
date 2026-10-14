@@ -1,0 +1,275 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "differences": [
+     {
+      "id": "D-1",
+      "span": "I-1",
+      "topic": "Procurement import and mapping controls",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Tracks PO-line-to-lot splits with assigned quantities and traceability, but does not specify permissions, unmatched-record handling, or capacity enforcement."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Restricts import and mapping to authorized users; unauthorized users can only view permitted data."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 5,
+        "summary": "Keeps unmapped records out of pen operations and rejects or flags over-capacity assignments."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 4,
+        "summary": "Identifies duplicate imports and avoids silently double-counting animals, receipts, or costs."
+       }
+      ]
+     },
+     {
+      "id": "D-2",
+      "span": "I-2",
+      "topic": "Forecast assumptions and gain-rate source",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Refreshes forecasts using current weight-gain performance when available."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Uses a configured gain assumption for the projected target-weight date."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Lets users update and retain a target weight or ADG assumption with the forecast."
+       }
+      ]
+     },
+     {
+      "id": "D-3",
+      "span": "I-3",
+      "topic": "Inventory movement types and forecast alerts",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Records opening stock, receipts, consumption, wastage, and closing stock as identifiable movements."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Records receipts, adjustments, and wastage as dated, attributable movements."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Flags items projected to run low or out of stock within a selected horizon."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Records receipts, consumption, or adjustments as dated movements and updates applicable cost totals."
+       }
+      ]
+     },
+     {
+      "id": "D-4",
+      "span": "I-4",
+      "topic": "Ration optimization objective and applying suggestions",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Compares mixes and identifies economical alternatives for the intended animal or weight range."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Presents economical candidates for a specified feeding objective and requires an authorized user to select a suggestion before applying it to pens."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Optimizes for user-specified nutritional targets or constraints and presents feasible mixes with estimated costs."
+       }
+      ]
+     },
+     {
+      "id": "D-5",
+      "span": "I-5",
+      "topic": "Feeding authorization and execution requirements",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Generates or creates a dated pen plan and includes planned quantity, per-animal quantity, feeding time, cost, energy, and status."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 5,
+        "summary": "Restricts plan creation and activity entry by permission and limits operators to authorized pens and operations."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 1,
+        "summary": "Records actual feeding against a pen and plan, whereas the other readings permit activities to be entered against a pen and date without requiring an explicit plan."
+       }
+      ]
+     },
+     {
+      "id": "D-6",
+      "span": "I-6",
+      "topic": "Weight-history correction and validation",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Records lot weight measurements and calculates gain when prior readings are comparable."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Requires authorized entry and retains readings append-only, with attributable corrections rather than silent history replacement."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Rejects invalid readings with field-level explanations and identifies out-of-order dates."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 3,
+        "summary": "Flags inconsistent counts or readings predating the prior reading to protect the time series."
+       }
+      ]
+     },
+     {
+      "id": "D-7",
+      "span": "I-7",
+      "topic": "Metric inputs, auditability, and ship-date calculation",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Defines FCR from feed consumed and gain, and cost of gain from feed cost and gain."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Makes source readings and feeding events underlying each metric inspectable for reconciliation."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Projects ship date from current weight, target weight, days on feed, and ADG, and displays the projection inputs."
+       }
+      ]
+     },
+     {
+      "id": "D-8",
+      "span": "I-8",
+      "topic": "Dashboard access controls",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Provides broad operational dashboard and report metrics without specifying role-based restrictions."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Restricts dashboard and report details to records permitted by the user's access."
+       }
+      ]
+     },
+     {
+      "id": "D-9",
+      "span": "I-9",
+      "topic": "Report access controls and invalid-filter handling",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 1,
+        "summary": "Specifies date, breed, sex, and pen filters but no access restrictions or invalid-filter handling."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Identifies invalid date ranges and unsupported filter values rather than applying them."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 4,
+        "summary": "Prevents users lacking report access from viewing or exporting restricted performance and financial data."
+       }
+      ]
+     },
+     {
+      "id": "D-10",
+      "span": "I-10",
+      "topic": "Sample-data loading and duplicate/conflict handling",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 0,
+        "summary": "Provides coherent sample records but does not specify a user-triggered loading workflow or duplicate behavior."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 0,
+        "summary": "Lets a user load a coherent sample dataset to demonstrate connected workflows."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 2,
+        "summary": "Reports whether repeated sample loading added, found already-present, or could not load records, avoiding silent duplicates."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 3,
+        "summary": "Reports conflicts or load failures and avoids presenting a partial load as complete."
+       }
+      ]
+     },
+     {
+      "id": "D-11",
+      "span": "I-11",
+      "topic": "Demo-area content and evaluation scope",
+      "readings": [
+       {
+        "sketch": 1,
+        "behaviour": 2,
+        "summary": "Requires testing/validation overview, challenges, and production-readiness assessment, but does not specify a prompts overview."
+       },
+       {
+        "sketch": 2,
+        "behaviour": 1,
+        "summary": "Includes an overview of prompts used in addition to demo, testing, challenges, and readiness content."
+       },
+       {
+        "sketch": 3,
+        "behaviour": 2,
+        "summary": "Requires testing/validation and challenges or limitations, with production-readiness assessment stated separately."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

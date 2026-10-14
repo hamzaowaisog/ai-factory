@@ -1,0 +1,178 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Wire the API and deliver overview, imports, lots, forecasts, and project demo",
+      "reqs": [
+       "REQ-1",
+       "REQ-1 criteria delivered here: AC-1.1 through AC-1.8 pass for their exact OpenAPI operations, including documented request/response fields and success statuses; AC-1.29 passes for GET /project-demo; AC-1.37 confirms API documentation remains available and no product-facing screen is introduced; AC-1.32 and AC-1.33 pass for missing import batches and lots on the operations implemented in this slice.",
+       "REQ-2",
+       "REQ-2 foundation delivered here: establish EF Core/Npgsql persistence and persistent import, pen, and lot records. Full restart durability is completed after all slices."
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/ApiErrors.cs",
+       "App.Api/Endpoints/CoreEndpoints.cs",
+       "App.Api/Data/CoreEntities.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs"
+      ],
+      "conventions": [
+       "Keep the existing minimal-API, EF Core, Npgsql, EnsureCreated, health route, OpenAPI document, and Swagger UI conventions.",
+       "The startup file discovers internal endpoint modules by a fixed marker/convention; later slices add module files without editing Program.cs.",
+       "Use shared error handling and explicit contract field/status metadata; do not edit contracts/openapi.yaml.",
+       "Core entity types and configuration are internal; AppDb discovers attributed entities and EF configurations from the assembly so later slices can add tables without changing AppDb.cs."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 950,
+      "complexity": "standard",
+      "approach": "Install startup discovery for internal endpoint modules and shared contract-shaped error handling, retaining the root health route and Swagger. In the same slice implement and wire overview, imports, lots/mapping/forecast, and project-demo handlers, plus persisted import batches/rows, pens, and lots with explicit keys and relations. Use the supplied PostgreSQL connection and existing EnsureCreated startup behavior; derive calculated response fields instead of persisting duplicate values."
+     },
+     {
+      "id": "TASK-2",
+      "title": "Deliver inventory and ration operations",
+      "reqs": [
+       "REQ-1",
+       "REQ-1 criteria delivered here: AC-1.9 through AC-1.17 pass for inventory, outlook, ration CRUD, optimization, and selection using the contract paths, query names, fields, and statuses; AC-1.34 and AC-1.35 pass for unknown inventory items and unsupported outlook horizons.",
+       "REQ-2",
+       "REQ-2 criterion delivered here: AC-2.3 passes; a ration referencing an inventory item remains retrievable from GET /rations after restart against the same App PostgreSQL database."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/InventoryEndpoints.cs",
+       "App.Api/Endpoints/RationEndpoints.cs",
+       "App.Api/Data/InventoryEntities.cs",
+       "App.Api/Data/RationEntities.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/CoreEndpoints.cs",
+       "App.Api/AppDb.cs"
+      ],
+      "conventions": [
+       "Add internal endpoint modules discovered by TASK-1; do not edit startup or another task's files.",
+       "Use explicit EF configurations for primary keys, foreign keys, and unique ration/item pairs; keep calculated stock and ration totals derived from persisted movements and ingredients.",
+       "Return the locked contract's response wrappers, lower-camel JSON fields, documented statuses, and ErrorResponse format."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 1150,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement all inventory item, movement, wastage, settings, and outlook routes together with the inventory entities; calculate closing stock and horizon balance from stored movements and settings. Implement ration list/create, candidate optimization, and explicit candidate selection in the same slice, persisting ration mixes and optimization candidates so selection survives restart. Validate request values and references and return the contract's 404, 409, and 422 errors where documented."
+     },
+     {
+      "id": "TASK-3",
+      "title": "Deliver feeding plans and recorded feeding activities",
+      "reqs": [
+       "REQ-1",
+       "REQ-1 criteria delivered here: AC-1.18 through AC-1.21 pass for filtered plans, plan generation, filtered activity logs, and activity recording with documented response shapes/statuses; AC-1.38 passes because recording an activity reduces inventory for consumed ingredients and exposes feed cost and lot consumption.",
+       "REQ-2",
+       "REQ-2 contribution delivered here: feeding plans, activities, lot consumption, and ingredient consumption are persisted as part of the restart-durable API dataset."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/FeedingEndpoints.cs",
+       "App.Api/Data/FeedingEntities.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/InventoryEndpoints.cs",
+       "App.Api/Endpoints/CoreEndpoints.cs"
+      ],
+      "conventions": [
+       "Use the endpoint-module discovery, shared error handling, and EF entity/configuration discovery established in TASK-1.",
+       "Reference the existing pen, lot, ration, inventory, and import data; keep activity ingredient and lot consumption as persisted child records.",
+       "Keep planned/actual variance and contract aggregates consistent with the activity and its associated plan; apply inventory changes atomically with activity persistence."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2"
+      ],
+      "plannedLoc": 720,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add feeding plan list/create and activity list/create endpoints in this slice. Persist plan inputs and activity outcomes with foreign keys to pens, rations, optional plans, lots, and inventory items. Compute ration-based ingredient quantities, costs, and energy; in one database transaction save the activity, its lot/ingredient consumption, and inventory consumed movements so a failed inventory check cannot leave partial records."
+     },
+     {
+      "id": "TASK-4",
+      "title": "Deliver weight readings, performance, and operational reports",
+      "reqs": [
+       "REQ-1",
+       "REQ-1 criteria delivered here: AC-1.22 through AC-1.28 pass for weight-reading list/create/update/delete, lot performance, operational reports, and filtered feed-to-gain reports.",
+       "REQ-2",
+       "REQ-2 contribution delivered here: weight-reading mutations are restart-durable, while performance and report values are derived from persisted operational records."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/WeightReportEndpoints.cs",
+       "App.Api/Data/WeightEntities.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/FeedingEndpoints.cs",
+       "App.Api/Endpoints/CoreEndpoints.cs"
+      ],
+      "conventions": [
+       "Add an internal discovered endpoint module; do not change Program.cs or files owned by earlier tasks.",
+       "Persist only weight-reading inputs and derive totals, gains, ADG, feed conversion, and projected dates from the weight and feeding records.",
+       "Honor the contract date-range selection rule, optional breed/sex/pen filters, response field names, and each operation's documented status."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3"
+      ],
+      "plannedLoc": 1050,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement weight series CRUD and performance calculations alongside the WeightReading entity and its Lot foreign key. In the same module implement both report endpoints using the persisted lots, weights, feeding activity, inventory, plans, and ration data; select the latest weight in range and include feeding events through that reading for feed-to-gain results. Recalculate the reading series and metrics after create, update, and permitted delete."
+     },
+     {
+      "id": "TASK-5",
+      "title": "Deliver demo-data loading, complete conditional sample seeding, and close contract coverage",
+      "reqs": [
+       "REQ-1",
+       "REQ-1 criteria delivered here: AC-1.30 and AC-1.36 pass for POST /demo-data/load and its invalid-request response; AC-1.31 passes across every operation's documented error cases; all 30 operations declared by the locked OpenAPI contract pass contract-conformance checks, with the 29-operation narrative target not changing locked contract scope.",
+       "REQ-2",
+       "REQ-2 criteria completed here: AC-2.1 and AC-2.2 pass for create/change/delete persistence across restart and inspection of all required tables; together with TASK-2 this completes restart durability.",
+       "REQ-3",
+       "REQ-3 criteria delivered here: AC-3.1 and AC-3.2 pass when Seed:Demo=true, with at least three example-based rows in each persistent entity table and named sample values available through collection operations.",
+       "REQ-5",
+       "REQ-5 criteria delivered here: AC-5.1 and AC-5.2 pass; absent/false Seed:Demo inserts no sample data and collection operations succeed against empty tables."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/DemoEndpoints.cs",
+       "App.Api/Data/DemoEntities.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "exemplars": [
+       "App.Api/SeedData.cs",
+       "App.Api/Endpoints/FeedingEndpoints.cs"
+      ],
+      "conventions": [
+       "Add the demo endpoint through the established endpoint-module discovery convention; do not edit Program.cs or the locked OpenAPI document.",
+       "Persist demo load outcomes with an idempotent dataset key and derive counts/partial from stored outcomes.",
+       "Seed parent records before dependents, only when Seed:Demo is true, and only into empty tables; preserve an empty-database path when the setting is false or absent."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4"
+      ],
+      "plannedLoc": 850,
+      "complexity": "standard",
+      "approach": "Add and wire the supported demo dataset load operation with validation, idempotent persistence, and the exact outcome response. Add its outcome tables in this first slice that uses them. Complete SeedData.Run for every persistent table, creating at least three linked sample rows per table in dependency order and including the contract's named examples. Keep the existing startup gate as the only path that invokes demo seeding, then verify the complete contract, empty-seed behavior, and restart persistence."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

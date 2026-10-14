@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetRationsResponseMock|getGenerateFeedingPlanResponseMock|getRecordFeedingActivityResponseMock|getGetFeedingActivitiesResponseMock",
+    "glob": "src/**/*"
+   },
+   "ms": 0,
+   "resultChars": 210,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetRationsResponseMock|getGenerateFeedingPlanResponseMock|getRecordFeedingActivityResponseMock|getGetFeed\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "function AC_|AC_6_1|Insufficient inventory",
+    "glob": "tests/acceptance.part2.test.tsx"
+   },
+   "ms": 1,
+   "resultChars": 503,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;function AC_|AC_6_1|Insufficient inventory&quot;,&quot;glob&quot;:&quot;tests/acceptance.part2.test.tsx&quot;}\">\ntests/acceptance.part2.test.tsx:73: it(\"AC_6_1_DisplaysRationDetails\", async () => {\ntests/acceptance.part2.test.tsx:297: message: \"Insufficient inventory to save the requested activity.\",\ntests/acceptance.part2.test.tsx:309: await expectText(\"Insufficient inventory to save the requested activity.\");\n</untrusted_document>"
+  }
+ ]
+}

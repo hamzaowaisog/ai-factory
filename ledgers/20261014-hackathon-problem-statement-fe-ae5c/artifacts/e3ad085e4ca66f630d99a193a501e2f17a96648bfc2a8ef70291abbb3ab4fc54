@@ -1,0 +1,54 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-7.1",
+      "testId": "AC_7_1_ShowsFeasibleMixesWithNutritionAndCost",
+      "verdict": "weak",
+      "why": "Assert each candidate’s proportions and nutrition values in association with that candidate and its cost; the current global text checks can pass when a value is missing or shown for the wrong mix."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_RequiresSelectingSuggestionBeforeUsingRation",
+      "verdict": "weak",
+      "why": "Assert that the screen explicitly labels the unselected suggestion as unapplied; absence of a Save ration button and the response’s applied field do not prove that display state."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies each of the four named returned statuses and asserts that each status is displayed."
+     },
+     {
+      "acId": "AC-9.3",
+      "testId": "AC_9_3_CollectsAndDisplaysSeparateQuantitiesForEachLot",
+      "verdict": "weak",
+      "why": "Return lot quantities that differ from the entered 500 and 700 and assert those returned values are displayed, so input values alone cannot satisfy the display check."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_DisplaysReturnedCostEnergyAndInventoryConsumption",
+      "verdict": "weak",
+      "why": "Use a POST response with values that differ from the preexisting activity and entered quantities, then assert those response values in the relevant detail and inventory views."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "AC_10_2_ShowsInventoryShortageWithoutSavingActivity",
+      "verdict": "weak",
+      "why": "Assert that no success or saved-activity state is displayed after the refusal, since absence of the tested status text, ID, and lot row would still allow another saved indicator to appear."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

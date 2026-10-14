@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory outlook — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design Tokens */
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #252A27;
+      --text-quiet: #66706A;
+      --border-color: #D9DEDA;
+      --primary-accent: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+
+      --font-heading: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+
+      --dur-quick: 160ms;
+      --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entrance-fade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes row-settle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entrance-fade var(--dur-quick) var(--ease-standard) forwards;
+    }
+
+    /* Staggered row animation */
+    .row-stagger-1 { animation: row-settle var(--dur-quick) var(--ease-standard) 0ms forwards; }
+    .row-stagger-2 { animation: row-settle var(--dur-quick) var(--ease-standard) 50ms forwards; }
+    .row-stagger-3 { animation: row-settle var(--dur-quick) var(--ease-standard) 100ms forwards; }
+    .row-stagger-4 { animation: row-settle var(--dur-quick) var(--ease-standard) 150ms forwards; }
+
+    .live-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      animation: status-breathe 8s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography Utilities */
+    .font-heading { font-family: var(--font-heading); }
+    .font-body { font-family: var(--font-body); }
+    .font-mono { font-family: var(--font-mono); }
+
+    /* Header Component */
+    .header-bar {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      height: 56px;
+      width: 100%;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1360px;
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background-color: var(--primary-accent);
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 650;
+      color: var(--text-main);
+      white-space: nowrap;
+      margin-right: 12px;
+    }
+
+    .nav-list {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      gap: 20px;
+    }
+
+    .nav-link {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      text-decoration: none;
+      padding: 16px 0;
+      position: relative;
+      display: inline-block;
+      white-space: nowrap;
+      transition: color var(--dur-quick) var(--ease-standard);
+    }
+
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 4px;
+      border-radius: 2px;
+    }
+
+    .nav-link.active {
+      color: var(--primary-accent);
+      font-weight: 600;
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--primary-accent);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 24px;
+    }
+
+    .avatar-mo {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: #EBEFEB;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .user-text {
+      text-align: left;
+      line-height: 1.2;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--text-quiet);
+      white-space: nowrap;
+    }
+
+    /* Main Container */
+    .page-main {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 32px 64px 32px;
+    }
+
+    /* Page Header */
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .page-title {
+      font-family: var(--font-heading);
+      font-size: 30px;
+      line-height: 38px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .system-meta {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+
+    /* Lead Banner */
+    .lead-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px 32px;
+      margin-bottom: 24px;
+    }
+
+    .lead-headline {
+      font-family: var(--font-heading);
+      font-size: 26px;
+      line-height: 32px;
+      font-weight: 650;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .lead-headline .mono-num {
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .lead-context {
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-quiet);
+    }
+
+    /* Layout Grid */
+    .outlook-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Table Panel */
+    .table-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      line-height: 24px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .panel-unit {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    .table-caption-sub {
+      font-size: 13px;
+      color: var(--text-quiet);
+      margin-bottom: 20px;
+    }
+
+    /* Projection Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .projection-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .projection-table th {
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-quiet);
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .projection-table td {
+      height: 48px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .projection-table tbody tr {
+      transition: background-color var(--dur-quick) var(--ease-standard);
+    }
+
+    .projection-table tbody tr:hover {
+      background-color: #FAFBF9;
+    }
+
+    .col-feed {
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .num-cell {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    th.num-cell {
+      text-align: right;
+    }
+
+    .num-highlight {
+      font-weight: 600;
+    }
+
+    .table-footer-note {
+      margin-top: 16px;
+      font-size: 12px;
+      line-height: 18px;
+      color: var(--text-quiet);
+      font-family: var(--font-mono);
+    }
+
+    /* Side Region (Controls & Breakdown) */
+    .side-region {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .side-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .field-label {
+      display: block;
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .ratio-input {
+      width: 100%;
+      height: 44px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0 32px 0 12px;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-main);
+      transition: border-color var(--dur-quick) var(--ease-standard), outline var(--dur-quick) var(--ease-standard);
+    }
+
+    .ratio-input:focus {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: -1px;
+      border-color: var(--primary-accent);
+    }
+
+    .ratio-suffix {
+      position: absolute;
+      right: 14px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-quiet);
+      pointer-events: none;
+    }
+
+    .helper-text {
+      font-size: 13px;
+      line-height: 19px;
+      color: var(--text-quiet);
+      margin-bottom: 16px;
+    }
+
+    .caption-callout {
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+      font-size: 12px;
+      line-height: 18px;
+      color: var(--text-quiet);
+      font-style: normal;
+    }
+
+    /* Breakdown section inside side panel */
+    .breakdown-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .breakdown-subtitle {
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--text-quiet);
+      margin-bottom: 16px;
+    }
+
+    .breakdown-list {
+      list-style: none;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 13px;
+      border-top: 1px solid #ECEFEF;
+    }
+
+    .breakdown-name {
+      color: var(--text-quiet);
+    }
+
+    .breakdown-val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .pen-allocation-box {
+      background-color: #FAFBF9;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    .pen-allocation-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-quiet);
+      margin-bottom: 8px;
+    }
+
+    .pen-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .pen-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .pen-calc {
+      color: var(--text-quiet);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1080px) {
+      .outlook-grid {
+        grid-template-columns: 1fr;
+      }
+      .side-region {
+        order: -1;
+      }
+      .nav-list {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header: exact order, exact branding, exact user profile -->
+  <header class="header-bar">
+    <div class="header-inner">
+      <div class="brand-section">
+        <div class="brand-mark">C</div>
+        <span class="brand-title">Cedar Draw Feedlot</span>
+        <nav aria-label="Main Navigation">
+          <ul class="nav-list">
+            <li><a href="#" class="nav-link">Overview</a></li>
+            <li><a href="#" class="nav-link">Import records</a></li>
+            <li><a href="#" class="nav-link">Lots &amp; pens</a></li>
+            <li><a href="#" class="nav-link">Feed inventory</a></li>
+            <li><a href="#" class="nav-link active">Inventory outlook</a></li>
+            <li><a href="#" class="nav-link">Rations</a></li>
+            <li><a href="#" class="nav-link">Feeding plans</a></li>
+            <li><a href="#" class="nav-link">Feeding log</a></li>
+            <li><a href="#" class="nav-link">Weight records</a></li>
+            <li><a href="#" class="nav-link">Operational reports</a></li>
+            <li><a href="#" class="nav-link">Feed-to-gain</a></li>
+            <li><a href="#" class="nav-link">Project &amp; demo</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="user-profile">
+        <div class="avatar-mo">MO</div>
+        <div class="user-text">
+          <div class="user-name">Mara Ortega</div>
+          <div class="user-role">Feed manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="page-main animate-entrance">
+    <!-- Header title row -->
+    <div class="title-row">
+      <h1 class="page-title">Inventory outlook</h1>
+      <div class="system-meta">
+        <span class="live-dot" aria-hidden="true"></span>
+        Facility: Cedar Draw Feedlot &middot; As of 23 Apr 2025 &middot; America/Denver
+      </div>
+    </div>
+
+    <!-- Lead headline & context banner -->
+    <section class="lead-panel">
+      <h2 class="lead-headline"><span class="mono-num">680,000 lb</span> Yellow corn on hand</h2>
+      <p class="lead-context">Configured 4.2% estimated wastage ratio &middot; 2,920 lb/day planned feed across occupied pens (P-04 &amp; P-02)</p>
+    </section>
+
+    <!-- Content Grid: Table + Side Region -->
+    <div class="outlook-grid">
+      <!-- Left: Projection Models Table -->
+      <section class="table-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">Feed projection models</h3>
+          <span class="panel-unit">Values in pounds (lb)</span>
+        </div>
+        <p class="table-caption-sub">Forward projection balances calculated daily against active head bunk draw</p>
+
+        <div class="table-container">
+          <table class="projection-table" aria-label="Feed inventory horizon projections">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 180px;">Feed commodity</th>
+                <th scope="col" class="num-cell">Current stock</th>
+                <th scope="col" class="num-cell">Daily est.</th>
+                <th scope="col" class="num-cell">Daily balance</th>
+                <th scope="col" class="num-cell">Weekly (7d)</th>
+                <th scope="col" class="num-cell">Monthly (30d)</th>
+                <th scope="col" class="num-cell">Quarterly (90d)</th>
+                <th scope="col" class="num-cell">6-month (180d)</th>
+                <th scope="col" class="num-cell">Annual balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-stagger-1">
+                <td class="col-feed">Yellow corn</td>
+                <td class="num-cell">680,000</td>
+                <td class="num-cell">1,673</td>
+                <td class="num-cell">678,327</td>
+                <td class="num-cell">~668,289</td>
+                <td class="num-cell">~629,810</td>
+                <td class="num-cell">~529,430</td>
+                <td class="num-cell">~378,860</td>
+                <td class="num-cell num-highlight">69,689</td>
+              </tr>
+              <tr class="row-stagger-2">
+                <td class="col-feed">Alfalfa hay</td>
+                <td class="num-cell">390,000</td>
+                <td class="num-cell">913</td>
+                <td class="num-cell">389,087</td>
+                <td class="num-cell">~383,609</td>
+                <td class="num-cell">~362,610</td>
+                <td class="num-cell">~307,830</td>
+                <td class="num-cell">~225,660</td>
+                <td class="num-cell num-highlight">56,831</td>
+              </tr>
+              <tr class="row-stagger-3">
+                <td class="col-feed">Soybean meal</td>
+                <td class="num-cell">170,000</td>
+                <td class="num-cell">365</td>
+                <td class="num-cell">169,635</td>
+                <td class="num-cell">~167,445</td>
+                <td class="num-cell">~159,050</td>
+                <td class="num-cell">~137,150</td>
+                <td class="num-cell">~104,300</td>
+                <td class="num-cell num-highlight">36,732</td>
+              </tr>
+              <tr class="row-stagger-4">
+                <td class="col-feed">Mineral premix</td>
+                <td class="num-cell">42,000</td>
+                <td class="num-cell">91</td>
+                <td class="num-cell">41,909</td>
+                <td class="num-cell">~41,363</td>
+                <td class="num-cell">~39,270</td>
+                <td class="num-cell">~33,810</td>
+                <td class="num-cell">~25,620</td>
+                <td class="num-cell num-highlight">8,683</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="table-footer-note">Showing all 4 feed commodities configured in active rations &middot; Constant bunk demand assumed across calculation periods</p>
+      </section>
+
+      <!-- Right: Side Region with Ratio Control & Copy -->
+      <aside class="side-region">
+        <!-- Wastage Ratio Control Card -->
+        <div class="side-card">
+          <label for="wastage-input" class="field-label">Estimated wastage ratio (%)</label>
+          <div class="input-wrapper">
+            <input type="text" id="wastage-input" class="ratio-input" value="4.2" aria-describedby="wastage-helper wastage-caption">
+            <span class="ratio-suffix">%</span>
+          </div>
+          <p id="wastage-helper" class="helper-text">Projections recalculate immediately across all horizons. No apply button required.</p>
+          <p id="wastage-caption" class="caption-callout">Actual wastage is recorded separately on Feed inventory and is not substituted for this estimate ratio.</p>
+        </div>
+
+        <!-- Plan Consumption Context Card -->
+        <div class="side-card">
+          <h4 class="breakdown-title">Grower 1 plan consumption</h4>
+          <p class="breakdown-subtitle">Daily demand based on 2,920 lb/day bunk target with 4.2% wastage applied.</p>
+
+          <ul class="breakdown-list">
+            <li class="breakdown-item">
+              <span class="breakdown-name">Yellow corn (55%)</span>
+              <span class="breakdown-val">1,673 lb/day</span>
+            </li>
+            <li class="breakdown-item">
+              <span class="breakdown-name">Alfalfa hay (30%)</span>
+              <span class="breakdown-val">913 lb/day</span>
+            </li>
+            <li class="breakdown-item">
+              <span class="breakdown-name">Soybean meal (12%)</span>
+              <span class="breakdown-val">365 lb/day</span>
+            </li>
+            <li class="breakdown-item">
+              <span class="breakdown-name">Mineral premix (3%)</span>
+              <span class="breakdown-val">91 lb/day</span>
+            </li>
+          </ul>
+
+          <div class="pen-allocation-box">
+            <div class="pen-allocation-title">Occupied pen allocation</div>
+            <div class="pen-row">
+              <span>P-04</span>
+              <span class="pen-calc">116 head &times; 14 lb/head = 1,624 lb</span>
+            </div>
+            <div class="pen-row">
+              <span>P-02</span>
+              <span class="pen-calc">72 head &times; 18 lb/head = 1,296 lb</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

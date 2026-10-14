@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="d9cf8416-decf-4fb0-92bb-638fbd3c6d44" name="@d7c6984ad655 2026-10-14 10:54:28" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-14T10:54:28.2500035+00:00" queuing="2026-10-14T10:54:28.2500035+00:00" start="2026-10-14T10:54:26.0159074+00:00" finish="2026-10-14T10:54:28.2588903+00:00" />
+  <TestSettings name="default" id="c3bc3291-b610-46c7-9e6d-53b2a1365f01">
+    <Deployment runDeploymentRoot="_d7c6984ad655_2026-10-14_10_54_28" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="01e69f5f-3244-40d7-8014-05e4d38044bc" testId="4062626c-8c6e-7f0f-9562-ae52d6511aa4" testName="App.Tests.Part1.Part1CharacterisationTests.CHAR_RootEndpointReturnsApiIsUp" computerName="d7c6984ad655" duration="00:00:01.3292460" startTime="2026-10-14T10:54:28.1284358+00:00" endTime="2026-10-14T10:54:28.1284360+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="01e69f5f-3244-40d7-8014-05e4d38044bc" />
+    <UnitTestResult executionId="aaf2618c-13fb-4b1a-aea8-e92ed4ece6a6" testId="cc371590-e07b-49f3-9138-954aca01e44c" testName="App.Tests.HealthTests.ApiIsUp" computerName="d7c6984ad655" duration="00:00:01.3231586" startTime="2026-10-14T10:54:28.1097426+00:00" endTime="2026-10-14T10:54:28.1097637+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aaf2618c-13fb-4b1a-aea8-e92ed4ece6a6" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="App.Tests.HealthTests.ApiIsUp" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="cc371590-e07b-49f3-9138-954aca01e44c">
+      <Execution id="aaf2618c-13fb-4b1a-aea8-e92ed4ece6a6" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.HealthTests" name="ApiIsUp" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.Part1CharacterisationTests.CHAR_RootEndpointReturnsApiIsUp" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="4062626c-8c6e-7f0f-9562-ae52d6511aa4">
+      <Execution id="01e69f5f-3244-40d7-8014-05e4d38044bc" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.Part1CharacterisationTests" name="CHAR_RootEndpointReturnsApiIsUp" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="4062626c-8c6e-7f0f-9562-ae52d6511aa4" executionId="01e69f5f-3244-40d7-8014-05e4d38044bc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc371590-e07b-49f3-9138-954aca01e44c" executionId="aaf2618c-13fb-4b1a-aea8-e92ed4ece6a6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.20)
+[xUnit.net 00:00:00.07]   Discovering: App.Tests
+[xUnit.net 00:00:00.10]   Discovered:  App.Tests
+[xUnit.net 00:00:00.10]   Starting:    App.Tests
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (40ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (37ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "ImportBatches" (
+          "BatchId" text NOT NULL,
+          "SourceName" text NOT NULL,
+          CONSTRAINT "PK_ImportBatches" PRIMARY KEY ("BatchId")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Pens" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Capacity" integer NOT NULL,
+          CONSTRAINT "PK_Pens" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "ImportRows" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "BatchId" text NOT NULL,
+          "SourceIdentifier" text NOT NULL,
+          "SourceType" text NOT NULL,
+          "Vendor" text NOT NULL,
+          "Cost" numeric NOT NULL,
+          "HeadCount" integer NOT NULL,
+          "WeightLb" numeric NOT NULL,
+          "Breed" text NOT NULL,
+          "AgeDays" integer NOT NULL,
+          "Source" text NOT NULL,
+          "RowStatus" text NOT NULL,
+          "ProblemDetail" text,
+          CONSTRAINT "PK_ImportRows" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_ImportRows_ImportBatches_BatchId" FOREIGN KEY ("BatchId") REFERENCES "ImportBatches" ("BatchId") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Lots" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "PenId" integer,
+          "HeadCount" integer NOT NULL,
+          "Breed" text NOT NULL,
+          "Sex" text NOT NULL,
+          "SourcePurchaseOrderLine" text NOT NULL,
+          "Status" text NOT NULL,
+          "TargetWeightLb" numeric NOT NULL,
+          "DefaultGainRateLbPerDay" numeric NOT NULL,
+          CONSTRAINT "PK_Lots" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_Lots_Pens_PenId" FOREIGN KEY ("PenId") REFERENCES "Pens" ("Id") ON DELETE SET NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_ImportRows_BatchId" ON "ImportRows" ("BatchId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_Lots_PenId" ON "Lots" ("PenId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Pens_Name" ON "Pens" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/ - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/ - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/ - 200 - text/plain;+charset=utf-8 130.8540ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/ - 200 - text/plain;+charset=utf-8 130.7576ms
+[xUnit.net 00:00:01.50]   Finished:    App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="d7c6984ad655" outcome="Warning" timestamp="2026-10-14T10:54:28.1864074+00:00">
+        <Text>Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

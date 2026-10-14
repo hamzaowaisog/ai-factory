@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import records</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #252A27;
+      --text-muted: #66706A;
+      --border-color: #D9DEDA;
+      --color-primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 26px;
+      font-weight: 650;
+      line-height: 32px;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 28px;
+    }
+
+    h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+
+    .font-mono-val {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Outlines and interactive states */
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .primary-btn {
+      background-color: var(--color-primary);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: opacity var(--dur-quick) ease, transform 90ms ease;
+    }
+    .primary-btn:hover {
+      opacity: 0.92;
+    }
+    .primary-btn:active {
+      transform: scale(0.98);
+    }
+
+    .ghost-control {
+      height: 44px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-surface);
+      transition: border-color var(--dur-quick) ease;
+    }
+    .ghost-control:hover {
+      border-color: var(--color-primary);
+    }
+
+    /* Status badge treatments */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 600;
+      border-width: 1px;
+      border-style: solid;
+      background-color: #FFFFFF;
+    }
+    .status-good {
+      color: var(--status-good);
+      border-color: var(--status-good);
+    }
+    .status-waiting {
+      color: var(--status-waiting);
+      border-color: var(--status-waiting);
+    }
+    .status-failed {
+      color: var(--status-failed);
+      border-color: var(--status-failed);
+    }
+
+    /* Motion specifications */
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      display: inline-block;
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    @keyframes row-settle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stagger-row {
+      animation: row-settle var(--dur-quick) ease-out forwards;
+    }
+    .stagger-row:nth-child(1) { animation-delay: 0ms; }
+    .stagger-row:nth-child(2) { animation-delay: 50ms; }
+    .stagger-row:nth-child(3) { animation-delay: 100ms; }
+    .stagger-row:nth-child(4) { animation-delay: 150ms; }
+    .stagger-row:nth-child(5) { animation-delay: 200ms; }
+    .stagger-row:nth-child(6) { animation-delay: 250ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot {
+        animation: none;
+        opacity: 1;
+      }
+      .stagger-row {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+      .primary-btn, .ghost-control {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[#252A27]">
+
+  <!-- Mobile Header -->
+  <header class="bg-[#FFFFFF] border-b border-[#D9DEDA] px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+    <!-- Brand mark & Wordmark -->
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-[#252A27] rounded flex items-center justify-center text-[#FFFFFF] font-bold text-sm tracking-tight">
+        C
+      </div>
+      <span class="font-bold tracking-tight text-[17px] text-[#252A27]" style="font-family: 'Hanken Grotesk', sans-serif;">
+        Cedar Draw Feedlot
+      </span>
+    </div>
+
+    <!-- Signed-in User avatar & Menu toggle button -->
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded bg-[#F6F7F5] border border-[#D9DEDA]">
+        <div class="w-6 h-6 rounded bg-[#252A27] text-[#FFFFFF] flex items-center justify-center text-xs font-semibold font-mono-val">
+          MO
+        </div>
+        <span class="text-xs font-semibold text-[#252A27] leading-none">Mara Ortega</span>
+      </div>
+
+      <button type="button" aria-label="Open menu" class="w-10 h-10 flex items-center justify-center rounded-[6px] border border-[#D9DEDA] bg-[#FFFFFF] text-[#252A27] active:bg-[#F6F7F5]">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 5h14a1 1 0 110 2H3a1 1 0 110-2zm0 4h14a1 1 0 110 2H3a1 1 0 110-2zm0 4h14a1 1 0 110 2H3a1 1 0 110-2z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-[420px] mx-auto px-4 py-6 space-y-4">
+    <!-- Single Page Heading -->
+    <div>
+      <h1>Import records</h1>
+    </div>
+
+    <!-- Batch Selector Panel -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3">
+      <div>
+        <label for="batch_file_selector" class="block text-sm font-semibold text-[#252A27] mb-1.5">
+          Batch file selection
+        </label>
+        <div class="relative">
+          <select id="batch_file_selector" class="w-full ghost-control px-3 text-sm text-[#252A27] font-mono-val appearance-none pr-8 cursor-pointer">
+            <option selected>april_cattle_po.csv, april_receiving.csv (2 files)</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#66706A]">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-1">
+        <button type="button" class="w-full ghost-control font-semibold text-sm text-[#252A27] flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 text-[#66706A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Preview records
+        </button>
+      </div>
+    </section>
+
+    <!-- Preview Timestamp & Outcome Summary -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3">
+      <div class="flex items-center justify-between text-xs pb-2 border-b border-[#D9DEDA]">
+        <div class="flex items-center gap-1.5 text-[#252A27]">
+          <span class="live-dot"></span>
+          <span class="text-[#66706A]">Preview timestamp:</span>
+          <span class="font-mono-val font-semibold">23 Apr 2025, 09:14 America/Denver</span>
+        </div>
+      </div>
+
+      <!-- Concise Outcome Metrics Summary -->
+      <div>
+        <div class="text-xs text-[#66706A] mb-2 font-medium">Outcome summary (5 records evaluated, 202 head)</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="p-2.5 rounded-[6px] border border-[#28734F] bg-[#FFFFFF]">
+            <div class="text-[#28734F] font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#28734F]"></span>
+              Synced / ready
+            </div>
+            <div class="font-mono-val text-sm font-semibold text-[#252A27] mt-1">1 line (56 head)</div>
+          </div>
+
+          <div class="p-2.5 rounded-[6px] border border-[#94600C] bg-[#FFFFFF]">
+            <div class="text-[#94600C] font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#94600C]"></span>
+              Partial mapped
+            </div>
+            <div class="font-mono-val text-sm font-semibold text-[#252A27] mt-1">1 line (60 P-04, 24 unpenned)</div>
+          </div>
+
+          <div class="p-2.5 rounded-[6px] border border-[#AE3D36] bg-[#FFFFFF]">
+            <div class="text-[#AE3D36] font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#AE3D36]"></span>
+              Duplicate
+            </div>
+            <div class="font-mono-val text-sm font-semibold text-[#252A27] mt-1">1 line (84 head)</div>
+          </div>
+
+          <div class="p-2.5 rounded-[6px] border border-[#94600C] bg-[#FFFFFF]">
+            <div class="text-[#94600C] font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#94600C]"></span>
+              Pending mapping
+            </div>
+            <div class="font-mono-val text-sm font-semibold text-[#252A27] mt-1">1 line (18 head)</div>
+          </div>
+
+          <div class="p-2.5 rounded-[6px] border border-[#AE3D36] bg-[#FFFFFF] col-span-2">
+            <div class="text-[#AE3D36] font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#AE3D36]"></span>
+              Capacity blocked
+            </div>
+            <div class="font-mono-val text-sm font-semibold text-[#252A27] mt-1">1 line (40 head to P-04)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capacity Enforcement Explicit Statement -->
+      <div class="pt-2 border-t border-[#D9DEDA] text-xs text-[#252A27] leading-relaxed">
+        <p class="font-semibold text-[#AE3D36] mb-0.5">Operational constraint:</p>
+        <p>Unresolved or capacity-blocked animals cannot be used in pen operations. P-04 capacity is 150 (currently 116 head, 34 open); incoming 40 head exceeds open capacity.</p>
+      </div>
+    </section>
+
+    <!-- Primary Sync Action Button (Within reach of thumb, showing truthful count) -->
+    <div class="pt-1">
+      <button type="button" class="w-full primary-btn flex items-center justify-center gap-2 text-[15px]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Sync ready records (1 line ready, 56 head)
+      </button>
+    </div>
+
+    <!-- Stacked Labelled Records for Phone Width (No sideways scroll) -->
+    <section class="space-y-3 pt-2">
+      <div class="flex items-center justify-between px-1">
+        <h3 class="text-sm font-semibold text-[#66706A] uppercase tracking-wider">Previewed records (5)</h3>
+        <span class="text-xs text-[#66706A] font-mono-val">Showing 5 of 5</span>
+      </div>
+
+      <!-- Record 1: PO-5831 line 1 (Partial) -->
+      <article class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3 stagger-row">
+        <!-- Outcome and Head Count first -->
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#D9DEDA]">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="status-badge status-waiting">waiting</span>
+              <span class="text-xs font-semibold text-[#94600C]">Partial mapped</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1 font-mono-val">
+              PO-5831 line 1 &bull; april_cattle_po.csv
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-lg font-bold text-[#252A27] font-mono-val">84</span>
+            <span class="text-xs text-[#66706A] block">head</span>
+          </div>
+        </div>
+
+        <!-- Cattle specs & Origin -->
+        <div class="grid grid-cols-2 gap-y-2 text-xs">
+          <div>
+            <div class="text-[#66706A]">Vendor &amp; origin</div>
+            <div class="font-medium text-[#252A27]">Red Basin Cattle Co.</div>
+            <div class="text-[#66706A]">Red Basin Ranch</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Breed &amp; sex</div>
+            <div class="font-medium text-[#252A27]">Angus–Hereford steers</div>
+            <div class="text-[#66706A]">16 months &bull; <span class="font-mono-val">612 lb</span> avg</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Cost per head</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$1,470</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Extended cost</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$123,480</div>
+          </div>
+        </div>
+
+        <!-- Proposed Lot/Pen and Row Outcome -->
+        <div class="bg-[#F6F7F5] p-2.5 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+          <div class="text-[#66706A] font-medium">Proposed lot &amp; pen assignment:</div>
+          <div class="font-semibold text-[#252A27]">
+            Split: <span class="font-mono-val">60</span> head to <span class="font-mono-val">L-241</span> in <span class="font-mono-val">P-04</span> (34 open) &bull; <span class="font-mono-val">24</span> head to <span class="font-mono-val">L-243</span> (no pen)
+          </div>
+          <div class="text-[#94600C] text-[11px] leading-tight">
+            * 24 unpenned head in L-243 cannot be used in pen operations until assigned.
+          </div>
+        </div>
+      </article>
+
+      <!-- Record 2: PO-5840 line 1 (Ready / Synced) -->
+      <article class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3 stagger-row">
+        <!-- Outcome and Head Count first -->
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#D9DEDA]">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="status-badge status-good">good</span>
+              <span class="text-xs font-semibold text-[#28734F]">Ready to sync</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1 font-mono-val">
+              PO-5840 line 1 &bull; april_cattle_po.csv
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-lg font-bold text-[#252A27] font-mono-val">56</span>
+            <span class="text-xs text-[#66706A] block">head</span>
+          </div>
+        </div>
+
+        <!-- Cattle specs & Origin -->
+        <div class="grid grid-cols-2 gap-y-2 text-xs">
+          <div>
+            <div class="text-[#66706A]">Vendor &amp; origin</div>
+            <div class="font-medium text-[#252A27]">Mesa Valley Cattle Co.</div>
+            <div class="text-[#66706A]">Mesa Valley Ranch</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Breed &amp; sex</div>
+            <div class="font-medium text-[#252A27]">Charolais-cross heifers</div>
+            <div class="text-[#66706A]">14 months &bull; <span class="font-mono-val">548 lb</span> avg</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Cost per head</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$1,338</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Extended cost</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$74,928</div>
+          </div>
+        </div>
+
+        <!-- Proposed Lot/Pen and Row Outcome -->
+        <div class="bg-[#F6F7F5] p-2.5 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+          <div class="text-[#66706A] font-medium">Proposed lot &amp; pen assignment:</div>
+          <div class="font-semibold text-[#252A27]">
+            Mapped to <span class="font-mono-val">L-242</span> in <span class="font-mono-val">P-04</span>
+          </div>
+          <div class="text-[#28734F] text-[11px] leading-tight">
+            * Fully validated. Validatable head: 56. Fits available capacity.
+          </div>
+        </div>
+      </article>
+
+      <!-- Record 3: REC-8843 (Duplicate) -->
+      <article class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3 stagger-row">
+        <!-- Outcome and Head Count first -->
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#D9DEDA]">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="status-badge status-failed">failed</span>
+              <span class="text-xs font-semibold text-[#AE3D36]">Duplicate</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1 font-mono-val">
+              REC-8843 &bull; april_receiving.csv
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-lg font-bold text-[#252A27] font-mono-val">84</span>
+            <span class="text-xs text-[#66706A] block">head</span>
+          </div>
+        </div>
+
+        <!-- Cattle specs & Origin -->
+        <div class="grid grid-cols-2 gap-y-2 text-xs">
+          <div>
+            <div class="text-[#66706A]">Vendor &amp; origin</div>
+            <div class="font-medium text-[#252A27]">Red Basin Cattle Co.</div>
+            <div class="text-[#66706A]">Red Basin Ranch</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Breed &amp; sex</div>
+            <div class="font-medium text-[#252A27]">Angus–Hereford steers</div>
+            <div class="text-[#66706A]">16 months &bull; <span class="font-mono-val">612 lb</span> avg</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Cost per head</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$1,470</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Extended cost</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$123,480</div>
+          </div>
+        </div>
+
+        <!-- Proposed Lot/Pen and Row Outcome -->
+        <div class="bg-[#F6F7F5] p-2.5 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+          <div class="text-[#66706A] font-medium">Proposed lot &amp; pen assignment:</div>
+          <div class="font-semibold text-[#AE3D36]">
+            None &bull; Duplicate entry of PO-5831 line 1
+          </div>
+          <div class="text-[#AE3D36] text-[11px] leading-tight">
+            * Refused: Identical 84-head record already supplied in PO batch.
+          </div>
+        </div>
+      </article>
+
+      <!-- Record 4: REC-8844 (Pending mapping) -->
+      <article class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3 stagger-row">
+        <!-- Outcome and Head Count first -->
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#D9DEDA]">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="status-badge status-waiting">waiting</span>
+              <span class="text-xs font-semibold text-[#94600C]">Pending mapping</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1 font-mono-val">
+              REC-8844 &bull; april_receiving.csv
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-lg font-bold text-[#252A27] font-mono-val">18</span>
+            <span class="text-xs text-[#66706A] block">head</span>
+          </div>
+        </div>
+
+        <!-- Cattle specs & Origin -->
+        <div class="grid grid-cols-2 gap-y-2 text-xs">
+          <div>
+            <div class="text-[#66706A]">Vendor &amp; origin</div>
+            <div class="font-medium text-[#252A27]">Juniper Ridge Cattle</div>
+            <div class="text-[#66706A]">Juniper Ridge Ranch</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Breed &amp; sex</div>
+            <div class="font-medium text-[#252A27]">Hereford-cross steers</div>
+            <div class="text-[#66706A]">13 months &bull; <span class="font-mono-val">522 lb</span> avg</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Cost per head</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$1,290</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Extended cost</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$23,220</div>
+          </div>
+        </div>
+
+        <!-- Proposed Lot/Pen and Row Outcome -->
+        <div class="bg-[#F6F7F5] p-2.5 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+          <div class="text-[#66706A] font-medium">Proposed lot &amp; pen assignment:</div>
+          <div class="font-semibold text-[#94600C]">
+            Unassigned lot &bull; Awaiting lot/pen mapping
+          </div>
+          <div class="text-[#94600C] text-[11px] leading-tight">
+            * Unresolved: Animals cannot be used in pen operations until lot mapped.
+          </div>
+        </div>
+      </article>
+
+      <!-- Record 5: REC-8845 (Capacity blocked) -->
+      <article class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 space-y-3 stagger-row">
+        <!-- Outcome and Head Count first -->
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#D9DEDA]">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="status-badge status-failed">failed</span>
+              <span class="text-xs font-semibold text-[#AE3D36]">Capacity blocked</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1 font-mono-val">
+              REC-8845 &bull; april_receiving.csv
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-lg font-bold text-[#252A27] font-mono-val">40</span>
+            <span class="text-xs text-[#66706A] block">head</span>
+          </div>
+        </div>
+
+        <!-- Cattle specs & Origin -->
+        <div class="grid grid-cols-2 gap-y-2 text-xs">
+          <div>
+            <div class="text-[#66706A]">Vendor &amp; origin</div>
+            <div class="font-medium text-[#252A27]">High Mesa Livestock</div>
+            <div class="text-[#66706A]">High Mesa Ranch</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Breed &amp; sex</div>
+            <div class="font-medium text-[#252A27]">Angus steers</div>
+            <div class="text-[#66706A]">15 months &bull; <span class="font-mono-val">590 lb</span> avg</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Cost per head</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$1,410</div>
+          </div>
+          <div>
+            <div class="text-[#66706A]">Extended cost</div>
+            <div class="font-mono-val font-semibold text-[#252A27]">$56,400</div>
+          </div>
+        </div>
+
+        <!-- Proposed Lot/Pen and Row Outcome -->
+        <div class="bg-[#F6F7F5] p-2.5 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+          <div class="text-[#66706A] font-medium">Proposed lot &amp; pen assignment:</div>
+          <div class="font-semibold text-[#AE3D36]">
+            Blocked: P-04 (116 + 40 = 156 &gt; 150 capacity)
+          </div>
+          <div class="text-[#AE3D36] text-[11px] leading-tight">
+            * Refused: Exceeds pen capacity. Animals cannot be used in pen operations.
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Bottom summary row -->
+    <div class="p-3 bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] text-xs space-y-1">
+      <div class="flex justify-between text-[#66706A]">
+        <span>Combined extended cost:</span>
+        <span class="font-mono-val font-semibold text-[#252A27]">$398,008</span>
+      </div>
+      <div class="flex justify-between text-[#66706A]">
+        <span>Validatable head count:</span>
+        <span class="font-mono-val font-semibold text-[#252A27]">116 / 202 head</span>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

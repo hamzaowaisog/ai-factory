@@ -1,0 +1,17 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/AppDb.cs"
+   },
+   "ms": 1,
+   "resultChars": 293,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/AppDb.cs&quot;}\">\nApp.Api/AppDb.cs lines 1-8\n1\tusing Microsoft.EntityFrameworkCore;\n2\t\n3\tnamespace App.Api;\n4\t\n5\tpublic class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n6\t{\n7\t}\n8\t\n</untrusted_document>"
+  }
+ ]
+}

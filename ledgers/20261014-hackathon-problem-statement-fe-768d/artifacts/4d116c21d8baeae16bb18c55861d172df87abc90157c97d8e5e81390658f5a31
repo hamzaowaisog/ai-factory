@@ -1,0 +1,606 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="f0eb9edf-af3a-4e6f-a38f-63a98c776685" name="@4338bcb2221e 2026-10-14 11:55:37" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-14T11:55:37.8856511+00:00" queuing="2026-10-14T11:55:37.8856513+00:00" start="2026-10-14T11:55:30.9817408+00:00" finish="2026-10-14T11:55:39.8292454+00:00" />
+  <TestSettings name="default" id="c8bb16d9-ca08-484b-9605-1baabea06bbb">
+    <Deployment runDeploymentRoot="_4338bcb2221e_2026-10-14_11_55_37" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="4742b186-b90c-458f-90a8-34a0bbfbf194" testId="314a4da1-eb40-1464-c65d-797abbc7c38b" testName="App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows" computerName="4338bcb2221e" duration="00:00:00.0644683" startTime="2026-10-14T11:55:37.8501338+00:00" endTime="2026-10-14T11:55:37.8501339+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4742b186-b90c-458f-90a8-34a0bbfbf194">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   1</Message>
+          <StackTrace>   at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory) in /src/App.Tests/AcceptancePart4Tests.cs:line 101
+   at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory) in /src/App.Tests/AcceptancePart4Tests.cs:line 101
+   at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory) in /src/App.Tests/AcceptancePart4Tests.cs:line 97
+   at App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows() in /src/App.Tests/AcceptancePart4Tests.cs:line 63
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="611fd5c8-b865-4ea9-bf9e-605bd9d823bc" testId="7dd9fac4-dc16-0bf1-08c0-1f514a2f089f" testName="App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled" computerName="4338bcb2221e" duration="00:00:04.9151118" startTime="2026-10-14T11:55:37.8097887+00:00" endTime="2026-10-14T11:55:37.8097892+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="611fd5c8-b865-4ea9-bf9e-605bd9d823bc">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   1</Message>
+          <StackTrace>   at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory) in /src/App.Tests/AcceptancePart4Tests.cs:line 101
+   at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory) in /src/App.Tests/AcceptancePart4Tests.cs:line 101
+   at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory) in /src/App.Tests/AcceptancePart4Tests.cs:line 97
+   at App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled() in /src/App.Tests/AcceptancePart4Tests.cs:line 34
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="4048091c-e1e3-45d9-a193-46dd74ab4910" testId="cd17100c-ea70-6c00-9bfb-3d9799b940d8" testName="App.Tests.Part1.AcceptancePart1Tests.AC_1_16_RationOptimizationReturnsCandidatesInCostOrder" computerName="4338bcb2221e" duration="00:00:06.7997771" startTime="2026-10-14T11:55:39.5440708+00:00" endTime="2026-10-14T11:55:39.5440709+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4048091c-e1e3-45d9-a193-46dd74ab4910" />
+    <UnitTestResult executionId="7a5cab3b-dae0-4cb4-89bc-88e6be09c0e2" testId="02da969f-00ab-39c5-46a9-9d5de56a04a1" testName="App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts" computerName="4338bcb2221e" duration="00:00:04.9052688" startTime="2026-10-14T11:55:37.7541773+00:00" endTime="2026-10-14T11:55:37.7542948+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7a5cab3b-dae0-4cb4-89bc-88e6be09c0e2">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   1</Message>
+          <StackTrace>   at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertNoApplicationRecordsAsync() in /src/App.Tests/AcceptancePart2Tests.cs:line 194
+   at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertNoApplicationRecordsAsync() in /src/App.Tests/AcceptancePart2Tests.cs:line 194
+   at App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts() in /src/App.Tests/AcceptancePart2Tests.cs:line 32
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="02da969f-00ab-39c5-46a9-9d5de56a04a1">
+      <Execution id="7a5cab3b-dae0-4cb4-89bc-88e6be09c0e2" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part2.AcceptancePart2Tests" name="AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part1.AcceptancePart1Tests.AC_1_16_RationOptimizationReturnsCandidatesInCostOrder" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="cd17100c-ea70-6c00-9bfb-3d9799b940d8">
+      <Execution id="4048091c-e1e3-45d9-a193-46dd74ab4910" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part1.AcceptancePart1Tests" name="AC_1_16_RationOptimizationReturnsCandidatesInCostOrder" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="314a4da1-eb40-1464-c65d-797abbc7c38b">
+      <Execution id="4742b186-b90c-458f-90a8-34a0bbfbf194" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part4.AcceptancePart4Tests" name="AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="7dd9fac4-dc16-0bf1-08c0-1f514a2f089f">
+      <Execution id="611fd5c8-b865-4ea9-bf9e-605bd9d823bc" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part4.AcceptancePart4Tests" name="AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="314a4da1-eb40-1464-c65d-797abbc7c38b" executionId="4742b186-b90c-458f-90a8-34a0bbfbf194" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7dd9fac4-dc16-0bf1-08c0-1f514a2f089f" executionId="611fd5c8-b865-4ea9-bf9e-605bd9d823bc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cd17100c-ea70-6c00-9bfb-3d9799b940d8" executionId="4048091c-e1e3-45d9-a193-46dd74ab4910" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="02da969f-00ab-39c5-46a9-9d5de56a04a1" executionId="7a5cab3b-dae0-4cb4-89bc-88e6be09c0e2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="1" failed="3" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.01] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.20)
+[xUnit.net 00:00:00.17]   Discovering: App.Tests
+[xUnit.net 00:00:00.25]   Discovered:  App.Tests
+[xUnit.net 00:00:00.26]   Starting:    App.Tests
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (101ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (38ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "DemoLoadRuns" (
+          "DatasetId" text NOT NULL,
+          CONSTRAINT "PK_DemoLoadRuns" PRIMARY KEY ("DatasetId")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (32ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingPlans" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "PenId" integer NOT NULL,
+          "RationId" integer NOT NULL,
+          "PlanDate" date NOT NULL,
+          "DailyBunkRateLbPerHead" numeric NOT NULL,
+          "CurrentPenHeadcount" integer NOT NULL,
+          "PlannedTime" time without time zone NOT NULL,
+          "Status" text NOT NULL,
+          CONSTRAINT "PK_FeedingPlans" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (38ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "ImportBatches" (
+          "BatchId" text NOT NULL,
+          "SourceName" text NOT NULL,
+          CONSTRAINT "PK_ImportBatches" PRIMARY KEY ("BatchId")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (28ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "InventoryItems" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Category" text NOT NULL,
+          "Unit" text NOT NULL,
+          "UnitCost" numeric NOT NULL,
+          "DryMatterPercent" numeric NOT NULL,
+          "EnergyMcalPerKg" numeric NOT NULL,
+          "StorageLocation" text NOT NULL,
+          "OpeningStockLb" numeric NOT NULL,
+          CONSTRAINT "PK_InventoryItems" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (26ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "InventorySettings" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Scope" text NOT NULL,
+          "WastageRatio" numeric NOT NULL,
+          CONSTRAINT "PK_InventorySettings" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (34ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Pens" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Capacity" integer NOT NULL,
+          CONSTRAINT "PK_Pens" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (28ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "RationCandidates" (
+          "CandidateId" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Feasible" boolean NOT NULL,
+          "TargetWeightMinLb" numeric NOT NULL,
+          "TargetWeightMaxLb" numeric NOT NULL,
+          "MinimumDryMatterPercent" numeric NOT NULL,
+          "MinimumEnergyMcalPerKg" numeric NOT NULL,
+          "PredictedDryMatterPercent" numeric NOT NULL,
+          "PredictedEnergyMcalPerKg" numeric NOT NULL,
+          CONSTRAINT "PK_RationCandidates" PRIMARY KEY ("CandidateId")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (27ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Rations" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Type" text NOT NULL,
+          "TargetWeightMinLb" numeric NOT NULL,
+          "TargetWeightMaxLb" numeric NOT NULL,
+          "OperationalStatus" text NOT NULL,
+          CONSTRAINT "PK_Rations" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (31ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "DemoLoadOutcomes" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "DatasetId" text NOT NULL,
+          "OutcomeType" text NOT NULL,
+          "RecordType" text NOT NULL,
+          "SourceIdentifier" text NOT NULL,
+          "Reason" text NOT NULL,
+          CONSTRAINT "PK_DemoLoadOutcomes" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_DemoLoadOutcomes_DemoLoadRuns_DatasetId" FOREIGN KEY ("DatasetId") REFERENCES "DemoLoadRuns" ("DatasetId") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (49ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "ImportRows" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "BatchId" text NOT NULL,
+          "SourceIdentifier" text NOT NULL,
+          "SourceType" text NOT NULL,
+          "Vendor" text NOT NULL,
+          "Cost" numeric NOT NULL,
+          "HeadCount" integer NOT NULL,
+          "WeightLb" numeric NOT NULL,
+          "Breed" text NOT NULL,
+          "AgeDays" integer NOT NULL,
+          "Source" text NOT NULL,
+          "RowStatus" text NOT NULL,
+          "ProblemDetail" text,
+          CONSTRAINT "PK_ImportRows" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_ImportRows_ImportBatches_BatchId" FOREIGN KEY ("BatchId") REFERENCES "ImportBatches" ("BatchId") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (48ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "InventoryMovements" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ItemId" integer NOT NULL,
+          "MovementType" text NOT NULL,
+          "Date" date NOT NULL,
+          "QuantityLb" numeric NOT NULL,
+          "Note" text NOT NULL,
+          "WastageCause" text,
+          CONSTRAINT "PK_InventoryMovements" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_InventoryMovements_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (32ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Lots" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "PenId" integer,
+          "HeadCount" integer NOT NULL,
+          "Breed" text NOT NULL,
+          "Sex" text NOT NULL,
+          "SourcePurchaseOrderLine" text NOT NULL,
+          "Status" text NOT NULL,
+          "TargetWeightLb" numeric NOT NULL,
+          "DefaultGainRateLbPerDay" numeric NOT NULL,
+          CONSTRAINT "PK_Lots" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_Lots_Pens_PenId" FOREIGN KEY ("PenId") REFERENCES "Pens" ("Id") ON DELETE SET NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (31ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "RationCandidateIngredients" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "CandidateId" integer NOT NULL,
+          "ItemId" integer NOT NULL,
+          "ProportionPercent" numeric NOT NULL,
+          CONSTRAINT "PK_RationCandidateIngredients" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_RationCandidateIngredients_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT,
+          CONSTRAINT "FK_RationCandidateIngredients_RationCandidates_CandidateId" FOREIGN KEY ("CandidateId") REFERENCES "RationCandidates" ("CandidateId") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (68ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingActivities" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ActivityDate" date NOT NULL,
+          "PenId" integer NOT NULL,
+          "RationId" integer NOT NULL,
+          "FeedingPlanId" integer,
+          "Manager" text NOT NULL,
+          "ActualQuantityLb" numeric NOT NULL,
+          "FeedCost" numeric NOT NULL,
+          "EnergyMcal" numeric NOT NULL,
+          CONSTRAINT "PK_FeedingActivities" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_FeedingActivities_FeedingPlans_FeedingPlanId" FOREIGN KEY ("FeedingPlanId") REFERENCES "FeedingPlans" ("Id") ON DELETE SET NULL,
+          CONSTRAINT "FK_FeedingActivities_Pens_PenId" FOREIGN KEY ("PenId") REFERENCES "Pens" ("Id") ON DELETE RESTRICT,
+          CONSTRAINT "FK_FeedingActivities_Rations_RationId" FOREIGN KEY ("RationId") REFERENCES "Rations" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (49ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "RationIngredients" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "RationId" integer NOT NULL,
+          "ItemId" integer NOT NULL,
+          "ProportionPercent" numeric NOT NULL,
+          CONSTRAINT "PK_RationIngredients" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_RationIngredients_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT,
+          CONSTRAINT "FK_RationIngredients_Rations_RationId" FOREIGN KEY ("RationId") REFERENCES "Rations" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (46ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "WeightReadings" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "LotId" integer NOT NULL,
+          "MeasurementDate" date NOT NULL,
+          "ApplicableHeadcount" integer NOT NULL,
+          "AverageWeightLb" numeric NOT NULL,
+          "RecordedBy" text NOT NULL,
+          "Notes" text NOT NULL,
+          CONSTRAINT "PK_WeightReadings" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_WeightReadings_Lots_LotId" FOREIGN KEY ("LotId") REFERENCES "Lots" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (35ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingActivityIngredientConsumptions" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ActivityId" integer NOT NULL,
+          "ItemId" integer NOT NULL,
+          "QuantityLb" numeric NOT NULL,
+          CONSTRAINT "PK_FeedingActivityIngredientConsumptions" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_FeedingActivityIngredientConsumptions_FeedingActivities_Act~" FOREIGN KEY ("ActivityId") REFERENCES "FeedingActivities" ("Id") ON DELETE CASCADE,
+          CONSTRAINT "FK_FeedingActivityIngredientConsumptions_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (33ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingActivityLotConsumptions" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ActivityId" integer NOT NULL,
+          "LotId" integer NOT NULL,
+          "QuantityLb" numeric NOT NULL,
+          CONSTRAINT "PK_FeedingActivityLotConsumptions" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_FeedingActivityLotConsumptions_FeedingActivities_ActivityId" FOREIGN KEY ("ActivityId") REFERENCES "FeedingActivities" ("Id") ON DELETE CASCADE,
+          CONSTRAINT "FK_FeedingActivityLotConsumptions_Lots_LotId" FOREIGN KEY ("LotId") REFERENCES "Lots" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_DemoLoadOutcomes_DatasetId" ON "DemoLoadOutcomes" ("DatasetId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivities_FeedingPlanId" ON "FeedingActivities" ("FeedingPlanId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (22ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivities_PenId" ON "FeedingActivities" ("PenId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivities_RationId" ON "FeedingActivities" ("RationId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_FeedingActivityIngredientConsumptions_ActivityId_ItemId" ON "FeedingActivityIngredientConsumptions" ("ActivityId", "ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivityIngredientConsumptions_ItemId" ON "FeedingActivityIngredientConsumptions" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_FeedingActivityLotConsumptions_ActivityId_LotId" ON "FeedingActivityLotConsumptions" ("ActivityId", "LotId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivityLotConsumptions_LotId" ON "FeedingActivityLotConsumptions" ("LotId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (23ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_ImportRows_BatchId" ON "ImportRows" ("BatchId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_InventoryItems_Name" ON "InventoryItems" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_InventoryMovements_ItemId" ON "InventoryMovements" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_InventorySettings_Scope" ON "InventorySettings" ("Scope");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_Lots_PenId" ON "Lots" ("PenId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Pens_Name" ON "Pens" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (10ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_RationCandidateIngredients_CandidateId_ItemId" ON "RationCandidateIngredients" ("CandidateId", "ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_RationCandidateIngredients_ItemId" ON "RationCandidateIngredients" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (36ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_RationIngredients_ItemId" ON "RationIngredients" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_RationIngredients_RationId_ItemId" ON "RationIngredients" ("RationId", "ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Rations_Name" ON "Rations" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_WeightReadings_LotId" ON "WeightReadings" ("LotId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+[xUnit.net 00:00:05.40]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:05.40]       Expected: 0
+[xUnit.net 00:00:05.40]       Actual:   1
+[xUnit.net 00:00:05.40]       Stack Trace:
+[xUnit.net 00:00:05.40]         /src/App.Tests/AcceptancePart2Tests.cs(194,0): at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertNoApplicationRecordsAsync()
+[xUnit.net 00:00:05.40]         /src/App.Tests/AcceptancePart2Tests.cs(194,0): at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertNoApplicationRecordsAsync()
+[xUnit.net 00:00:05.40]         /src/App.Tests/AcceptancePart2Tests.cs(32,0): at App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts()
+[xUnit.net 00:00:05.41]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+[xUnit.net 00:00:05.47]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:05.47]       Expected: 0
+[xUnit.net 00:00:05.47]       Actual:   1
+[xUnit.net 00:00:05.47]       Stack Trace:
+[xUnit.net 00:00:05.47]         /src/App.Tests/AcceptancePart4Tests.cs(101,0): at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory)
+[xUnit.net 00:00:05.47]         /src/App.Tests/AcceptancePart4Tests.cs(101,0): at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory)
+[xUnit.net 00:00:05.47]         /src/App.Tests/AcceptancePart4Tests.cs(97,0): at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory)
+[xUnit.net 00:00:05.47]         /src/App.Tests/AcceptancePart4Tests.cs(34,0): at App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled()
+[xUnit.net 00:00:05.47]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:05.51]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:05.51]       Expected: 0
+[xUnit.net 00:00:05.51]       Actual:   1
+[xUnit.net 00:00:05.51]       Stack Trace:
+[xUnit.net 00:00:05.51]         /src/App.Tests/AcceptancePart4Tests.cs(101,0): at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory)
+[xUnit.net 00:00:05.51]         /src/App.Tests/AcceptancePart4Tests.cs(101,0): at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory)
+[xUnit.net 00:00:05.51]         /src/App.Tests/AcceptancePart4Tests.cs(97,0): at App.Tests.Part4.AcceptancePart4Tests.AssertEveryTableEmptyAsync(WebApplicationFactory`1 factory)
+[xUnit.net 00:00:05.51]         /src/App.Tests/AcceptancePart4Tests.cs(63,0): at App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows()
+[xUnit.net 00:00:05.51]         --- End of stack trace from previous location ---
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/rations/optimize - application/json;+charset=utf-8 108
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /rations/optimize =&gt; OptimizeRation'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT i."Id", i."Category", i."DryMatterPercent", i."EnergyMcalPerKg", i."Name", i."OpeningStockLb", i."StorageLocation", i."Unit", i."UnitCost"
+      FROM "InventoryItems" AS i
+      ORDER BY i."Id"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@p0='?' (DbType = Boolean), @p1='?' (DbType = Decimal), @p2='?' (DbType = Decimal), @p3='?' (DbType = Decimal), @p4='?' (DbType = Decimal), @p5='?' (DbType = Decimal), @p6='?' (DbType = Decimal), @p7='?' (DbType = Boolean), @p8='?' (DbType = Decimal), @p9='?' (DbType = Decimal), @p10='?' (DbType = Decimal), @p11='?' (DbType = Decimal), @p12='?' (DbType = Decimal), @p13='?' (DbType = Decimal), @p14='?' (DbType = Boolean), @p15='?' (DbType = Decimal), @p16='?' (DbType = Decimal), @p17='?' (DbType = Decimal), @p18='?' (DbType = Decimal), @p19='?' (DbType = Decimal), @p20='?' (DbType = Decimal), @p21='?' (DbType = Boolean), @p22='?' (DbType = Decimal), @p23='?' (DbType = Decimal), @p24='?' (DbType = Decimal), @p25='?' (DbType = Decimal), @p26='?' (DbType = Decimal), @p27='?' (DbType = Decimal), @p28='?' (DbType = Boolean), @p29='?' (DbType = Decimal), @p30='?' (DbType = Decimal), @p31='?' (DbType = Decimal), @p32='?' (DbType = Decimal), @p33='?' (DbType = Decimal), @p34='?' (DbType = Decimal), @p35='?' (DbType = Boolean), @p36='?' (DbType = Decimal), @p37='?' (DbType = Decimal), @p38='?' (DbType = Decimal), @p39='?' (DbType = Decimal), @p40='?' (DbType = Decimal), @p41='?' (DbType = Decimal), @p42='?' (DbType = Boolean), @p43='?' (DbType = Decimal), @p44='?' (DbType = Decimal), @p45='?' (DbType = Decimal), @p46='?' (DbType = Decimal), @p47='?' (DbType = Decimal), @p48='?' (DbType = Decimal), @p49='?' (DbType = Boolean), @p50='?' (DbType = Decimal), @p51='?' (DbType = Decimal), @p52='?' (DbType = Decimal), @p53='?' (DbType = Decimal), @p54='?' (DbType = Decimal), @p55='?' (DbType = Decimal), @p56='?' (DbType = Boolean), @p57='?' (DbType = Decimal), @p58='?' (DbType = Decimal), @p59='?' (DbType = Decimal), @p60='?' (DbType = Decimal), @p61='?' (DbType = Decimal), @p62='?' (DbType = Decimal), @p63='?' (DbType = Boolean), @p64='?' (DbType = Decimal), @p65='?' (DbType = Decimal), @p66='?' (DbType = Decimal), @p67='?' (DbType = Decimal), @p68='?' (DbType = Decimal), @p69='?' (DbType = Decimal), @p70='?' (DbType = Boolean), @p71='?' (DbType = Decimal), @p72='?' (DbType = Decimal), @p73='?' (DbType = Decimal), @p74='?' (DbType = Decimal), @p75='?' (DbType = Decimal), @p76='?' (DbType = Decimal)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p7, @p8, @p9, @p10, @p11, @p12, @p13)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p14, @p15, @p16, @p17, @p18, @p19, @p20)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p21, @p22, @p23, @p24, @p25, @p26, @p27)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p28, @p29, @p30, @p31, @p32, @p33, @p34)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p35, @p36, @p37, @p38, @p39, @p40, @p41)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p42, @p43, @p44, @p45, @p46, @p47, @p48)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p49, @p50, @p51, @p52, @p53, @p54, @p55)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p56, @p57, @p58, @p59, @p60, @p61, @p62)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p63, @p64, @p65, @p66, @p67, @p68, @p69)
+      RETURNING "CandidateId";
+      INSERT INTO "RationCandidates" ("Feasible", "MinimumDryMatterPercent", "MinimumEnergyMcalPerKg", "PredictedDryMatterPercent", "PredictedEnergyMcalPerKg", "TargetWeightMaxLb", "TargetWeightMinLb")
+      VALUES (@p70, @p71, @p72, @p73, @p74, @p75, @p76)
+      RETURNING "CandidateId";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[@p77='?' (DbType = Int32), @p78='?' (DbType = Int32), @p79='?' (DbType = Decimal), @p80='?' (DbType = Int32), @p81='?' (DbType = Int32), @p82='?' (DbType = Decimal), @p83='?' (DbType = Int32), @p84='?' (DbType = Int32), @p85='?' (DbType = Decimal), @p86='?' (DbType = Int32), @p87='?' (DbType = Int32), @p88='?' (DbType = Decimal), @p89='?' (DbType = Int32), @p90='?' (DbType = Int32), @p91='?' (DbType = Decimal), @p92='?' (DbType = Int32), @p93='?' (DbType = Int32), @p94='?' (DbType = Decimal), @p95='?' (DbType = Int32), @p96='?' (DbType = Int32), @p97='?' (DbType = Decimal), @p98='?' (DbType = Int32), @p99='?' (DbType = Int32), @p100='?' (DbType = Decimal), @p101='?' (DbType = Int32), @p102='?' (DbType = Int32), @p103='?' (DbType = Decimal), @p104='?' (DbType = Int32), @p105='?' (DbType = Int32), @p106='?' (DbType = Decimal), @p107='?' (DbType = Int32), @p108='?' (DbType = Int32), @p109='?' (DbType = Decimal), @p110='?' (DbType = Int32), @p111='?' (DbType = Int32), @p112='?' (DbType = Decimal), @p113='?' (DbType = Int32), @p114='?' (DbType = Int32), @p115='?' (DbType = Decimal), @p116='?' (DbType = Int32), @p117='?' (DbType = Int32), @p118='?' (DbType = Decimal), @p119='?' (DbType = Int32), @p120='?' (DbType = Int32), @p121='?' (DbType = Decimal), @p122='?' (DbType = Int32), @p123='?' (DbType = Int32), @p124='?' (DbType = Decimal), @p125='?' (DbType = Int32), @p126='?' (DbType = Int32), @p127='?' (DbType = Decimal), @p128='?' (DbType = Int32), @p129='?' (DbType = Int32), @p130='?' (DbType = Decimal), @p131='?' (DbType = Int32), @p132='?' (DbType = Int32), @p133='?' (DbType = Decimal), @p134='?' (DbType = Int32), @p135='?' (DbType = Int32), @p136='?' (DbType = Decimal)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p77, @p78, @p79)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p80, @p81, @p82)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p83, @p84, @p85)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p86, @p87, @p88)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p89, @p90, @p91)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p92, @p93, @p94)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p95, @p96, @p97)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p98, @p99, @p100)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p101, @p102, @p103)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p104, @p105, @p106)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p107, @p108, @p109)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p110, @p111, @p112)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p113, @p114, @p115)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p116, @p117, @p118)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p119, @p120, @p121)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p122, @p123, @p124)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p125, @p126, @p127)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p128, @p129, @p130)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p131, @p132, @p133)
+      RETURNING "Id";
+      INSERT INTO "RationCandidateIngredients" ("CandidateId", "ItemId", "ProportionPercent")
+      VALUES (@p134, @p135, @p136)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type 'OptimizationResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /rations/optimize =&gt; OptimizeRation'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/rations/optimize - 200 - application/json;+charset=utf-8 1580.8846ms
+[xUnit.net 00:00:07.22]   Finished:    App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="4338bcb2221e" outcome="Error" timestamp="2026-10-14T11:55:37.7373002+00:00">
+        <Text>[xUnit.net 00:00:05.40]     App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="4338bcb2221e" outcome="Error" timestamp="2026-10-14T11:55:37.8101420+00:00">
+        <Text>[xUnit.net 00:00:05.47]     App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="4338bcb2221e" outcome="Error" timestamp="2026-10-14T11:55:37.8976474+00:00">
+        <Text>[xUnit.net 00:00:05.51]     App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="4338bcb2221e" outcome="Warning" timestamp="2026-10-14T11:55:39.6889529+00:00">
+        <Text>Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

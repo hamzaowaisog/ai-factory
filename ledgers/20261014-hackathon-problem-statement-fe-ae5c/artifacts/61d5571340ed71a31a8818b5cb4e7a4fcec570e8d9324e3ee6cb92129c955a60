@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getRecordFeedingActivityResponseMock|lotConsumption",
+    "glob": "**/*"
+   },
+   "ms": 4,
+   "resultChars": 1367,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getRecordFeedingActivityResponseMock|lotConsumption&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\ncontracts/openapi.yaml:1635: LotConsumption:\ncontracts/openapi.yaml:1681: - lotConsumption\ncontracts/openapi.yaml:1730: lotConsumption:\ncontracts/openapi.yaml:1733: $ref: \"#/components/schemas/LotConsumption\"\ncontracts/openapi.yaml:2701: lotConsumption:\ncontracts/openapi.yaml:2731: lotConsumption:\nlib/api/client.msw.ts:86: export const getGetFeedingActivitiesResponseMock = (): FeedingLogOkResponse => ({\"activities\":[{\"id\":801,\"date\":\"2026-10-14\",\"penId\":1,\"penName\":\"Pen 01\",\"manager\":\"Yard manager\",\"rationId\":31,\"ration\nlib/api/client.msw.ts:88: export const getRecordFeedingActivityResponseMock = (): FeedingCreatedResponse => ({\"activity\":{\"id\":802,\"date\":\"2026-10-15\",\"penId\":1,\"penName\":\"Pen 01\",\"manager\":\"Yard manager\",\"rationId\":31,\"ration\nlib/api/client.msw.ts:354: : getRecordFeedingActivityResponseMock()),\nlib/api/client.schemas.ts:474: export interface LotConsumption {\nlib/api/client.schemas.ts:517: lotConsumption: LotConsumption[];\ntests/acceptance.part2.test.tsx:23: getRecordFeedingActivityResponseMock,\ntests/acceptance.part2.test.tsx:282: const activityResponse = getRecordFeedingActivityResponseMock();\ntests/acceptance.part2.test.tsx:293: lotConsumption: [\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,66 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 7,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-11.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies distinct returned values and asserts the saved screen shows the date, animals weighed, average and total weight, gain, and notes."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test provides two dated readings, checks their dates and weights appear in chronological order, and asserts add, edit, and delete controls are present."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "AC_11_3_ShowsReturnedSeriesAndRecalculatedMetricsAfterEdit",
+      "verdict": "weak",
+      "why": "After validation failure, assert the complete reading list is unchanged and the invalid value is absent from the rendered reading row; queryByText(\"99999\") can miss an input value or a formatted value such as 99,999."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts each named performance metric and its expected returned value, including projected ship date."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the as-fed-pound label and value and the feed conversion ratio, and checks that the stated as-fed amount divided by gain gives that ratio."
+     },
+     {
+      "acId": "AC-12.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts that the lot performance view displays the specified total weight gain and average daily gain values."
+     },
+     {
+      "acId": "AC-12.4",
+      "testId": "AC_12_4_ShowsLatestMetricsAsSoonAsAWeightRecordIsSaved",
+      "verdict": "weak",
+      "why": "The test covers weight-record create, edit, and delete only, so it does not verify that updated metrics appear after a feeding event is saved, edited, or deleted."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the dashboard's listed counts, inventory, ration and feed values, weight and performance metrics, energy, best/worst lots, and lot/pen row values."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

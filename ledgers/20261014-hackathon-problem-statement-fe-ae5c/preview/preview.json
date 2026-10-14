@@ -1,0 +1,171 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "S-1 /overview",
+        "req": "REQ-14"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "S-2 /imports",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "S-3 /lots-pens",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "S-4 /inventory",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "S-5 /inventory/outlook",
+        "req": "REQ-5"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "S-6 /rations",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "S-7 /feeding/plans",
+        "req": "REQ-8"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "S-8 /feeding/log",
+        "req": "REQ-9"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "S-9 /weights",
+        "req": "REQ-11"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "S-10 /reports/operations",
+        "req": "REQ-15"
+      },
+      {
+        "path": "index.html#S-11",
+        "title": "S-11 /reports/feed-to-gain",
+        "req": "REQ-16"
+      },
+      {
+        "path": "index.html#S-12",
+        "title": "S-12 /project-demo",
+        "req": "REQ-19"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "frames/stitch-S-1-normal-24aa554b.png",
+      "screen": "S-1 /overview",
+      "req": "REQ-14",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-1-phone-e3fc0330.png",
+      "screen": "S-1 /overview",
+      "req": "REQ-14",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-normal-87b8624b.png",
+      "screen": "S-2 /imports",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-phone-0c6bed7d.png",
+      "screen": "S-2 /imports",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-normal-4c2b283a.png",
+      "screen": "S-3 /lots-pens",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-normal-12dea014.png",
+      "screen": "S-4 /inventory",
+      "req": "REQ-4",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-phone-1833a4db.png",
+      "screen": "S-4 /inventory",
+      "req": "REQ-4",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-normal-851b971e.png",
+      "screen": "S-5 /inventory/outlook",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-normal-ead6ca7b.png",
+      "screen": "S-6 /rations",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-normal-e4d9e740.png",
+      "screen": "S-7 /feeding/plans",
+      "req": "REQ-8",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-normal-7b4d45b1.png",
+      "screen": "S-8 /feeding/log",
+      "req": "REQ-9",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-phone-f3512e22.png",
+      "screen": "S-8 /feeding/log",
+      "req": "REQ-9",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-normal-079afcb6.png",
+      "screen": "S-9 /weights",
+      "req": "REQ-11",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-phone-3d012129.png",
+      "screen": "S-9 /weights",
+      "req": "REQ-11",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-normal-b30f8e9a.png",
+      "screen": "S-10 /reports/operations",
+      "req": "REQ-15",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-11-normal-9340b70b.png",
+      "screen": "S-11 /reports/feed-to-gain",
+      "req": "REQ-16",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-12-normal-260bcf68.png",
+      "screen": "S-12 /project-demo",
+      "req": "REQ-19",
+      "viewport": "desktop"
+    }
+  ]
+}

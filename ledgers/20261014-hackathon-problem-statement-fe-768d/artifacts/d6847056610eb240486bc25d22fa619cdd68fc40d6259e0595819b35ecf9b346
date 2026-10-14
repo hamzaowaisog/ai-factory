@@ -1,0 +1,24 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-3.1",
+      "testId": "AC_3_1_SeedsPersistentEntitiesAndCollectionResponses",
+      "verdict": "weak",
+      "why": "The test checks table counts and that response IDs exist in those tables, but never identifies the rows as seeded sample records, so ordinary stored rows or responses with only matching IDs could pass."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

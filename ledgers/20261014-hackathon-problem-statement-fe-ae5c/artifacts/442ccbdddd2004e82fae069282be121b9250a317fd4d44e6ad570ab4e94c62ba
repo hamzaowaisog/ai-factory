@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operational reports — Cedar Draw Feedlot</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design Tokens */
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #252A27;
+      --text-muted: #66706A;
+      --border-color: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, .font-heading-1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 30px;
+      font-weight: 650;
+      line-height: 38px;
+    }
+
+    h2, .font-heading-2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 28px;
+    }
+
+    h3, .font-heading-3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes fadeInSettle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-status-breathe {
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    .stagger-row-1 { animation: fadeInSettle var(--dur-quick) ease-out 0ms both; }
+    .stagger-row-2 { animation: fadeInSettle var(--dur-quick) ease-out 50ms both; }
+    .stagger-row-3 { animation: fadeInSettle var(--dur-quick) ease-out 100ms both; }
+    .stagger-row-4 { animation: fadeInSettle var(--dur-quick) ease-out 150ms both; }
+    .stagger-row-5 { animation: fadeInSettle var(--dur-quick) ease-out 200ms both; }
+    .stagger-row-6 { animation: fadeInSettle var(--dur-quick) ease-out 250ms both; }
+
+    /* Interactive state styles */
+    .nav-item {
+      color: var(--text-muted);
+      transition: color var(--dur-quick) ease;
+      padding-top: 16px;
+      padding-bottom: 16px;
+      position: relative;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--primary);
+    }
+
+    .input-field {
+      height: 44px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      padding: 0 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .table-row-48 {
+      height: 48px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[#252A27]">
+
+  <!-- Global Header (Identical across application) -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D9DEDA]">
+    <div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
+      <!-- Left: Logo mark, wordmark, and complete navigation -->
+      <div class="flex items-center space-x-6 overflow-x-auto no-scrollbar">
+        <div class="flex items-center space-x-3 shrink-0">
+          <div class="w-7 h-7 rounded-[6px] bg-[#AD5C2A] flex items-center justify-center text-white font-bold text-sm tracking-tight">
+            C
+          </div>
+          <span class="font-['Hanken_Grotesk'] font-bold text-base tracking-tight text-[#252A27] shrink-0">
+            Cedar Draw Feedlot
+          </span>
+        </div>
+
+        <!-- Navigation Menu in exact specified order -->
+        <nav class="flex items-center space-x-5 text-sm shrink-0">
+          <a href="#" class="nav-item">Overview</a>
+          <a href="#" class="nav-item">Import records</a>
+          <a href="#" class="nav-item">Lots & pens</a>
+          <a href="#" class="nav-item">Feed inventory</a>
+          <a href="#" class="nav-item">Inventory outlook</a>
+          <a href="#" class="nav-item">Rations</a>
+          <a href="#" class="nav-item">Feeding plans</a>
+          <a href="#" class="nav-item">Feeding log</a>
+          <a href="#" class="nav-item">Weight records</a>
+          <a href="#" class="nav-item active">Operational reports</a>
+          <a href="#" class="nav-item">Feed-to-gain</a>
+          <a href="#" class="nav-item">Project & demo</a>
+        </nav>
+      </div>
+
+      <!-- Right: User Mara Ortega with compact initials avatar -->
+      <div class="flex items-center space-x-3 shrink-0 pl-4 border-l border-[#D9DEDA]">
+        <div class="w-7 h-7 rounded-[6px] bg-[#E8EBE9] flex items-center justify-center font-['IBM_Plex_Mono'] font-medium text-xs text-[#252A27]">
+          MO
+        </div>
+        <div class="text-left text-xs leading-tight">
+          <div class="font-medium text-[#252A27]">Mara Ortega</div>
+          <div class="text-[#66706A]">Feed manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Operational Report Workspace -->
+  <main class="max-w-[1440px] mx-auto px-6 py-8">
+    
+    <!-- Top Header Area: Heading & Facility Timezone -->
+    <div class="flex items-baseline justify-between mb-6">
+      <div class="flex items-baseline space-x-3">
+        <h1 class="text-[30px] font-[650] leading-[38px] text-[#252A27]">Operational reports</h1>
+        <div class="flex items-center space-x-2 text-sm text-[#66706A]">
+          <span class="inline-block w-2 h-2 rounded-full bg-[#28734F] animate-status-breathe"></span>
+          <span>Cedar Draw Feedlot</span>
+          <span>·</span>
+          <span>America/Denver</span>
+        </div>
+      </div>
+      <div class="text-sm text-[#66706A]">
+        Sample date: <span class="font-mono-num font-medium text-[#252A27]">23 Apr 2025</span>
+      </div>
+    </div>
+
+    <!-- Filter & Headline Result Panel -->
+    <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-6 mb-8">
+      <!-- Date Range Filter above headline result -->
+      <div class="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-[#D9DEDA]">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[#66706A] mb-2">
+            Reporting Date Range
+          </label>
+          <div class="flex items-center space-x-2">
+            <div class="relative">
+              <input type="text" readonly value="1 Jan 2025" class="input-field font-mono-num w-36 text-sm" />
+            </div>
+            <span class="text-[#66706A] text-sm">to</span>
+            <div class="relative">
+              <input type="text" readonly value="23 Apr 2025" class="input-field font-mono-num w-36 text-sm" />
+            </div>
+            <span class="text-xs text-[#66706A] ml-2">Default range evaluated across latest scale measurements</span>
+          </div>
+        </div>
+
+        <div class="text-xs text-[#66706A] self-center">
+          Evaluated across <span class="font-mono-num font-medium text-[#252A27]">188 head</span> in active pens (P-04 & P-02)
+        </div>
+      </div>
+
+      <!-- Single Headline Result -->
+      <div class="pt-6">
+        <div class="text-xs font-semibold uppercase tracking-wider text-[#66706A] mb-1">
+          Headline Returned Operating Metric
+        </div>
+        <div class="flex items-baseline space-x-3">
+          <span class="font-mono-num text-[40px] font-semibold tracking-tight text-[#252A27] leading-none">
+            $0.87
+          </span>
+          <span class="font-['Hanken_Grotesk'] text-xl font-semibold text-[#252A27]">
+            feed cost per lb of gain
+          </span>
+        </div>
+        <p class="text-sm text-[#66706A] mt-2">
+          Calculated from total as-fed delivered feed pounds across measured feeding events through 23 Apr 2025 divided by accumulated scale gain.
+        </p>
+      </div>
+    </section>
+
+    <!-- Comparative Report Body: Reading order with whitespace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Primary Column: Wide Report Tables (Pen Consumption, Lot Performance, Remaining Inventory) -->
+      <div class="lg:col-span-8 space-y-8">
+
+        <!-- 1. Pen Consumption Table -->
+        <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] overflow-hidden">
+          <div class="px-6 py-4 border-b border-[#D9DEDA] flex items-center justify-between">
+            <div>
+              <h2 class="text-[22px] font-[650] leading-[28px] text-[#252A27]">Pen consumption</h2>
+              <p class="text-xs text-[#66706A] mt-0.5">Operating feed deliveries and daily cost by occupied pen</p>
+            </div>
+            <div class="text-xs font-mono-num text-[#66706A]">
+              2 active pens · 188 head
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-[#D9DEDA] bg-[#F6F7F5] text-xs font-semibold text-[#66706A]">
+                  <th class="py-3 px-6">PEN</th>
+                  <th class="py-3 px-6">OCCUPANCY</th>
+                  <th class="py-3 px-6">RATION</th>
+                  <th class="py-3 px-6 text-right">DELIVERY (LB/DAY)</th>
+                  <th class="py-3 px-6 text-right">DAILY FEED COST</th>
+                  <th class="py-3 px-6 text-right">STATUS</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#D9DEDA]">
+                <tr class="table-row-48 stagger-row-1 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27]">P-04</td>
+                  <td class="py-3 px-6 text-[#66706A]">116 / 150 head (34 open)</td>
+                  <td class="py-3 px-6 font-medium text-[#252A27]">Grower 1</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">1,624 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">$248.24/day</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+                <tr class="table-row-48 stagger-row-2 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27]">P-02</td>
+                  <td class="py-3 px-6 text-[#66706A]">72 / 120 head (48 open)</td>
+                  <td class="py-3 px-6 font-medium text-[#252A27]">Grower 1</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">1,296 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">$198.10/day</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-6 py-2.5 bg-[#F6F7F5] border-t border-[#D9DEDA] text-xs text-[#66706A] flex justify-between">
+            <span>Calculation caption: Daily cost derived from Grower 1 formulation cost of $0.15286/lb applied to active bunk delivery rate.</span>
+            <span class="font-mono-num font-medium text-[#252A27]">Total: 2,920 lb/day · $446.34/day</span>
+          </div>
+        </section>
+
+        <!-- 2. Lot Performance Table -->
+        <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] overflow-hidden">
+          <div class="px-6 py-4 border-b border-[#D9DEDA] flex items-center justify-between">
+            <div>
+              <h2 class="text-[22px] font-[650] leading-[28px] text-[#252A27]">Lot performance</h2>
+              <p class="text-xs text-[#66706A] mt-0.5">Scale-measured average daily gain, as-fed conversion ratio, and cost of gain</p>
+            </div>
+            <div class="text-xs font-mono-num text-[#66706A]">
+              3 measured lots
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-[#D9DEDA] bg-[#F6F7F5] text-xs font-semibold text-[#66706A]">
+                  <th class="py-3 px-6">LOT</th>
+                  <th class="py-3 px-6">LOCATION & BREED</th>
+                  <th class="py-3 px-6">HEAD</th>
+                  <th class="py-3 px-6 text-right">MEASURED ADG</th>
+                  <th class="py-3 px-6 text-right">AS-FED FCR</th>
+                  <th class="py-3 px-6 text-right">FEED COST / LB GAIN</th>
+                  <th class="py-3 px-6 text-right">STATUS</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#D9DEDA]">
+                <tr class="table-row-48 stagger-row-3 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27]">L-239</td>
+                  <td class="py-3 px-6 text-[#66706A]">Pen P-02 · Angus steers</td>
+                  <td class="py-3 px-6 font-mono-num text-[#252A27]">72</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">2.95 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">6.10</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">$0.93</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+                <tr class="table-row-48 stagger-row-4 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27]">L-241</td>
+                  <td class="py-3 px-6 text-[#66706A]">Pen P-04 · Angus–Hereford steers</td>
+                  <td class="py-3 px-6 font-mono-num text-[#252A27]">60</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">2.35 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">5.96</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">$0.91</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+                <tr class="table-row-48 stagger-row-5 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27]">L-242</td>
+                  <td class="py-3 px-6 text-[#66706A]">Pen P-04 · Charolais-cross heifers</td>
+                  <td class="py-3 px-6 font-mono-num text-[#252A27]">56</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">2.05 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">6.82</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">$1.04</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-6 py-2.5 bg-[#F6F7F5] border-t border-[#D9DEDA] text-xs text-[#66706A]">
+            Date caption: Latest scale measurement series completed 20–21 Apr 2025 by Diego Ruiz. Lot L-243 (24 head) unmeasured and excluded from pen calculations.
+          </div>
+        </section>
+
+        <!-- 3. Remaining Inventory Table -->
+        <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] overflow-hidden">
+          <div class="px-6 py-4 border-b border-[#D9DEDA] flex items-center justify-between">
+            <div>
+              <h2 class="text-[22px] font-[650] leading-[28px] text-[#252A27]">Remaining inventory</h2>
+              <p class="text-xs text-[#66706A] mt-0.5">Commodity stock on hand, valuation unit cost, and burn outlook</p>
+            </div>
+            <div class="text-xs text-[#66706A]">
+              Recorded at <span class="font-mono-num font-medium text-[#252A27]">23 Apr 2025</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-[#D9DEDA] bg-[#F6F7F5] text-xs font-semibold text-[#66706A]">
+                  <th class="py-3 px-6">COMMODITY</th>
+                  <th class="py-3 px-6 text-right">CURRENT STOCK</th>
+                  <th class="py-3 px-6 text-right">UNIT PRICE</th>
+                  <th class="py-3 px-6 text-right">DAILY ESTIMATED DRAW</th>
+                  <th class="py-3 px-6 text-right">ANNUAL OUTLOOK</th>
+                  <th class="py-3 px-6 text-right">STATUS</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#D9DEDA]">
+                <tr class="table-row-48 stagger-row-1 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-medium text-[#252A27]">Yellow corn</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">680,000 lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">$0.112 /lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">1,673 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">69,689 lb</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+                <tr class="table-row-48 stagger-row-2 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-medium text-[#252A27]">Alfalfa hay</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">390,000 lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">$0.145 /lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">913 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">56,831 lb</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+                <tr class="table-row-48 stagger-row-3 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-medium text-[#252A27]">Soybean meal</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">170,000 lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">$0.238 /lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">365 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">36,732 lb</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+                <tr class="table-row-48 stagger-row-4 hover:bg-[#F6F7F5]/60 transition-colors">
+                  <td class="py-3 px-6 font-medium text-[#252A27]">Mineral premix</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">42,000 lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">$0.640 /lb</td>
+                  <td class="py-3 px-6 font-mono-num text-[#66706A] text-right">91 lb/day</td>
+                  <td class="py-3 px-6 font-mono-num font-semibold text-[#252A27] text-right">8,683 lb</td>
+                  <td class="py-3 px-6 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                      good
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-6 py-2.5 bg-[#F6F7F5] border-t border-[#D9DEDA] text-xs text-[#66706A]">
+            Calculation caption: Reflects 12,000 lb corn receipt (18 Apr) and 116 lb recorded alfalfa wastage (22 Apr). Annual balances calculated with 4.2% estimated wastage ratio against 2,920 lb/day current plan demand.
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Secondary Column: Narrow Plan Alignment & Ration Summary -->
+      <div class="lg:col-span-4 space-y-6">
+
+        <!-- Plan Alignment Card -->
+        <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-6">
+          <div class="border-b border-[#D9DEDA] pb-4 mb-4">
+            <h3 class="text-[17px] font-[600] leading-[22px] text-[#252A27]">Plan alignment summary</h3>
+            <p class="text-xs text-[#66706A] mt-0.5">Execution adherence against scheduled bunk deliveries</p>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Alignment Highlight -->
+            <div class="p-4 rounded-[6px] bg-[#F6F7F5] border border-[#D9DEDA]">
+              <div class="flex items-center justify-between">
+                <span class="text-xs uppercase tracking-wider font-semibold text-[#66706A]">Dated Plan Match</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+                  good
+                </span>
+              </div>
+              <div class="mt-2 flex items-baseline space-x-2">
+                <span class="font-mono-num text-2xl font-bold text-[#252A27]">2 of 2</span>
+                <span class="text-sm text-[#66706A]">recent activities matching dated plans</span>
+              </div>
+              <div class="mt-1 flex items-center space-x-2 text-xs font-mono-num text-[#28734F]">
+                <span>0 lb variance</span>
+                <span class="text-[#66706A]">· 100% adherence</span>
+              </div>
+            </div>
+
+            <!-- Recent Feeding Activities Details -->
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wider text-[#66706A] mb-2">
+                Recent Feeding Activities
+              </div>
+              <div class="space-y-2.5">
+                <!-- Activity 1 -->
+                <div class="p-3 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+                  <div class="flex items-center justify-between font-mono-num">
+                    <span class="font-semibold text-[#252A27]">22 Apr 2025 · Pen P-04</span>
+                    <span class="text-[#28734F] font-medium">0 lb variance</span>
+                  </div>
+                  <div class="flex justify-between text-[#66706A]">
+                    <span>Ration: <strong class="text-[#252A27]">Grower 1</strong> (116 head)</span>
+                    <span class="font-mono-num">1,624 lb</span>
+                  </div>
+                  <div class="text-[11px] text-[#66706A]">
+                    L-241 (840 lb) · L-242 (784 lb) · Logged by Mara Ortega
+                  </div>
+                </div>
+
+                <!-- Activity 2 -->
+                <div class="p-3 rounded-[6px] border border-[#D9DEDA] text-xs space-y-1">
+                  <div class="flex items-center justify-between font-mono-num">
+                    <span class="font-semibold text-[#252A27]">19 Apr 2025 · Pen P-02</span>
+                    <span class="text-[#28734F] font-medium">0 lb variance</span>
+                  </div>
+                  <div class="flex justify-between text-[#66706A]">
+                    <span>Ration: <strong class="text-[#252A27]">Grower 1</strong> (72 head)</span>
+                    <span class="font-mono-num">1,296 lb</span>
+                  </div>
+                  <div class="text-[11px] text-[#66706A]">
+                    L-239 (1,296 lb) · Logged by Mara Ortega
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Active Ration Formulation Summary -->
+        <section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-6">
+          <div class="border-b border-[#D9DEDA] pb-4 mb-4 flex items-center justify-between">
+            <div>
+              <h3 class="text-[17px] font-[600] leading-[22px] text-[#252A27]">Ration usage breakdown</h3>
+              <p class="text-xs text-[#66706A] mt-0.5">Grower 1 active formulation in use</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] border border-[#28734F] text-[#28734F] text-xs font-medium">
+              good
+            </span>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="flex justify-between items-baseline py-1 border-b border-[#D9DEDA]">
+              <span class="text-[#66706A]">Unit Cost</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">$0.15286 /lb</span>
+            </div>
+            <div class="flex justify-between items-baseline py-1 border-b border-[#D9DEDA]">
+              <span class="text-[#66706A]">Target Cattle Weight</span>
+              <span class="font-medium text-[#252A27]">548–900 lb</span>
+            </div>
+            <div class="flex justify-between items-baseline py-1 border-b border-[#D9DEDA]">
+              <span class="text-[#66706A]">Crude Protein (CP)</span>
+              <span class="font-mono-num text-[#252A27]">13.8%</span>
+            </div>
+            <div class="flex justify-between items-baseline py-1 border-b border-[#D9DEDA]">
+              <span class="text-[#66706A]">Total Digestible Nutrients (TDN)</span>
+              <span class="font-mono-num text-[#252A27]">70.0%</span>
+            </div>
+            <div class="flex justify-between items-baseline py-1 border-b border-[#D9DEDA]">
+              <span class="text-[#66706A]">Neutral Detergent Fiber (NDF)</span>
+              <span class="font-mono-num text-[#252A27]">24.0%</span>
+            </div>
+            <div class="flex justify-between items-baseline py-1">
+              <span class="text-[#66706A]">Net Energy for Gain (NEg)</span>
+              <span class="font-mono-num text-[#252A27]">1.51 Mcal/lb</span>
+            </div>
+          </div>
+
+          <!-- Commodity composition -->
+          <div class="mt-4 pt-4 border-t border-[#D9DEDA]">
+            <div class="text-xs font-semibold uppercase tracking-wider text-[#66706A] mb-2">
+              Ingredient Proportions
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="p-2 bg-[#F6F7F5] rounded-[6px] border border-[#D9DEDA]">
+                <div class="text-[#66706A]">Yellow corn</div>
+                <div class="font-mono-num font-semibold text-[#252A27]">55.0%</div>
+              </div>
+              <div class="p-2 bg-[#F6F7F5] rounded-[6px] border border-[#D9DEDA]">
+                <div class="text-[#66706A]">Alfalfa hay</div>
+                <div class="font-mono-num font-semibold text-[#252A27]">30.0%</div>
+              </div>
+              <div class="p-2 bg-[#F6F7F5] rounded-[6px] border border-[#D9DEDA]">
+                <div class="text-[#66706A]">Soybean meal</div>
+                <div class="font-mono-num font-semibold text-[#252A27]">12.0%</div>
+              </div>
+              <div class="p-2 bg-[#F6F7F5] rounded-[6px] border border-[#D9DEDA]">
+                <div class="text-[#66706A]">Mineral premix</div>
+                <div class="font-mono-num font-semibold text-[#252A27]">3.0%</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

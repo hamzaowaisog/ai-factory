@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "tests/acceptance.part3.test.tsx",
+    "start": 379,
+    "end": 430
+   },
+   "ms": 0,
+   "resultChars": 3222,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;tests/acceptance.part3.test.tsx&quot;,&quot;start&quot;:379,&quot;end&quot;:430}\">\ntests/acceptance.part3.test.tsx lines 379-423\n379\tdescribe(\"lot and pen dashboard acceptance\", () => {\n380\t  it(\"AC_14_1_ShowsLotPenInventoryFeedAndPerformanceDashboardData\", async () => {\n381\t    const overview = getGetOverviewResponseMock();\n382\t    server.use(getGetOverviewMockHandler(overview));\n383\t    at(\"/overview\");\n384\t    render(<HeadOnPensContainer />);\n385\t\n386\t    expect((await screen.findByRole(\"heading\", { name: \"188 head on pens\" }))).toBeTruthy();\n387\t    const text = document.body.textContent?.replace(/\\s+/g, \" \").toLowerCase() ?? \"\";\n388\t    const expectDashboardMetric = (label: string, value: string | RegExp) => {\n389\t      const start = text.indexOf(label.toLowerCase());\n390\t      expect(start, `expected visible dashboard label: ${label}`).toBeGreaterThanOrEqual(0);\n391\t      expect(text.slice(start, start + 120)).toMatch(typeof value === \"string\" ? visibleValuePattern(value) : value);\n392\t    };\n393\t    expectDashboardMetric(\"active lots\", String(overview.activeLotCount));\n394\t    expectDashboardMetric(\"active pens\", String(overview.activePenCount));\n395\t    expectDashboardMetric(\"total animals\", String(overview.totalAnimals));\n396\t    expectDashboardMetric(\"inventory status\", overview.inventoryStatus);\n397\t    expectDashboardMetric(overview.rationUsage[0].rationName, String(overview.rationUsage[0].feedLb));\n398\t    expectDashboardMetric(\"daily bunk rate\", String(overview.dailyBunkRateByPen[0].lbPerHeadPerDay));\n399\t    expectDashboardMetric(\"planned feed\", String(overview.plannedFeedLb));\n400\t    expectDashboardMetric(\"actual feed\", String(overview.actualFeedLb));\n401\t    expectDashboardMetric(\"total feed consumed\", String(overview.totalFeedConsumedLb));\n402\t    expectDashboardMetric(\"total feed cost\", /1,?842(?:\\.6|\\.60)?/);\n403\t    expectDashboardMetric(\"starting weight\", String(overview.startingWeightLb));\n404\t    expectDashboardMetric(\"current weight\", String(overview.currentWeightLb));\n405\t    expectDashboardMetric(\"total gain\", String(overview.totalGainLb));\n406\t    expectDashboardMetric(\"adg\", String(overview.adgLbPerDay));\n407\t    expectDashboardMetric(\"fcr\", String(overview.fcrAsFed));\n408\t    expectDashboardMetric(\"feed cost per unit of gain\", String(overview.feedCostPerLbGain));\n409\t    expectDashboardMetric(\"energy consumed\", String(overview.energyConsumedMcal));\n410\t    expectDashboardMetric(\"best-performing lot\", overview.bestPerformingLot);\n411\t    expectDashboardMetric(\"worst-performing lot\", overview.worstPerformingLot);\n412\t\n413\t    const penRow = await screen.findByRole(\"row\", { name: /Pen 01/ });\n414\t    expect(within(penRow).getByText(\"52\")).toBeTruthy();\n415\t    expect(within(penRow).getByText(\"60\")).toBeTruthy();\n416\t    expect(within(penRow).getByText(\"2\")).toBeTruthy();\n417\t    const lotRow = await screen.findByRole(\"row\", { name: /Lot 24-A/ });\n418\t    expect(within(lotRow).getByText(\"52\")).toBeTruthy();\n419\t    expect(within(lotRow).getByText(\"Angus\")).toBeTruthy();\n420\t    expect(screen.getByText(\"Lot 23-C\")).toBeTruthy();\n421\t  });\n422\t});\n423\t\n</untrusted_document>"
+  }
+ ]
+}

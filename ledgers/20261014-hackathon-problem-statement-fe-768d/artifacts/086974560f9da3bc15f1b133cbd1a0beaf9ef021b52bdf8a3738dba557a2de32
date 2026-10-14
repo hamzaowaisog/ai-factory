@@ -1,0 +1,30 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-5.1",
+      "testId": "AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled",
+      "verdict": "weak",
+      "why": "The test creates only an inventory setting and checks empty results for the other collections, so add API-created prerequisite records and assert the corresponding returned values for those collection cases."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It starts with demo seeding disabled, verifies the persistent tables are empty, then asserts the collection endpoint returns HTTP 200 with an empty batches list."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

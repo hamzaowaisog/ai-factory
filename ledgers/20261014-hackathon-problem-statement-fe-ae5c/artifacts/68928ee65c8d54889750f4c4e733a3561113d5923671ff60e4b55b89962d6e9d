@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getCreateWeightReadingResponseMock|getGetWeightReadingsResponseMock|getGetLotPerformanceResponseMock",
+    "glob": "lib/api/client.msw.ts"
+   },
+   "ms": 0,
+   "resultChars": 1095,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getCreateWeightReadingResponseMock|getGetWeightReadingsResponseMock|getGetLotPerformanceResponseMock&quot;,&quot;glob&quot;\">\nlib/api/client.msw.ts:90: export const getGetWeightReadingsResponseMock = (): WeightsOkResponse => ({\"readings\":[{\"id\":601,\"lotId\":101,\"measurementDate\":\"2026-10-01\",\"animalsWeighed\":52,\"averageWeightLb\":760,\"totalLotWeightLb\"\nlib/api/client.msw.ts:92: export const getCreateWeightReadingResponseMock = (): WeightCreatedResponse => ({\"readings\":[{\"id\":602,\"lotId\":101,\"measurementDate\":\"2026-10-14\",\"animalsWeighed\":52,\"averageWeightLb\":785,\"totalLotWei\nlib/api/client.msw.ts:98: export const getGetLotPerformanceResponseMock = (): PerformanceOkResponse => ({\"metrics\":{\"lotId\":101,\"daysOnFeed\":120,\"totalWeightGainLb\":7020,\"averageDailyGainLbPerDay\":3.1,\"totalFeedConsumedAsFedLb\nlib/api/client.msw.ts:366: : getGetWeightReadingsResponseMock()),\nlib/api/client.msw.ts:378: : getCreateWeightReadingResponseMock()),\nlib/api/client.msw.ts:414: : getGetLotPerformanceResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

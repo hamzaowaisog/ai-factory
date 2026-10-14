@@ -1,0 +1,1 @@
+[{"check":"design-fidelity","frames":[],"message":"lint: tokens only: 0 hex colour(s), 2 arbitrary value(s) the building blocks don't already use, 0 inline style(s): components/screens/s-2/container.tsx: lg:grid-cols-[minmax(0,1fr)_auto]; components/screens/s-2/container.tsx: sm:grid-cols-[minmax(0,1fr)_auto]"}]

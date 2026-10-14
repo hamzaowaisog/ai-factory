@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-15.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts displayed response values covering pen consumption, lot ADG/FCR/feed cost, ration usage, plan-alignment status, and remaining inventory."
+     },
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_ShowsFilteredFeedToGainRowsAndSelectedFilters",
+      "verdict": "weak",
+      "why": "The mock contains only one lot and the assertions cover only rows[0], so use multiple returned lots and assert each lot and its metrics alongside the selected filters."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_ShowsMetricsFromTheLatestWeightInTheSelectedRange",
+      "verdict": "weak",
+      "why": "The single canned row cannot establish that the displayed weight is the latest one within the date range or that feed events after it are excluded, so add boundary readings and events and assert the resulting date and metrics."
+     },
+     {
+      "acId": "AC-16.3",
+      "testId": "AC_16_3_ShowsTheReturnedFeedToGainFilterError",
+      "verdict": "weak",
+      "why": "The mock returns 400 unconditionally after selecting the valid Angus option, so make the selected date range invalid or the filter unsupported before asserting the returned message."
+     },
+     {
+      "acId": "AC-17.1",
+      "testId": "AC_17_1_DownloadsFilteredFeedToGainRowsAsCsv",
+      "verdict": "weak",
+      "why": "The mock contains only one lot and the CSV assertions search only that row, so return multiple filtered rows and assert every displayed row and its metrics are included."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "AC_18_1_DownloadsFilteredFeedToGainRowsAsPdf",
+      "verdict": "weak",
+      "why": "The mock contains only one lot and the test searches its text in a PDF-typed blob without validating a PDF document, so assert all rows from a multi-row filtered report in a valid downloadable PDF."
+     },
+     {
+      "acId": "AC-19.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks that the screen identifies separate demo data and offers the named on-demand load control."
+     },
+     {
+      "acId": "AC-19.2",
+      "testId": "AC_19_2_ShowsSeparateCountsAndDetailsForPartialDemoLoads",
+      "verdict": "weak",
+      "why": "Record identifiers and reasons are searched in page-wide text without proving they appear under their matching added, already-present, and failed categories, so scope those assertions to each category."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "AC_20_1_DisplaysProjectSolutionArchitectureAndReadinessContent",
+      "verdict": "weak",
+      "why": "The test searches for architecture-description text rather than asserting a displayed architecture diagram, so verify the diagram rendering as well as the required content sections."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "AC_21_1_ShowsTheSameOperationalViewsAndControlsInSeparateUserContexts",
+      "verdict": "weak",
+      "why": "Both captures use the same routes and identical user context, so establish two distinct users or contexts before comparing their views and controls."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

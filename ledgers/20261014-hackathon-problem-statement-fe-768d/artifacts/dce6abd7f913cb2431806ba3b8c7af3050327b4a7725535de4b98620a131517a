@@ -1,0 +1,42 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation, request and response schema, parameter, and documented status in contracts/openapi.yaml, including overview, imports, lots and mappings, inventory, rations, feeding plans and activities, weight readings and performance, reports, project-demo, and demo-data loading."
+     },
+     {
+      "n": 2,
+      "text": "Keep this repository API-only, with no product-facing screens, and retain its API documentation page."
+     },
+     {
+      "n": 3,
+      "text": "Persist contract data in PostgreSQL using the existing App connection string, with saved records surviving application restarts."
+     },
+     {
+      "n": 4,
+      "text": "When Seed:Demo is true, populate each persistent contract entity table with believable sample rows based on the OpenAPI examples, including the specified example values."
+     },
+     {
+      "n": 5,
+      "text": "Make demo seeding idempotent: add only missing demo rows, preserve existing demo and operational rows, and avoid duplicate demo records on repeated startups."
+     },
+     {
+      "n": 6,
+      "text": "When Seed:Demo is false or absent, do not insert demo rows and allow the API to operate without demo data."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,422 @@
+// @vitest-environment jsdom
+import { HeadOnPensContainer } from "@/components/screens/s-1/container";
+import { WeightRecordsContainer } from "@/components/screens/s-9/container";
+import {
+  getCreateWeightReadingMockHandler,
+  getCreateWeightReadingResponseMock,
+  getDeleteWeightReadingMockHandler,
+  getDeleteWeightReadingResponseMock,
+  getFeedlotOperationsAPIMock,
+  getGetLotPerformanceMockHandler,
+  getGetLotPerformanceResponseMock,
+  getGetLotsMockHandler,
+  getGetLotsResponseMock,
+  getGetOverviewMockHandler,
+  getGetOverviewResponseMock,
+  getGetWeightReadingsMockHandler,
+  getGetWeightReadingsResponseMock,
+  getUpdateWeightReadingMockHandler,
+  getUpdateWeightReadingResponseMock,
+} from "@/lib/api/client.msw";
+import { FeedToGainCalculator } from "@/lib/feed-to-gain-calculator";
+import { at } from "./support/screen";
+import { HttpResponse, http } from "msw";
+import { setupServer } from "msw/node";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+
+const server = setupServer(...getFeedlotOperationsAPIMock());
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterAll(() => server.close());
+afterEach(() => {
+  server.resetHandlers();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+function answerWeightScreen(): void {
+  server.use(
+    getGetLotsMockHandler(getGetLotsResponseMock()),
+    getGetWeightReadingsMockHandler(getGetWeightReadingsResponseMock()),
+    getGetLotPerformanceMockHandler(getGetLotPerformanceResponseMock()),
+  );
+}
+
+async function chooseLot(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+  const targetLot = await screen.findByRole("combobox", { name: "Target lot" });
+  if (targetLot instanceof HTMLSelectElement) {
+    await user.selectOptions(targetLot, "101");
+    return;
+  }
+
+  await user.click(targetLot);
+  await user.click(await screen.findByRole("option", { name: /Lot 24-A/ }));
+}
+
+async function fillNewWeightRecord(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+  await chooseLot(user);
+
+  const date = await screen.findByLabelText("Measurement date");
+  await user.clear(date);
+  await user.type(date, "2026-10-14");
+
+  const headcount = await screen.findByLabelText("Applicable headcount");
+  await user.clear(headcount);
+  await user.type(headcount, "52");
+
+  const averageWeight = await screen.findByLabelText("Average weight (lb/head)");
+  await user.clear(averageWeight);
+  await user.type(averageWeight, "785");
+
+  const recordedBy = await screen.findByLabelText("Recorded by");
+  await user.clear(recordedBy);
+  await user.type(recordedBy, "Yard manager");
+}
+
+function expectVisibleNumber(pattern: RegExp): void {
+  expect(screen.getByText(pattern)).toBeTruthy();
+}
+
+function visibleValuePattern(value: string): RegExp {
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(escaped.replace(/\B(?=(\d{3})+(?!\d))/g, ",?"), "i");
+}
+
+function expectMetric(label: string, value: string | RegExp): void {
+  const visible = document.body.textContent?.replace(/\s+/g, " ").toLowerCase() ?? "";
+  const start = visible.indexOf(label.toLowerCase());
+  expect(start, `expected visible metric label: ${label}`).toBeGreaterThanOrEqual(0);
+  const metricText = visible.slice(start, start + 110);
+  expect(metricText).toMatch(typeof value === "string" ? visibleValuePattern(value) : value);
+}
+
+describe("weight records and lot performance acceptance", () => {
+  it("AC_11_1_ShowsReturnedWeightMeasurementAfterSave", async () => {
+    const returned = getCreateWeightReadingResponseMock();
+    returned.readings[0] = {
+      ...returned.readings[0], measurementDate: "2026-10-12", animalsWeighed: 48,
+      averageWeightLb: 802, totalLotWeightLb: 38496, gainSincePriorLb: 876, notes: "Scale verified",
+    };
+    server.use(
+      getGetLotsMockHandler(getGetLotsResponseMock()),
+      getGetWeightReadingsMockHandler(getGetWeightReadingsResponseMock()),
+      getCreateWeightReadingMockHandler(returned),
+      getGetLotPerformanceMockHandler(getGetLotPerformanceResponseMock()),
+    );
+    at("/weights");
+    render(<WeightRecordsContainer />);
+    const user = userEvent.setup();
+
+    await fillNewWeightRecord(user);
+    await user.click(await screen.findByRole("button", { name: "Save weight record" }));
+
+    expectVisibleNumber(/2026-10-12|10\/12\/2026|Oct(?:ober)? 12,? 2026/i);
+    expectVisibleNumber(/\b48\b/);
+    expectVisibleNumber(/\b802\b/);
+    expectVisibleNumber(/38,?496/);
+    expectVisibleNumber(/876/);
+    expect(screen.getByText("Scale verified")).toBeTruthy();
+  });
+
+  it("AC_11_2_ShowsWeightHistoryInDateOrderWithReadingControls", async () => {
+    const example = getGetWeightReadingsResponseMock();
+    const first = example.readings[0];
+    const twoReadingHistory = {
+      readings: [
+        first,
+        {
+          ...first,
+          id: 602,
+          measurementDate: "2026-10-14",
+          averageWeightLb: 785,
+          totalLotWeightLb: 40820,
+          gainSincePriorLb: 1300,
+          notes: "Routine weighing",
+        },
+      ],
+    };
+    server.use(
+      getGetLotsMockHandler(getGetLotsResponseMock()),
+      getGetWeightReadingsMockHandler(twoReadingHistory),
+      getGetLotPerformanceMockHandler(getGetLotPerformanceResponseMock()),
+    );
+    at("/weights");
+    render(<WeightRecordsContainer />);
+
+    const olderDate = await screen.findByText("2026-10-01");
+    const newerDate = screen.getByText("2026-10-14");
+    expect(
+      olderDate.compareDocumentPosition(newerDate) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const olderWeight = await screen.findByText(/\b760\b/);
+    const newerWeight = screen.getByText(/\b785\b/);
+    expect(
+      olderWeight.compareDocumentPosition(newerWeight) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByRole("columnheader", { name: "Date" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Avg weight" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Head" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save weight record" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Edit" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Delete" }).length).toBeGreaterThan(0);
+  });
+
+  it("AC_11_3_ShowsReturnedSeriesAndRecalculatedMetricsAfterEdit", async () => {
+    const readings = getGetWeightReadingsResponseMock();
+    const older = readings.readings[0];
+    const newer = {
+      ...older, id: 602, measurementDate: "2026-10-14", averageWeightLb: 785,
+      totalLotWeightLb: 40820, gainSincePriorLb: 1300, notes: "Routine weighing",
+    };
+    readings.readings = [older, newer];
+    const edited = getUpdateWeightReadingResponseMock();
+    edited.readings = [
+      older,
+      { ...newer, measurementDate: "2026-10-15", averageWeightLb: 812, totalLotWeightLb: 42224, gainSincePriorLb: 2704, notes: "Corrected scale reading" },
+    ];
+    edited.metrics.totalWeightGainLb = 8424;
+    edited.metrics.averageDailyGainLbPerDay = 3.5;
+    const deleted = getDeleteWeightReadingResponseMock();
+    deleted.readings = [older];
+    deleted.metrics.totalWeightGainLb = 5720;
+    deleted.metrics.averageDailyGainLbPerDay = 2.9;
+    server.use(
+      getGetLotsMockHandler(getGetLotsResponseMock()),
+      getGetWeightReadingsMockHandler(readings),
+      getUpdateWeightReadingMockHandler(edited),
+      getDeleteWeightReadingMockHandler(deleted),
+      getGetLotPerformanceMockHandler(getGetLotPerformanceResponseMock()),
+    );
+    at("/weights");
+    render(<WeightRecordsContainer />);
+    const user = userEvent.setup();
+
+    await user.click((await screen.findAllByRole("button", { name: "Edit" })).at(-1)!);
+    const averageWeight = await screen.findByLabelText("Average weight (lb/head)");
+    await user.clear(averageWeight);
+    await user.type(averageWeight, "812");
+    await user.click(await screen.findByRole("button", { name: "Save weight record" }));
+
+    expectVisibleNumber(/2026-10-15/);
+    expectVisibleNumber(/\b812\b/);
+    expectVisibleNumber(/42,?224/);
+    expectVisibleNumber(/8,?424/);
+    expectVisibleNumber(/3\.5/);
+    expect(screen.getByText("Corrected scale reading")).toBeTruthy();
+
+    await user.click((await screen.findAllByRole("button", { name: "Delete" })).at(-1)!);
+    await screen.findByText(/cannot be undone/i);
+    await user.click(await screen.findByRole("button", { name: "Confirm delete" }));
+    expectVisibleNumber(/2026-10-01/);
+    expect(screen.queryByText("2026-10-15")).toBeNull();
+    expectMetric("total weight gain", /5,?720/);
+    expectMetric("average daily gain", /2\.9/);
+
+    server.use(
+      http.put("*/lots/:lotId/weight-readings/:readingId", () => HttpResponse.json({
+        code: "validation_error", message: "Average weight is outside the accepted range.", details: ["Use a value below 2000 lb per head."],
+      }, { status: 422 })),
+    );
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    const invalidAverage = await screen.findByLabelText("Average weight (lb/head)");
+    await user.clear(invalidAverage);
+    await user.type(invalidAverage, "99999");
+    await user.click(await screen.findByRole("button", { name: "Save weight record" }));
+    await screen.findByText("Average weight is outside the accepted range.");
+    expect(screen.getByText("2026-10-01")).toBeTruthy();
+    expect(screen.queryByText("99999")).toBeNull();
+    expectMetric("total weight gain", /5,?720/);
+  });
+
+  it("AC_12_1_ShowsAllReturnedLotPerformanceMetrics", async () => {
+    answerWeightScreen();
+    at("/weights");
+    render(<WeightRecordsContainer />);
+
+    expectMetric("days on feed", /120/);
+    expectMetric("total weight gain", /7,?020/);
+    expectMetric("average daily gain", /3\.1/);
+    expectMetric("total feed consumed", /44,?928/);
+    expectMetric("feed conversion ratio", /6\.4/);
+    expectMetric("feed cost per pound of gain", /0\.82/);
+    expectMetric("projected ship date", /2026-12-15|12\/15\/2026|dec(?:ember)? 15,? 2026/i);
+  });
+
+  it("AC_12_2_UsesAsFedPoundsAsFeedConversionRatioBasis", async () => {
+    answerWeightScreen();
+    at("/weights");
+    render(<WeightRecordsContainer />);
+
+    expectMetric("total feed consumed as-fed", /44,?928/);
+    expectMetric("feed conversion ratio", /6\.4/);
+    expect(44928 / 7020).toBeCloseTo(6.4, 1);
+  });
+
+  it("AC_12_3_ShowsReturnedTotalGainAndAverageDailyGain", async () => {
+    answerWeightScreen();
+    at("/weights");
+    render(<WeightRecordsContainer />);
+
+    expectMetric("total weight gain", /7,?020/);
+    expectMetric("average daily gain", /3\.1/);
+  });
+
+  it("AC_12_4_ShowsLatestMetricsAsSoonAsAWeightRecordIsSaved", async () => {
+    const createResponse = getCreateWeightReadingResponseMock();
+    Object.assign(createResponse.metrics, {
+      daysOnFeed: 121, totalWeightGainLb: 8120, averageDailyGainLbPerDay: 3.4,
+      totalFeedConsumedAsFedLb: 44928, feedConversionRatio: 5.5, feedCostPerPoundOfGain: 0.76,
+      projectedShipDate: "2026-12-16",
+    });
+    const editedResponse = getUpdateWeightReadingResponseMock();
+    Object.assign(editedResponse.metrics, {
+      daysOnFeed: 122, totalWeightGainLb: 8300, averageDailyGainLbPerDay: 3.6,
+      totalFeedConsumedAsFedLb: 45120, feedConversionRatio: 5.4, feedCostPerPoundOfGain: 0.75,
+      projectedShipDate: "2026-12-17",
+    });
+    const deletedResponse = getDeleteWeightReadingResponseMock();
+    Object.assign(deletedResponse.metrics, {
+      daysOnFeed: 120, totalWeightGainLb: 7020, averageDailyGainLbPerDay: 3.1,
+      totalFeedConsumedAsFedLb: 44928, feedConversionRatio: 6.4, feedCostPerPoundOfGain: 0.82,
+      projectedShipDate: "2026-12-15",
+    });
+    createResponse.metrics.feedCostPerPoundOfGain = 0.76;
+    server.use(
+      getGetLotsMockHandler(getGetLotsResponseMock()),
+      getGetWeightReadingsMockHandler(getGetWeightReadingsResponseMock()),
+      getCreateWeightReadingMockHandler(createResponse),
+      getUpdateWeightReadingMockHandler(editedResponse),
+      getDeleteWeightReadingMockHandler(deletedResponse),
+      getGetLotPerformanceMockHandler(getGetLotPerformanceResponseMock()),
+    );
+    at("/weights");
+    render(<WeightRecordsContainer />);
+    const user = userEvent.setup();
+
+    await fillNewWeightRecord(user);
+    await user.click(await screen.findByRole("button", { name: "Save weight record" }));
+
+    const assertMetrics = (metrics: typeof createResponse.metrics) => {
+      expectMetric("days on feed", String(metrics.daysOnFeed));
+      expectMetric("total weight gain", String(metrics.totalWeightGainLb));
+      expectMetric("average daily gain", String(metrics.averageDailyGainLbPerDay));
+      expectMetric("total feed consumed", String(metrics.totalFeedConsumedAsFedLb));
+      expectMetric("feed conversion ratio", String(metrics.feedConversionRatio));
+      expectMetric("feed cost per pound of gain", String(metrics.feedCostPerPoundOfGain));
+      expectMetric("projected ship date", String(metrics.projectedShipDate));
+    };
+    assertMetrics(createResponse.metrics);
+
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    const editWeight = await screen.findByLabelText("Average weight (lb/head)");
+    await user.clear(editWeight);
+    await user.type(editWeight, "800");
+    await user.click(await screen.findByRole("button", { name: "Save weight record" }));
+    await waitFor(() => assertMetrics(editedResponse.metrics));
+
+    await user.click(await screen.findByRole("button", { name: "Delete" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm delete" }));
+    assertMetrics(deletedResponse.metrics);
+  });
+
+  it("AC_12_5_LabelsFeedCostPerPoundOfGainWithoutProfitabilityClaims", async () => {
+    answerWeightScreen();
+    at("/weights");
+    render(<WeightRecordsContainer />);
+
+    expectMetric("feed cost per pound of gain", /0\.82/);
+    expect(screen.queryByText(/\bROI\b/i)).toBeNull();
+    expect(screen.queryByText(/profitability/i)).toBeNull();
+  });
+});
+
+describe("feed-to-gain calculation acceptance", () => {
+  it("AC_13_1_CalculatesFeedToGainWithConvertedUnitsAndDefaultProjection", () => {
+    const calculated = FeedToGainCalculator.calculate({
+      receivingDate: "2026-01-01",
+      asOfDate: "2026-01-11",
+      entryAverageWeightLb: 500,
+      currentAverageWeightLb: 600,
+      entryHeadcount: 10,
+      currentHeadcount: 9,
+      feedingEvents: [
+        { quantity: 100, unit: "lb", cost: 100 },
+        { quantity: 10, unit: "kg", cost: 50 },
+        { quantity: 1, unit: "ton", cost: 200 },
+      ],
+      targetWeightLb: 800,
+      defaultAdgLbPerDay: 2,
+    });
+
+    expect(calculated).toEqual({
+      daysOnFeed: 10,
+      totalGainLb: 400,
+      averageDailyGainLbPerDay: 40,
+      totalFeedAsFedLb: 100 + 10 * 2.20462 + 2000,
+      feedConversionRatio: (100 + 10 * 2.20462 + 2000) / 400,
+      feedCostPerPoundOfGain: 350 / 400,
+      projectedMarketDate: "2026-01-16",
+    });
+
+    const unavailableAdg = FeedToGainCalculator.calculate({
+      receivingDate: "2026-01-01",
+      asOfDate: "2026-01-11",
+      entryAverageWeightLb: 500,
+      currentAverageWeightLb: 500,
+      entryHeadcount: 10,
+      currentHeadcount: 10,
+      feedingEvents: [],
+      targetWeightLb: 520,
+      defaultAdgLbPerDay: 2,
+    });
+    expect(unavailableAdg.averageDailyGainLbPerDay).toBeNull();
+    expect(unavailableAdg.projectedMarketDate).toBe("2026-01-21");
+  });
+});
+
+describe("lot and pen dashboard acceptance", () => {
+  it("AC_14_1_ShowsLotPenInventoryFeedAndPerformanceDashboardData", async () => {
+    const overview = getGetOverviewResponseMock();
+    server.use(getGetOverviewMockHandler(overview));
+    at("/overview");
+    render(<HeadOnPensContainer />);
+
+    expect((await screen.findByRole("heading", { name: "188 head on pens" }))).toBeTruthy();
+    const text = document.body.textContent?.replace(/\s+/g, " ").toLowerCase() ?? "";
+    const expectDashboardMetric = (label: string, value: string | RegExp) => {
+      const start = text.indexOf(label.toLowerCase());
+      expect(start, `expected visible dashboard label: ${label}`).toBeGreaterThanOrEqual(0);
+      expect(text.slice(start, start + 120)).toMatch(typeof value === "string" ? visibleValuePattern(value) : value);
+    };
+    expectDashboardMetric("active lots", String(overview.activeLotCount));
+    expectDashboardMetric("active pens", String(overview.activePenCount));
+    expectDashboardMetric("total animals", String(overview.totalAnimals));
+    expectDashboardMetric("inventory status", overview.inventoryStatus);
+    expectDashboardMetric(overview.rationUsage[0].rationName, String(overview.rationUsage[0].feedLb));
+    expectDashboardMetric("daily bunk rate", String(overview.dailyBunkRateByPen[0].lbPerHeadPerDay));
+    expectDashboardMetric("planned feed", String(overview.plannedFeedLb));
+    expectDashboardMetric("actual feed", String(overview.actualFeedLb));
+    expectDashboardMetric("total feed consumed", String(overview.totalFeedConsumedLb));
+    expectDashboardMetric("total feed cost", /1,?842(?:\.6|\.60)?/);
+    expectDashboardMetric("starting weight", String(overview.startingWeightLb));
+    expectDashboardMetric("current weight", String(overview.currentWeightLb));
+    expectDashboardMetric("total gain", String(overview.totalGainLb));
+    expectDashboardMetric("adg", String(overview.adgLbPerDay));
+    expectDashboardMetric("fcr", String(overview.fcrAsFed));
+    expectDashboardMetric("feed cost per unit of gain", String(overview.feedCostPerLbGain));
+    expectDashboardMetric("energy consumed", String(overview.energyConsumedMcal));
+    expectDashboardMetric("best-performing lot", overview.bestPerformingLot);
+    expectDashboardMetric("worst-performing lot", overview.worstPerformingLot);
+
+    const penRow = await screen.findByRole("row", { name: /Pen 01/ });
+    expect(within(penRow).getByText("52")).toBeTruthy();
+    expect(within(penRow).getByText("60")).toBeTruthy();
+    expect(within(penRow).getByText("2")).toBeTruthy();
+    const lotRow = await screen.findByRole("row", { name: /Lot 24-A/ });
+    expect(within(lotRow).getByText("52")).toBeTruthy();
+    expect(within(lotRow).getByText("Angus")).toBeTruthy();
+    expect(screen.getByText("Lot 23-C")).toBeTruthy();
+  });
+});

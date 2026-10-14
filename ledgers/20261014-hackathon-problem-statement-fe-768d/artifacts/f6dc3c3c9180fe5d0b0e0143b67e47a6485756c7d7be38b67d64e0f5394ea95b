@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "EnsureCreated|Migrate|Postgres|UseNpgsql|ConnectionString",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 0,
+   "resultChars": 213,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;EnsureCreated|Migrate|Postgres|UseNpgsql|ConnectionString&quot;,&quot;glob&quot;:&quot;App.Tests/**/*.cs&quot;}\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "PersistentContractTables|AC_3_1|Seed:Demo",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 1,
+   "resultChars": 610,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;PersistentContractTables|AC_3_1|Seed:Demo&quot;,&quot;glob&quot;:&quot;App.Tests/**/*.cs&quot;}\">\nApp.Tests/AcceptancePart3Tests.cs:26: private static readonly string[] PersistentContractTables =\nApp.Tests/AcceptancePart3Tests.cs:53: public async Task AC_3_1_SeedsPersistentEntitiesAndCollectionResponses()\nApp.Tests/AcceptancePart3Tests.cs:102: foreach (var tableName in PersistentContractTables)\nApp.Tests/AcceptancePart3Tests.cs:137: [\"Seed:Demo\"] = \"true\"\nApp.Tests/AcceptancePart4Tests.cs:76: [\"Seed:Demo\"] = \"false\"\n</untrusted_document>"
+  }
+ ]
+}

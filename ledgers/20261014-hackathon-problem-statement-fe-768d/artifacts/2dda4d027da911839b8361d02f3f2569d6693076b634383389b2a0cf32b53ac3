@@ -1,0 +1,240 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200 and the presence of every operational response field named in the criterion after arranging operational data."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200 and finds the inserted batch in the batches list with all three required fields."
+     },
+     {
+      "acId": "AC-1.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, the preview fields and batch ID, and the returned row fields for an inserted batch."
+     },
+     {
+      "acId": "AC-1.4",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, all documented count and partial fields, and the row outcome fields for an inserted batch."
+     },
+     {
+      "acId": "AC-1.5",
+      "testId": "AC_1_5_LotsAndPensMatchTheirSchemas",
+      "verdict": "weak",
+      "why": "The test checks schema fields only on the first lot and first pen, so malformed records later in either returned list would not be detected."
+     },
+     {
+      "acId": "AC-1.6",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, the submitted source line and head count, and the assignment fields named in the criterion."
+     },
+     {
+      "acId": "AC-1.7",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, the updated target weight and gain rate, and the required forecast fields and recommendation list."
+     },
+     {
+      "acId": "AC-1.8",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200 and all required forecast fields for an existing lot."
+     },
+     {
+      "acId": "AC-1.9",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, wastage ratio, the required inventory item and stock fields, and nonempty movement history."
+     },
+     {
+      "acId": "AC-1.10",
+      "testId": "AC_1_10_InventoryMovementReturnsSavedMovementAndUpdatedItem",
+      "verdict": "weak",
+      "why": "The test does not compare the returned movement date with the submitted date or assert that the item's stock values changed to reflect the receipt."
+     },
+     {
+      "acId": "AC-1.11",
+      "testId": "AC_1_11_ActualWastageReturnsMovementAndUpdatedItem",
+      "verdict": "weak",
+      "why": "The test does not compare the returned date with the submitted date or verify that the item's stock fields reflect the wastage quantity."
+     },
+     {
+      "acId": "AC-1.12",
+      "testId": "AC_1_12_InventoryWastageRatioIsSaved",
+      "verdict": "weak",
+      "why": "The test checks only the PATCH response, so an implementation that echoes the submitted ratio without saving it would pass."
+     },
+     {
+      "acId": "AC-1.13",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test exercises every supported horizon and asserts each response's status, requested horizon and ratio, and required per-item balance fields."
+     },
+     {
+      "acId": "AC-1.14",
+      "testId": "AC_1_14_RationListContainsContractRecordsOrIsEmpty",
+      "verdict": "weak",
+      "why": "The test does not arrange a ration record, so an empty list can bypass all assertions of the required ration and ingredient fields."
+     },
+     {
+      "acId": "AC-1.15",
+      "testId": "AC_1_15_RationCreationReturnsCalculatedRation",
+      "verdict": "weak",
+      "why": "The test checks that costPerLb and ingredient fields exist but never verifies the calculated cost or that the returned ingredient values match the submitted ingredient."
+     },
+     {
+      "acId": "AC-1.16",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks both candidate lists for the required feasibility, ingredient, cost, dry-matter and energy fields and verifies their cost order."
+     },
+     {
+      "acId": "AC-1.17",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, that applied is false, and that the selected candidate ID matches the requested ID."
+     },
+     {
+      "acId": "AC-1.18",
+      "testId": "AC_1_18_FeedingPlansMatchDateAndPenFilters",
+      "verdict": "weak",
+      "why": "The test checks the returned pen ID but does not assert the requested date or exclude plans that fail either filter."
+     },
+     {
+      "acId": "AC-1.19",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 201, the required plan fields, and that the returned pen and ration IDs match the request."
+     },
+     {
+      "acId": "AC-1.20",
+      "testId": "AC_1_20_FeedingActivitiesMatchRequestedFiltersAndSchema",
+      "verdict": "weak",
+      "why": "The test checks the returned pen ID but does not assert the requested date or exclude activities that fail either filter."
+     },
+     {
+      "acId": "AC-1.21",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 201, all required activity fields, the submitted actual quantity, and nonempty ingredient and lot consumption."
+     },
+     {
+      "acId": "AC-1.22",
+      "testId": "AC_1_22_WeightReadingsAreReturnedInDateOrder",
+      "verdict": "weak",
+      "why": "The test never asserts that the returned readings' lotId values match the requested lot, so readings for another lot could satisfy the schema and ordering checks."
+     },
+     {
+      "acId": "AC-1.23",
+      "testId": "AC_1_23_WeightReadingCreationReturnsSeriesAndMetrics",
+      "verdict": "weak",
+      "why": "The test checks only the response shapes and does not assert that the series contains the reading submitted in the POST request."
+     },
+     {
+      "acId": "AC-1.24",
+      "testId": "AC_1_24_WeightReadingReplacementReturnsUpdatedSeriesAndMetrics",
+      "verdict": "weak",
+      "why": "The test only looks for any reading with the replacement weight, so inserting a new reading instead of replacing the requested reading would pass."
+     },
+     {
+      "acId": "AC-1.25",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, the remaining series and refreshed metric fields, and verifies that the deleted reading ID is absent."
+     },
+     {
+      "acId": "AC-1.26",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200 and every performance metric field named in the criterion."
+     },
+     {
+      "acId": "AC-1.27",
+      "testId": "AC_1_27_OperationsReportReturnsDateRangeAndSections",
+      "verdict": "weak",
+      "why": "The test checks that the report section properties exist but does not assert that pens, lots, inventory, planAlignment, and rationUsage are lists."
+     },
+     {
+      "acId": "AC-1.28",
+      "testId": "AC_1_28_FeedToGainReportUsesLatestInRangeWeightAndThroughDateFeed",
+      "verdict": "weak",
+      "why": "The test checks the selected weight date but not its weight or the feed and metric values, and its fixture does not distinguish feed through that reading from later feed."
+     },
+     {
+      "acId": "AC-1.29",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200 and the presence of every ProjectDemoResponse section named in the criterion."
+     },
+     {
+      "acId": "AC-1.30",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 200, all required response fields, and that each record-outcome list is an array whose entries contain the required fields."
+     },
+     {
+      "acId": "AC-1.31",
+      "testId": "AC_1_31_DocumentedErrorsReturnErrorResponseEnvelope",
+      "verdict": "weak",
+      "why": "The test covers only malformed JSON for demo-data/load, leaving the other documented operations and error cases without assertions of their documented statuses and error details."
+     },
+     {
+      "acId": "AC-1.32",
+      "testId": "AC_1_32_MissingLotForecastReturnsNotFoundError",
+      "verdict": "weak",
+      "why": "The test checks only a missing-lot forecast, not the applicable assumption, preview, synchronization, and mapping requests for nonexistent IDs."
+     },
+     {
+      "acId": "AC-1.33",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 404 and the exact not_found code for a nonexistent preview batch."
+     },
+     {
+      "acId": "AC-1.34",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 404 and the exact not_found code for a movement referencing a nonexistent item."
+     },
+     {
+      "acId": "AC-1.35",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 422 and the required ErrorResponse code and message fields for an unsupported horizon."
+     },
+     {
+      "acId": "AC-1.36",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts HTTP 422 and the required ErrorResponse code and message fields for an invalid DemoLoadRequest."
+     },
+     {
+      "acId": "AC-1.38",
+      "testId": "AC_1_38_FeedingActivityConsumptionReducesInventoryAndReturnsCostAndLotConsumption",
+      "verdict": "weak",
+      "why": "The fixture already contains ingredient consumption before the new activity, so the test must compare stock before and after this activity to prove that its consumed ingredients reduced inventory."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

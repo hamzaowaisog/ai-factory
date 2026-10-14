@@ -1,0 +1,15 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "repo_map",
+   "input": {},
+   "ms": 0,
+   "resultChars": 69,
+   "result": "<untrusted_document id=\"repo_map\" source=\"{}\">\n\n</untrusted_document>"
+  }
+ ]
+}

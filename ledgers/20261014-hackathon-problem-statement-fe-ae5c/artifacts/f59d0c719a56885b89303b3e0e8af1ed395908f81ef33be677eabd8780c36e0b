@@ -1,0 +1,245 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "Import procurement and receiving records containing vendor, costs, head count, weights, and animal details; show the imported records and their resulting lot and pen mappings.",
+        "kind": "data"
+       },
+       {
+        "text": "Allow a PO line to be associated with one lot or split across multiple lots, and associate lots with physical pens, including pen ID, capacity, and current animal count; retain traceability from each lot and pen back to its PO line and receiving data.",
+        "kind": "happy"
+       },
+       {
+        "text": "When an import or mapping has missing, invalid, or conflicting identifiers or quantities, show which records could not be processed and why, and do not silently create incomplete or inconsistent mappings.",
+        "kind": "error"
+       },
+       {
+        "text": "When a PO line is split among lots, retain the source relationship and the quantities assigned to each lot so downstream lot-level costs and performance can be traced to procurement.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Use incoming animal and receiving data, including entry weight and receiving date, to calculate and display a projected market/ship date and target weight for the lot.",
+        "kind": "data"
+       },
+       {
+        "text": "Recalculate and display the forecast when relevant animal or lot data changes, using current weight-gain performance when available.",
+        "kind": "happy"
+       },
+       {
+        "text": "If required inputs such as entry weight, receiving date, target weight, or a usable gain rate are absent or invalid, indicate that a reliable forecast cannot be calculated instead of showing a misleading date.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "Let users view and maintain feed inventory items with feed type, category, available quantity, unit, unit cost, dry-matter percentage, energy value, and storage location.",
+        "kind": "happy"
+       },
+       {
+        "text": "Record opening stock, receipts, consumption, wastage, and closing stock as identifiable movements, and update the displayed available quantity when stock is received or consumed.",
+        "kind": "data"
+       },
+       {
+        "text": "Apply the configured wastage ratio to consumption estimates and projected inventory needs; let users view projections for daily, weekly, monthly, quarterly, bi-annual, and annual horizons.",
+        "kind": "data"
+       },
+       {
+        "text": "When a movement would produce invalid quantities, such as a negative quantity or consumption beyond available stock, show the issue and prevent a misleading stock balance from being recorded.",
+        "kind": "error"
+       },
+       {
+        "text": "Show when forecasts depend on missing or stale movement, usage, or wastage data, rather than presenting an unsupported projection as certain.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "Let users create and edit a named ration with its type, intended animal type or weight range, ingredients, and a quantity or proportion for each ingredient.",
+        "kind": "happy"
+       },
+       {
+        "text": "For each ration, display the calculated ingredient-based cost per unit and nutritional values, including dry matter and energy, where ingredient data is available.",
+        "kind": "data"
+       },
+       {
+        "text": "Let users compare candidate ingredient mixes by nutritional values and cost, and identify economical alternatives for the intended animal or weight range.",
+        "kind": "happy"
+       },
+       {
+        "text": "If ingredient proportions or quantities are invalid, required ingredient prices or nutrition values are unavailable, or a mix cannot be calculated, identify the affected ration and metric rather than reporting a false total.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "Generate or let users create a dated feeding plan for a physical pen using its animal count, daily bunk rate, selected ration, and assigned lot; show planned quantity, quantity per animal, feeding time, estimated cost and energy, and plan status.",
+        "kind": "happy"
+       },
+       {
+        "text": "Let users record a feeding activity against a pen, lot, and ration with planned and actual quantities; show the calculated variance as actual minus planned and the feeding status.",
+        "kind": "data"
+       },
+       {
+        "text": "On recording actual feeding, calculate the event's feed cost and energy, consume inventory according to the ration's ingredient mix, and update lot-level cumulative feed consumption and feed cost.",
+        "kind": "data"
+       },
+       {
+        "text": "If actual feeding exceeds available inventory or required pen, lot, ration, or quantity data is missing or invalid, show the problem and do not silently record inconsistent inventory or feeding totals.",
+        "kind": "error"
+       },
+       {
+        "text": "Allow a pen to contain animals from one or more lots and associate feeding records with the applicable lot or lots so pen execution and lot-level results remain attributable.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "Let users record a lot weight measurement with measurement date, number of animals weighed, average animal weight, total lot weight, and notes; calculate or display weight gain since the prior reading when comparable readings exist.",
+        "kind": "happy"
+       },
+       {
+        "text": "Retain dated weight readings for each lot and display them as a time series so users can inspect weight trends over time.",
+        "kind": "data"
+       },
+       {
+        "text": "If a measurement is missing required values, contains invalid quantities, or cannot be compared with a prior reading, identify the issue and avoid presenting an unsupported weight-gain value.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "For each lot, calculate and display days on feed from receiving date, total weight gain from entry and current average weights, average daily gain, total feed consumed, feed conversion ratio, cost of gain, and projected ship date.",
+        "kind": "data"
+       },
+       {
+        "text": "Use total feed consumed in pounds divided by total weight gain in pounds for FCR, and total feed cost divided by total weight gain for cost of gain; use the lot's recorded feeding and weight events as the inputs.",
+        "kind": "data"
+       },
+       {
+        "text": "Recalculate affected lot metrics when a feeding event or weight measurement is recorded or changed, and reflect the updated values in the lot's performance view.",
+        "kind": "happy"
+       },
+       {
+        "text": "If weight gain is zero or negative, dates or weights are unavailable, or average daily gain cannot support a ship-date forecast, mark the affected metric unavailable or not meaningful rather than dividing by zero or presenting a misleading result.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "Provide dashboards and reports that show lot, pen, ration, inventory, feeding, and performance information, including active lots and pens, animal counts, inventory status, ration usage, planned versus actual feed, consumption and cost, starting and current weight, weight gain, ADG, feed-to-gain/FCR, cost per gain, and energy consumed.",
+        "kind": "data"
+       },
+       {
+        "text": "Let operators identify and compare high- and low-performing lots and answer operational questions such as which pen consumed the most feed, which ration is used most, whether actual feeding matches plan, and which pens are over- or underfed.",
+        "kind": "happy"
+       },
+       {
+        "text": "Provide a yard-level summary across active lots showing aggregate head count, average ADG, average cost of gain, and total feed cost.",
+        "kind": "data"
+       },
+       {
+        "text": "When a view has no matching or sufficient data, show an empty or unavailable state instead of fabricated metrics.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-9",
+      "behaviours": [
+       {
+        "text": "Provide a dedicated feed-to-gain report comparing ADG, FCR, and cost of gain across lots.",
+        "kind": "happy"
+       },
+       {
+        "text": "Let users filter report results by date range, breed, sex, and pen, and update the displayed comparison to match the selected filters.",
+        "kind": "happy"
+       },
+       {
+        "text": "Let users export the filtered report as CSV or PDF, with the exported results corresponding to the displayed filters and metrics.",
+        "kind": "happy"
+       },
+       {
+        "text": "If filters return no lots or required values are unavailable, indicate that clearly; if an export cannot be generated, show an error rather than returning an incomplete file as successful.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-10",
+      "behaviours": [
+       {
+        "text": "Provide clearly identified sample/mock records for procurement and receiving, lots, pens, animals, inventory and stock movements, rations, feeding plans and activities, and weight measurements so the end-to-end system can be demonstrated.",
+        "kind": "data"
+       },
+       {
+        "text": "Ensure sample records have coherent relationships and values that can drive inventory, forecasts, lot metrics, dashboards, and report examples.",
+        "kind": "happy"
+       },
+       {
+        "text": "Clearly distinguish sample/mock records from operational records so users are not misled into treating demonstration data as actual business activity.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-11",
+      "behaviours": [
+       {
+        "text": "Provide a proposed solution and architecture diagrams describing the feedlot data flow and how procurement, lots, pens, inventory, rations, feeding, weights, and performance reporting relate.",
+        "kind": "data"
+       },
+       {
+        "text": "Provide a demonstrable responsive web app covering the proposed feedlot workflows on phone, tablet, and desktop browser widths.",
+        "kind": "happy"
+       },
+       {
+        "text": "Provide an overview of testing and validation performed, including how feed-to-gain calculations and data consistency were checked, and describe challenges encountered and the assessed degree of production readiness.",
+        "kind": "data"
+       },
+       {
+        "text": "Provide a go-to-market strategy and analysis for the proposed product offering.",
+        "kind": "data"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

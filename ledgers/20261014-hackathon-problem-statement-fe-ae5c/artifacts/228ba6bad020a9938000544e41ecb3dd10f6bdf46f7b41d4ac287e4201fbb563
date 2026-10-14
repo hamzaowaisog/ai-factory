@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Import records — Cedar Draw Feedlot</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary": "#ffffff",
+            "on-tertiary-container": "#edfaff",
+            "on-secondary-container": "#79503a",
+            "primary-fixed": "#ffdbca",
+            "error": "#ba1a1a",
+            "background": "#f9faf8",
+            "surface-tint": "#954918",
+            "inverse-on-surface": "#f0f1ef",
+            "surface-dim": "#d9dad8",
+            "secondary": "#7e553e",
+            "on-tertiary-fixed": "#001f27",
+            "on-surface-variant": "#54433a",
+            "on-error-container": "#93000a",
+            "on-primary-fixed": "#331200",
+            "primary": "#8e4413",
+            "on-secondary-fixed": "#301403",
+            "surface-container-highest": "#e2e3e1",
+            "tertiary": "#006277",
+            "inverse-primary": "#ffb68f",
+            "on-surface": "#191c1b",
+            "secondary-fixed-dim": "#f1bb9f",
+            "on-secondary-fixed-variant": "#633e29",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#edeeec",
+            "on-primary-container": "#fff6f3",
+            "on-background": "#191c1b",
+            "tertiary-fixed-dim": "#79d3ef",
+            "tertiary-fixed": "#b3ebff",
+            "inverse-surface": "#2e3130",
+            "surface": "#f9faf8",
+            "tertiary-container": "#007c96",
+            "secondary-container": "#fdc6a9",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed-variant": "#773301",
+            "on-tertiary-fixed-variant": "#004e5f",
+            "on-primary": "#ffffff",
+            "surface-bright": "#f9faf8",
+            "secondary-fixed": "#ffdbca",
+            "outline-variant": "#dac2b6",
+            "outline": "#877369",
+            "surface-container-low": "#f3f4f2",
+            "primary-fixed-dim": "#ffb68f",
+            "on-error": "#ffffff",
+            "surface-variant": "#e2e3e1",
+            "surface-container-high": "#e7e8e6",
+            "primary-container": "#ad5c2a",
+            "error-container": "#ffdad6"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            label: ["Public Sans", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+      --travel: clamp(8px, 1vw, 16px);
+    }
+
+    body {
+      background-color: #F6F7F5;
+      color: #252A27;
+      font-family: 'Source Sans 3', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .font-headline {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    @keyframes row-arrive {
+      from { opacity: 0.82; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    .result-row { 
+      animation: row-arrive var(--dur-quick) var(--ease-out) both; 
+    }
+    .result-row:nth-child(1) { animation-delay: 0ms; }
+    .result-row:nth-child(2) { animation-delay: 50ms; }
+    .result-row:nth-child(3) { animation-delay: 100ms; }
+    .result-row:nth-child(4) { animation-delay: 150ms; }
+    .result-row:nth-child(5) { animation-delay: 200ms; }
+    .result-row:nth-child(6) { animation-delay: 250ms; }
+
+    .live-indicator { 
+      animation: status-breathe 8s ease-in-out infinite; 
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        scroll-behavior: auto !important;
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col text-[#252A27]">
+<!-- Top Navigation Bar (Shared Component Anchor) -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D9DEDA] sticky top-0 z-30">
+<div class="max-w-[1360px] mx-auto px-4 md:px-8 h-14 flex items-center justify-between gap-4">
+<!-- Brand Anchor Left -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-7 h-7 rounded-[6px] bg-[#AD5C2A] flex items-center justify-center text-white font-headline font-bold text-base select-none">
+          C
+        </div>
+<span class="font-headline font-bold text-[18px] text-[#252A27] tracking-tight whitespace-nowrap">
+          Cedar Draw Feedlot
+        </span>
+</div>
+<!-- Desktop Nav Items -->
+<nav class="hidden xl:flex items-center gap-5 text-[15px] font-body tracking-tight h-full overflow-x-auto">
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#overview">Overview</a>
+<a class="border-b-2 border-[#AD5C2A] text-[#AD5C2A] font-semibold py-4 whitespace-nowrap" href="#import-records">Import records</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#lots-pens">Lots &amp; pens</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#feed-inventory">Feed inventory</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#inventory-outlook">Inventory outlook</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#rations">Rations</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#feeding-plans">Feeding plans</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#feeding-log">Feeding log</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#weight-records">Weight records</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#operational-reports">Operational reports</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#feed-to-gain">Feed-to-gain</a>
+<a class="text-[#66706A] hover:text-[#252A27] py-4 transition-colors whitespace-nowrap" href="#project-demo">Project &amp; demo</a>
+</nav>
+<!-- User Profile Right -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-8 h-8 rounded-full bg-[#E2E3E1] text-[#252A27] font-headline font-semibold text-xs flex items-center justify-center border border-[#D9DEDA]">
+          MO
+        </div>
+<div class="flex flex-col text-left leading-tight">
+<span class="text-[14px] font-semibold text-[#252A27]">Mara Ortega</span>
+<span class="text-[12px] text-[#66706A]">Feed manager</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Work Surface Layout -->
+<main class="w-full max-w-[1360px] mx-auto px-4 md:px-8 py-7 flex-1 flex flex-col gap-6">
+<!-- Page Heading -->
+<div class="flex flex-col gap-1">
+<h1 class="font-headline text-[26px] md:text-[30px] font-[650] tracking-[-0.03em] text-[#252A27] leading-none">
+        Import records
+      </h1>
+</div>
+<!-- Batch Selector & Operation Controls Area -->
+<section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-5">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+<!-- Batch Input Controls -->
+<div class="flex flex-col sm:flex-row sm:items-end gap-3 flex-1">
+<div class="flex-1 max-w-xl">
+<label class="block text-[13px] font-semibold text-[#252A27] mb-1.5" for="batch_files">
+              Source file selection / batch selector
+            </label>
+<div class="relative">
+<select class="w-full h-[44px] bg-[#FFFFFF] border border-[#D9DEDA] rounded-[6px] px-3.5 pr-10 text-[14px] font-mono text-[#252A27] focus:border-[#AD5C2A] focus:outline-none focus:ring-1 focus:ring-[#AD5C2A] transition-colors appearance-none cursor-pointer" id="batch_files">
+<option selected="">april_cattle_po.csv, april_receiving.csv (2 files selected)</option>
+<option>april_cattle_po.csv (84 head, 56 head)</option>
+<option>april_receiving.csv (142 head)</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-2.5 text-[#66706A] text-[20px]">
+                arrow_drop_down
+              </span>
+</div>
+</div>
+<!-- Preview Records Trigger -->
+<button class="h-[44px] px-5 bg-[#FFFFFF] hover:bg-[#F6F7F5] border border-[#D9DEDA] text-[#252A27] font-body font-semibold text-[15px] rounded-[6px] flex items-center justify-center gap-2 transition-all active:scale-[0.97]" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#66706A]">table_view</span>
+            Preview records
+          </button>
+</div>
+<!-- Sync Records Action -->
+<div class="flex items-center gap-3">
+<button class="w-full sm:w-auto h-[44px] px-5 bg-[#AD5C2A] hover:bg-[#8E4413] text-white font-body font-semibold text-[15px] rounded-[6px] flex items-center justify-center gap-2 shadow-none transition-all active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-[#252A27] focus:ring-offset-2" type="button">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+            Sync ready records (2 lines ready)
+          </button>
+</div>
+</div>
+<!-- Timestamp & Outcome Summary Strip -->
+<div class="mt-5 pt-4 border-t border-[#D9DEDA] flex flex-col gap-3">
+<div class="flex flex-wrap items-center justify-between gap-2 text-[13px]">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#28734F] live-indicator"></span>
+<span class="font-body text-[#66706A]">Preview evaluated timestamp:</span>
+<span class="font-mono text-[#252A27] font-medium">23 Apr 2025, 09:14 America/Denver</span>
+</div>
+<div class="font-body text-[#66706A]">
+            Total <span class="font-mono text-[#252A27] font-semibold">5</span> records evaluated (<span class="font-mono text-[#252A27] font-semibold">202</span> head)
+          </div>
+</div>
+<!-- Metric Badges Row -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-2 pt-1 text-[13px]">
+<div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-[6px] px-3 py-2 flex flex-col">
+<span class="text-[#66706A] text-[12px]">Ready to sync</span>
+<span class="font-semibold text-[#28734F] flex items-center gap-1.5 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#28734F]"></span> 1 line (56 head to P-04)
+            </span>
+</div>
+<div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-[6px] px-3 py-2 flex flex-col">
+<span class="text-[#66706A] text-[12px]">Partial mapped</span>
+<span class="font-semibold text-[#94600C] flex items-center gap-1.5 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#94600C]"></span> 1 line (60 P-04, 24 unpenned)
+            </span>
+</div>
+<div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-[6px] px-3 py-2 flex flex-col">
+<span class="text-[#66706A] text-[12px]">Duplicate entry</span>
+<span class="font-semibold text-[#AE3D36] flex items-center gap-1.5 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#AE3D36]"></span> 1 line (84 head)
+            </span>
+</div>
+<div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-[6px] px-3 py-2 flex flex-col">
+<span class="text-[#66706A] text-[12px]">Pending mapping</span>
+<span class="font-semibold text-[#94600C] flex items-center gap-1.5 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#94600C]"></span> 1 line (18 head)
+            </span>
+</div>
+<div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-[6px] px-3 py-2 flex flex-col">
+<span class="text-[#66706A] text-[12px]">Capacity blocked</span>
+<span class="font-semibold text-[#AE3D36] flex items-center gap-1.5 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#AE3D36]"></span> 1 line (40 head)
+            </span>
+</div>
+</div>
+<!-- Plain Explicit Callout -->
+<div class="mt-1 bg-[#F9FAF8] border border-[#D9DEDA] rounded-[6px] p-3 text-[13.5px] leading-relaxed text-[#252A27] flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#94600C] text-[18px] shrink-0 mt-0.5">info</span>
+<div>
+<span class="font-semibold">Capacity enforcement:</span> Unresolved or capacity-blocked animals cannot be used in pen operations. Pen P-04 capacity is 150 (currently 116 head, 34 open); incoming 40 head exceeds open capacity.
+          </div>
+</div>
+</div>
+</section>
+<!-- Detailed Wide Results Table -->
+<section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] overflow-hidden">
+<!-- Table Header (Visible on Desktop) -->
+<div class="hidden lg:grid grid-cols-12 gap-3 px-4 py-3 bg-[#F6F7F5] border-b border-[#D9DEDA] text-[12px] font-semibold text-[#66706A] tracking-[0.08em] uppercase select-none">
+<div class="col-span-2">Source file</div>
+<div class="col-span-1">Record &amp; Line</div>
+<div class="col-span-2">Vendor &amp; Origin</div>
+<div class="col-span-1 text-right">Head count</div>
+<div class="col-span-2 text-right">Cost / Head &amp; Total</div>
+<div class="col-span-2">Weight, Breed &amp; Sex</div>
+<div class="col-span-2">Proposed Lot &amp; Pen</div>
+</div>
+<!-- Table Body Records -->
+<div class="divide-y divide-[#D9DEDA]">
+<!-- Row 1: PO-5831 line 1 -->
+<div class="result-row p-4 lg:py-3.5 lg:px-4 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 items-start lg:items-center text-[14px] hover:bg-[#F9FAF8] transition-colors">
+<div class="lg:col-span-2 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Source:</span>
+<span class="font-mono text-[13px] text-[#252A27]">april_cattle_po.csv</span>
+</div>
+<div class="lg:col-span-1 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Record:</span>
+<span class="font-mono font-medium text-[#252A27]">PO-5831 line 1</span>
+</div>
+<div class="lg:col-span-2">
+<div class="font-medium text-[#252A27]">Red Basin Cattle Co.</div>
+<div class="text-[12px] text-[#66706A]">Red Basin Ranch</div>
+</div>
+<div class="lg:col-span-1 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Head:</span>
+<span class="font-mono font-semibold text-[#252A27]">84 head</span>
+</div>
+<div class="lg:col-span-2 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Cost:</span>
+<div>
+<div class="font-mono text-[#252A27]">$1,470 / head</div>
+<div class="font-mono text-[12px] text-[#66706A]">$123,480 total</div>
+</div>
+</div>
+<div class="lg:col-span-2">
+<div class="text-[#252A27]"><span class="font-mono">612 lb</span>, Angus–Hereford steers</div>
+<div class="text-[12px] text-[#66706A]">16 months</div>
+</div>
+<div class="lg:col-span-2 flex flex-col gap-1.5">
+<div class="text-[13px] text-[#252A27] leading-tight">
+              Split: <span class="font-mono font-medium">60</span> head to L-241 (P-04) / <span class="font-mono font-medium">24</span> head to L-243 (no pen)
+            </div>
+<div>
+<span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#94600C] border border-[#94600C] px-2 py-0.5 rounded-[4px] bg-[#FFFFFF]">
+                Partial - 24 head unpenned
+              </span>
+</div>
+</div>
+</div>
+<!-- Row 2: PO-5840 line 1 -->
+<div class="result-row p-4 lg:py-3.5 lg:px-4 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 items-start lg:items-center text-[14px] hover:bg-[#F9FAF8] transition-colors">
+<div class="lg:col-span-2 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Source:</span>
+<span class="font-mono text-[13px] text-[#252A27]">april_cattle_po.csv</span>
+</div>
+<div class="lg:col-span-1 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Record:</span>
+<span class="font-mono font-medium text-[#252A27]">PO-5840 line 1</span>
+</div>
+<div class="lg:col-span-2">
+<div class="font-medium text-[#252A27]">Mesa Valley Cattle Co.</div>
+<div class="text-[12px] text-[#66706A]">Mesa Valley Ranch</div>
+</div>
+<div class="lg:col-span-1 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Head:</span>
+<span class="font-mono font-semibold text-[#252A27]">56 head</span>
+</div>
+<div class="lg:col-span-2 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Cost:</span>
+<div>
+<div class="font-mono text-[#252A27]">$1,338 / head</div>
+<div class="font-mono text-[12px] text-[#66706A]">$74,928 total</div>
+</div>
+</div>
+<div class="lg:col-span-2">
+<div class="text-[#252A27]"><span class="font-mono">548 lb</span>, Charolais-cross heifers</div>
+<div class="text-[12px] text-[#66706A]">14 months</div>
+</div>
+<div class="lg:col-span-2 flex flex-col gap-1.5">
+<div class="text-[13px] text-[#252A27]">
+              L-242 in Pen <span class="font-mono font-medium">P-04</span>
+</div>
+<div>
+<span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#28734F] border border-[#28734F] px-2 py-0.5 rounded-[4px] bg-[#FFFFFF]">
+                Ready to sync
+              </span>
+</div>
+</div>
+</div>
+<!-- Row 3: REC-8843 -->
+<div class="result-row p-4 lg:py-3.5 lg:px-4 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 items-start lg:items-center text-[14px] hover:bg-[#F9FAF8] transition-colors">
+<div class="lg:col-span-2 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Source:</span>
+<span class="font-mono text-[13px] text-[#252A27]">april_receiving.csv</span>
+</div>
+<div class="lg:col-span-1 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Record:</span>
+<span class="font-mono font-medium text-[#252A27]">REC-8843</span>
+</div>
+<div class="lg:col-span-2">
+<div class="font-medium text-[#252A27]">Red Basin Cattle Co.</div>
+<div class="text-[12px] text-[#66706A]">Red Basin Ranch</div>
+</div>
+<div class="lg:col-span-1 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Head:</span>
+<span class="font-mono font-semibold text-[#252A27]">84 head</span>
+</div>
+<div class="lg:col-span-2 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Cost:</span>
+<div>
+<div class="font-mono text-[#252A27]">$1,470 / head</div>
+<div class="font-mono text-[12px] text-[#66706A]">$123,480 total</div>
+</div>
+</div>
+<div class="lg:col-span-2">
+<div class="text-[#252A27]"><span class="font-mono">612 lb</span>, Angus–Hereford steers</div>
+<div class="text-[12px] text-[#66706A]">16 months</div>
+</div>
+<div class="lg:col-span-2 flex flex-col gap-1.5">
+<div class="text-[13px] text-[#66706A] italic">
+              None (repeats PO-5831)
+            </div>
+<div>
+<span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#AE3D36] border border-[#AE3D36] px-2 py-0.5 rounded-[4px] bg-[#FFFFFF]">
+                Duplicate of PO-5831
+              </span>
+</div>
+</div>
+</div>
+<!-- Row 4: REC-8844 -->
+<div class="result-row p-4 lg:py-3.5 lg:px-4 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 items-start lg:items-center text-[14px] hover:bg-[#F9FAF8] transition-colors">
+<div class="lg:col-span-2 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Source:</span>
+<span class="font-mono text-[13px] text-[#252A27]">april_receiving.csv</span>
+</div>
+<div class="lg:col-span-1 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Record:</span>
+<span class="font-mono font-medium text-[#252A27]">REC-8844</span>
+</div>
+<div class="lg:col-span-2">
+<div class="font-medium text-[#252A27]">Juniper Ridge Cattle</div>
+<div class="text-[12px] text-[#66706A]">Juniper Ridge Ranch</div>
+</div>
+<div class="lg:col-span-1 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Head:</span>
+<span class="font-mono font-semibold text-[#252A27]">18 head</span>
+</div>
+<div class="lg:col-span-2 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Cost:</span>
+<div>
+<div class="font-mono text-[#252A27]">$1,290 / head</div>
+<div class="font-mono text-[12px] text-[#66706A]">$23,220 total</div>
+</div>
+</div>
+<div class="lg:col-span-2">
+<div class="text-[#252A27]"><span class="font-mono">522 lb</span>, Hereford-cross steers</div>
+<div class="text-[12px] text-[#66706A]">13 months</div>
+</div>
+<div class="lg:col-span-2 flex flex-col gap-1.5">
+<div class="text-[13px] text-[#252A27]">
+              Unassigned lot
+            </div>
+<div>
+<span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#94600C] border border-[#94600C] px-2 py-0.5 rounded-[4px] bg-[#FFFFFF]">
+                Pending mapping
+              </span>
+</div>
+</div>
+</div>
+<!-- Row 5: REC-8845 -->
+<div class="result-row p-4 lg:py-3.5 lg:px-4 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 items-start lg:items-center text-[14px] hover:bg-[#F9FAF8] transition-colors">
+<div class="lg:col-span-2 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Source:</span>
+<span class="font-mono text-[13px] text-[#252A27]">april_receiving.csv</span>
+</div>
+<div class="lg:col-span-1 flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Record:</span>
+<span class="font-mono font-medium text-[#252A27]">REC-8845</span>
+</div>
+<div class="lg:col-span-2">
+<div class="font-medium text-[#252A27]">High Mesa Livestock</div>
+<div class="text-[12px] text-[#66706A]">High Mesa Ranch</div>
+</div>
+<div class="lg:col-span-1 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Head:</span>
+<span class="font-mono font-semibold text-[#252A27]">40 head</span>
+</div>
+<div class="lg:col-span-2 lg:text-right flex items-center justify-between lg:block">
+<span class="lg:hidden text-[11px] font-semibold uppercase tracking-wider text-[#66706A]">Cost:</span>
+<div>
+<div class="font-mono text-[#252A27]">$1,410 / head</div>
+<div class="font-mono text-[12px] text-[#66706A]">$56,400 total</div>
+</div>
+</div>
+<div class="lg:col-span-2">
+<div class="text-[#252A27]"><span class="font-mono">590 lb</span>, Angus steers</div>
+<div class="text-[12px] text-[#66706A]">15 months</div>
+</div>
+<div class="lg:col-span-2 flex flex-col gap-1.5">
+<div class="text-[13px] text-[#252A27]">
+              P-04 (requested)
+            </div>
+<div>
+<span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#AE3D36] border border-[#AE3D36] px-2 py-0.5 rounded-[4px] bg-[#FFFFFF]">
+                Blocked - P-04 capacity (116+40 &gt; 150)
+              </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Table Bottom Summary Bar -->
+<div class="px-4 py-3 bg-[#F6F7F5] border-t border-[#D9DEDA] flex flex-wrap items-center justify-between gap-4 text-[13px]">
+<div class="text-[#66706A]">
+          Showing 5 records across 2 evaluated import files
+        </div>
+<div class="flex items-center gap-4">
+<span class="text-[#66706A]">Combined extended cost: <span class="font-mono text-[#252A27] font-semibold">$398,008</span></span>
+<span class="text-[#66706A]">Validatable head: <span class="font-mono text-[#252A27] font-semibold">116 / 202 head</span></span>
+</div>
+</div>
+</section>
+</main>
+</body></html>

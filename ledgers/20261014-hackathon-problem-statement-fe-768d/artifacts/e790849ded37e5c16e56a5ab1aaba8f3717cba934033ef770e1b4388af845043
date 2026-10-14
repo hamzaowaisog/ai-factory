@@ -1,0 +1,37 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "seed-reruns",
+      "category": "existing-data",
+      "text": "If `Seed:Demo` is true on repeated startups, how should the seeder behave when demo or operational rows already exist?",
+      "options": [
+       "Append a fresh complete set of demo rows on every startup, allowing duplicates.",
+       "Seed only when the database is empty; otherwise leave it unchanged.",
+       "Idempotently add missing demo rows while preserving existing rows and avoiding duplicates."
+      ],
+      "recommended": "Idempotently add missing demo rows while preserving existing rows and avoiding duplicates.",
+      "reason": "This supplies demo data without duplicating it or replacing data already in the database.",
+      "spans": [
+       "I-3",
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines whether startup repeatedly writes duplicate rows or preserves existing database contents."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

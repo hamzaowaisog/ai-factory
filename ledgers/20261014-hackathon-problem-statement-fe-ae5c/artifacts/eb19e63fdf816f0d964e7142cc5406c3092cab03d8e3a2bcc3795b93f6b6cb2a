@@ -1,0 +1,1 @@
+[{"check":"lint: tokens only","detail":"1 UI file(s) checked: no hex colours, no new arbitrary values","status":"PASS"},{"check":"lint: existing components only","detail":"7 component import(s), all in the inventory","status":"PASS"},{"check":"lint: no new building blocks","detail":"components/ui/ has no new files","status":"PASS"}]

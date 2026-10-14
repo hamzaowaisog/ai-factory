@@ -1,0 +1,512 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weight records — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F6F7F5;
+      --panel: #FFFFFF;
+      --text: #252A27;
+      --text-muted: #66706A;
+      --border: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 40px;
+    }
+
+    .font-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Keyframes and Motion */
+    @keyframes fadeInSlide {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-breathe {
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    .stagger-1 {
+      animation: fadeInSlide var(--dur-quick) ease-out forwards;
+    }
+    .stagger-2 {
+      animation: fadeInSlide var(--dur-quick) ease-out 50ms forwards;
+    }
+    .stagger-3 {
+      animation: fadeInSlide var(--dur-quick) ease-out 100ms forwards;
+    }
+    .stagger-4 {
+      animation: fadeInSlide var(--dur-quick) ease-out 150ms forwards;
+    }
+
+    /* Interactive state styles */
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity var(--dur-quick), transform var(--dur-quick);
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-outline {
+      background-color: #FFFFFF;
+      color: var(--text);
+      height: 44px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      transition: background-color var(--dur-quick), border-color var(--dur-quick);
+      cursor: pointer;
+    }
+    .btn-outline:hover {
+      background-color: #F9FAF9;
+      border-color: #C0C8C2;
+    }
+    .btn-outline:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-destructive {
+      background-color: var(--status-failed);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity var(--dur-quick);
+      border: none;
+      cursor: pointer;
+    }
+    .btn-destructive:hover {
+      opacity: 0.92;
+    }
+    .btn-destructive:focus-visible {
+      outline: 2px solid var(--status-failed);
+      outline-offset: 2px;
+    }
+
+    .form-field {
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background-color: #FFFFFF;
+      color: var(--text);
+      padding: 0 12px;
+      width: 100%;
+      font-size: 16px;
+      transition: border-color var(--dur-quick);
+    }
+    .form-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .panel-card {
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    /* Status badge style */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 600;
+      border-width: 1px;
+      border-style: solid;
+      background: transparent;
+    }
+    .status-good {
+      color: var(--status-good);
+      border-color: var(--status-good);
+    }
+    .status-waiting {
+      color: var(--status-waiting);
+      border-color: var(--status-waiting);
+    }
+    .status-failed {
+      color: var(--status-failed);
+      border-color: var(--status-failed);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header (identical to cedar draw mobile layout: wordmark at left beside square mark with white "C"; menu at right) -->
+  <header class="bg-[#FFFFFF] border-b border-[#D9DEDA] h-14 sticky top-0 z-50">
+    <div class="max-w-[390px] mx-auto px-4 h-full flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded bg-[#AD5C2A] flex items-center justify-center text-white font-hanken font-bold text-base">
+          C
+        </div>
+        <span class="font-hanken font-bold text-base tracking-tight text-[#252A27]">Cedar Draw Feedlot</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Mara Ortega initials avatar -->
+        <div class="w-8 h-8 rounded-full bg-[#F6F7F5] border border-[#D9DEDA] flex items-center justify-center text-[#252A27] font-mono text-xs font-semibold" title="Mara Ortega · Feed manager">
+          MO
+        </div>
+        <!-- Mobile hamburger menu button -->
+        <button aria-label="Open menu" class="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-[6px] border border-[#D9DEDA] bg-[#FFFFFF] hover:bg-[#F6F7F5] focus-visible:outline-2 focus-visible:outline-[#AD5C2A]">
+          <span class="w-4 h-[2px] bg-[#252A27]"></span>
+          <span class="w-4 h-[2px] bg-[#252A27]"></span>
+          <span class="w-4 h-[2px] bg-[#252A27]"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container at phone width (390px) -->
+  <main class="max-w-[390px] mx-auto px-4 pt-6 space-y-6">
+
+    <!-- Page Title & Facility Context -->
+    <section class="space-y-1">
+      <div class="flex items-center justify-between">
+        <h1 class="font-hanken text-[26px] font-[650] leading-8 text-[#252A27]">Weight records</h1>
+        <div class="flex items-center gap-1.5 text-xs text-[#66706A]">
+          <span class="w-2 h-2 rounded-full bg-[#28734F] animate-breathe inline-block"></span>
+          <span class="font-mono">23 Apr 2025</span>
+        </div>
+      </div>
+      <p class="text-xs text-[#66706A]">
+        Facility: Cedar Draw Feedlot · <span class="font-mono">America/Denver</span>
+      </p>
+    </section>
+
+    <!-- Selected Lot Metric Card (L-241) -->
+    <section class="panel-card p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-xs text-[#66706A] uppercase tracking-wider font-semibold">Active Selection</span>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="font-hanken text-lg font-bold text-[#252A27]">Lot L-241</span>
+            <span class="status-badge status-good">valid</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-[#66706A]">Location</span>
+          <p class="font-mono text-sm font-semibold text-[#252A27]">Pen P-04</p>
+        </div>
+      </div>
+
+      <!-- Primary Headline Metric -->
+      <div class="pt-2 border-t border-[#D9DEDA]">
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-mono text-[28px] font-bold text-[#252A27]">842</span>
+          <span class="text-sm font-semibold text-[#252A27]">lb average</span>
+          <span class="text-xs text-[#66706A] ml-auto">on <span class="font-mono font-medium">20 Apr 2025</span></span>
+        </div>
+      </div>
+
+      <!-- Context Submetrics Grid -->
+      <div class="grid grid-cols-3 gap-2 pt-2 border-t border-[#D9DEDA] text-center">
+        <div class="bg-[#F6F7F5] rounded-[6px] p-2 border border-[#D9DEDA]">
+          <span class="text-[11px] text-[#66706A] block leading-tight">Applicable</span>
+          <span class="font-mono text-sm font-bold text-[#252A27] mt-1 block">60 <span class="text-xs font-normal">head</span></span>
+        </div>
+        <div class="bg-[#F6F7F5] rounded-[6px] p-2 border border-[#D9DEDA]">
+          <span class="text-[11px] text-[#66706A] block leading-tight">Gain / head</span>
+          <span class="font-mono text-sm font-bold text-[#252A27] mt-1 block">+230 <span class="text-xs font-normal">lb</span></span>
+        </div>
+        <div class="bg-[#F6F7F5] rounded-[6px] p-2 border border-[#D9DEDA]">
+          <span class="text-[11px] text-[#66706A] block leading-tight">Measured ADG</span>
+          <span class="font-mono text-sm font-bold text-[#252A27] mt-1 block">2.35 <span class="text-xs font-normal">lb/d</span></span>
+        </div>
+      </div>
+
+      <div class="text-xs text-[#66706A] pt-1">
+        Angus–Hereford steers · Received <span class="font-mono">12 Jan 2025</span> at <span class="font-mono">612 lb</span> · Target <span class="font-mono">1,350 lb</span>
+      </div>
+    </section>
+
+    <!-- Compact Entry Form -->
+    <section class="panel-card p-4 space-y-4">
+      <h2 class="font-hanken text-[17px] font-[600] text-[#252A27]">Record lot weight reading</h2>
+
+      <form class="space-y-3">
+        <!-- Lot selector (with L-243 disabled) -->
+        <div>
+          <label class="block text-xs font-medium text-[#252A27] mb-1.5" for="lot-select">
+            Target lot
+          </label>
+          <select id="lot-select" class="form-field font-mono text-sm">
+            <option value="L-241" selected="">L-241 (P-04 · 60 head)</option>
+            <option value="L-242">L-242 (P-04 · 56 head)</option>
+            <option value="L-239">L-239 (P-02 · 72 head)</option>
+            <option value="L-243" disabled="">L-243 — No pen — unavailable for pen operations</option>
+          </select>
+        </div>
+
+        <!-- Date -->
+        <div>
+          <label class="block text-xs font-medium text-[#252A27] mb-1.5" for="date-input">
+            Measurement date
+          </label>
+          <input id="date-input" type="text" class="form-field font-mono text-sm" value="23 Apr 2025">
+        </div>
+
+        <!-- Two column inputs: Average weight & Headcount -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-[#252A27] mb-1.5" for="weight-input">
+              Average weight (lb)
+            </label>
+            <input id="weight-input" type="text" class="form-field font-mono text-sm" placeholder="e.g. 842" value="842">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-[#252A27] mb-1.5" for="headcount-input">
+              Applicable head
+            </label>
+            <input id="headcount-input" type="text" class="form-field font-mono text-sm" placeholder="e.g. 60" value="60">
+          </div>
+        </div>
+
+        <!-- Primary save button within thumb reach -->
+        <div class="pt-2">
+          <button type="button" class="btn-primary w-full">
+            Save weight reading
+          </button>
+        </div>
+
+        <p class="text-[12px] text-[#66706A] leading-normal pt-1">
+          Feed and weight saves, edits and deletions refresh the displayed metrics.
+        </p>
+      </form>
+    </section>
+
+    <!-- Dated Measurement Series -->
+    <section class="panel-card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="font-hanken text-[17px] font-[600] text-[#252A27]">Measurement series</h2>
+        <span class="text-xs text-[#66706A] font-mono">2 records</span>
+      </div>
+
+      <!-- Record Item 1: Latest reading 20 Apr 2025 -->
+      <article class="p-3 rounded-[6px] border border-[#D9DEDA] bg-[#FFFFFF] space-y-3 stagger-1">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sm font-semibold text-[#252A27]">20 Apr 2025</span>
+              <span class="status-badge status-good">Valid</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1">
+              Entered by <span class="text-[#252A27] font-medium">Diego Ruiz</span> · Cattle dept
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-mono text-base font-bold text-[#252A27]">842 lb</span>
+            <span class="block font-mono text-xs text-[#66706A]">60 head</span>
+          </div>
+        </div>
+
+        <!-- Row controls (touch-sized 44px buttons, not row checkboxes) -->
+        <div class="flex items-center gap-2 pt-2 border-t border-[#D9DEDA]">
+          <button type="button" class="btn-outline flex-1 text-xs">
+            Edit reading
+          </button>
+          <button type="button" class="btn-outline flex-1 text-xs text-[#AE3D36] border-[#AE3D36]/30 hover:border-[#AE3D36]">
+            Delete
+          </button>
+        </div>
+      </article>
+
+      <!-- Record Item 2: Receipt Baseline 12 Jan 2025 -->
+      <article class="p-3 rounded-[6px] border border-[#D9DEDA] bg-[#F6F7F5] space-y-2 stagger-2">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sm font-semibold text-[#252A27]">12 Jan 2025</span>
+              <span class="status-badge status-waiting">receipt baseline</span>
+            </div>
+            <div class="text-xs text-[#66706A] mt-1">
+              PO-5831 line 1 · Red Basin Cattle Co.
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-mono text-base font-bold text-[#252A27]">612 lb</span>
+            <span class="block font-mono text-xs text-[#66706A]">60 head</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-[#66706A] pt-1 border-t border-[#D9DEDA]">
+          <span>Initial receipt weight</span>
+          <span class="font-mono text-[#252A27]">Baseline lock</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- Delete Confirmation State -->
+    <section class="panel-card p-4 border border-[#AE3D36]/40 bg-[#FFFFFF] space-y-3">
+      <div class="flex items-center gap-2">
+        <span class="status-badge status-failed">delete confirmation</span>
+        <span class="text-xs text-[#66706A] font-mono">Record 20 Apr 2025</span>
+      </div>
+
+      <div class="space-y-2">
+        <p class="text-xs text-[#252A27] leading-relaxed">
+          Confirm deletion of <strong>842 lb</strong> reading for <strong>Lot L-241</strong> (60 head).
+        </p>
+
+        <!-- Destructive Button & Immediate Warning Text -->
+        <div class="pt-1 flex flex-col gap-2">
+          <button type="button" class="btn-destructive w-full text-sm">
+            Confirm delete reading
+          </button>
+          <p class="text-xs text-[#66706A] text-center font-medium">
+            Deleting this weight reading cannot be undone.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feed-to-gain Summary Section -->
+    <section class="panel-card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="font-hanken text-[17px] font-[600] text-[#252A27]">Feed-to-gain metrics</h2>
+        <span class="text-xs text-[#66706A]">L-241 through 20 Apr</span>
+      </div>
+
+      <p class="text-xs text-[#66706A] leading-normal">
+        Calculated with applicable headcount at each measurement date and as-fed feed pounds:
+      </p>
+
+      <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+        <div class="bg-[#F6F7F5] rounded-[6px] p-2.5 border border-[#D9DEDA]">
+          <span class="text-[11px] text-[#66706A] block leading-tight">As-fed feed</span>
+          <span class="font-mono text-sm font-bold text-[#252A27] mt-1 block">82,320</span>
+          <span class="text-[10px] text-[#66706A] block">lb through latest</span>
+        </div>
+        <div class="bg-[#F6F7F5] rounded-[6px] p-2.5 border border-[#D9DEDA]">
+          <span class="text-[11px] text-[#66706A] block leading-tight">FCR</span>
+          <span class="font-mono text-sm font-bold text-[#252A27] mt-1 block">5.96</span>
+          <span class="text-[10px] text-[#66706A] block">feed : gain</span>
+        </div>
+        <div class="bg-[#F6F7F5] rounded-[6px] p-2.5 border border-[#D9DEDA]">
+          <span class="text-[11px] text-[#66706A] block leading-tight">Feed cost</span>
+          <span class="font-mono text-sm font-bold text-[#252A27] mt-1 block">$0.91</span>
+          <span class="text-[10px] text-[#66706A] block">/ lb gain</span>
+        </div>
+      </div>
+
+      <div class="text-[12px] text-[#66706A] pt-2 border-t border-[#D9DEDA] space-y-1">
+        <div class="flex justify-between">
+          <span>Total lot gain:</span>
+          <span class="font-mono text-[#252A27]">13,800 lb</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Days on feed:</span>
+          <span class="font-mono text-[#252A27]">98 days</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Projected market date:</span>
+          <span class="font-mono text-[#252A27]">22 Nov 2025</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Disabled / Unassigned Pen Lot Notice (L-243) -->
+    <section class="panel-card p-3 border border-[#D9DEDA] bg-[#F6F7F5] flex items-center justify-between text-xs">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-mono font-semibold text-[#252A27]">Lot L-243</span>
+          <span class="status-badge status-waiting">No pen</span>
+        </div>
+        <span class="text-[#66706A] block mt-0.5">24 head · PO-5831 split · Unavailable for pen operations</span>
+      </div>
+      <span class="text-[11px] font-mono text-[#66706A] italic">Disabled</span>
+    </section>
+
+  </main>
+
+<script>(function(){var T=[{"id":"S-1","names":["188 head on pen","pen occupancy","overview"],"words":["overview"]},{"id":"S-2","names":["import record","import"],"words":["import"]},{"id":"S-3","names":["lot pen"],"words":["lot","pen"]},{"id":"S-4","names":["feed inventory","inventory"],"words":["inventory"]},{"id":"S-6","names":["ration"],"words":["ration"]},{"id":"S-9","names":["weight record","weight"],"words":["weight"]},{"id":"S-12","names":["project demo"],"words":["project","demo"]},{"id":"S-5","names":["inventory outlook","outlook"],"words":["inventory","outlook"]},{"id":"S-7","names":["feeding plan","plan"],"words":["feeding","plan"]},{"id":"S-8","names":["feeding log","log"],"words":["feeding","log"]},{"id":"S-10","names":["operational report","operation","report operation"],"words":["report","operation"]},{"id":"S-11","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]}],L={"overview":"S-1","import records":"S-2","lots pens":"S-3","feed inventory":"S-4","inventory outlook":"S-5","rations":"S-6","feeding plans":"S-7","feeding log":"S-8","operational reports":"S-10","feed to gain":"S-11","project demo":"S-12"},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-9";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

@@ -1,0 +1,84 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "AC_1_1_DisplaysReturnedImportPreviewFields",
+      "verdict": "weak",
+      "why": "The preview mock contains only one purchase-order row, so add receiving and multiple-row fixtures/assertions to prove the listed fields are displayed for each returned record."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_DisplaysSynchronizationCountsAndFailedRowDetails",
+      "verdict": "weak",
+      "why": "The fixture has no failed row and asserts neither a failed row's source identifier nor its reported failure reason; include a failed outcome and assert both."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "AC_2_1_ShowsPurchaseOrderLineLotsPensAndCapacity",
+      "verdict": "weak",
+      "why": "The lots response contains only one lot and the test does not exercise a purchase-order line mapped to multiple lots; use multiple assigned lots and assert each lot and pen's returned capacity and animal count."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_ShowsUnresolvedRecordsAsUnavailableForPenOperations",
+      "verdict": "weak",
+      "why": "The test checks generic unavailability and selector exclusion but not the affected source row, returned status and problem detail, or a capacity refusal and its limit/refused assignment; assert those applicable results."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "AC_2_3_ShowsDuplicateOutcomeWithoutAddingAnotherImportedRecord",
+      "verdict": "weak",
+      "why": "The sync fixture's only row is an added row and no already-imported starting state is established, so the single identifier assertion does not prove a resynchronization displays the duplicate outcome without adding a second record."
+     },
+     {
+      "acId": "AC-3.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned target weight, projected market date, gain rate, and measured gain-rate basis from the forecast response."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "AC_3_2_RetainsSubmittedAssumptionsWithRefreshedForecast",
+      "verdict": "weak",
+      "why": "The lot fixture has a measured ADG and the test does not assert that the refreshed forecast uses the configured default gain rate or displays a response associated with the submitted assumptions; set up no measured ADG and assert those returned forecast values."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "AC_3_3_ShowsReturnedSaleTimingRecommendationAndMetrics",
+      "verdict": "weak",
+      "why": "The test covers only a sale-timing recommendation; add a feeding-adjustment response case and assert its recommendation and any supplied ADG, market-date, or plan-variance values."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "AC_4_1_ShowsInventoryItemDetailsAndStockMovementHistory",
+      "verdict": "weak",
+      "why": "The inventory fixture contains only one item, so add multiple returned items and assert the required details and available stock values for each."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_ShowsActualWastageSeparatelyFromConsumptionEstimates",
+      "verdict": "weak",
+      "why": "The test checks the entered quantity, cause, consumption value, and ratio but does not assert that the returned movement is identified as actual wastage and displayed separately from consumption estimates; assert those distinct labels/values."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "AC_5_1_ShowsProjectedBalancesForEverySupportedHorizon",
+      "verdict": "weak",
+      "why": "The handler returns the same weekly response for every horizon and the test only asserts one balance, horizon labels, and the ratio; return and assert each horizon's projected balance and ratio-reflecting consumption estimate."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 6,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 1190,
+    "end": 1305
+   },
+   "ms": 0,
+   "resultChars": 3364,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:1190,&quot;end&quot;:1305}\">\ncontracts/openapi.yaml lines 1190-1305\n1190\t          format: float\n1191\t        movements:\n1192\t          type: array\n1193\t          items:\n1194\t            $ref: \"#/components/schemas/InventoryMovement\"\n1195\t    InventoryResponse:\n1196\t      type: object\n1197\t      required:\n1198\t        - wastageRatio\n1199\t        - items\n1200\t      properties:\n1201\t        wastageRatio:\n1202\t          type: number\n1203\t          format: float\n1204\t        items:\n1205\t          type: array\n1206\t          items:\n1207\t            $ref: \"#/components/schemas/InventoryItem\"\n1208\t    InventoryMovementRequest:\n1209\t      type: object\n1210\t      required:\n1211\t        - itemId\n1212\t        - movementType\n1213\t        - date\n1214\t        - quantityLb\n1215\t        - note\n1216\t      properties:\n1217\t        itemId:\n1218\t          type: integer\n1219\t        movementType:\n1220\t          type: string\n1221\t          enum:\n1222\t            - received\n1223\t            - adjustment\n1224\t        date:\n1225\t          type: string\n1226\t          format: date\n1227\t        quantityLb:\n1228\t          type: number\n1229\t          format: float\n1230\t        note:\n1231\t          type: string\n1232\t    ActualWastageRequest:\n1233\t      type: object\n1234\t      required:\n1235\t        - itemId\n1236\t        - recordDate\n1237\t        - actualWastageLb\n1238\t        - wastageCause\n1239\t      properties:\n1240\t        itemId:\n1241\t          type: integer\n1242\t        recordDate:\n1243\t          type: string\n1244\t          format: date\n1245\t        actualWastageLb:\n1246\t          type: number\n1247\t          format: float\n1248\t        wastageCause:\n1249\t          type: string\n1250\t    InventorySettingsRequest:\n1251\t      type: object\n1252\t      required:\n1253\t        - wastageRatio\n1254\t      properties:\n1255\t        wastageRatio:\n1256\t          type: number\n1257\t          format: float\n1258\t    InventorySettingsResponse:\n1259\t      type: object\n1260\t      required:\n1261\t        - wastageRatio\n1262\t      properties:\n1263\t        wastageRatio:\n1264\t          type: number\n1265\t          format: float\n1266\t    OutlookBalance:\n1267\t      type: object\n1268\t      required:\n1269\t        - itemId\n1270\t        - itemName\n1271\t        - currentStockLb\n1272\t        - dailyEstimatedConsumptionLb\n1273\t        - projectedBalanceLb\n1274\t      properties:\n1275\t        itemId:\n1276\t          type: integer\n1277\t        itemName:\n1278\t          type: string\n1279\t        currentStockLb:\n1280\t          type: number\n1281\t          format: float\n1282\t        dailyEstimatedConsumptionLb:\n1283\t          type: number\n1284\t          format: float\n1285\t        projectedBalanceLb:\n1286\t          type: number\n1287\t          format: float\n1288\t    OutlookResponse:\n1289\t      type: object\n1290\t      required:\n1291\t        - horizon\n1292\t        - wastageRatio\n1293\t        - balances\n1294\t      properties:\n1295\t        horizon:\n1296\t          type: string\n1297\t          enum:\n1298\t            - daily\n1299\t            - weekly\n1300\t            - monthly\n1301\t            - quarterly\n1302\t            - bi-annual\n1303\t            - annual\n1304\t        wastageRatio:\n1305\t          type: number\n… (3002 lines total; ask for start=1306)\n</untrusted_document>"
+  }
+ ]
+}

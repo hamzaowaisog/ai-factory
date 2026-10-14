@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "DemoLoad|Seed:Demo|InventorySettings|DbSet",
+    "glob": "App.Api/**/*.cs"
+   },
+   "ms": 0,
+   "resultChars": 422,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;DemoLoad|Seed:Demo|InventorySettings|DbSet&quot;,&quot;glob&quot;:&quot;App.Api/**/*.cs&quot;}\">\nApp.Api/Program.cs:24: if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\nApp.Api/SeedData.cs:4: // Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\n</untrusted_document>"
+  }
+ ]
+}

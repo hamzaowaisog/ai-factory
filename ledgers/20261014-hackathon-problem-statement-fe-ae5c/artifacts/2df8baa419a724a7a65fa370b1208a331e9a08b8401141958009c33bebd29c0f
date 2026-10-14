@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getLoadDemoDataResponseMock|function getLoadDemoDataResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 4,
+   "resultChars": 635,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getLoadDemoDataResponseMock|function getLoadDemoDataResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:106: export const getLoadDemoDataResponseMock = (): DemoLoadOkResponse => ({\"datasetId\":\"feedlot-demo-2026\",\"addedCount\":6,\"alreadyPresentCount\":2,\"failedCount\":1,\"partial\":true,\"addedRecords\":[{\"recordTyp\nlib/api/client.msw.ts:462: : getLoadDemoDataResponseMock()),\ntests/acceptance.part4.test.tsx:16: getLoadDemoDataResponseMock,\ntests/acceptance.part4.test.tsx:277: const response = getLoadDemoDataResponseMock();\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getGetFeedToGainReportResponseMock|function getGetFeedToGainReportResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 3,
+   "resultChars": 945,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getGetFeedToGainReportResponseMock|function getGetFeedToGainReportResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:102: export const getGetFeedToGainReportResponseMock = (): FeedToGainOkResponse => ({\"filters\":{\"startDate\":\"2026-10-01\",\"endDate\":\"2026-10-14\",\"breed\":\"Angus\",\"sex\":\"steer\",\"penId\":1},\"weightSelectionRule\nlib/api/client.msw.ts:438: : getGetFeedToGainReportResponseMock()),\ntests/acceptance.part4.test.tsx:12: getGetFeedToGainReportResponseMock,\ntests/acceptance.part4.test.tsx:67: const response = getGetFeedToGainReportResponseMock();\ntests/acceptance.part4.test.tsx:101: const response = getGetFeedToGainReportResponseMock();\ntests/acceptance.part4.test.tsx:162: const response = getGetFeedToGainReportResponseMock();\ntests/acceptance.part4.test.tsx:208: const response = getGetFeedToGainReportResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

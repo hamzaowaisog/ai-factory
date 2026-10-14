@@ -1,0 +1,30 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-5.1",
+      "testId": "AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled",
+      "verdict": "weak",
+      "why": "The test only checks empty collections and a settings patch, so it neither creates prerequisite records through its own API requests nor proves that demo seeding inserted zero database rows."
+     },
+     {
+      "acId": "AC-5.2",
+      "testId": "AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows",
+      "verdict": "weak",
+      "why": "The test asserts the 200 status and empty batches list with Seed:Demo=false, but does not establish that the test database is empty before calling the endpoint."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

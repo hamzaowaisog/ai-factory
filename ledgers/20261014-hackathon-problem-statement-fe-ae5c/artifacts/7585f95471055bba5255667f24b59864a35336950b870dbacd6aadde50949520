@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rations — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,600;0,650;0,700;1,600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F6F7F5;
+      --panel: #FFFFFF;
+      --text: #252A27;
+      --text-quiet: #66706A;
+      --border: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-refused: #AE3D36;
+      --font-heading: 'Hanken Grotesk', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --dur-quick: 160ms;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    .num, .code, .time {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion */
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes row-settle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    .animated-row {
+      animation: row-settle var(--dur-quick) ease-out forwards;
+    }
+    .animated-row:nth-child(1) { animation-delay: 0ms; }
+    .animated-row:nth-child(2) { animation-delay: 50ms; }
+    .animated-row:nth-child(3) { animation-delay: 100ms; }
+    .animated-row:nth-child(4) { animation-delay: 150ms; }
+    .animated-row:nth-child(5) { animation-delay: 200ms; }
+    .animated-row:nth-child(6) { animation-delay: 250ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot {
+        animation: none;
+      }
+      .animated-row {
+        animation: none;
+      }
+    }
+
+    /* Header */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      width: 100%;
+    }
+    .header-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #252A27;
+      color: #FFFFFF;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .brand-name {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 650;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      white-space: nowrap;
+    }
+    .nav-menu::-webkit-scrollbar {
+      display: none;
+    }
+    .nav-item {
+      padding: 16px 10px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-quiet);
+      text-decoration: none;
+      display: inline-block;
+      transition: color var(--dur-quick);
+      border-bottom: 2px solid transparent;
+    }
+    .nav-item:hover {
+      color: var(--text);
+    }
+    .nav-item.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: #EAECE9;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .user-role {
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    /* Layout */
+    main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .page-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 30px;
+      font-weight: 650;
+      line-height: 36px;
+      color: var(--text);
+    }
+    .meta-time {
+      font-size: 14px;
+      color: var(--text-quiet);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 28px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    /* Selected Hero Section */
+    .selected-hero-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .cost-block {
+      border-right: 1px solid var(--border);
+      padding-right: 24px;
+    }
+    .tag-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-quiet);
+      margin-bottom: 4px;
+    }
+    .big-cost {
+      font-family: var(--font-mono);
+      font-size: 38px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.1;
+      margin: 8px 0;
+    }
+    .cost-unit {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-quiet);
+    }
+    .hero-purpose {
+      margin-top: 12px;
+      font-size: 15px;
+      color: var(--text-quiet);
+      line-height: 22px;
+    }
+    .purpose-callout {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .nutrition-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .nutrition-item {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #FAFAFA;
+    }
+    .nut-label {
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+    .nut-val {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    /* Compact Editable Ingredients List */
+    .ingredients-table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .dense-table th {
+      background: #FAFAFA;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-quiet);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .dense-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      height: 48px;
+    }
+    .dense-table tr:last-child td {
+      border-bottom: none;
+    }
+    .pct-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 90px;
+    }
+    .pct-input {
+      width: 64px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text);
+      background: #FFFFFF;
+      text-align: right;
+    }
+    .pct-input:focus {
+      outline: 2px solid var(--primary);
+      border-color: var(--primary);
+    }
+
+    /* Main Workspace Two-Column Grid */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Left Column: Ration List */
+    .ration-list-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .ration-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      transition: border-color var(--dur-quick);
+      background: #FFFFFF;
+      cursor: pointer;
+    }
+    .ration-card:hover {
+      border-color: var(--text-quiet);
+    }
+    .ration-card.selected {
+      border-left: 4px solid var(--primary);
+      background: #FAF8F6;
+    }
+    .card-header-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .card-cost {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .card-meta {
+      font-size: 13px;
+      color: var(--text-quiet);
+      margin-bottom: 10px;
+    }
+    .card-breakdown {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ingredient-pill {
+      font-size: 12px;
+      padding: 2px 8px;
+      background: #F0F2F0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    /* Right Column: Editor & Optimizer */
+    .workspace-right {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Create / Edit Form */
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .form-field {
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--text);
+      background: #FFFFFF;
+      transition: outline var(--dur-quick);
+    }
+    .form-field:focus {
+      outline: 2px solid var(--primary);
+      border-color: var(--primary);
+    }
+    .form-field.mono {
+      font-family: var(--font-mono);
+    }
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Buttons */
+    .btn {
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color var(--dur-quick), border-color var(--dur-quick);
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: 1px solid var(--primary);
+    }
+    .btn-primary:hover {
+      background-color: #964e22;
+      border-color: #964e22;
+    }
+    .btn-primary:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .btn-outline {
+      background-color: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      background-color: #F0F2F0;
+      border-color: var(--text-quiet);
+    }
+    .btn-outline:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Optimizer Comparison Section */
+    .optimizer-panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      background: #FFFFFF;
+    }
+    .optimizer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .optimizer-tagline {
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+
+    .optimizer-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .targets-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-right: 1px solid var(--border);
+      padding-right: 24px;
+    }
+    .target-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: #FAFAFA;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .target-val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .inventory-cost-list {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .inv-cost-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+      color: var(--text-quiet);
+    }
+
+    /* Candidate Box */
+    .candidate-card {
+      border: 1px solid var(--status-waiting);
+      background: #FFFDF9;
+      border-radius: 6px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .candidate-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .badge-waiting {
+      color: var(--status-waiting);
+      border: 1px solid var(--status-waiting);
+      background: transparent;
+    }
+    .badge-good {
+      color: var(--status-good);
+      border: 1px solid var(--status-good);
+      background: transparent;
+    }
+
+    .candidate-cost-callout {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .candidate-val {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .candidate-diff {
+      font-size: 13px;
+      color: var(--status-good);
+      font-weight: 600;
+    }
+
+    .candidate-comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .candidate-comparison-table th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-quiet);
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .candidate-comparison-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .candidate-comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .warning-notice {
+      font-size: 13px;
+      color: var(--text-quiet);
+      line-height: 18px;
+      background: #F6F7F5;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--status-waiting);
+    }
+
+    .candidate-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+    }
+
+    /* Status indicator styling */
+    .status-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .status-text.good {
+      color: var(--status-good);
+      border: 1px solid var(--status-good);
+    }
+    .status-text.waiting {
+      color: var(--status-waiting);
+      border: 1px solid var(--status-waiting);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 960px) {
+      .header-inner {
+        padding: 0 16px;
+      }
+      main {
+        padding: 16px;
+        gap: 16px;
+      }
+      h1 {
+        font-size: 26px;
+        line-height: 32px;
+      }
+      .selected-hero-grid {
+        grid-template-columns: 1fr;
+      }
+      .cost-block {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding-right: 0;
+        padding-bottom: 16px;
+      }
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+      .optimizer-grid {
+        grid-template-columns: 1fr;
+      }
+      .targets-col {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding-right: 0;
+        padding-bottom: 16px;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      .dense-table td {
+        height: 56px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-mark">C</div>
+        <div class="brand-name">Cedar Draw Feedlot</div>
+      </div>
+
+      <nav class="nav-menu" aria-label="Main Navigation">
+        <a href="#overview" class="nav-item">Overview</a>
+        <a href="#import" class="nav-item">Import records</a>
+        <a href="#lots-pens" class="nav-item">Lots &amp; pens</a>
+        <a href="#feed-inventory" class="nav-item">Feed inventory</a>
+        <a href="#inventory-outlook" class="nav-item">Inventory outlook</a>
+        <a href="#rations" class="nav-item active">Rations</a>
+        <a href="#feeding-plans" class="nav-item">Feeding plans</a>
+        <a href="#feeding-log" class="nav-item">Feeding log</a>
+        <a href="#weight-records" class="nav-item">Weight records</a>
+        <a href="#operational-reports" class="nav-item">Operational reports</a>
+        <a href="#feed-to-gain" class="nav-item">Feed-to-gain</a>
+        <a href="#project-demo" class="nav-item">Project &amp; demo</a>
+      </nav>
+
+      <div class="user-profile">
+        <div class="avatar-initials">MO</div>
+        <div class="user-info">
+          <span class="user-name">Mara Ortega</span>
+          <span class="user-role">Feed manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Page Title Row -->
+    <div class="page-title-row">
+      <h1>Rations</h1>
+      <div class="meta-time">
+        <span class="live-dot" title="Live status"></span>
+        <span>Facility date: <span class="time">23 Apr 2025</span> &middot; <span class="code">America/Denver</span></span>
+      </div>
+    </div>
+
+    <!-- Active Selection Section: Grower 1 Detailed Formulation -->
+    <section class="panel">
+      <div class="selected-hero-grid">
+        <!-- Cost & Purpose Column -->
+        <div class="cost-block">
+          <div class="tag-label">Active formulation &middot; <span class="status-text good">good</span></div>
+          <h2 style="margin-bottom: 4px;">Grower 1</h2>
+          <div class="cost-unit">Ration unit cost</div>
+          <div class="big-cost">$<span class="num">0.15286</span><span style="font-size: 16px; font-weight: normal; color: var(--text-quiet);"> /lb</span></div>
+          <div class="hero-purpose">
+            <span class="purpose-callout">Target cohort:</span> 548–900 lb growing cattle<br>
+            Baseline growing ration formulated for steady framed gain across Pens P-04 &amp; P-02.
+          </div>
+        </div>
+
+        <!-- Nutrition Values Column -->
+        <div>
+          <h3>Nutrition values</h3>
+          <div class="nutrition-card-grid">
+            <div class="nutrition-item">
+              <div class="nut-label">Crude protein (CP)</div>
+              <div class="nut-val"><span class="num">13.8</span>%</div>
+            </div>
+            <div class="nutrition-item">
+              <div class="nut-label">Total digestible nutrients (TDN)</div>
+              <div class="nut-val"><span class="num">70.0</span>%</div>
+            </div>
+            <div class="nutrition-item">
+              <div class="nut-label">Neutral detergent fiber (NDF)</div>
+              <div class="nut-val"><span class="num">24.0</span>%</div>
+            </div>
+            <div class="nutrition-item">
+              <div class="nut-label">Net energy for gain (NEg)</div>
+              <div class="nut-val"><span class="num">1.51</span> <span style="font-size: 13px; font-weight: normal; color: var(--text-quiet);">Mcal/lb</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ingredient Proportions (Compact Editable List) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+            <h3>Ingredient proportions</h3>
+            <span style="font-size: 13px; color: var(--text-quiet);">Sum: <span class="num">100.0%</span></span>
+          </div>
+          <div class="ingredients-table-wrap">
+            <table class="dense-table" aria-label="Grower 1 Ingredients">
+              <thead>
+                <tr>
+                  <th>Commodity</th>
+                  <th style="text-align: right;">Inv. Cost</th>
+                  <th style="text-align: right;">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="animated-row">
+                  <td>Yellow corn</td>
+                  <td style="text-align: right;" class="num">$0.112 /lb</td>
+                  <td style="text-align: right;">
+                    <div class="pct-input-wrap" style="margin-left: auto;">
+                      <input type="text" class="pct-input" value="55.0" aria-label="Yellow corn share">
+                      <span>%</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="animated-row">
+                  <td>Alfalfa hay</td>
+                  <td style="text-align: right;" class="num">$0.145 /lb</td>
+                  <td style="text-align: right;">
+                    <div class="pct-input-wrap" style="margin-left: auto;">
+                      <input type="text" class="pct-input" value="30.0" aria-label="Alfalfa hay share">
+                      <span>%</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="animated-row">
+                  <td>Soybean meal</td>
+                  <td style="text-align: right;" class="num">$0.238 /lb</td>
+                  <td style="text-align: right;">
+                    <div class="pct-input-wrap" style="margin-left: auto;">
+                      <input type="text" class="pct-input" value="12.0" aria-label="Soybean meal share">
+                      <span>%</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="animated-row">
+                  <td>Mineral premix</td>
+                  <td style="text-align: right;" class="num">$0.640 /lb</td>
+                  <td style="text-align: right;">
+                    <div class="pct-input-wrap" style="margin-left: auto;">
+                      <input type="text" class="pct-input" value="3.0" aria-label="Mineral premix share">
+                      <span>%</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace: Ration List (Left) beside Ration Editor & Optimizer (Right) -->
+    <div class="workspace-grid">
+      <!-- Left Column: Catalog Comparison List -->
+      <aside class="panel ration-list-panel">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h2>Ration catalog</h2>
+          <span class="num" style="font-size: 13px; color: var(--text-quiet);">2 configured</span>
+        </div>
+
+        <!-- Ration Card: Grower 1 (Selected) -->
+        <div class="ration-card selected" tabindex="0" aria-label="Grower 1 selected">
+          <div class="card-header-line">
+            <span class="card-title">Grower 1</span>
+            <span class="card-cost">$<span class="num">0.15286</span> /lb</span>
+          </div>
+          <div class="card-meta">Intended for 548–900 lb growing cattle</div>
+          <div class="card-breakdown">
+            <span class="ingredient-pill">Corn 55%</span>
+            <span class="ingredient-pill">Hay 30%</span>
+            <span class="ingredient-pill">SBM 12%</span>
+            <span class="ingredient-pill">Premix 3%</span>
+          </div>
+          <div style="margin-top: 10px; font-size: 13px; color: var(--text-quiet); display: flex; justify-content: space-between;">
+            <span>CP: <span class="num">13.8%</span> &middot; TDN: <span class="num">70%</span></span>
+            <span class="status-text good">active</span>
+          </div>
+        </div>
+
+        <!-- Ration Card: Finisher 2 -->
+        <div class="ration-card" tabindex="0" aria-label="Finisher 2">
+          <div class="card-header-line">
+            <span class="card-title">Finisher 2</span>
+            <span class="card-cost">$<span class="num">0.14956</span> /lb</span>
+          </div>
+          <div class="card-meta">Intended for 900–1,350 lb finishers</div>
+          <div class="card-breakdown">
+            <span class="ingredient-pill">Corn 65%</span>
+            <span class="ingredient-pill">Hay 20%</span>
+            <span class="ingredient-pill">SBM 12%</span>
+            <span class="ingredient-pill">Premix 3%</span>
+          </div>
+          <div style="margin-top: 10px; font-size: 13px; color: var(--text-quiet); display: flex; justify-content: space-between;">
+            <span>CP: <span class="num">13.2%</span> &middot; TDN: <span class="num">72%</span></span>
+            <span class="status-text good">available</span>
+          </div>
+        </div>
+
+        <!-- Reference Summary Box -->
+        <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
+          <div class="tag-label">Active allocation</div>
+          <p style="font-size: 14px; color: var(--text-quiet); line-height: 20px;">
+            Grower 1 is currently in-feed for Pen P-04 (116 head) and Pen P-02 (72 head), totaling 2,920 lb daily demand.
+          </p>
+        </div>
+      </aside>
+
+      <!-- Right Column: Create/Edit Form & Side-by-Side Optimizer -->
+      <div class="workspace-right">
+        <!-- Create / Edit Ration Section -->
+        <section class="panel">
+          <h2>Create / edit ration</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ration-name">Ration name</label>
+              <input type="text" id="ration-name" class="form-field" value="Grower 1">
+            </div>
+            <div class="form-group">
+              <label for="ration-target">Target cattle weight range</label>
+              <input type="text" id="ration-target" class="form-field" value="548–900 lb growing cattle">
+            </div>
+            <div class="form-group">
+              <label for="ration-status">Operational status</label>
+              <input type="text" id="ration-status" class="form-field" value="Active — Pen feeding ready" readonly style="background: #FAFAFA;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;">
+            <div class="form-group">
+              <label>Corn proportion (%)</label>
+              <input type="text" class="form-field mono" value="55.0">
+            </div>
+            <div class="form-group">
+              <label>Hay proportion (%)</label>
+              <input type="text" class="form-field mono" value="30.0">
+            </div>
+            <div class="form-group">
+              <label>SBM proportion (%)</label>
+              <input type="text" class="form-field mono" value="12.0">
+            </div>
+            <div class="form-group">
+              <label>Premix proportion (%)</label>
+              <input type="text" class="form-field mono" value="3.0">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline">Discard changes</button>
+            <button type="button" class="btn btn-primary">Save ration</button>
+          </div>
+        </section>
+
+        <!-- Side-by-Side Least-Cost Optimizer Section -->
+        <section class="optimizer-panel">
+          <div class="optimizer-header">
+            <div>
+              <h2>Least-cost mix optimizer</h2>
+              <div class="optimizer-tagline">Evaluates recorded feed inventory prices against nutritional boundaries</div>
+            </div>
+            <span class="badge-status badge-waiting">Optimization ready</span>
+          </div>
+
+          <div class="optimizer-grid">
+            <!-- Left Sub-column: Targets & Feed Inventory Costs -->
+            <div class="targets-col">
+              <h3>Target controls</h3>
+              <div class="target-item">
+                <span>Crude protein</span>
+                <span class="target-val">&ge; 13.0%</span>
+              </div>
+              <div class="target-item">
+                <span>TDN</span>
+                <span class="target-val">&ge; 69.0%</span>
+              </div>
+              <div class="target-item">
+                <span>NDF</span>
+                <span class="target-val">22.0% – 26.0%</span>
+              </div>
+
+              <!-- Recorded Inventory Commodity Costs -->
+              <div class="inventory-cost-list">
+                <div class="tag-label" style="margin-bottom: 8px;">Inventory unit costs (23 Apr)</div>
+                <div class="inv-cost-row">
+                  <span>Yellow corn</span>
+                  <span class="num">$0.112/lb</span>
+                </div>
+                <div class="inv-cost-row">
+                  <span>Alfalfa hay</span>
+                  <span class="num">$0.145/lb</span>
+                </div>
+                <div class="inv-cost-row">
+                  <span>Soybean meal</span>
+                  <span class="num">$0.238/lb</span>
+                </div>
+                <div class="inv-cost-row">
+                  <span>Mineral premix</span>
+                  <span class="num">$0.640/lb</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Sub-column: Candidate Suggestion Card -->
+            <div class="candidate-card">
+              <div class="candidate-banner">
+                <div>
+                  <div class="tag-label" style="color: var(--status-waiting);">Optimizer proposal</div>
+                  <h3 style="margin-bottom: 0;">Feasible least-cost candidate</h3>
+                </div>
+                <div class="candidate-cost-callout">
+                  <span class="candidate-val">$<span class="num">0.15220</span> /lb</span>
+                  <span class="candidate-diff">-$0.00066/lb vs Grower 1</span>
+                </div>
+              </div>
+
+              <!-- Dense Side-by-Side Comparison Table -->
+              <table class="candidate-comparison-table" aria-label="Candidate Proportions and Nutrition">
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <th style="text-align: right;">Candidate Proportion</th>
+                    <th style="text-align: right;">Predicted Nutrition</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="animated-row">
+                    <td>Yellow corn</td>
+                    <td style="text-align: right;" class="num">57.0%</td>
+                    <td style="text-align: right;">Crude protein: <span class="num">13.6%</span></td>
+                  </tr>
+                  <tr class="animated-row">
+                    <td>Alfalfa hay</td>
+                    <td style="text-align: right;" class="num">28.0%</td>
+                    <td style="text-align: right;">TDN: <span class="num">70.4%</span></td>
+                  </tr>
+                  <tr class="animated-row">
+                    <td>Soybean meal</td>
+                    <td style="text-align: right;" class="num">12.0%</td>
+                    <td style="text-align: right;">NDF: <span class="num">23.6%</span></td>
+                  </tr>
+                  <tr class="animated-row">
+                    <td>Mineral premix</td>
+                    <td style="text-align: right;" class="num">3.0%</td>
+                    <td style="text-align: right;">Energy: <span class="num">1.52</span> Mcal/lb</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- Explicit Operational Warning Notice -->
+              <div class="warning-notice">
+                <strong>Notice:</strong> This candidate is a calculated suggestion only. No suggestion is applied automatically. You must review the formula, click <em>Select this mix</em> to populate the editor, and then complete the separate <em>Save ration</em> action before it becomes an operational feedlot ration.
+              </div>
+
+              <!-- Candidate Action Buttons -->
+              <div class="candidate-actions">
+                <span class="status-text waiting">candidate only &middot; unapplied</span>
+                <button type="button" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);">Select this mix</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

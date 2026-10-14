@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "operationId:|^  /",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2914,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;operationId:|^  /&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:9: /overview:\ncontracts/openapi.yaml:11: operationId: getOverview\ncontracts/openapi.yaml:20: /imports/batches:\ncontracts/openapi.yaml:22: operationId: getImportBatches\ncontracts/openapi.yaml:31: /imports/preview:\ncontracts/openapi.yaml:33: operationId: previewImport\ncontracts/openapi.yaml:50: /imports/synchronize:\ncontracts/openapi.yaml:52: operationId: synchronizeImports\ncontracts/openapi.yaml:71: /lots:\ncontracts/openapi.yaml:73: operationId: getLots\ncontracts/openapi.yaml:82: /lots/mappings:\ncontracts/openapi.yaml:84: operationId: mapPurchaseOrderLine\ncontracts/openapi.yaml:103: /lots/{lotId}/assumptions:\ncontracts/openapi.yaml:105: operationId: updateLotAssumptions\ncontracts/openapi.yaml:123: /lots/{lotId}/forecast:\ncontracts/openapi.yaml:125: operationId: getLotForecast\ncontracts/openapi.yaml:137: /inventory/items:\ncontracts/openapi.yaml:139: operationId: getInventoryItems\ncontracts/openapi.yaml:147: /inventory/movements:\ncontracts/openapi.yaml:149: operationId: recordInventoryMovement\ncontracts/openapi.yaml:167: /inventory/wastage:\ncontracts/openapi.yaml:169: operationId: recordActualWastage\ncontracts/openapi.yaml:187: /inventory/settings:\ncontracts/openapi.yaml:189: operationId: updateInventorySettings\ncontracts/openapi.yaml:203: /inventory/outlook:\ncontracts/openapi.yaml:205: operationId: getInventoryOutlook\ncontracts/openapi.yaml:234: /rations:\ncontracts/openapi.yaml:236: operationId: getRations\ncontracts/openapi.yaml:245: operationId: createRation\ncontracts/openapi.yaml:261: /rations/optimize:\ncontracts/openapi.yaml:263: operationId: optimizeRation\ncontracts/openapi.yaml:277: /rations/selection:\ncontracts/openapi.yaml:279: operationId: selectRationCandidate\ncontracts/openapi.yaml:295: /feeding/plans:\ncontracts/openapi.yaml:297: operationId: getFeedingPlans\ncontracts/openapi.yaml:318: operationId: generateFeedingPlan\ncontracts/openapi.yaml:336: /feeding/activities:\ncontracts/openapi.yaml:338: operationId: getFeedingActivities\ncontracts/openapi.yaml:359: operationId: recordFeedingActivity\ncontracts/openapi.yaml:377: /lots/{lotId}/weight-readings:\ncontracts/openapi.yaml:379: operationId: getWeightReadings\ncontracts/openapi.yaml:392: operationId: createWeightReading\ncontracts/openapi.yaml:410: /lots/{lotId}/weight-readings/{readingId}:\ncontracts/openapi.yaml:412: operationId: updateWeightReading\ncontracts/openapi.yaml:432: operationId: deleteWeightReading\ncontracts/openapi.yaml:445: /lots/{lotId}/performance:\ncontracts/openapi.yaml:447: operationId: getLotPerformance\ncontracts/openapi.yaml:459: /reports/operations:\ncontracts/openapi.yaml:461: operationId: getOperationalReports\ncontracts/openapi.yaml:474: /reports/feed-to-gain:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,1 @@
+{"details":"I-1: quote not found at contracts/openapi.yaml:8-16","failures":[{"check":"anchor","frames":[],"message":"I-1: quote not found at contracts/openapi.yaml:8-16"}],"gateId":"ground.anchors-resolve","inputsHash":"ec9a51dd2bb060bdfa8660d61c9acdf5968d4cc2a58e5d6cf10f52247038070e","passed":false,"safety":false}

@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getSynchronizeImportsResponseMock|function getSynchronizeImportsResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 5,
+   "resultChars": 845,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getSynchronizeImportsResponseMock|function getSynchronizeImportsResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:54: export const getSynchronizeImportsResponseMock = (): ImportSyncOkResponse => ({\"batchId\":\"spring-po-2026\",\"addedCount\":1,\"alreadyPresentCount\":1,\"duplicateCount\":1,\"pendingMappingCount\":1,\"capacityBlo\nlib/api/client.msw.ts:150: : getSynchronizeImportsResponseMock()),\ntests/acceptance.part1.test.tsx:28: getSynchronizeImportsResponseMock,\ntests/acceptance.part1.test.tsx:111: const response = getSynchronizeImportsResponseMock();\ntests/acceptance.part1.test.tsx:206: const initial = getSynchronizeImportsResponseMock();\ntests/acceptance.part1.test.tsx:207: const repeated = getSynchronizeImportsResponseMock();\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getPreviewImportResponseMock|function getMapPurchaseOrderLineResponseMock|getGetInventoryOutlookResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 4,
+   "resultChars": 1182,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getPreviewImportResponseMock|function getMapPurchaseOrderLineResponseMock|getGetInventoryOutlookResponseMock\">\nlib/api/client.msw.ts:52: export const getPreviewImportResponseMock = (): ImportPreviewOkResponse => ({\"batchId\":\"spring-po-2026\",\"rows\":[{\"id\":501,\"sourceIdentifier\":\"PO-8041-L1\",\"sourceType\":\"purchase_order\",\"vendor\":\"High P\nlib/api/client.msw.ts:72: export const getGetInventoryOutlookResponseMock = (): OutlookOkResponse => ({\"horizon\":\"weekly\",\"wastageRatio\":0.04,\"balances\":[{\"itemId\":11,\"itemName\":\"Yellow corn\",\"currentStockLb\":48200,\"dailyEstim\nlib/api/client.msw.ts:138: : getPreviewImportResponseMock()),\nlib/api/client.msw.ts:258: : getGetInventoryOutlookResponseMock()),\ntests/acceptance.part1.test.tsx:14: getGetInventoryOutlookResponseMock,\ntests/acceptance.part1.test.tsx:23: getPreviewImportResponseMock,\ntests/acceptance.part1.test.tsx:72: const preview = getPreviewImportResponseMock();\ntests/acceptance.part1.test.tsx:165: const preview = getPreviewImportResponseMock();\ntests/acceptance.part1.test.tsx:389: const response = getGetInventoryOutlookResponseMock();\n</untrusted_document>"
+  }
+ ]
+}

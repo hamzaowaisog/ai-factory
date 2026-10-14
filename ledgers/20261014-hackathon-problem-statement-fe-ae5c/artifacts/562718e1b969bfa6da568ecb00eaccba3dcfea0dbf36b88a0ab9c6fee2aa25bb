@@ -1,0 +1,845 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "A shared, responsive feedlot operations workspace for one user population. The persistent menu takes users from live lot and pen performance through cattle imports, inventory, rations, feeding and weights, then to reports and a project/demo area. Dense, filterable operational tables carry the marketplace field’s scannable catalog pattern into feedlot records without turning the product into a storefront; costs are easy to compare, and real crop or cattle photographs appear only where they help identify the item or animals.",
+    "shells": [
+     {
+      "id": "feedlot",
+      "header": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls."
+     }
+    ],
+    "screens": [
+     {
+      "id": "S-1",
+      "title": "Overview",
+      "route": "/overview",
+      "file": "src/pages/overview.tsx",
+      "reqs": [
+       "REQ-14",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "phone": true,
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw the finished operational landing page titled “Overview.” Make the first thing the eye meets the single large headline “188 head on pens,” with the smaller context “2 active pens · 212 head received across 3 lots · 24 head awaiting a pen”; do not make a row of metric cards. Next show a wide pen-occupancy table beside a narrow best/worst lot performance summary on desktop, then stack them in that order on a phone. Pen rows: P-04, 116 / 150 head, 34 open; P-02, 72 / 120 head, 48 open. The lot comparison has L-239, Angus steers, ADG 2.95 lb/day (best); L-241, Angus–Hereford steers, 2.35; L-242, Charolais-cross heifers, 2.05 (worst). Include a small, clearly labeled “As of 23 Apr 2025” line and a real documentary photograph of cattle in a feed pen, with Angus–Hereford steers visible, as a modest supporting crop rather than a hero. Leave calm whitespace after the dense data. Use the shared navigation and page content only; at phone width reflow the table into touch-friendly stacked rows and keep every control comfortably tappable."
+     },
+     {
+      "id": "S-2",
+      "title": "Import records",
+      "route": "/imports",
+      "file": "src/pages/import-records.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-19",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "phone": true,
+      "states": [
+       "Preview loaded with returned row outcomes and proposed lot links.",
+       "Sync result with added, already-present, duplicate, pending-mapping, capacity-blocked, and failed counts; partial results must not be labeled complete.",
+       "Validation error when a supplied file cannot be previewed."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Import records” as a dense, practical preview-and-sync workspace. Lead with a clear batch selector for the supplied purchase-order and receiving mock files and the primary action “Preview records”; beneath it show the preview timestamp, a concise outcome summary, then a wide results table. Make returned source file, vendor, origin, record and line, cost per head and extended cost, head count, average weight, breed/sex, age, proposed lot/pen and row outcome readable without opening a detail page. Populate it with PO-5831 line 1 from Red Basin Cattle Co. / Red Basin Ranch: 84 head at $1,470 each, 612 lb, Angus–Hereford steers, 16 months; 60 map to L-241 in P-04 and 24 to L-243 with no pen, so the line is partial. PO-5840 line 1 from Mesa Valley Cattle Co. / Mesa Valley Ranch: 56 head at $1,338 each, 548 lb, Charolais-cross heifers, 14 months, mapped to L-242 in P-04. Include REC-8843 as an 84-head duplicate of PO-5831; REC-8844 as 18 Hereford-cross steers, 522 lb, 13 months, pending lot mapping; and REC-8845 as 40 Angus steers, 590 lb, 15 months, blocked because adding them to P-04 would exceed its 150-head capacity. Show source filenames `april_cattle_po.csv` and `april_receiving.csv`, and distinguish duplicate, pending mapping, capacity and synced outcomes in plain text. Put proposed pen assignments and outcome beside each row; explicitly state that unresolved or capacity-blocked animals cannot be used in pen operations. Show the sync action only when a preview is ready, with a truthful result count. On desktop keep filters above the full-width table; on phone turn each row into a stacked record with outcome and headcount first and touch-sized controls. Leave no decorative hero area."
+     },
+     {
+      "id": "S-3",
+      "title": "Lots & pens",
+      "route": "/lots-pens",
+      "file": "src/pages/lots-pens.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-3",
+       "REQ-14",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "states": [
+       "Validation when target weight or default gain rate is invalid.",
+       "Saved lot assumptions with recalculated forecast.",
+       "Unresolved lot or receipt shown as unavailable for pen operations."
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Lots & pens” as a traceable record workspace. Let the eye meet a concise pen-occupancy line, then a searchable lot-and-pen table, then a selected-lot detail and assumption editor. Show P-04 at 116/150 head with L-241 (60) and L-242 (56); show P-02 at 72/120 with L-239 (72). Include L-243 (24 head) linked to PO-5831 line 1 but marked “No pen — unavailable for pen operations”; show the 24 pending-pen headcount separately from occupied capacity. Make the purchase-order line visibly trace to both L-241 and L-243, and each assigned lot visibly trace to its pen. In the selected L-241 detail show 60 Angus–Hereford steers, received 12 Jan 2025 at 612 lb, latest weight 842 lb on 20 Apr, target weight 1,350 lb, measured ADG 2.35 lb/day, forecast market date 22 Nov 2025. Provide editable fields for target weight and default gain rate; show that measured ADG drives the forecast when present, while L-243 uses the configured 3.0 lb/day default because no measured ADG is available, with a forecast from its 612 lb receipt weight. Make the primary in-page action “Save lot assumptions.” Include a real documentary photograph of Angus–Hereford steers in a feed pen in the selected-lot detail, not an illustration or placeholder. On wide screens place the table beside the selected-lot detail; on narrow screens put the trace and status before the assumption form, with separated touch-sized inputs."
+     },
+     {
+      "id": "S-4",
+      "title": "Feed inventory",
+      "route": "/inventory",
+      "file": "src/pages/feed-inventory.tsx",
+      "reqs": [
+       "REQ-4",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "phone": true,
+      "states": [
+       "Movement form validation.",
+       "Movement saved and reflected in the item balance.",
+       "Actual wastage saved separately from ordinary stock movement."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Feed inventory” as a working feed-item catalog, using the field’s dense, filterable catalog rhythm rather than retail product cards. The first visual anchor is selected item Yellow corn at $0.112/lb in large, clear tabular figures with current stock 680,000 lb as context. Show a real close photograph of yellow corn kernels beside the item details, not an icon or grey box. Follow with a searchable item table: Alfalfa hay, $0.145/lb, 390,000 lb; Soybean meal, $0.238/lb, 170,000 lb; Mineral premix, $0.640/lb, 42,000 lb. Keep a selected-item detail with nutrition and recorded movements beside the table on desktop; stack it below on mobile. Show the 18 Apr 2025 movement by Eli Chen, +12,000 lb Yellow corn, posted, and the 22 Apr movement by Mara Ortega, 116 lb actual Alfalfa hay wastage, saved. Provide a stock-movement form with item, movement type, date, quantity and note; provide a separate actual-wastage quantity field and action so wastage is not silently combined with expected consumption or an ordinary movement. The primary action is “Save movement”; give the separate wastage entry its own plainly labeled in-page action. Use touch-sized fields and stacked movement rows at phone width, with no storefront cart or decorative tiles."
+     },
+     {
+      "id": "S-5",
+      "title": "Inventory outlook",
+      "route": "/inventory/outlook",
+      "file": "src/pages/inventory-outlook.tsx",
+      "reqs": [
+       "REQ-5",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "states": [
+       "Projection recalculates immediately after a wastage ratio change.",
+       "Validation for an out-of-range wastage ratio."
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Inventory outlook” as a projection page, not an alert dashboard. Lead with the single large headline “680,000 lb Yellow corn on hand,” then a short context line showing the configured 4.2% estimated wastage ratio and 2,920 lb/day planned feed across occupied pens. Put the editable wastage ratio above a dense projection table; filters recalculate as soon as they change, with no Apply button. Table rows are Yellow corn, Alfalfa hay, Soybean meal and Mineral premix. Columns show on-hand plus projected remaining balance for daily, weekly, monthly, quarterly, six-month and annual horizons. Use the same stocks and 4.2% ratio consistently: the annual projected balances are about 69,689 lb corn, 56,831 lb hay, 36,732 lb soybean meal and 8,683 lb mineral premix. Show daily estimates as 1,673 lb corn, 913 lb hay, 365 lb soybean meal and 91 lb mineral premix; use feed consumption from the Grower 1 plan and apply the configured ratio to estimates. Explain in a brief caption that actual wastage is recorded separately on Feed inventory and is not substituted for this estimate ratio. Present projections only; do not add low-stock warnings, alert badges or threshold controls. On a wide screen keep the ratio control and explanatory copy in a narrow side region beside the table; on a phone stack the control first and make the horizon table readable as labeled row details or a touch-scroll table."
+     },
+     {
+      "id": "S-6",
+      "title": "Rations",
+      "route": "/rations",
+      "file": "src/pages/rations.tsx",
+      "reqs": [
+       "REQ-6",
+       "REQ-7",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "states": [
+       "Ration editor validation.",
+       "Optimizer returns feasible and infeasible mixes.",
+       "Optimized mix explicitly selected but not yet saved as a ration.",
+       "Ration saved to the ration list."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Rations” as a practical formulation and comparison workspace. Make the strongest figure the selected ration cost, $0.15286/lb for Grower 1, with its purpose and nutrition values immediately beside it. Next show the ingredient proportions in a compact editable list, not equal cards: Yellow corn 55%, Alfalfa hay 30%, Soybean meal 12%, Mineral premix 3%; nutrition is crude protein 13.8%, TDN 70%, NDF 24%, energy 1.51 Mcal/lb, intended for 548–900 lb growing cattle. Include a ration list with Grower 1 and Finisher 2; Finisher 2 is 65% corn, 20% hay, 12% soybean meal and 3% mineral, $0.14956/lb, for 900–1,350 lb finishers. Add a create/edit ration form and a side-by-side optimizer section below it. The optimizer target controls are crude protein at least 13%, TDN at least 69%, and NDF 22–26%; show ingredient recorded costs from inventory and a feasible least-cost candidate at $0.15220/lb, 57% corn, 28% hay, 12% soybean meal and 3% mineral, with predicted nutrition values beside the proportions. Make it unmistakable that the candidate is only a suggestion until the user presses “Select this mix”; then require the separate “Save ration” action before it becomes a ration. No suggestion is applied automatically. Use a dense, scannable table/list structure inspired by marketplace comparisons, not a row of equal cards. On desktop place ration details and editor beside the ration list; on phone stack these sections with touch-sized controls."
+     },
+     {
+      "id": "S-7",
+      "title": "Feeding plans",
+      "route": "/feeding/plans",
+      "file": "src/pages/feeding-plans.tsx",
+      "reqs": [
+       "REQ-8",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "states": [
+       "Plan input validation.",
+       "Plan preview recalculated from selected pen count and bunk rate.",
+       "Plan generated with a dated status."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Feeding plans” with the plan generator first and the dated plan list second. Let the eye land on the generated daily total, 1,624 lb for P-04 on 23 Apr 2025, calculated from 116 penned animals at 14 lb/head/day using Grower 1. The form names the pen, plan date, selected ration, daily bunk rate and current pen headcount; show the two lot quantities separately in the preview: L-241, 60 head, 840 lb; L-242, 56 head, 784 lb. Add the P-02 alternative as 72 head at 18 lb/head/day, 1,296 lb using Grower 1. The dated table below shows 22 Apr 2025 P-04 / Grower 1 / 116 head / 1,624 lb / Completed, and 19 Apr 2025 P-02 / Grower 1 / 72 head / 1,296 lb / Completed. The 23 Apr plan remains a preview until “Generate plan” is pressed; show status plainly after generation. On desktop keep the compact generator beside the dated plan table; on phone stack the generator, lot breakdown and history in that order. Do not put navigation tiles inside the page."
+     },
+     {
+      "id": "S-8",
+      "title": "Feeding log",
+      "route": "/feeding/log",
+      "file": "src/pages/feeding-log.tsx",
+      "reqs": [
+       "REQ-9",
+       "REQ-10",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "phone": true,
+      "states": [
+       "Validation requires a separate actual quantity for every affected lot.",
+       "Successful save shows returned cost, energy, inventory use, lot quantities, plan variance and refreshed result.",
+       "Shortage result blocks saving and explains the unavailable quantity."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Feeding log” as a fast entry page for an actual pen feeding. Lead with the pen and date fields, preselected P-04 and 22 Apr 2025, then Grower 1 and optional plan P04-2025-0422. Because P-04 contains two lots, give L-241 its own actual-quantity field prefilled 840 lb and L-242 its own field prefilled 784 lb; never combine these into one editable total. Show 60 and 56 head beside their lots, a 1,624 lb total, and a clearly labeled “Save feeding record” primary action. Beneath the entry form show the returned saved result for Mara Ortega’s 22 Apr record: $248.24 feed cost, 2,452 Mcal energy, 1,624 lb total consumed, 840 lb from L-241 and 784 lb from L-242, inventory consumption of 893.2 lb corn, 487.2 lb hay, 194.9 lb soybean meal and 48.7 lb mineral, 0 lb plan variance, saved; make clear that per-lot consumption and feed-to-gain metrics refresh after a save. Include the 19 Apr P-02 event by Mara Ortega, 1,296 lb Grower 1, saved, as the next recent row. On wide screens place the form beside the returned result and recent log; on phone keep the per-lot quantity fields and save action near the top, then stack the result and history with touch-sized controls."
+     },
+     {
+      "id": "S-9",
+      "title": "Weight records",
+      "route": "/weights",
+      "file": "src/pages/weight-records.tsx",
+      "reqs": [
+       "REQ-11",
+       "REQ-12",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "phone": true,
+      "states": [
+       "Invalid measurement validation returned without saving.",
+       "Measurement saved or edited; refreshed metrics are shown.",
+       "Delete confirmation states that deletion cannot be undone.",
+       "Deleted measurement with refreshed metrics."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Weight records” as a lot measurement entry and history page. First show the selected L-241 headline reading, 842 lb average on 20 Apr 2025, with its context: 60 head, 230 lb gain per head since receipt, measured ADG 2.35 lb/day. Put a compact form for lot, date, average weight and applicable headcount above a dated measurement series; show the receipt baseline 12 Jan 2025, 612 lb, 60 head, then the measured 20 Apr 2025 reading, 842 lb, 60 head, entered by Diego Ruiz, Valid. Include edit and delete controls on the measurement record, not row checkboxes. Below the series show returned feed-to-gain figures calculated with applicable headcount at each measurement date and as-fed feed pounds: 82,320 lb as-fed through the latest reading, FCR 5.96, feed cost $0.91/lb gain. State that feed and weight saves, edits and deletions refresh the displayed metrics. Keep L-243 visible as a disabled “No pen — unavailable for pen operations” record rather than offering it as a measurement target. On desktop place the entry form beside the selected lot’s metric and series; on a phone stack metric, form, then history, keeping all row controls touch-sized. The delete-confirmation state must say next to its destructive button, “Deleting this weight reading cannot be undone.”"
+     },
+     {
+      "id": "S-10",
+      "title": "Operational reports",
+      "route": "/reports/operations",
+      "file": "src/pages/operational-reports.tsx",
+      "reqs": [
+       "REQ-15",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Operational reports” as one comparative report, not a KPI-card dashboard. Put the date-range filter for 1 Jan–23 Apr 2025 above a single headline result, “$0.87 feed cost per lb of gain,” then a dense set of related comparison tables in a clear reading order: pen consumption, lot performance, ration usage and plan alignment, then remaining inventory. Pen rows: P-04, Grower 1, 1,624 lb/day, $248.24/day; P-02, Grower 1, 1,296 lb/day, $198.10/day. Lot rows: L-239, 2.95 ADG, 6.10 as-fed FCR, $0.93/lb gain; L-241, 2.35, 5.96, $0.91; L-242, 2.05, 6.82, $1.04. Show Grower 1 as the ration on both recent feeding activities and plan alignment as 2 of 2 recent activities matching their dated plans with 0 lb variance. The inventory comparison lists corn 680,000 lb, hay 390,000 lb, soybean meal 170,000 lb and mineral premix 42,000 lb. Add short date and calculation captions so readers understand these are returned operating values. On desktop put the headline and date range across the top, then use a wide report table with a narrow plan-alignment summary beside it; on phone stack filter and report sections, preserving table labels. Leave whitespace between report sections rather than making a grid of equal tiles."
+     },
+     {
+      "id": "S-11",
+      "title": "Feed-to-gain",
+      "route": "/reports/feed-to-gain",
+      "file": "src/pages/feed-to-gain-report.tsx",
+      "reqs": [
+       "REQ-16",
+       "REQ-17",
+       "REQ-18",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "states": [
+       "Filters update rows immediately; no matching records state.",
+       "CSV export downloads the currently displayed filtered rows and metrics.",
+       "PDF export produces a report of the currently displayed filtered results."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Feed-to-gain” as a dense, readable comparison report. Put the date range, breed, sex and pen filters first and have each filter update results immediately, without an Apply button. Default to 1 Jan–23 Apr 2025, all breeds, all sexes and all pens. Make a single headline context line say “3 lots with measured weights in range”; then show a sortable report table with lot, breed/sex, pen, latest in-range weight date and weight, headcount at that date, ADG, as-fed feed pounds, FCR and feed cost per pound of gain. Use these rows: L-239, Angus steers, P-02, 21 Apr, 1,010 lb, 72 head, ADG 2.95, 158,112 lb as-fed, FCR 6.10, $0.93/lb gain; L-241, Angus–Hereford steers, P-04, 20 Apr, 842 lb, 60 head, ADG 2.35, 82,320 lb, FCR 5.96, $0.91/lb; L-242, Charolais-cross heifers, P-04, 20 Apr, 706 lb, 56 head, ADG 2.05, 60,368 lb, FCR 6.82, $1.04/lb. State in a brief method note that the date range selects the latest weight reading in range and includes feeding events only up to that reading; FCR uses as-fed pounds. Provide clearly labeled “Export CSV” and “Export PDF” actions that operate on exactly the displayed filtered rows and metrics. Keep the table dominant, with filter controls in a compact band above it; at phone width place filters in a stacked disclosure and display each lot as a labeled result row, keeping both export actions available as touch-sized controls."
+     },
+     {
+      "id": "S-12",
+      "title": "Project & demo",
+      "route": "/project-demo",
+      "file": "src/pages/project-demo.tsx",
+      "reqs": [
+       "REQ-19",
+       "REQ-20",
+       "REQ-21"
+      ],
+      "shell": "feedlot",
+      "states": [
+       "Demo dataset loaded with added, already-present and failed counts; partial outcome is not labeled complete.",
+       "Demo load error with failed record details and retry action."
+      ],
+      "links": [
+       {
+        "label": "Overview",
+        "to": "S-1"
+       },
+       {
+        "label": "Import records",
+        "to": "S-2"
+       },
+       {
+        "label": "Lots & pens",
+        "to": "S-3"
+       },
+       {
+        "label": "Feed inventory",
+        "to": "S-4"
+       },
+       {
+        "label": "Inventory outlook",
+        "to": "S-5"
+       },
+       {
+        "label": "Rations",
+        "to": "S-6"
+       },
+       {
+        "label": "Feeding plans",
+        "to": "S-7"
+       },
+       {
+        "label": "Feeding log",
+        "to": "S-8"
+       },
+       {
+        "label": "Weight records",
+        "to": "S-9"
+       },
+       {
+        "label": "Operational reports",
+        "to": "S-10"
+       },
+       {
+        "label": "Feed-to-gain",
+        "to": "S-11"
+       },
+       {
+        "label": "Project & demo",
+        "to": "S-12"
+       }
+      ],
+      "prompt": "The header holds the Cedar Draw Feedlot wordmark at left beside a small square mark with a white “C”; the shared menu sits beside the brand in this order: Overview, Import records, Lots & pens, Feed inventory, Inventory outlook, Rations, Feeding plans, Feeding log, Weight records, Operational reports, Feed-to-gain, Project & demo. At right, show the signed-in user Mara Ortega, Feed manager, with a compact initials avatar “MO” to the left of her name; all users see these same product areas and controls. Draw “Project & demo” as an informative working project page, not a marketing hero. Start with a clearly separated “Demo dataset — separate from live operating records” section and a primary action “Load demo dataset.” Explain that it loads 16 sample records on demand. Below the action show a truthful result area for added, already-present and failed rows; the partial example is 12 added, 3 already present and 1 failed, labeled “Partial load — review the failed record,” never “Complete.” Continue with a proposed-solution summary for shared cattle, feed and performance records; a labeled architecture diagram showing responsive web app, record store, import/validation path, public FeedToGainCalculator calculation module and report outputs; and a short guided demonstration sequence using PO-5831, L-241, Grower 1, the P-04 feeding plan and the feed-to-gain report. Include a calculator example with L-241 inputs and returned outputs: 98 days on feed, 13,800 lb lot gain, 2.35 lb/day ADG, 82,320 as-fed feed lb, 5.96 FCR, $0.91 feed cost/lb gain, projected market date 22 Nov 2025. End with distinct sections for testing and validation coverage, current challenges (unmapped and over-capacity cattle records, plus inventory estimates that depend on configured wastage), production-readiness assessment (operational workflows demonstrated; deployment security, backups and integrations still require release validation), and a go-to-market outline for independent feedlots and feedlot advisers. Keep diagrams and text in clearly bounded sections, vary section density, and avoid equal feature cards. On narrow screens stack sections in that order and keep the demo action and outcome visible without horizontal overflow."
+     }
+    ],
+    "sample": "Facility: Cedar Draw Feedlot. One time zone for every record and report: America/Denver. Sample date for the workspace: 23 Apr 2025. People: Mara Ortega — Feeding department, Feed manager; Eli Chen — Inventory department, Inventory coordinator; Diego Ruiz — Cattle department, Yard lead. The shared shell may show Mara Ortega and her role; use initials rather than a portrait. All three people use the same product areas and controls, with no role-dependent restrictions.\nPens and capacity: P-04 capacity 150, currently 116 head (L-241: 60; L-242: 56), 34 open. P-02 capacity 120, currently 72 head (L-239), 48 open. Total occupied capacity is 188/270 across two pens. Lot L-243 has 24 head linked to PO-5831 but no pen, so those animals are not available for pen operations. Total head in these accepted lots is 212 (188 penned plus 24 awaiting a pen). Incoming records that are pending mapping or blocked by capacity are not included in those totals.\nLots: L-239, Angus steers, 72 head in P-02; received 20 Dec 2024 at 650 lb, latest weight 1,010 lb on 21 Apr 2025, target 1,350 lb, measured ADG 2.95 lb/day, 158,112 as-fed feed lb through latest reading, FCR 6.10, feed cost $0.93/lb gain, projected market date 14 Aug 2025. L-241, Angus–Hereford steers, 60 head in P-04; received 12 Jan 2025 at 612 lb, latest weight 842 lb on 20 Apr, target 1,350 lb, measured ADG 2.35 lb/day, 82,320 as-fed feed lb through latest reading, FCR 5.96, feed cost $0.91/lb gain, projected market date 22 Nov 2025. L-242, Charolais-cross heifers, 56 head in P-04; received 2 Feb 2025 at 548 lb, latest weight 706 lb on 20 Apr, target 1,250 lb, measured ADG 2.05 lb/day, 60,368 as-fed feed lb through latest reading, FCR 6.82, feed cost $1.04/lb gain, projected market date 10 Jan 2026. L-243, Angus–Hereford steers, 24 head, split from PO-5831 line 1; received 12 Jan at 612 lb, no pen and no measured ADG, target 1,350 lb and configured default ADG 3.0 lb/day. Its forecast uses that default and it remains unavailable for pen operations.\nImport records: PO-5831 line 1, source file `april_cattle_po.csv`, vendor Red Basin Cattle Co., origin Red Basin Ranch, 84 head at $1,470/head ($123,480 total), 612 lb average, Angus–Hereford steers, age 16 months; split 60 to L-241/P-04 and 24 to L-243/no pen. PO-5840 line 1, source file `april_cattle_po.csv`, vendor Mesa Valley Cattle Co., origin Mesa Valley Ranch, 56 head at $1,338/head ($74,928 total), 548 lb average, Charolais-cross heifers, age 14 months; mapped to L-242/P-04. REC-8843 from `april_receiving.csv` repeats the PO-5831 84-head record and is a duplicate. REC-8844 from `april_receiving.csv`, vendor Juniper Ridge Cattle, origin Juniper Ridge Ranch, 18 Hereford-cross steers at $1,290/head, 522 lb average, 13 months; pending lot mapping. REC-8845 from `april_receiving.csv`, vendor High Mesa Livestock, origin High Mesa Ranch, 40 Angus steers at $1,410/head, 590 lb average, 15 months; assignment to P-04 is blocked because 116+40 exceeds the pen capacity of 150.\nFeed inventory at 23 Apr: Yellow corn, $0.112/lb, 680,000 lb; Alfalfa hay, $0.145/lb, 390,000 lb; Soybean meal, $0.238/lb, 170,000 lb; Mineral premix, $0.640/lb, 42,000 lb. A 12,000 lb corn receipt was posted 18 Apr. Actual alfalfa hay wastage of 116 lb was entered separately on 22 Apr. Estimated wastage ratio for projections is 4.2%. Occupied pens consume 2,920 lb/day at current plans: P-04 116 head × 14 lb/head = 1,624 lb; P-02 72 head × 18 lb/head = 1,296 lb. With 4.2% estimated wastage, annual projected balances are approximately 69,689 lb corn, 56,831 lb hay, 36,732 lb soybean meal and 8,683 lb mineral premix.\nRations: Grower 1 contains 55% corn, 30% alfalfa hay, 12% soybean meal and 3% mineral premix; cost $0.15286/lb; crude protein 13.8%, TDN 70%, NDF 24%, energy 1.51 Mcal/lb; intended for 548–900 lb growing cattle. Finisher 2 contains 65% corn, 20% hay, 12% soybean meal and 3% mineral premix; cost $0.14956/lb; intended for 900–1,350 lb finishers. One optimizer candidate is 57% corn, 28% hay, 12% soybean meal and 3% mineral premix, at $0.15220/lb; it is a suggestion until explicitly selected and saved.\nPlans: 22 Apr 2025 P-04, Grower 1, 116 head, 14 lb/head/day, 1,624 lb, Completed. 19 Apr 2025 P-02, Grower 1, 72 head, 18 lb/head/day, 1,296 lb, Completed. The 23 Apr P-04 plan preview is 1,624 lb, split L-241 840 lb and L-242 784 lb. Recent feed results: the 22 Apr P-04 activity cost $248.24, 2,452 Mcal, used 893.2 lb corn, 487.2 lb hay, 194.9 lb soybean meal and 48.7 lb mineral, with 0 lb plan variance. The 19 Apr P-02 activity was 1,296 lb Grower 1 and saved.\nDated event list used by activity and measurement histories: 18 Apr 2025, Eli Chen, received 12,000 lb Yellow corn, feed inventory, posted. 19 Apr 2025, Mara Ortega, fed 1,296 lb Grower 1 to L-239 in P-02 against its plan, saved with 0 lb variance. 20 Apr 2025, Diego Ruiz, measured L-241 at 842 lb average for 60 head, P-04, valid and metrics refreshed. 20 Apr 2025, Diego Ruiz, measured L-242 at 706 lb average for 56 head, P-04, valid and metrics refreshed. 21 Apr 2025, Diego Ruiz, measured L-239 at 1,010 lb average for 72 head, P-02, valid and metrics refreshed. 22 Apr 2025, Mara Ortega, fed P-04: L-241 840 lb and L-242 784 lb, 1,624 lb total, saved with 0 lb plan variance and metrics refreshed. 22 Apr 2025, Mara Ortega, recorded 116 lb actual Alfalfa hay wastage, feed inventory, saved.\nFeed-to-gain date range defaults to 1 Jan–23 Apr 2025; it takes the latest weight reading in the range and feeding events up to that reading, with as-fed feed pounds for FCR. The three measured, penned lots appear in the report; L-243 has no measured weight and is not available for pen operations. The L-241 calculator example is 98 days on feed, 13,800 lb total lot gain, 2.35 lb/day ADG, 82,320 as-fed feed lb, FCR 5.96, $0.91 feed cost/lb gain and projected market date 22 Nov 2025. Demo batch size is 16 records; a partial example returns 12 added, 3 already present and 1 failed.",
+    "noScreen": [
+     {
+      "req": "REQ-13",
+      "reason": "FeedToGainCalculator.calculate is a callable public method, not a user-facing page. Expose it from the web app’s public calculation module and validate its supplied receiving, feeding, weight, headcount and target-weight inputs with automated tests; the Project & demo page may show a worked example of its returned figures."
+     }
+    ],
+    "brand": {
+     "colours": [],
+     "fonts": []
+    }
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

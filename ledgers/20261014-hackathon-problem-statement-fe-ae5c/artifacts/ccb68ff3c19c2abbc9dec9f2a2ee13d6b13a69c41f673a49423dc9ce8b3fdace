@@ -1,0 +1,305 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q1",
+      "category": "external",
+      "text": "How should procurement and receiving data connect to the primary procurement system for this build?",
+      "options": [
+       "Use clearly labelled mock/source data only; no live connector is required.",
+       "Import files exported from the source system, with the file format specified by the project.",
+       "Connect to the source system's API and synchronize records automatically; the system, API, credentials, and sync frequency must be specified."
+      ],
+      "recommended": "Use clearly labelled mock/source data only; no live connector is required.",
+      "reason": "The request explicitly permits mock data and does not identify a source system or integration interface.",
+      "spans": [
+       "I-1",
+       "I-10"
+      ],
+      "impact": 3,
+      "impactReason": "The choice determines whether real external records are read and whether operational data is created or updated."
+     },
+     {
+      "id": "Q2",
+      "category": "errors",
+      "text": "What should happen when an import contains duplicate source identifiers, an unmatched PO line or lot, or a lot-to-pen assignment exceeding capacity?",
+      "options": [
+       "Report row-level problems, keep unmatched records out of downstream pen operations, reject over-capacity assignments, and prevent duplicate imports from double-counting records.",
+       "Report validation problems, but allow unmatched records and over-capacity mappings to be saved for later review; identify duplicate imports without automatically merging them.",
+       "Accept the records and mappings, leaving users to detect duplicates, unmatched records, and capacity issues in downstream views."
+      ],
+      "recommended": "Report row-level problems, keep unmatched records out of downstream pen operations, reject over-capacity assignments, and prevent duplicate imports from double-counting records.",
+      "reason": "This preserves traceability and prevents inconsistent counts while still allowing users to correct and retry bad rows.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 3,
+      "impactReason": "These rules determine whether imported records and animal counts are created, mapped, and used in downstream operations.",
+      "difference": "D-1"
+     },
+     {
+      "id": "Q3",
+      "category": "data-model",
+      "text": "Which gain-rate assumption should drive projected market dates when current lot performance is unavailable or differs from the configured assumption?",
+      "options": [
+       "Use a configured default gain rate for forecasts; show the assumption and let authorized users change it per lot.",
+       "Use the lot's current measured ADG whenever available, falling back to a configured default only when it is unavailable.",
+       "Let users choose per forecast between current measured ADG and a configured or manually entered assumption."
+      ],
+      "recommended": "Use the lot's current measured ADG whenever available, falling back to a configured default only when it is unavailable.",
+      "reason": "This uses actual performance when it exists and requires a default only for lots without usable readings.",
+      "spans": [
+       "I-2",
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "Different gain-rate sources can produce visibly different projected market dates and targets.",
+      "difference": "D-2"
+     },
+     {
+      "id": "Q4",
+      "category": "data-model",
+      "text": "Should the wastage ratio represent only forecasted/estimated losses, or should actual wastage also be recorded as a separate stock movement?",
+      "options": [
+       "Apply the ratio to consumption estimates and projections; record actual wastage separately only when entered as a movement.",
+       "Treat the ratio as the actual wastage movement and decrement stock by it whenever feed is consumed.",
+       "Apply the ratio to estimates and projections, and also let users record actual wastage movements separately."
+      ],
+      "recommended": "Apply the ratio to consumption estimates and projections; record actual wastage separately only when entered as a movement.",
+      "reason": "This avoids inventing actual losses while supporting the requested configurable forecast adjustment.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "The choice changes stock balances and whether wastage is counted once or potentially twice.",
+      "difference": "D-3"
+     },
+     {
+      "id": "Q5",
+      "category": "scope",
+      "text": "Should inventory projections also flag items expected to run low or out of stock within the selected horizon?",
+      "options": [
+       "Show projected balances only; do not add low-stock alerts.",
+       "Flag items projected to run low or out of stock within the selected horizon."
+      ],
+      "recommended": "Show projected balances only; do not add low-stock alerts.",
+      "reason": "Forecast balances are requested; proactive alerting is an additional visible behavior.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 2,
+      "impactReason": "Alerts add a new operational warning flow beyond viewing inventory projections.",
+      "difference": "D-3"
+     },
+     {
+      "id": "Q6",
+      "category": "data-model",
+      "text": "What objective and constraints should ration optimization use to identify economical mixes?",
+      "options": [
+       "Compare ingredient mixes by cost and recorded nutrition values; users specify nutritional targets or constraints for a lowest-cost feasible comparison.",
+       "Rank mixes by cost for the intended animal or weight range, without user-entered nutritional constraints.",
+       "Provide cost and nutrition comparisons only; do not identify an optimized or recommended mix."
+      ],
+      "recommended": "Compare ingredient mixes by cost and recorded nutrition values; users specify nutritional targets or constraints for a lowest-cost feasible comparison.",
+      "reason": "It gives 'economical paths to weight gain' a calculable objective without claiming a biological outcome.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "The selected objective changes which ration candidates are presented as economical or feasible.",
+      "difference": "D-4"
+     },
+     {
+      "id": "Q7",
+      "category": "data-model",
+      "text": "Must each actual feeding activity be linked to an existing dated plan, or may operators record an activity without one?",
+      "options": [
+       "Require an existing plan and record actual feeding against that plan.",
+       "Allow activities to be recorded for a pen and date without a plan; link a plan when one exists.",
+       "Make the plan link optional, while showing whether each activity was planned or unplanned."
+      ],
+      "recommended": "Make the plan link optional, while showing whether each activity was planned or unplanned.",
+      "reason": "This supports planned execution and variance reporting without blocking logging when no plan exists.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "This determines whether operators can complete the actual-feeding flow when a plan is absent.",
+      "difference": "D-5"
+     },
+     {
+      "id": "Q8",
+      "category": "roles",
+      "text": "Which user roles and access boundaries are required for operational records, cost/performance views, imports, and data entry?",
+      "options": [
+       "No role distinctions; all users can view and operate all product areas.",
+       "Use a small built-in set of roles, such as administrator, operator, and viewer, with cost/performance access controlled by role.",
+       "Define configurable roles and per-action permissions, including record-level access to yards, lots, and pens."
+      ],
+      "recommended": "No role distinctions; all users can view and operate all product areas.",
+      "reason": "No roles or restricted audiences are required by the request, so a shared access model is the smallest implementation.",
+      "spans": [
+       "I-1",
+       "I-3",
+       "I-4",
+       "I-5",
+       "I-6",
+       "I-8",
+       "I-9",
+       "I-10"
+      ],
+      "impact": 3,
+      "impactReason": "Roles control who can write operational records and who can see potentially sensitive cost and performance information.",
+      "difference": "D-8",
+      "topic": "roles"
+     },
+     {
+      "id": "Q9",
+      "category": "existing-data",
+      "text": "How should a recorded weight or feeding event be corrected after it has affected inventory or lot metrics?",
+      "options": [
+       "Allow authorized users to edit or delete the event, then recalculate affected balances and metrics.",
+       "Keep the original event and record an attributable correction that reverses or supersedes it; recalculate affected balances and metrics.",
+       "Do not allow corrections; users must enter a separate adjustment without changing the original event."
+      ],
+      "recommended": "Allow authorized users to edit or delete the event, then recalculate affected balances and metrics.",
+      "reason": "This is the smallest correction workflow; retaining an append-only history is an additional audit requirement.",
+      "spans": [
+       "I-5",
+       "I-6",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Corrections can change stock balances, cumulative feed, weight gain, and derived performance values.",
+      "difference": "D-6"
+     },
+     {
+      "id": "Q10",
+      "category": "data-model",
+      "text": "When one pen contains multiple lots, how should a feeding activity's actual quantity and cost be attributed to lot-level metrics?",
+      "options": [
+       "Require the operator to enter a separate activity quantity for each affected lot.",
+       "Allocate the pen's actual quantity and cost among its lots in proportion to animal count at the time of feeding.",
+       "Attribute the full pen activity to one selected lot; record separate activities for other lots."
+      ],
+      "recommended": "Require the operator to enter a separate activity quantity for each affected lot.",
+      "reason": "Explicit lot quantities avoid double-counting and do not assume that every lot received the same amount per animal.",
+      "spans": [
+       "I-5",
+       "I-7",
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "Attribution directly changes lot feed consumption, feed cost, FCR, and cost of gain."
+     },
+     {
+      "id": "Q11",
+      "category": "data-model",
+      "text": "Should feed-to-gain calculations use feed on an as-fed basis or adjust feed consumption to dry matter?",
+      "options": [
+       "Use as-fed pounds for total feed consumed and FCR, converting entered inventory units to pounds as needed.",
+       "Convert feed to dry-matter pounds using each ingredient's dry-matter percentage before calculating FCR.",
+       "Show both as-fed and dry-matter FCR."
+      ],
+      "recommended": "Use as-fed pounds for total feed consumed and FCR, converting entered inventory units to pounds as needed.",
+      "reason": "The request defines total feed consumed in pounds and does not require a dry-matter-adjusted metric.",
+      "spans": [
+       "I-3",
+       "I-4",
+       "I-5",
+       "I-7",
+       "I-9"
+      ],
+      "impact": 3,
+      "impactReason": "The basis changes reported feed consumption and the resulting FCR values.",
+      "topic": "terminology"
+     },
+     {
+      "id": "Q12",
+      "category": "data-model",
+      "text": "What should the report's date-range filter refer to when comparing lot ADG, FCR, and cost of gain?",
+      "options": [
+       "Include events and readings within the selected dates and calculate metrics from those in-range records only.",
+       "Select lots active during the date range, but calculate each selected lot's metrics from its full available history.",
+       "Use the date range to select the latest weight reading in that period and feeding events up to that reading."
+      ],
+      "recommended": "Use the date range to select the latest weight reading in that period and feeding events up to that reading.",
+      "reason": "This makes the comparison reflect performance as of the selected period rather than mixing partial-period denominators with lifetime totals.",
+      "spans": [
+       "I-7",
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "Date-filter semantics change which lots and underlying events contribute to visible and exported metrics."
+     },
+     {
+      "id": "Q13",
+      "category": "data-model",
+      "text": "Does 'lot-level profitability/ROI' require more than the specified feed cost per unit of weight gain?",
+      "options": [
+       "Report feed cost per pound of gain only; do not label it full ROI or profitability.",
+       "Calculate full lot ROI using purchase cost, feed cost, sale proceeds, and any other specified operating costs.",
+       "Show feed cost and procurement cost, but omit ROI until sale proceeds and other costs are available."
+      ],
+      "recommended": "Report feed cost per pound of gain only; do not label it full ROI or profitability.",
+      "reason": "Feed cost per gain is explicitly defined; full ROI needs sale proceeds and additional cost inputs not specified in the request.",
+      "spans": [
+       "I-1",
+       "I-7",
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "A full ROI calculation adds financial inputs and could materially change profitability claims.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q14",
+      "category": "existing-data",
+      "text": "How should users access the sample dataset, and what should happen if sample records conflict with operational records?",
+      "options": [
+       "Provide a clearly labelled, separate demo dataset that users can load on demand; report conflicts and avoid presenting a partial load as complete.",
+       "Preload clearly labelled sample records into the same operational dataset; identify them as demo records.",
+       "Provide sample records only in a fixed demonstration environment, with no loading into operational data."
+      ],
+      "recommended": "Provide a clearly labelled, separate demo dataset that users can load on demand; report conflicts and avoid presenting a partial load as complete.",
+      "reason": "This makes the connected demo workflows exercisable without confusing sample activity with live operations.",
+      "spans": [
+       "I-10"
+      ],
+      "impact": 3,
+      "impactReason": "Loading behavior determines which records are created and whether mock data can affect operational totals.",
+      "difference": "D-10"
+     },
+     {
+      "id": "Q15",
+      "category": "scope",
+      "text": "Should the demo/project area include an overview of the prompts used to build the solution, in addition to the requested testing, challenges, readiness, and go-to-market material?",
+      "options": [
+       "Include a concise overview of the prompts used.",
+       "Omit prompt history; include the requested demo, testing/validation, challenges, production-readiness, and go-to-market material."
+      ],
+      "recommended": "Omit prompt history; include the requested demo, testing/validation, challenges, production-readiness, and go-to-market material.",
+      "reason": "The prompt overview appears in one interpretation but is not explicitly required in the deliverables.",
+      "spans": [
+       "I-11"
+      ],
+      "impact": 1,
+      "impactReason": "This changes only the contents of the informational/demo area.",
+      "difference": "D-11"
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

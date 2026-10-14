@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getPreviewImportResponseMock|getSynchronizeImportsResponseMock|getGetLotsResponseMock|getGetLotForecastResponseMock|getGetInventoryItemsResponseMock|getGetInventoryOutlookResponseMock",
+    "glob": "src/**/*"
+   },
+   "ms": 1,
+   "resultChars": 210,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getPreviewImportResponseMock|getSynchronizeImportsResponseMock|getGetLotsResponseMock|getGetLotForecastRespo\">\nNo matches\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "getPreviewImportResponseMock|getSynchronizeImportsResponseMock|getGetLotsResponseMock|getGetLotForecastResponseMock|getGetInventoryItemsResponseMock|getGetInventoryOutlookResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 5,
+   "resultChars": 3496,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;getPreviewImportResponseMock|getSynchronizeImportsResponseMock|getGetLotsResponseMock|getGetLotForecastRespo\">\nlib/api/client.msw.ts:52: export const getPreviewImportResponseMock = (): ImportPreviewOkResponse => ({\"batchId\":\"spring-po-2026\",\"rows\":[{\"id\":501,\"sourceIdentifier\":\"PO-8041-L1\",\"sourceType\":\"purchase_order\",\"vendor\":\"High P\nlib/api/client.msw.ts:54: export const getSynchronizeImportsResponseMock = (): ImportSyncOkResponse => ({\"batchId\":\"spring-po-2026\",\"addedCount\":1,\"alreadyPresentCount\":1,\"duplicateCount\":1,\"pendingMappingCount\":1,\"capacityBlo\nlib/api/client.msw.ts:56: export const getGetLotsResponseMock = (): LotsOkResponse => ({\"lots\":[{\"id\":101,\"name\":\"Lot 24-A\",\"penId\":1,\"penName\":\"Pen 01\",\"headCount\":52,\"breed\":\"Angus\",\"sex\":\"steer\",\"sourcePurchaseOrderLine\":\"P\nlib/api/client.msw.ts:62: export const getGetLotForecastResponseMock = (): ForecastOkResponse => ({\"lotId\":101,\"targetWeightLb\":1350,\"gainRateLbPerDay\":3.1,\"gainRateBasis\":\"measured\",\"projectedMarketDate\":\"2026-12-15\",\"recomme\nlib/api/client.msw.ts:64: export const getGetInventoryItemsResponseMock = (): InventoryOkResponse => ({\"wastageRatio\":0.04,\"items\":[{\"id\":11,\"name\":\"Yellow corn\",\"category\":\"Grain\",\"availableQuantity\":48200,\"unit\":\"lb\",\"unitCo\nlib/api/client.msw.ts:72: export const getGetInventoryOutlookResponseMock = (): OutlookOkResponse => ({\"horizon\":\"weekly\",\"wastageRatio\":0.04,\"balances\":[{\"itemId\":11,\"itemName\":\"Yellow corn\",\"currentStockLb\":48200,\"dailyEstim\nlib/api/client.msw.ts:138: : getPreviewImportResponseMock()),\nlib/api/client.msw.ts:150: : getSynchronizeImportsResponseMock()),\nlib/api/client.msw.ts:162: : getGetLotsResponseMock()),\nlib/api/client.msw.ts:198: : getGetLotForecastResponseMock()),\nlib/api/client.msw.ts:210: : getGetInventoryItemsResponseMock()),\nlib/api/client.msw.ts:258: : getGetInventoryOutlookResponseMock()),\ntests/acceptance.part1.test.tsx:14: getGetInventoryOutlookResponseMock,\ntests/acceptance.part1.test.tsx:15: getGetInventoryItemsResponseMock,\ntests/acceptance.part1.test.tsx:17: getGetLotForecastResponseMock,\ntests/acceptance.part1.test.tsx:19: getGetLotsResponseMock,\ntests/acceptance.part1.test.tsx:22: getPreviewImportResponseMock,\ntests/acceptance.part1.test.tsx:27: getSynchronizeImportsResponseMock,\ntests/acceptance.part1.test.tsx:85: const response = getSynchronizeImportsResponseMock();\ntests/acceptance.part1.test.tsx:104: const result = getGetLotsResponseMock();\ntests/acceptance.part1.test.tsx:142: const forecast = getGetLotForecastResponseMock();\ntests/acceptance.part1.test.tsx:179: const forecast = getGetLotForecastResponseMock();\ntests/acceptance.part1.test.tsx:190: const inventory = getGetInventoryItemsResponseMock();\ntests/acceptance.part1.test.tsx:249: return getGetInventoryOutlookResponseMock();\ntests/acceptance.part2.test.tsx:16: getGetLotsResponseMock,\ntests/acceptance.part2.test.tsx:226: const lotsResponse = getGetLotsResponseMock();\ntests/acceptance.part3.test.tsx:11: getGetLotsResponseMock,\ntests/acceptance.part3.test.tsx:38: getGetLotsMockHandler(getGetLotsResponseMock()),\ntests/acceptance.part3.test.tsx:82: getGetLotsMockHandler(getGetLotsResponseMock()),\ntests/acceptance.part3.test.tsx:120: getGetLotsMockHandler(getGetLotsResponseMock()),\ntests/acceptance.part3.test.tsx:142: getGetLotsMockHandler(getGetLotsResponseMock()),\ntests/acceptance.part3.test.tsx:214: getGetLotsMockHandler(getGetLotsResponseMock()),\n</untrusted_document>"
+  }
+ ]
+}

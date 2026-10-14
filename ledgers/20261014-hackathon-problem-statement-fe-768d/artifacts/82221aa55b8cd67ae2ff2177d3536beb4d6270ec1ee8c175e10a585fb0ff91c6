@@ -1,0 +1,18 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "ConnectionStrings__App|Postgres|Database=|WebApplicationFactory|EnsureDeleted|DropDatabase|Testcontainers|SeedAsync",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 1,
+   "resultChars": 2445,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;ConnectionStrings__App|Postgres|Database=|WebApplicationFactory|EnsureDeleted|DropDatabase|Testcontainers|Se\">\nApp.Tests/AcceptancePart1Tests.cs:14: public sealed class AcceptancePart1Tests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart1Tests.cs:17: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/AcceptancePart1Tests.cs:20: public AcceptancePart1Tests(WebApplicationFactory<Program> factory)\nApp.Tests/AcceptancePart1Tests.cs:903: public sealed class Part1CharacterisationTests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart1Tests.cs:906: public Part1CharacterisationTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();\nApp.Tests/AcceptancePart2Tests.cs:161: private readonly WebApplicationFactory<Program> _factory = new();\nApp.Tests/AcceptancePart3Tests.cs:13: public sealed class AcceptancePart3Tests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart3Tests.cs:48: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/AcceptancePart3Tests.cs:50: public AcceptancePart3Tests(WebApplicationFactory<Program> factory) => _factory = factory;\nApp.Tests/AcceptancePart3Tests.cs:133: private WebApplicationFactory<Program> CreateSeededFactory() => _factory.WithWebHostBuilder(builder =>\nApp.Tests/AcceptancePart4Tests.cs:14: public sealed class AcceptancePart4Tests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart4Tests.cs:24: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/AcceptancePart4Tests.cs:26: public AcceptancePart4Tests(WebApplicationFactory<Program> factory) => _factory = factory;\nApp.Tests/AcceptancePart4Tests.cs:72: private WebApplicationFactory<Program> CreateFactoryWithoutDemoSeeding() =>\nApp.Tests/AcceptancePart4Tests.cs:91: private static async Task AssertEveryTableEmptyAsync(WebApplicationFactory<Program> factory)\nApp.Tests/AcceptancePart4Tests.cs:105: private static async Task AssertOnlyTestCreatedSettingAsync(WebApplicationFactory<Program> factory)\nApp.Tests/HealthTests.cs:7: public class HealthTests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/HealthTests.cs:9: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/HealthTests.cs:10: public HealthTests(WebApplicationFactory<Program> factory) => _factory = factory;\n</untrusted_document>"
+  }
+ ]
+}

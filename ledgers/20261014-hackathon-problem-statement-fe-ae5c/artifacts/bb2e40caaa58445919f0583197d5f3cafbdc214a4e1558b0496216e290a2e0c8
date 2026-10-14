@@ -1,0 +1,391 @@
+// @vitest-environment jsdom
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { HttpResponse, http } from "msw";
+import { setupServer } from "msw/node";
+import {
+  getGenerateFeedingPlanMockHandler,
+  getGenerateFeedingPlanResponseMock,
+  getGetFeedingActivitiesMockHandler,
+  getGetFeedingActivitiesResponseMock,
+  getGetFeedingPlansMockHandler,
+  getGetFeedingPlansResponseMock,
+  getGetInventoryItemsMockHandler,
+  getGetInventoryItemsResponseMock,
+  getGetLotsMockHandler,
+  getGetLotsResponseMock,
+  getGetRationsMockHandler,
+  getGetRationsResponseMock,
+  getOptimizeRationMockHandler,
+  getOptimizeRationResponseMock,
+  getRecordFeedingActivityMockHandler,
+  getRecordFeedingActivityResponseMock,
+  getSelectRationCandidateMockHandler,
+  getSelectRationCandidateResponseMock,
+} from "@/lib/api/client.msw";
+import { FeedingPlansContainer } from "@/components/screens/s-7/container";
+import { FeedingLogContainer } from "@/components/screens/s-8/container";
+import { RationsContainer } from "@/components/screens/s-6/container";
+import { FeedInventoryContainer } from "@/components/screens/s-4/container";
+import { at, nav } from "./support/screen";
+
+const server = setupServer(
+  getGetLotsMockHandler(),
+  getGetInventoryItemsMockHandler(),
+  getGetRationsMockHandler(),
+  getOptimizeRationMockHandler(),
+  getSelectRationCandidateMockHandler(),
+  getGetFeedingPlansMockHandler(),
+  getGenerateFeedingPlanMockHandler(),
+  getGetFeedingActivitiesMockHandler(),
+  getRecordFeedingActivityMockHandler(),
+);
+
+beforeAll(() => server.listen());
+afterEach(() => {
+  server.resetHandlers();
+  vi.restoreAllMocks();
+});
+afterAll(() => server.close());
+
+async function expectText(value: string | RegExp): Promise<void> {
+  expect(await screen.findByText(value)).toBeTruthy();
+}
+
+async function fillActivityForm(
+  user: ReturnType<typeof userEvent.setup>,
+  lots: Array<{ name: string; quantity: string }>,
+  planId?: number,
+): Promise<void> {
+  await user.selectOptions(screen.getByLabelText("Pen"), "1");
+  const date = screen.getByLabelText("Date") as HTMLInputElement;
+  await user.clear(date);
+  await user.type(date, "2026-10-15");
+  await user.selectOptions(screen.getByLabelText("Ration"), "31");
+  if (planId !== undefined) {
+    await user.selectOptions(screen.getByLabelText("Feeding plan (optional)"), String(planId));
+  }
+  for (const lot of lots) {
+    const quantity = screen.getByRole("spinbutton", { name: new RegExp(lot.name) });
+    await user.clear(quantity);
+    await user.type(quantity, lot.quantity);
+  }
+}
+
+describe("ration and feeding workflows", () => {
+  it("AC_6_1_DisplaysRationDetails", async () => {
+    at("/rations");
+    render(<RationsContainer />);
+
+    await expectText("Grower 1");
+    await expectText("Grower");
+    await expectText("Yellow corn");
+    await expectText(/70/);
+    await expectText(/88/);
+    await expectText(/3\.3/);
+    await expectText(/650/);
+    await expectText(/950/);
+    await expectText(/0\.19/);
+  });
+
+  it("AC_7_1_ShowsFeasibleMixesWithNutritionAndCost", async () => {
+    at("/rations");
+    const optimization = getOptimizeRationResponseMock();
+    const lowestCost = optimization.feasibleCandidates[0];
+    lowestCost.costPerLb = 0.13;
+    lowestCost.ingredients[0].proportionPercent = 64;
+    const nextLowest = {
+      ...lowestCost,
+      candidateId: 903,
+      costPerLb: 0.17,
+      ingredients: lowestCost.ingredients.map((ingredient) => ({ ...ingredient, proportionPercent: 36 })),
+      predictedDryMatterPercent: 89.2,
+      predictedEnergyMcalPerKg: 3.4,
+    };
+    optimization.feasibleCandidates = [lowestCost, nextLowest];
+    server.use(getOptimizeRationMockHandler(optimization));
+    render(<RationsContainer />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /optimi[sz]e/i }));
+
+    const low = await screen.findByText(/0\.13/);
+    const next = screen.getByText(/0\.17/);
+    expect(low.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    await expectText("Yellow corn");
+    await expectText("64");
+    await expectText("36");
+    await expectText("88.5");
+    await expectText("3.4");
+  });
+
+  it("AC_7_2_RequiresSelectingSuggestionBeforeUsingRation", async () => {
+    at("/rations");
+    const user = userEvent.setup();
+    const optimization = getOptimizeRationResponseMock();
+    const candidate = optimization.feasibleCandidates[0];
+    candidate.candidateId = 991;
+    candidate.costPerLb = 0.16;
+    candidate.ingredients[0].proportionPercent = 42;
+    const selection = getSelectRationCandidateResponseMock();
+    selection.selectedCandidate = candidate;
+    let selectedCandidateId: number | undefined;
+    server.use(
+      getOptimizeRationMockHandler(optimization),
+      getSelectRationCandidateMockHandler(async ({ request }) => {
+        const body = await request.json() as { candidateId: number };
+        selectedCandidateId = body.candidateId;
+        return selection;
+      }),
+    );
+    render(<RationsContainer />);
+
+    await user.click(await screen.findByRole("button", { name: /optimi[sz]e/i }));
+    await expectText("0.16");
+    const cornShare = await screen.findByLabelText("Corn proportion (%)") as HTMLInputElement;
+    expect(cornShare.value).toBe("70");
+    expect(screen.queryByRole("button", { name: "Save ration" })).toBeNull();
+
+    expect(await screen.findByRole("button", { name: "Select this mix" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Select this mix" }));
+
+    expect(screen.queryByRole("button", { name: "Save ration" })).toBeTruthy();
+    await expectText("Yellow corn");
+    expect((screen.getByLabelText("Corn proportion (%)") as HTMLInputElement).value).toBe("42");
+    expect(selection.applied).toBe(false);
+    expect(selectedCandidateId).toBe(991);
+  });
+
+  it("AC_8_1_DisplaysGeneratedPlanDetails", async () => {
+    at("/feeding/plans");
+    render(<FeedingPlansContainer />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("button", { name: "Generate plan" })).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("Pen"), "1");
+    const date = screen.getByLabelText("Plan date") as HTMLInputElement;
+    await user.clear(date);
+    await user.type(date, "2026-10-15");
+    await user.selectOptions(screen.getByLabelText("Selected ration"), "31");
+    await user.clear(screen.getByLabelText("Daily bunk rate (lb/head)"));
+    await user.type(screen.getByLabelText("Daily bunk rate (lb/head)"), "23.5");
+    await user.click(screen.getByRole("button", { name: "Generate plan" }));
+
+    await expectText("2026-10-15");
+    await expectText("Pen 01");
+    await expectText("Lot 24-A");
+    await expectText(/52/);
+    await expectText("Grower 1");
+    await expectText(/1,?222/);
+    await expectText("07:00");
+    await expectText(/23\.5/);
+    await expectText(/232\.18/);
+    await expectText(/1480/);
+    await expectText("Planned");
+  });
+
+  it("AC_8_2_DisplaysReturnedPlanStatus", async () => {
+    at("/feeding/plans");
+    const response = getGetFeedingPlansResponseMock();
+    const statuses = ["Planned", "In progress", "Completed", "Skipped"] as const;
+    response.plans = statuses.map((status, index) => ({
+      ...response.plans[0], id: 401 + index, status,
+    }));
+    server.use(getGetFeedingPlansMockHandler(response));
+    render(<FeedingPlansContainer />);
+
+    for (const status of statuses) await expectText(status);
+  });
+
+  it("AC_8_3_DisplaysPlannedActualVarianceAndReturnedPlanValue", async () => {
+    const response = getGetFeedingPlansResponseMock();
+    const adjustedPlan = getGenerateFeedingPlanResponseMock().plan;
+    server.use(getGetFeedingPlansMockHandler({
+      plans: response.plans.map((plan) => ({
+        ...plan,
+        actualQuantityLb: 1200,
+        varianceLb: -22,
+      })),
+    }), getGenerateFeedingPlanMockHandler({
+      plan: {
+        ...adjustedPlan,
+        plannedQuantityLb: 1170,
+        quantityPerAnimalLb: 22.5,
+        actualQuantityLb: 1200,
+        varianceLb: 30,
+      },
+    }));
+    at("/feeding/plans");
+    render(<FeedingPlansContainer />);
+    const user = userEvent.setup();
+
+    await expectText(/1,?222/);
+    await expectText(/1,?200/);
+    await expectText(/-22/);
+
+    expect(await screen.findByRole("button", { name: "Generate plan" })).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("Pen"), "1");
+    const date = screen.getByLabelText("Plan date") as HTMLInputElement;
+    await user.clear(date);
+    await user.type(date, "2026-10-15");
+    await user.selectOptions(screen.getByLabelText("Selected ration"), "31");
+    await user.clear(screen.getByLabelText("Daily bunk rate (lb/head)"));
+    await user.type(screen.getByLabelText("Daily bunk rate (lb/head)"), "22.5");
+    await user.click(screen.getByRole("button", { name: "Generate plan" }));
+
+    await expectText(/1,?170/);
+    await expectText(/1,?200/);
+    await expectText(/30/);
+  });
+
+  it("AC_9_1_ShowsReturnedPlannedFeedingActivity", async () => {
+    const plannedActivity = getGetFeedingActivitiesResponseMock().activities[0];
+    server.use(getRecordFeedingActivityMockHandler({ activity: plannedActivity }));
+    at("/feeding/log");
+    render(<FeedingLogContainer />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("button", { name: "Save feeding record" })).toBeTruthy();
+    await fillActivityForm(user, [{ name: "Lot 24-A", quantity: "1200" }], 401);
+    await user.click(screen.getByRole("button", { name: "Save feeding record" }));
+
+    await expectText("401");
+    await expectText(/1,?222/);
+    await expectText(/1,?200/);
+    await expectText(/-22/);
+    await expectText("Completed");
+    await expectText(/228/);
+    await expectText(/1454/);
+    await expectText("Yellow corn");
+    await expectText(/840/);
+    await expectText("Lot 24-A");
+  });
+
+  it("AC_9_2_SavesActivityWithoutAPlanLink", async () => {
+    at("/feeding/log");
+    render(<FeedingLogContainer />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("button", { name: "Save feeding record" })).toBeTruthy();
+    await fillActivityForm(user, [{ name: "Lot 24-A", quantity: "1200" }]);
+    await user.click(screen.getByRole("button", { name: "Save feeding record" }));
+
+    await expectText("Unplanned");
+    await expectText("Lot 24-A");
+    await expectText(/1,?200/);
+  });
+
+  it("AC_9_3_CollectsAndDisplaysSeparateQuantitiesForEachLot", async () => {
+    const lotsResponse = getGetLotsResponseMock();
+    const secondLot = { ...lotsResponse.lots[0], id: 102, name: "Lot 24-B" };
+    const activityResponse = getRecordFeedingActivityResponseMock();
+    server.use(
+      getGetLotsMockHandler({
+        ...lotsResponse,
+        lots: [...lotsResponse.lots, secondLot],
+        pens: lotsResponse.pens.map((pen) => ({ ...pen, activeLotCount: 2 })),
+      }),
+      getRecordFeedingActivityMockHandler({
+        activity: {
+          ...activityResponse.activity,
+          actualQuantityLb: 1200,
+          lotConsumption: [
+            { lotId: 101, lotName: "Lot 24-A", quantityLb: 500 },
+            { lotId: 102, lotName: "Lot 24-B", quantityLb: 700 },
+          ],
+        },
+      }),
+    );
+    at("/feeding/log");
+    render(<FeedingLogContainer />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("button", { name: "Save feeding record" })).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("Pen"), "1");
+    const date = screen.getByLabelText("Date") as HTMLInputElement;
+    await user.clear(date);
+    await user.type(date, "2026-10-15");
+    await user.selectOptions(screen.getByLabelText("Ration"), "31");
+    const firstLotQuantity = screen.getByRole("spinbutton", { name: /Lot 24-A/ }) as HTMLInputElement;
+    const secondLotQuantity = screen.getByRole("spinbutton", { name: /Lot 24-B/ }) as HTMLInputElement;
+    expect(firstLotQuantity.required).toBe(true);
+    expect(secondLotQuantity.required).toBe(true);
+    await user.clear(firstLotQuantity);
+    await user.type(firstLotQuantity, "500");
+    await user.clear(secondLotQuantity);
+    await user.type(secondLotQuantity, "700");
+    await user.click(screen.getByRole("button", { name: "Save feeding record" }));
+
+    const firstLotRow = await screen.findByRole("row", { name: /Lot 24-A/ });
+    const secondLotRow = screen.getByRole("row", { name: /Lot 24-B/ });
+    expect(within(firstLotRow).getByText("500")).toBeTruthy();
+    expect(within(secondLotRow).getByText("700")).toBeTruthy();
+  });
+
+  it("AC_10_1_DisplaysReturnedCostEnergyAndInventoryConsumption", async () => {
+    const plannedActivity = getGetFeedingActivitiesResponseMock().activities[0];
+    const inventory = getGetInventoryItemsResponseMock();
+    inventory.items[0].consumedStockLb = 7700;
+    inventory.items[0].closingStockLb = 47000;
+    server.use(
+      getRecordFeedingActivityMockHandler({ activity: plannedActivity }),
+      getGetInventoryItemsMockHandler(inventory),
+    );
+    at("/feeding/log");
+    const { unmount } = render(<FeedingLogContainer />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("button", { name: "Save feeding record" })).toBeTruthy();
+    await fillActivityForm(user, [{ name: "Lot 24-A", quantity: "1200" }], 401);
+    await user.click(screen.getByRole("button", { name: "Save feeding record" }));
+
+    await user.click(await screen.findByRole("button", { name: /details/i }));
+    await expectText(/228/);
+    await expectText(/1454/);
+    await expectText("Yellow corn");
+    await expectText(/840/);
+    await expectText("Lot 24-A");
+    await expectText(/1,?200/);
+    await expectText(/-22/);
+
+    await user.click(await screen.findByRole("link", { name: "Yellow corn" }));
+    expect(nav.went.some((destination) => destination.startsWith("/inventory"))).toBe(true);
+    unmount();
+    at("/inventory");
+    render(<FeedInventoryContainer />);
+    expect(await screen.findAllByText("Yellow corn")).not.toHaveLength(0);
+    await expectText("7,700");
+    await expectText("47,000");
+  });
+
+  it("AC_10_2_ShowsInventoryShortageWithoutSavingActivity", async () => {
+    let saveAttempts = 0;
+    server.use(
+      getGetFeedingActivitiesMockHandler({ activities: [] }),
+      http.post("*/feeding/activities", () => {
+        saveAttempts += 1;
+        return HttpResponse.json({
+        code: "conflict",
+        message: "Insufficient inventory to save the requested activity.",
+        details: ["Requested 1200 lb; 900 lb is available."],
+        }, { status: 409 });
+      }),
+    );
+    at("/feeding/log");
+    render(<FeedingLogContainer />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("button", { name: "Save feeding record" })).toBeTruthy();
+    await fillActivityForm(user, [{ name: "Lot 24-A", quantity: "1200" }]);
+    await user.click(screen.getByRole("button", { name: "Save feeding record" }));
+
+    await expectText("Insufficient inventory to save the requested activity.");
+    await expectText("Requested 1200 lb; 900 lb is available.");
+    expect(saveAttempts).toBe(1);
+    expect(screen.queryByText("Unplanned")).toBeNull();
+    expect(screen.queryByText("Completed")).toBeNull();
+    expect(screen.queryByText("802")).toBeNull();
+    expect(screen.queryByRole("row", { name: /Lot 24-A/ })).toBeNull();
+  });
+});

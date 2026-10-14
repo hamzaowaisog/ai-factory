@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overview — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design Tokens & Reset */
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-panel: #FFFFFF;
+      --text-main: #252A27;
+      --text-quieter: #66706A;
+      --border-rule: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography Classes */
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFade {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFade var(--dur-quick) ease-out forwards;
+    }
+
+    .table-row-animate {
+      opacity: 0;
+      animation: entranceFade var(--dur-quick) ease-out forwards;
+    }
+
+    .table-row-animate:nth-child(1) { animation-delay: 50ms; }
+    .table-row-animate:nth-child(2) { animation-delay: 100ms; }
+    .table-row-animate:nth-child(3) { animation-delay: 150ms; }
+    .table-row-animate:nth-child(4) { animation-delay: 200ms; }
+    .table-row-animate:nth-child(5) { animation-delay: 250ms; }
+    .table-row-animate:nth-child(6) { animation-delay: 300ms; }
+
+    .breathe-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      animation: status-breathe 8s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Shell Header */
+    header.site-header {
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border-rule);
+      height: 60px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      white-space: nowrap;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .header-left::-webkit-scrollbar {
+      display: none;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      background-color: var(--text-main);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .brand-wordmark {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .shared-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .nav-item {
+      padding: 6px 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quieter);
+      text-decoration: none;
+      border-radius: 6px;
+      transition: color var(--dur-quick), background-color var(--dur-quick);
+      line-height: 20px;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+      background-color: var(--bg-page);
+    }
+
+    .nav-item:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .nav-item:active {
+      background-color: #EAECEA;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      padding-left: 16px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar-initials {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      background-color: var(--bg-page);
+      border: 1px solid var(--border-rule);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: var(--text-quieter);
+    }
+
+    /* Page Layout */
+    main.main-content {
+      flex: 1;
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Operational Hero Headline (No metric cards) */
+    .headline-panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+    }
+
+    .headline-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .as-of-date {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-quieter);
+      letter-spacing: 0.01em;
+      margin-bottom: 2px;
+    }
+
+    .main-headline {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 30px;
+      line-height: 36px;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .headline-context {
+      font-size: 15px;
+      color: var(--text-quieter);
+      line-height: 22px;
+    }
+
+    .context-highlight {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Data Layout: Wide Table & Narrow Performance Summary */
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-rule);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .panel-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 17px;
+      line-height: 22px;
+      color: var(--text-main);
+    }
+
+    .panel-meta {
+      font-size: 13px;
+      color: var(--text-quieter);
+    }
+
+    /* Pen Occupancy Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    table.data-table th {
+      padding: 12px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-quieter);
+      border-bottom: 1px solid var(--border-rule);
+      background-color: #FAFAFA;
+      white-space: nowrap;
+    }
+
+    table.data-table td {
+      padding: 12px 20px;
+      height: 48px;
+      border-bottom: 1px solid var(--border-rule);
+      font-size: 14px;
+      vertical-align: middle;
+      color: var(--text-main);
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.data-table tr:hover td {
+      background-color: #FBFBFA;
+    }
+
+    /* Status Badges with Thin Matching Outline & Explicit Text */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 16px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .status-badge.good {
+      color: var(--status-good);
+      border-color: var(--status-good);
+      background-color: #F0F7F3;
+    }
+
+    .status-badge.waiting {
+      color: var(--status-waiting);
+      border-color: var(--status-waiting);
+      background-color: #FCF7EE;
+    }
+
+    .status-badge.failed {
+      color: var(--status-failed);
+      border-color: var(--status-failed);
+      background-color: #FDF3F2;
+    }
+
+    /* Narrow Lot Performance Summary */
+    .summary-list {
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lot-item {
+      padding: 12px;
+      border: 1px solid var(--border-rule);
+      border-radius: 6px;
+      background-color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color var(--dur-quick);
+    }
+
+    .lot-item:hover {
+      border-color: #BDC4C0;
+    }
+
+    .lot-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .lot-id {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .lot-desc {
+      font-size: 13px;
+      color: var(--text-quieter);
+    }
+
+    .lot-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-top: 4px;
+      border-top: 1px dashed var(--border-rule);
+      margin-top: 2px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-quieter);
+    }
+
+    .metric-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    /* Supporting documentary photo crop */
+    .photo-supporting-card {
+      margin-top: 8px;
+      border-top: 1px solid var(--border-rule);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .supporting-photo-crop {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border-rule);
+      display: block;
+    }
+
+    .photo-caption {
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--text-quieter);
+    }
+
+    /* Mobile Responsive Rules */
+    @media (max-width: 900px) {
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      header.site-header {
+        height: auto;
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+        padding-left: 0;
+        border-top: 1px solid var(--border-rule);
+        padding-top: 10px;
+      }
+
+      .headline-panel {
+        padding: 18px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .main-headline {
+        font-size: 26px;
+        line-height: 32px;
+      }
+
+      /* Stacked mobile table rows */
+      table.data-table thead {
+        display: none;
+      }
+
+      table.data-table,
+      table.data-table tbody,
+      table.data-table tr,
+      table.data-table td {
+        display: block;
+        width: 100%;
+      }
+
+      table.data-table tr {
+        border-bottom: 1px solid var(--border-rule);
+        padding: 12px 16px;
+      }
+
+      table.data-table td {
+        height: auto;
+        padding: 6px 0;
+        border-bottom: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+      }
+
+      table.data-table td::before {
+        content: attr(data-label);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-quieter);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared Header -->
+  <header class="site-header">
+    <div class="header-left">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">C</div>
+        <span class="brand-wordmark">Cedar Draw Feedlot</span>
+      </div>
+      <nav class="shared-nav" aria-label="Main Navigation">
+        <a href="#overview" class="nav-item active">Overview</a>
+        <a href="#import-records" class="nav-item">Import records</a>
+        <a href="#lots-pens" class="nav-item">Lots &amp; pens</a>
+        <a href="#feed-inventory" class="nav-item">Feed inventory</a>
+        <a href="#inventory-outlook" class="nav-item">Inventory outlook</a>
+        <a href="#rations" class="nav-item">Rations</a>
+        <a href="#feeding-plans" class="nav-item">Feeding plans</a>
+        <a href="#feeding-log" class="nav-item">Feeding log</a>
+        <a href="#weight-records" class="nav-item">Weight records</a>
+        <a href="#operational-reports" class="nav-item">Operational reports</a>
+        <a href="#feed-to-gain" class="nav-item">Feed-to-gain</a>
+        <a href="#project-demo" class="nav-item">Project &amp; demo</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="user-profile">
+        <div class="avatar-initials" aria-hidden="true">MO</div>
+        <div class="user-meta">
+          <span class="user-name">Mara Ortega</span>
+          <span class="user-role">Feed manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Content: Overview -->
+  <main class="main-content">
+    
+    <!-- Large Operational Headline Block -->
+    <section class="headline-panel animate-entrance" aria-labelledby="overview-heading">
+      <div class="headline-left">
+        <div class="as-of-date">
+          <span class="breathe-dot" aria-hidden="true"></span>As of <span class="font-mono">23 Apr 2025</span> · America/Denver
+        </div>
+        <h1 id="overview-heading" class="main-headline">188 head on pens</h1>
+        <p class="headline-context">
+          <span class="context-highlight">2 active pens</span> · 
+          <span class="context-highlight">212 head received</span> across 3 lots · 
+          <span class="context-highlight">24 head</span> awaiting a pen
+        </p>
+      </div>
+    </section>
+
+    <!-- Operational Data Grid: Wide Table beside Narrow Lot Performance Summary -->
+    <div class="data-grid">
+
+      <!-- Wide Pen-Occupancy Table Panel -->
+      <section class="panel animate-entrance" style="animation-delay: 50ms;" aria-labelledby="pen-occupancy-heading">
+        <div class="panel-header">
+          <h2 id="pen-occupancy-heading" class="panel-title">Pen occupancy</h2>
+          <span class="panel-meta font-mono">188 / 270 occupied capacity</span>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Pen</th>
+                <th>Occupancy / Capacity</th>
+                <th>Open Head</th>
+                <th>Active Lots in Pen</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="table-row-animate">
+                <td data-label="Pen" class="font-mono" style="font-weight: 600;">P-04</td>
+                <td data-label="Occupancy"><span class="font-mono">116 / 150</span> head</td>
+                <td data-label="Open Head"><span class="font-mono">34</span> open</td>
+                <td data-label="Active Lots">
+                  <span class="font-mono">L-241</span> (60) · <span class="font-mono">L-242</span> (56)
+                </td>
+                <td data-label="Status">
+                  <span class="status-badge good">good</span>
+                </td>
+              </tr>
+              <tr class="table-row-animate">
+                <td data-label="Pen" class="font-mono" style="font-weight: 600;">P-02</td>
+                <td data-label="Occupancy"><span class="font-mono">72 / 120</span> head</td>
+                <td data-label="Open Head"><span class="font-mono">48</span> open</td>
+                <td data-label="Active Lots">
+                  <span class="font-mono">L-239</span> (72)
+                </td>
+                <td data-label="Status">
+                  <span class="status-badge good">good</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Narrow Best/Worst Lot Performance Summary -->
+      <section class="panel animate-entrance" style="animation-delay: 100ms;" aria-labelledby="lot-perf-heading">
+        <div class="panel-header">
+          <h2 id="lot-perf-heading" class="panel-title">Lot performance</h2>
+          <span class="panel-meta">ADG ranking</span>
+        </div>
+        <div class="summary-list">
+
+          <!-- Best: L-239 -->
+          <article class="lot-item">
+            <div class="lot-top-row">
+              <span class="lot-id">L-239</span>
+              <span class="status-badge good">best</span>
+            </div>
+            <div class="lot-desc">Angus steers · Pen <span class="font-mono">P-02</span></div>
+            <div class="lot-metric-row">
+              <span class="metric-label">Average daily gain</span>
+              <span class="metric-value">2.95 lb/day</span>
+            </div>
+          </article>
+
+          <!-- Middle: L-241 -->
+          <article class="lot-item">
+            <div class="lot-top-row">
+              <span class="lot-id">L-241</span>
+              <span class="status-badge waiting">waiting</span>
+            </div>
+            <div class="lot-desc">Angus–Hereford steers · Pen <span class="font-mono">P-04</span></div>
+            <div class="lot-metric-row">
+              <span class="metric-label">Average daily gain</span>
+              <span class="metric-value">2.35 lb/day</span>
+            </div>
+          </article>
+
+          <!-- Worst: L-242 -->
+          <article class="lot-item">
+            <div class="lot-top-row">
+              <span class="lot-id">L-242</span>
+              <span class="status-badge failed">worst</span>
+            </div>
+            <div class="lot-desc">Charolais-cross heifers · Pen <span class="font-mono">P-04</span></div>
+            <div class="lot-metric-row">
+              <span class="metric-label">Average daily gain</span>
+              <span class="metric-value">2.05 lb/day</span>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- Modest Supporting Crop Photo (Documentary feed pen photograph) -->
+        <div class="photo-supporting-card">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAeXpayxG2sSq4Yh4_UmLH83e4p2DI4znmjz4SW8hEqxP6u6npCkJz3Cfg5DpKBBwg7INIfW-0yBnXV0IYfsQeMSM5VeD4EG1qInKUphjHSEruDcFIkcc3f4uh0agO8S_nxRx3PBbmkA49M4o66POiRmTmodrXFN_2dq7B5rIirOsSd4L0L2mb4KeOqQlmo54EchzT1I0h86Qg0LuxgjZvZQxNrc0R1Q0qZbFwSHp5NO2NgZdOV5xnTdmpf4nMwXp96SLp5wjklvA" alt="Angus and Angus-Hereford steers feeding along concrete bunk in feedlot pen" class="supporting-photo-crop">
+          <p class="photo-caption">Operational feed bunk view: Angus and Angus–Hereford cross steers in pen.</p>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

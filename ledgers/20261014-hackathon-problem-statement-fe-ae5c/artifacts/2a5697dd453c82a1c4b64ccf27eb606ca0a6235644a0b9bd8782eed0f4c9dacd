@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed inventory — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* Design Tokens */
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #252A27;
+      --text-quiet: #66706A;
+      --border-color: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 40px;
+    }
+
+    /* Headings */
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      color: var(--text-main);
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 650;
+      line-height: 32px;
+    }
+    h2 {
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 28px;
+    }
+    h3 {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    /* Numeric & Monospace font */
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes row-settle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--status-good);
+      display: inline-block;
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    .stagger-1 { animation: row-settle var(--dur-quick) ease-out forwards; }
+    .stagger-2 { animation: row-settle var(--dur-quick) 50ms ease-out forwards; }
+    .stagger-3 { animation: row-settle var(--dur-quick) 100ms ease-out forwards; }
+    .stagger-4 { animation: row-settle var(--dur-quick) 150ms ease-out forwards; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot, .stagger-1, .stagger-2, .stagger-3, .stagger-4 {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      * {
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header */
+    header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 16px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+    .c-badge {
+      width: 28px;
+      height: 28px;
+      background-color: var(--text-main);
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    .brand-text {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      background-color: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .user-role {
+      font-size: 11px;
+      color: var(--text-quiet);
+    }
+
+    .menu-toggle {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+    .menu-toggle:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    /* Container */
+    .container {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .title-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .meta-time {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+
+    /* Panels */
+    .panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    /* Anchor Hero Item */
+    .anchor-hero {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .anchor-image {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      display: block;
+    }
+    .tag-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .context-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-quiet);
+      font-weight: 600;
+    }
+
+    /* Status Tags */
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 18px;
+      border: 1px solid transparent;
+      background-color: transparent;
+    }
+    .status-good {
+      color: var(--status-good);
+      border-color: var(--status-good);
+    }
+    .status-waiting {
+      color: var(--status-waiting);
+      border-color: var(--status-waiting);
+    }
+    .status-failed {
+      color: var(--status-failed);
+      border-color: var(--status-failed);
+    }
+
+    /* Big Metric Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+    }
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .metric-cell.span-2 {
+      grid-column: span 2;
+    }
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+    .metric-val-large {
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 32px;
+      color: var(--text-main);
+    }
+    .metric-val {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+      color: var(--text-main);
+    }
+
+    /* Catalog Search & Stacked Items */
+    .catalog-header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .search-input {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 16px;
+      font-family: 'Source Sans 3', sans-serif;
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+    }
+    .search-input:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .catalog-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .catalog-row {
+      min-height: 56px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-surface);
+      text-decoration: none;
+      color: inherit;
+    }
+    .catalog-row:last-child {
+      border-bottom: none;
+    }
+    .catalog-row.selected {
+      background-color: #FBF7F4;
+      border-left: 3px solid var(--primary);
+    }
+    .row-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .row-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .row-sub {
+      font-size: 13px;
+      color: var(--text-quiet);
+    }
+    .row-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    /* Nutrition Specs */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .spec-row {
+      border-bottom: 1px solid var(--border-color);
+      height: 36px;
+    }
+    .spec-row:last-child {
+      border-bottom: none;
+    }
+    .spec-label {
+      font-size: 14px;
+      color: var(--text-quiet);
+    }
+    .spec-val {
+      font-size: 14px;
+      font-weight: 600;
+      text-align: right;
+      color: var(--text-main);
+    }
+
+    /* Recorded Movements */
+    .movement-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .movement-card {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      background-color: #FAFAFA;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mov-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mov-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .mov-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .mov-qty {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mov-meta {
+      font-size: 12px;
+      color: var(--text-quiet);
+    }
+
+    /* Forms */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .input-field, .select-field {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 16px;
+      font-family: 'Source Sans 3', sans-serif;
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+    }
+    .input-field:focus, .select-field:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity var(--dur-quick) ease;
+    }
+    .btn-primary:hover {
+      opacity: 0.94;
+    }
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+    .btn-primary:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      height: 44px;
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color var(--dur-quick) ease;
+    }
+    .btn-secondary:hover {
+      background-color: #F0F2F1;
+    }
+    .btn-secondary:active {
+      transform: scale(0.99);
+    }
+    .btn-secondary:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .form-desc {
+      font-size: 14px;
+      color: var(--text-quiet);
+      margin-bottom: 12px;
+      line-height: 20px;
+    }
+
+    .demand-callout {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background-color: #F8F9F8;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-quiet);
+      line-height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header with Brand and Initials Avatar -->
+  <header>
+    <div class="brand-mark">
+      <div class="c-badge">C</div>
+      <span class="brand-text">Cedar Draw Feedlot</span>
+    </div>
+
+    <div class="header-right">
+      <div class="user-pill">
+        <div class="user-avatar">MO</div>
+        <div class="user-meta">
+          <span class="user-name">Mara Ortega</span>
+          <span class="user-role">Feed manager</span>
+        </div>
+      </div>
+      <button class="menu-toggle" aria-label="Open menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 5h14a1 1 0 110 2H3a1 1 0 110-2zm0 4h14a1 1 0 110 2H3a1 1 0 110-2zm0 4h14a1 1 0 110 2H3a1 1 0 110-2z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Page Single Heading -->
+    <div class="title-row">
+      <h1>Feed inventory</h1>
+      <div class="meta-time">
+        <span class="live-dot"></span>
+        <span class="mono">23 Apr 2025 · America/Denver</span>
+      </div>
+    </div>
+
+    <!-- 1. Visual Anchor: Selected Item (Yellow Corn) -->
+    <section class="panel anchor-hero">
+      <div class="tag-row">
+        <span class="context-label">Active selection</span>
+        <span class="status-tag status-good">good</span>
+      </div>
+
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1Vo6aXRztqgflH4Kesl0AVCr1TGEYrIYdKe9uxby2ylqnm3EEU99c-qSOlyL7YqKwwGC39DMX6E7wTk_AyTHfCchzoSW4tiYujBo3o0F7HF1uDSVkyAKACnD8yCpkA-qPqPUSGlDALYxxQRmr4tjJ7MVq6bpuLWgkhmw-jZsxbOoT9XqzEQbHtO39nDOWzJ5EmGl3qjXH91-p-HulB7DQYZ9Ytt7XV6X-PZlxgaHcXwaGxMoBTmMfeOVg" alt="Yellow corn kernels close photograph" class="anchor-image">
+
+      <div>
+        <h2>Yellow corn</h2>
+        <p class="form-desc" style="margin-bottom: 8px;">Baseline energy grain · Grower 1 & Finisher 2 rations</p>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-cell span-2">
+          <span class="metric-label">Unit price</span>
+          <span class="metric-val-large mono">$0.112 <span style="font-size: 16px; font-weight: normal; color: var(--text-quiet);">/lb</span></span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Current stock</span>
+          <span class="metric-val mono">680,000 <span style="font-size: 13px; font-weight: normal; color: var(--text-quiet);">lb</span></span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-label">Projected balance</span>
+          <span class="metric-val mono">69,689 <span style="font-size: 13px; font-weight: normal; color: var(--text-quiet);">lb annual</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Searchable Feed Item Catalog (Stacked phone rows) -->
+    <section class="panel">
+      <div class="catalog-header">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h3>Feed catalog</h3>
+          <span class="mono" style="font-size: 13px; color: var(--text-quiet);">4 active items</span>
+        </div>
+        <input type="text" class="search-input" value="Yellow corn" placeholder="Search feed catalog...">
+      </div>
+
+      <div class="catalog-list">
+        <!-- Row 1: Yellow Corn (Selected) -->
+        <div class="catalog-row selected stagger-1">
+          <div class="row-info">
+            <span class="row-name">Yellow corn</span>
+            <span class="row-sub mono">$0.112 /lb</span>
+          </div>
+          <div class="row-right">
+            <span class="mono" style="font-weight: 600; font-size: 15px;">680,000 lb</span>
+            <span class="status-tag status-good" style="font-size: 11px; padding: 0 6px;">good</span>
+          </div>
+        </div>
+
+        <!-- Row 2: Alfalfa Hay -->
+        <div class="catalog-row stagger-2">
+          <div class="row-info">
+            <span class="row-name">Alfalfa hay</span>
+            <span class="row-sub mono">$0.145 /lb</span>
+          </div>
+          <div class="row-right">
+            <span class="mono" style="font-weight: 600; font-size: 15px;">390,000 lb</span>
+            <span class="status-tag status-good" style="font-size: 11px; padding: 0 6px;">good</span>
+          </div>
+        </div>
+
+        <!-- Row 3: Soybean Meal -->
+        <div class="catalog-row stagger-3">
+          <div class="row-info">
+            <span class="row-name">Soybean meal</span>
+            <span class="row-sub mono">$0.238 /lb</span>
+          </div>
+          <div class="row-right">
+            <span class="mono" style="font-weight: 600; font-size: 15px;">170,000 lb</span>
+            <span class="status-tag status-good" style="font-size: 11px; padding: 0 6px;">good</span>
+          </div>
+        </div>
+
+        <!-- Row 4: Mineral Premix -->
+        <div class="catalog-row stagger-4">
+          <div class="row-info">
+            <span class="row-name">Mineral premix</span>
+            <span class="row-sub mono">$0.640 /lb</span>
+          </div>
+          <div class="row-right">
+            <span class="mono" style="font-weight: 600; font-size: 15px;">42,000 lb</span>
+            <span class="status-tag status-good" style="font-size: 11px; padding: 0 6px;">good</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demand-callout">
+        <div><strong>Daily bunk demand:</strong> <span class="mono">2,920 lb</span> across active pens (P-04 & P-02)</div>
+        <div><strong>Estimated wastage ratio:</strong> <span class="mono">4.2%</span> projected</div>
+      </div>
+    </section>
+
+    <!-- 3. Nutritional Specifications for Selected Item -->
+    <section class="panel">
+      <h3>Nutritional specifications</h3>
+      <table class="spec-table">
+        <tr class="spec-row">
+          <td class="spec-label">Crude protein</td>
+          <td class="spec-val mono">8.8%</td>
+        </tr>
+        <tr class="spec-row">
+          <td class="spec-label">Total digestible nutrients (TDN)</td>
+          <td class="spec-val mono">88.0%</td>
+        </tr>
+        <tr class="spec-row">
+          <td class="spec-label">Net energy for gain (NEg)</td>
+          <td class="spec-val mono">1.55 Mcal/lb</td>
+        </tr>
+        <tr class="spec-row">
+          <td class="spec-label">Est. wastage ratio</td>
+          <td class="spec-val mono">4.2%</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- 4. Recorded Movements (Stacked below on mobile) -->
+    <section class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h3>Recorded movements</h3>
+        <span class="mono" style="font-size: 13px; color: var(--text-quiet);">Feedlot log</span>
+      </div>
+
+      <div class="movement-list">
+        <!-- 18 Apr 2025 movement -->
+        <div class="movement-card">
+          <div class="mov-header">
+            <span class="mov-title">Received commodity load</span>
+            <span class="status-tag status-good">posted</span>
+          </div>
+          <div class="mov-details">
+            <span class="mov-qty mono" style="color: var(--status-good);">+12,000 lb</span>
+            <span class="mov-meta">Yellow corn · Grain bin 1</span>
+          </div>
+          <div class="mov-meta mono">
+            18 Apr 2025 · Eli Chen
+          </div>
+        </div>
+
+        <!-- 22 Apr 2025 actual wastage -->
+        <div class="movement-card">
+          <div class="mov-header">
+            <span class="mov-title">Actual wastage logged</span>
+            <span class="status-tag status-good">saved</span>
+          </div>
+          <div class="mov-details">
+            <span class="mov-qty mono" style="color: var(--status-failed);">-116 lb</span>
+            <span class="mov-meta">Alfalfa hay · Bunk cleanout & spoil</span>
+          </div>
+          <div class="mov-meta mono">
+            22 Apr 2025 · Mara Ortega
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Stock Movement Form -->
+    <section class="panel">
+      <h3>Record stock movement</h3>
+      <p class="form-desc">Log vendor receipts, commodity transfers, or scale updates.</p>
+
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label for="mov-item">Feed item</label>
+          <select id="mov-item" class="select-field">
+            <option selected>Yellow corn</option>
+            <option>Alfalfa hay</option>
+            <option>Soybean meal</option>
+            <option>Mineral premix</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="mov-type">Movement type</label>
+          <select id="mov-type" class="select-field">
+            <option selected>Receipt from vendor</option>
+            <option>Internal transfer</option>
+            <option>Scale reconciliation</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="mov-date">Date (America/Denver)</label>
+          <input type="text" id="mov-date" class="input-field mono" value="23 Apr 2025">
+        </div>
+
+        <div class="form-group">
+          <label for="mov-qty">Quantity (lb)</label>
+          <input type="text" id="mov-qty" class="input-field mono" placeholder="e.g. 12,000">
+        </div>
+
+        <div class="form-group">
+          <label for="mov-note">Note</label>
+          <input type="text" id="mov-note" class="input-field" placeholder="PO reference, bill of lading, or lot trace">
+        </div>
+
+        <button type="submit" class="btn-primary">Save movement</button>
+      </form>
+    </section>
+
+    <!-- 6. Separate Actual Wastage Entry -->
+    <section class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+        <h3>Separate actual-wastage entry</h3>
+        <span class="status-tag status-waiting" style="font-size: 11px;">audit log</span>
+      </div>
+      <p class="form-desc">Directly records spoilage or bunk refusal without combining into ordinary feed consumption.</p>
+
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label for="waste-item">Commodity item</label>
+          <select id="waste-item" class="select-field">
+            <option>Yellow corn</option>
+            <option selected>Alfalfa hay</option>
+            <option>Soybean meal</option>
+            <option>Mineral premix</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="waste-date">Record date</label>
+          <input type="text" id="waste-date" class="input-field mono" value="23 Apr 2025">
+        </div>
+
+        <div class="form-group">
+          <label for="waste-qty">Actual wastage (lb)</label>
+          <input type="text" id="waste-qty" class="input-field mono" value="116">
+        </div>
+
+        <div class="form-group">
+          <label for="waste-notes">Wastage cause / notes</label>
+          <input type="text" id="waste-notes" class="input-field" value="Bunk cleanout following precipitation">
+        </div>
+
+        <button type="submit" class="btn-secondary">Record actual wastage</button>
+      </form>
+    </section>
+  </main>
+
+</body>
+</html>

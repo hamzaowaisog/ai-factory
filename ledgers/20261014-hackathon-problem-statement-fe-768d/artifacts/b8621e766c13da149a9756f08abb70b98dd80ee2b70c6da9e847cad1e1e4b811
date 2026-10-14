@@ -1,0 +1,39 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "example:|lots:|pens:|movements:|lotId:|penName:|sourceIdentifier:",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 0,
+   "resultChars": 2232,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;example:|lots:|pens:|movements:|lotId:|penName:|sourceIdentifier:&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:71: /lots:\ncontracts/openapi.yaml:147: /inventory/movements:\ncontracts/openapi.yaml:538: LotId:\ncontracts/openapi.yaml:624: penName:\ncontracts/openapi.yaml:677: pens:\ncontracts/openapi.yaml:744: lotId:\ncontracts/openapi.yaml:748: penName:\ncontracts/openapi.yaml:786: penName:\ncontracts/openapi.yaml:839: sourceIdentifier:\ncontracts/openapi.yaml:875: proposedLots:\ncontracts/openapi.yaml:891: lotId:\ncontracts/openapi.yaml:897: penName:\ncontracts/openapi.yaml:971: lotId:\ncontracts/openapi.yaml:1002: lotId:\ncontracts/openapi.yaml:1008: penName:\ncontracts/openapi.yaml:1080: lotId:\ncontracts/openapi.yaml:1191: movements:\ncontracts/openapi.yaml:1543: penName:\ncontracts/openapi.yaml:1545: lotId:\ncontracts/openapi.yaml:1607: lotId:\ncontracts/openapi.yaml:1642: lotId:\ncontracts/openapi.yaml:1690: penName:\ncontracts/openapi.yaml:1787: lotId:\ncontracts/openapi.yaml:1830: lotId:\ncontracts/openapi.yaml:1888: penName:\ncontracts/openapi.yaml:1914: lotId:\ncontracts/openapi.yaml:1976: pens:\ncontracts/openapi.yaml:1980: lots:\ncontracts/openapi.yaml:2005: penName:\ncontracts/openapi.yaml:2058: lotId:\ncontracts/openapi.yaml:2066: penName:\ncontracts/openapi.yaml:2199: sourceIdentifier:\ncontracts/openapi.yaml:2244: example:\ncontracts/openapi.yaml:2248: pens:\ncontracts/openapi.yaml:2256: - lotId: 101\ncontracts/openapi.yaml:2258: penName: Pen 01\ncontracts/openapi.yaml:2271: penName: Pen 01\ncontracts/openapi.yaml:2292: example:\ncontracts/openapi.yaml:2303: example:\ncontracts/openapi.yaml:2307: sourceIdentifier: PO-8041-L1\ncontracts/openapi.yaml:2318: proposedLots:\ncontracts/openapi.yaml:2319: - lotId: 101\ncontracts/openapi.yaml:2322: penName: Pen 01\ncontracts/openapi.yaml:2337: example:\ncontracts/openapi.yaml:2348: sourceIdentifier: PO-8041-L1\ncontracts/openapi.yaml:2359: proposedLots: []\ncontracts/openapi.yaml:2366: example:\ncontracts/openapi.yaml:2369: - lotId: 101\ncontracts/openapi.yaml:2372: penName: Pen 01\ncontracts/openapi.yaml:2388: lots:\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "contracts/openapi.yaml",
+    "start": 2840,
+    "end": 2892
+   },
+   "ms": 0,
+   "resultChars": 2366,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;contracts/openapi.yaml&quot;,&quot;start&quot;:2840,&quot;end&quot;:2892}\">\ncontracts/openapi.yaml lines 2840-2892\n2840\t            lots:\n2841\t              - lotId: 101\n2842\t                lotName: Lot 24-A\n2843\t                location: Pen 01\n2844\t                breed: Angus\n2845\t                headCount: 52\n2846\t                measuredAdgLbPerDay: 3.1\n2847\t                fcrAsFed: 6.4\n2848\t                feedCostPerLbGain: 0.82\n2849\t            inventory:\n2850\t              - itemId: 11\n2851\t                commodity: Yellow corn\n2852\t                currentStockLb: 48200\n2853\t                unitPrice: 0.18\n2854\t                dailyEstimatedDrawLb: 920\n2855\t                annualOutlookLb: 335800\n2856\t            planAlignment:\n2857\t              - penName: Pen 01\n2858\t                plannedLb: 1222\n2859\t                actualLb: 1200\n2860\t                varianceLb: -22\n2861\t                alignmentStatus: Under plan\n2862\t            rationUsage:\n2863\t              - rationName: Grower 1\n2864\t                penCount: 2\n2865\t                feedLb: 2450\n2866\t    FeedToGainOk:\n2867\t      description: Filtered lot feed-to-gain report returned. The date range selects the latest weight reading in range and feeding events through that reading.\n2868\t      content:\n2869\t        application/json:\n2870\t          schema:\n2871\t            $ref: \"#/components/schemas/FeedToGainResponse\"\n2872\t          example:\n2873\t            filters:\n2874\t              startDate: 2026-10-01\n2875\t              endDate: 2026-10-14\n2876\t              breed: Angus\n2877\t              sex: steer\n2878\t              penId: 1\n2879\t            weightSelectionRule: Latest weight reading in selected range; feeding events through that reading.\n2880\t            rows:\n2881\t              - lotId: 101\n2882\t                lotName: Lot 24-A\n2883\t                breed: Angus\n2884\t                sex: steer\n2885\t                penName: Pen 01\n2886\t                latestAverageWeightLb: 785\n2887\t                latestWeightDate: 2026-10-14\n2888\t                headcount: 52\n2889\t                adgLbPerDay: 3.1\n2890\t                asFedFeedLb: 44928\n2891\t                fcrAsFed: 6.4\n2892\t                feedCostPerLbGain: 0.82\n… (3002 lines total; ask for start=2893)\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "DbSet|EnsureCreated|SaveChanges|AddRange|\\.Add\\(",
+    "glob": "App.Api/**/*.cs"
+   },
+   "ms": 0,
+   "resultChars": 245,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;DbSet|EnsureCreated|SaveChanges|AddRange|\\\\.Add\\\\(&quot;,&quot;glob&quot;:&quot;App.Api/**/*.cs&quot;}\">\nApp.Api/Program.cs:22: db.Database.EnsureCreated();\n</untrusted_document>"
+  }
+ ]
+}

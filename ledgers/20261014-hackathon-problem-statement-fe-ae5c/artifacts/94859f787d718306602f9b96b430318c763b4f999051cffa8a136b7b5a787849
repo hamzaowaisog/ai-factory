@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-11.1",
+      "testId": "AC_11_1_ShowsReturnedWeightMeasurementAfterSave",
+      "verdict": "weak",
+      "why": "The response repeats the submitted date, headcount, and average weight, so assert deliberately different mocked response values to distinguish returned data from an echoed form."
+     },
+     {
+      "acId": "AC-11.2",
+      "testId": "AC_11_2_ShowsWeightHistoryInDateOrderWithReadingControls",
+      "verdict": "weak",
+      "why": "The test orders readings by average-weight text and checks only a date header; assert both returned dates are visible and in chronological order."
+     },
+     {
+      "acId": "AC-11.3",
+      "testId": "AC_11_3_ShowsReturnedSeriesAndRecalculatedMetricsAfterEdit",
+      "verdict": "weak",
+      "why": "The edit response matches the original series and metrics, and the test omits deletion and validation-error cases; use changed returned data and assert the returned list and metrics for edit, delete, and error outcomes."
+     },
+     {
+      "acId": "AC-12.1",
+      "testId": "AC_12_1_ShowsAllReturnedLotPerformanceMetrics",
+      "verdict": "weak",
+      "why": "The test checks metric labels and expected numbers separately, so values could be shown under the wrong labels; assert each returned value alongside its corresponding metric label."
+     },
+     {
+      "acId": "AC-12.2",
+      "testId": "AC_12_2_UsesAsFedPoundsAsFeedConversionRatioBasis",
+      "verdict": "weak",
+      "why": "It verifies the as-fed total and an “as-fed” string but not that the displayed feed conversion ratio uses that total as its basis; assert that relationship explicitly."
+     },
+     {
+      "acId": "AC-12.3",
+      "testId": "AC_12_3_ShowsReturnedTotalGainAndAverageDailyGain",
+      "verdict": "weak",
+      "why": "The expected numbers are asserted independently of their labels, so assert the returned total gain and ADG values within their respective metric displays."
+     },
+     {
+      "acId": "AC-12.4",
+      "testId": "AC_12_4_ShowsLatestMetricsAsSoonAsAWeightRecordIsSaved",
+      "verdict": "weak",
+      "why": "This covers only saving a weight record and checks only gain and ADG; cover feeding and edit/delete outcomes too, and assert all latest returned feed-to-gain metrics without a manual recalculation step."
+     },
+     {
+      "acId": "AC-12.5",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "It asserts the feed-cost-per-pound-of-gain label is present and that neither ROI nor profitability appears."
+     },
+     {
+      "acId": "AC-13.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The exact result assertions cover date difference, headcount-adjusted total gain, ADG, unit conversions, FCR, cost of gain, and projections using both measured and default ADG."
+     },
+     {
+      "acId": "AC-14.1",
+      "testId": "AC_14_1_ShowsLotPenInventoryFeedAndPerformanceDashboardData",
+      "verdict": "weak",
+      "why": "Most dashboard numbers are asserted without their metric labels or lot associations, so assert each required value with its corresponding label and identify which lots are best and worst performing."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

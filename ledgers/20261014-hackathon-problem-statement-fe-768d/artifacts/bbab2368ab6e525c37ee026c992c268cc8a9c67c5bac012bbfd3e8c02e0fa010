@@ -1,0 +1,30 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-3.1",
+      "testId": "AC_3_1_SeedsPersistentEntitiesAndCollectionResponses",
+      "verdict": "weak",
+      "why": "The test checks only that each response array is nonempty, so it would pass if those lists contained no seeded records."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts each named example string appears in the response from its corresponding import, lot/pen, inventory, or ration collection."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

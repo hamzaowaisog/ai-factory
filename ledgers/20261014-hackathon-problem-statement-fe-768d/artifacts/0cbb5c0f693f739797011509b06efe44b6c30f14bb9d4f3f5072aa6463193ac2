@@ -1,0 +1,651 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="f684a92a-87a3-49c3-822c-b07e7e115a3a" name="@dfb43fcaa8d7 2026-10-14 12:03:33" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-14T12:03:33.2719714+00:00" queuing="2026-10-14T12:03:33.2719714+00:00" start="2026-10-14T12:03:31.2782113+00:00" finish="2026-10-14T12:03:34.1123098+00:00" />
+  <TestSettings name="default" id="03fc1a95-e74c-442c-81b8-8fed5c2fd329">
+    <Deployment runDeploymentRoot="_dfb43fcaa8d7_2026-10-14_12_03_33" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e497dd06-a5c6-4b30-a6f4-59a925ca6c42" testId="02da969f-00ab-39c5-46a9-9d5de56a04a1" testName="App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts" computerName="dfb43fcaa8d7" duration="00:00:01.2672173" startTime="2026-10-14T12:03:33.2146389+00:00" endTime="2026-10-14T12:03:33.2146390+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e497dd06-a5c6-4b30-a6f4-59a925ca6c42">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "DemoLoadRuns" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+   at App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts() in /src/App.Tests/AcceptancePart2Tests.cs:line 31
+   at App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts() in /src/App.Tests/AcceptancePart2Tests.cs:line 31
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="4004f676-1b19-4fa6-8224-76c08d4eee16" testId="314a4da1-eb40-1464-c65d-797abbc7c38b" testName="App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows" computerName="dfb43fcaa8d7" duration="00:00:00.0322707" startTime="2026-10-14T12:03:33.2475348+00:00" endTime="2026-10-14T12:03:33.2475348+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4004f676-1b19-4fa6-8224-76c08d4eee16">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "DemoLoadRuns" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+   at App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows() in /src/App.Tests/AcceptancePart4Tests.cs:line 74
+   at App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows() in /src/App.Tests/AcceptancePart4Tests.cs:line 75
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="16c53017-ce1d-4f45-9724-af93764e6d27" testId="7dd9fac4-dc16-0bf1-08c0-1f514a2f089f" testName="App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled" computerName="dfb43fcaa8d7" duration="00:00:01.2673821" startTime="2026-10-14T12:03:33.1953358+00:00" endTime="2026-10-14T12:03:33.1953501+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="16c53017-ce1d-4f45-9724-af93764e6d27">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "DemoLoadRuns" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+   at App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled() in /src/App.Tests/AcceptancePart4Tests.cs:line 38
+   at App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled() in /src/App.Tests/AcceptancePart4Tests.cs:line 39
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="318dab0d-3776-4d4c-9acc-64f9b7bd4053" testId="b675aa44-6d53-6079-3bf8-3da1d8891f1c" testName="App.Tests.Part2.AcceptancePart2Tests.AC_2_2_InitializesPersistentStorageForContractEntities" computerName="dfb43fcaa8d7" duration="00:00:00.1058560" startTime="2026-10-14T12:03:33.2913062+00:00" endTime="2026-10-14T12:03:33.2913062+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="318dab0d-3776-4d4c-9acc-64f9b7bd4053">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected row-capable persistent table 'DemoLoadRuns'.</Message>
+          <StackTrace>   at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertEveryContractTableCanStoreRowsAsync() in /src/App.Tests/AcceptancePart2Tests.cs:line 221
+   at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertEveryContractTableCanStoreRowsAsync() in /src/App.Tests/AcceptancePart2Tests.cs:line 221
+   at App.Tests.Part2.AcceptancePart2Tests.AC_2_2_InitializesPersistentStorageForContractEntities() in /src/App.Tests/AcceptancePart2Tests.cs:line 105
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="a85774f6-3057-459b-b38f-6ea630d38e55" testId="8a86b6a7-0ead-afe1-fbc6-efe25d32ca61" testName="App.Tests.Part2.AcceptancePart2Tests.AC_2_3_ReturnsCreatedRationAfterRestart" computerName="dfb43fcaa8d7" duration="00:00:00.7425950" startTime="2026-10-14T12:03:34.0353180+00:00" endTime="2026-10-14T12:03:34.0353180+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a85774f6-3057-459b-b38f-6ea630d38e55" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="App.Tests.Part2.AcceptancePart2Tests.AC_2_3_ReturnsCreatedRationAfterRestart" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="8a86b6a7-0ead-afe1-fbc6-efe25d32ca61">
+      <Execution id="a85774f6-3057-459b-b38f-6ea630d38e55" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part2.AcceptancePart2Tests" name="AC_2_3_ReturnsCreatedRationAfterRestart" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="02da969f-00ab-39c5-46a9-9d5de56a04a1">
+      <Execution id="e497dd06-a5c6-4b30-a6f4-59a925ca6c42" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part2.AcceptancePart2Tests" name="AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="314a4da1-eb40-1464-c65d-797abbc7c38b">
+      <Execution id="4004f676-1b19-4fa6-8224-76c08d4eee16" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part4.AcceptancePart4Tests" name="AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="7dd9fac4-dc16-0bf1-08c0-1f514a2f089f">
+      <Execution id="16c53017-ce1d-4f45-9724-af93764e6d27" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part4.AcceptancePart4Tests" name="AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled" />
+    </UnitTest>
+    <UnitTest name="App.Tests.Part2.AcceptancePart2Tests.AC_2_2_InitializesPersistentStorageForContractEntities" storage="/src/app.tests/bin/debug/net9.0/app.tests.dll" id="b675aa44-6d53-6079-3bf8-3da1d8891f1c">
+      <Execution id="318dab0d-3776-4d4c-9acc-64f9b7bd4053" />
+      <TestMethod codeBase="/src/App.Tests/bin/Debug/net9.0/App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="App.Tests.Part2.AcceptancePart2Tests" name="AC_2_2_InitializesPersistentStorageForContractEntities" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="02da969f-00ab-39c5-46a9-9d5de56a04a1" executionId="e497dd06-a5c6-4b30-a6f4-59a925ca6c42" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="314a4da1-eb40-1464-c65d-797abbc7c38b" executionId="4004f676-1b19-4fa6-8224-76c08d4eee16" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7dd9fac4-dc16-0bf1-08c0-1f514a2f089f" executionId="16c53017-ce1d-4f45-9724-af93764e6d27" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b675aa44-6d53-6079-3bf8-3da1d8891f1c" executionId="318dab0d-3776-4d4c-9acc-64f9b7bd4053" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8a86b6a7-0ead-afe1-fbc6-efe25d32ca61" executionId="a85774f6-3057-459b-b38f-6ea630d38e55" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="5" executed="5" passed="1" failed="4" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.20)
+[xUnit.net 00:00:00.05]   Discovering: App.Tests
+[xUnit.net 00:00:00.08]   Discovered:  App.Tests
+[xUnit.net 00:00:00.09]   Starting:    App.Tests
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (28ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingPlans" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "PenId" integer NOT NULL,
+          "RationId" integer NOT NULL,
+          "PlanDate" date NOT NULL,
+          "DailyBunkRateLbPerHead" numeric NOT NULL,
+          "CurrentPenHeadcount" integer NOT NULL,
+          "PlannedTime" time without time zone NOT NULL,
+          "Status" text NOT NULL,
+          CONSTRAINT "PK_FeedingPlans" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "ImportBatches" (
+          "BatchId" text NOT NULL,
+          "SourceName" text NOT NULL,
+          CONSTRAINT "PK_ImportBatches" PRIMARY KEY ("BatchId")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "InventoryItems" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Category" text NOT NULL,
+          "Unit" text NOT NULL,
+          "UnitCost" numeric NOT NULL,
+          "DryMatterPercent" numeric NOT NULL,
+          "EnergyMcalPerKg" numeric NOT NULL,
+          "StorageLocation" text NOT NULL,
+          "OpeningStockLb" numeric NOT NULL,
+          CONSTRAINT "PK_InventoryItems" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "InventorySettings" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Scope" text NOT NULL,
+          "WastageRatio" numeric NOT NULL,
+          CONSTRAINT "PK_InventorySettings" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Pens" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Capacity" integer NOT NULL,
+          CONSTRAINT "PK_Pens" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "RationCandidates" (
+          "CandidateId" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Feasible" boolean NOT NULL,
+          "TargetWeightMinLb" numeric NOT NULL,
+          "TargetWeightMaxLb" numeric NOT NULL,
+          "MinimumDryMatterPercent" numeric NOT NULL,
+          "MinimumEnergyMcalPerKg" numeric NOT NULL,
+          "PredictedDryMatterPercent" numeric NOT NULL,
+          "PredictedEnergyMcalPerKg" numeric NOT NULL,
+          CONSTRAINT "PK_RationCandidates" PRIMARY KEY ("CandidateId")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Rations" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "Type" text NOT NULL,
+          "TargetWeightMinLb" numeric NOT NULL,
+          "TargetWeightMaxLb" numeric NOT NULL,
+          "OperationalStatus" text NOT NULL,
+          CONSTRAINT "PK_Rations" PRIMARY KEY ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "ImportRows" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "BatchId" text NOT NULL,
+          "SourceIdentifier" text NOT NULL,
+          "SourceType" text NOT NULL,
+          "Vendor" text NOT NULL,
+          "Cost" numeric NOT NULL,
+          "HeadCount" integer NOT NULL,
+          "WeightLb" numeric NOT NULL,
+          "Breed" text NOT NULL,
+          "AgeDays" integer NOT NULL,
+          "Source" text NOT NULL,
+          "RowStatus" text NOT NULL,
+          "ProblemDetail" text,
+          CONSTRAINT "PK_ImportRows" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_ImportRows_ImportBatches_BatchId" FOREIGN KEY ("BatchId") REFERENCES "ImportBatches" ("BatchId") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "InventoryMovements" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ItemId" integer NOT NULL,
+          "MovementType" text NOT NULL,
+          "Date" date NOT NULL,
+          "QuantityLb" numeric NOT NULL,
+          "Note" text NOT NULL,
+          "WastageCause" text,
+          CONSTRAINT "PK_InventoryMovements" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_InventoryMovements_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Lots" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "Name" text NOT NULL,
+          "PenId" integer,
+          "HeadCount" integer NOT NULL,
+          "Breed" text NOT NULL,
+          "Sex" text NOT NULL,
+          "SourcePurchaseOrderLine" text NOT NULL,
+          "Status" text NOT NULL,
+          "TargetWeightLb" numeric NOT NULL,
+          "DefaultGainRateLbPerDay" numeric NOT NULL,
+          CONSTRAINT "PK_Lots" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_Lots_Pens_PenId" FOREIGN KEY ("PenId") REFERENCES "Pens" ("Id") ON DELETE SET NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "RationCandidateIngredients" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "CandidateId" integer NOT NULL,
+          "ItemId" integer NOT NULL,
+          "ProportionPercent" numeric NOT NULL,
+          CONSTRAINT "PK_RationCandidateIngredients" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_RationCandidateIngredients_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT,
+          CONSTRAINT "FK_RationCandidateIngredients_RationCandidates_CandidateId" FOREIGN KEY ("CandidateId") REFERENCES "RationCandidates" ("CandidateId") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingActivities" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ActivityDate" date NOT NULL,
+          "PenId" integer NOT NULL,
+          "RationId" integer NOT NULL,
+          "FeedingPlanId" integer,
+          "Manager" text NOT NULL,
+          "ActualQuantityLb" numeric NOT NULL,
+          "FeedCost" numeric NOT NULL,
+          "EnergyMcal" numeric NOT NULL,
+          CONSTRAINT "PK_FeedingActivities" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_FeedingActivities_FeedingPlans_FeedingPlanId" FOREIGN KEY ("FeedingPlanId") REFERENCES "FeedingPlans" ("Id") ON DELETE SET NULL,
+          CONSTRAINT "FK_FeedingActivities_Pens_PenId" FOREIGN KEY ("PenId") REFERENCES "Pens" ("Id") ON DELETE RESTRICT,
+          CONSTRAINT "FK_FeedingActivities_Rations_RationId" FOREIGN KEY ("RationId") REFERENCES "Rations" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "RationIngredients" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "RationId" integer NOT NULL,
+          "ItemId" integer NOT NULL,
+          "ProportionPercent" numeric NOT NULL,
+          CONSTRAINT "PK_RationIngredients" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_RationIngredients_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT,
+          CONSTRAINT "FK_RationIngredients_Rations_RationId" FOREIGN KEY ("RationId") REFERENCES "Rations" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "WeightReadings" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "LotId" integer NOT NULL,
+          "MeasurementDate" date NOT NULL,
+          "ApplicableHeadcount" integer NOT NULL,
+          "AverageWeightLb" numeric NOT NULL,
+          "RecordedBy" text NOT NULL,
+          "Notes" text NOT NULL,
+          CONSTRAINT "PK_WeightReadings" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_WeightReadings_Lots_LotId" FOREIGN KEY ("LotId") REFERENCES "Lots" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingActivityIngredientConsumptions" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ActivityId" integer NOT NULL,
+          "ItemId" integer NOT NULL,
+          "QuantityLb" numeric NOT NULL,
+          CONSTRAINT "PK_FeedingActivityIngredientConsumptions" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_FeedingActivityIngredientConsumptions_FeedingActivities_Act~" FOREIGN KEY ("ActivityId") REFERENCES "FeedingActivities" ("Id") ON DELETE CASCADE,
+          CONSTRAINT "FK_FeedingActivityIngredientConsumptions_InventoryItems_ItemId" FOREIGN KEY ("ItemId") REFERENCES "InventoryItems" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (20ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FeedingActivityLotConsumptions" (
+          "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+          "ActivityId" integer NOT NULL,
+          "LotId" integer NOT NULL,
+          "QuantityLb" numeric NOT NULL,
+          CONSTRAINT "PK_FeedingActivityLotConsumptions" PRIMARY KEY ("Id"),
+          CONSTRAINT "FK_FeedingActivityLotConsumptions_FeedingActivities_ActivityId" FOREIGN KEY ("ActivityId") REFERENCES "FeedingActivities" ("Id") ON DELETE CASCADE,
+          CONSTRAINT "FK_FeedingActivityLotConsumptions_Lots_LotId" FOREIGN KEY ("LotId") REFERENCES "Lots" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivities_FeedingPlanId" ON "FeedingActivities" ("FeedingPlanId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivities_PenId" ON "FeedingActivities" ("PenId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivities_RationId" ON "FeedingActivities" ("RationId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_FeedingActivityIngredientConsumptions_ActivityId_ItemId" ON "FeedingActivityIngredientConsumptions" ("ActivityId", "ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivityIngredientConsumptions_ItemId" ON "FeedingActivityIngredientConsumptions" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_FeedingActivityLotConsumptions_ActivityId_LotId" ON "FeedingActivityLotConsumptions" ("ActivityId", "LotId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FeedingActivityLotConsumptions_LotId" ON "FeedingActivityLotConsumptions" ("LotId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_ImportRows_BatchId" ON "ImportRows" ("BatchId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_InventoryItems_Name" ON "InventoryItems" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_InventoryMovements_ItemId" ON "InventoryMovements" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_InventorySettings_Scope" ON "InventorySettings" ("Scope");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_Lots_PenId" ON "Lots" ("PenId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Pens_Name" ON "Pens" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (10ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_RationCandidateIngredients_CandidateId_ItemId" ON "RationCandidateIngredients" ("CandidateId", "ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_RationCandidateIngredients_ItemId" ON "RationCandidateIngredients" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_RationIngredients_ItemId" ON "RationIngredients" ("ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_RationIngredients_RationId_ItemId" ON "RationIngredients" ("RationId", "ItemId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Rations_Name" ON "Rations" ("Name");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_WeightReadings_LotId" ON "WeightReadings" ("LotId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      TRUNCATE TABLE "ImportBatches", "ImportRows", "Pens", "Lots", "InventoryItems", "InventoryMovements", "InventorySettings", "Rations", "RationIngredients", "RationCandidates", "RationCandidateIngredients", "FeedingPlans", "FeedingActivities", "FeedingActivityLotConsumptions", "FeedingActivityIngredientConsumptions", "WeightReadings", "DemoLoadRuns", "DemoLoadOutcomes" RESTART IDENTITY CASCADE
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      TRUNCATE TABLE "ImportBatches", "ImportRows", "Pens", "Lots", "InventoryItems", "InventoryMovements", "InventorySettings", "Rations", "RationIngredients", "RationCandidates", "RationCandidateIngredients", "FeedingPlans", "FeedingActivities", "FeedingActivityLotConsumptions", "FeedingActivityIngredientConsumptions", "WeightReadings", "DemoLoadRuns", "DemoLoadOutcomes" RESTART IDENTITY CASCADE
+[xUnit.net 00:00:01.41]       Npgsql.PostgresException : 42P01: relation "DemoLoadRuns" does not exist
+[xUnit.net 00:00:01.42]       Stack Trace:
+[xUnit.net 00:00:01.42]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.42]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+[xUnit.net 00:00:01.42]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]            at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.42]         /src/App.Tests/AcceptancePart4Tests.cs(38,0): at App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled()
+[xUnit.net 00:00:01.42]         /src/App.Tests/AcceptancePart4Tests.cs(39,0): at App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled()
+[xUnit.net 00:00:01.42]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      TRUNCATE TABLE "ImportBatches", "ImportRows", "Pens", "Lots", "InventoryItems", "InventoryMovements", "InventorySettings", "Rations", "RationIngredients", "RationCandidates", "RationCandidateIngredients", "FeedingPlans", "FeedingActivities", "FeedingActivityLotConsumptions", "FeedingActivityIngredientConsumptions", "WeightReadings", "DemoLoadRuns", "DemoLoadOutcomes" RESTART IDENTITY CASCADE
+[xUnit.net 00:00:01.44]       Npgsql.PostgresException : 42P01: relation "DemoLoadRuns" does not exist
+[xUnit.net 00:00:01.44]       Stack Trace:
+[xUnit.net 00:00:01.44]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.44]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]         /src/App.Tests/AcceptancePart2Tests.cs(31,0): at App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts()
+[xUnit.net 00:00:01.44]         /src/App.Tests/AcceptancePart2Tests.cs(31,0): at App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts()
+[xUnit.net 00:00:01.44]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+[xUnit.net 00:00:01.48]       Npgsql.PostgresException : 42P01: relation "DemoLoadRuns" does not exist
+[xUnit.net 00:00:01.48]       Stack Trace:
+[xUnit.net 00:00:01.48]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.48]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)
+[xUnit.net 00:00:01.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]            at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.48]         /src/App.Tests/AcceptancePart4Tests.cs(74,0): at App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows()
+[xUnit.net 00:00:01.48]         /src/App.Tests/AcceptancePart4Tests.cs(75,0): at App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows()
+[xUnit.net 00:00:01.48]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.52]       Expected row-capable persistent table 'DemoLoadRuns'.
+[xUnit.net 00:00:01.52]       Stack Trace:
+[xUnit.net 00:00:01.52]         /src/App.Tests/AcceptancePart2Tests.cs(221,0): at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertEveryContractTableCanStoreRowsAsync()
+[xUnit.net 00:00:01.52]         /src/App.Tests/AcceptancePart2Tests.cs(221,0): at App.Tests.Part2.AcceptancePart2Tests.ApiHost.AssertEveryContractTableCanStoreRowsAsync()
+[xUnit.net 00:00:01.52]         /src/App.Tests/AcceptancePart2Tests.cs(105,0): at App.Tests.Part2.AcceptancePart2Tests.AC_2_2_InitializesPersistentStorageForContractEntities()
+[xUnit.net 00:00:01.52]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "InventoryItems"
+          ("Id", "Name", "Category", "Unit", "UnitCost", "DryMatterPercent", "EnergyMcalPerKg",
+           "StorageLocation", "OpeningStockLb")
+      VALUES
+          (@p0, @p1, 'Feed', 'lb', 0.25, 88, 3.2, 'Test storage', 10000)
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost/rations - application/json;+charset=utf-8 204
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /rations =&gt; CreateRation'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__name_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Rations" AS r
+          WHERE r."Name" = @__name_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (28ms) [Parameters=[@__itemIds_0='?' (DbType = Object)], CommandType='Text', CommandTimeout='30']
+      SELECT i."Id", i."Category", i."DryMatterPercent", i."EnergyMcalPerKg", i."Name", i."OpeningStockLb", i."StorageLocation", i."Unit", i."UnitCost"
+      FROM "InventoryItems" AS i
+      WHERE i."Id" = ANY (@__itemIds_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p0='?', @p1='?', @p2='?' (DbType = Decimal), @p3='?' (DbType = Decimal), @p4='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Rations" ("Name", "OperationalStatus", "TargetWeightMaxLb", "TargetWeightMinLb", "Type")
+      VALUES (@p0, @p1, @p2, @p3, @p4)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p5='?' (DbType = Int32), @p6='?' (DbType = Decimal), @p7='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "RationIngredients" ("ItemId", "ProportionPercent", "RationId")
+      VALUES (@p5, @p6, @p7)
+      RETURNING "Id";
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 201.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'Ration' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /rations =&gt; CreateRation'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost/rations - 201 - application/json;+charset=utf-8 557.7107ms
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE WHEN COUNT(*) = 0 THEN FALSE ELSE TRUE END
+      FROM pg_class AS cls
+      JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+      WHERE
+              cls.relkind IN ('r', 'v', 'm', 'f', 'p') AND
+              ns.nspname NOT IN ('pg_catalog', 'information_schema') AND
+              -- Exclude tables which are members of PG extensions
+              NOT EXISTS (
+                  SELECT 1 FROM pg_depend WHERE
+                      classid=(
+                          SELECT cls.oid
+                          FROM pg_class AS cls
+                                   JOIN pg_namespace AS ns ON ns.oid = cls.relnamespace
+                          WHERE relname='pg_class' AND ns.nspname='pg_catalog'
+                      ) AND
+                      objid=cls.oid AND
+                      deptype IN ('e', 'x')
+              )
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://*:8080
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/rations - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /rations =&gt; GetRations'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT r."Id", r."Name", r."OperationalStatus", r."TargetWeightMaxLb", r."TargetWeightMinLb", r."Type", s."Id", s."ItemId", s."ProportionPercent", s."RationId", s."Id0", s."Category", s."DryMatterPercent", s."EnergyMcalPerKg", s."Name", s."OpeningStockLb", s."StorageLocation", s."Unit", s."UnitCost"
+      FROM "Rations" AS r
+      LEFT JOIN (
+          SELECT r0."Id", r0."ItemId", r0."ProportionPercent", r0."RationId", i."Id" AS "Id0", i."Category", i."DryMatterPercent", i."EnergyMcalPerKg", i."Name", i."OpeningStockLb", i."StorageLocation", i."Unit", i."UnitCost"
+          FROM "RationIngredients" AS r0
+          INNER JOIN "InventoryItems" AS i ON r0."ItemId" = i."Id"
+      ) AS s ON r."Id" = s."RationId"
+      ORDER BY r."Id", s."Id"
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /rations =&gt; GetRations'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/rations - 200 - application/json;+charset=utf-8 101.2593ms
+[xUnit.net 00:00:02.27]   Finished:    App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="dfb43fcaa8d7" outcome="Error" timestamp="2026-10-14T12:03:33.1852592+00:00">
+        <Text>[xUnit.net 00:00:01.41]     App.Tests.Part4.AcceptancePart4Tests.AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="dfb43fcaa8d7" outcome="Error" timestamp="2026-10-14T12:03:33.2140988+00:00">
+        <Text>[xUnit.net 00:00:01.44]     App.Tests.Part2.AcceptancePart2Tests.AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="dfb43fcaa8d7" outcome="Error" timestamp="2026-10-14T12:03:33.2764340+00:00">
+        <Text>[xUnit.net 00:00:01.48]     App.Tests.Part4.AcceptancePart4Tests.AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="dfb43fcaa8d7" outcome="Error" timestamp="2026-10-14T12:03:33.2915379+00:00">
+        <Text>[xUnit.net 00:00:01.52]     App.Tests.Part2.AcceptancePart2Tests.AC_2_2_InitializesPersistentStorageForContractEntities [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="dfb43fcaa8d7" outcome="Warning" timestamp="2026-10-14T12:03:34.0797453+00:00">
+        <Text>Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

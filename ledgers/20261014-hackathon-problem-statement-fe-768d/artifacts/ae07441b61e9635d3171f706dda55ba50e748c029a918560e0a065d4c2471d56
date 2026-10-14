@@ -1,0 +1,30 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-2.1",
+      "testId": "AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts",
+      "verdict": "weak",
+      "why": "The test recreates WebApplicationFactory hosts in the same process, so process-local storage shared between hosts could pass without surviving an API process restart."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_InitializesPersistentStorageForContractEntities",
+      "verdict": "weak",
+      "why": "The information_schema.columns check also passes for views, so it does not assert that the listed names are persistent, row-capable tables."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

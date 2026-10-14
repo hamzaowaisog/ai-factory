@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Feed-to-gain — Cedar Draw Feedlot</title>
+<!-- Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-variant": "#e2e3e1",
+            "secondary-fixed-dim": "#f1bb9f",
+            "surface-container": "#edeeec",
+            "primary-fixed-dim": "#ffb68f",
+            "on-tertiary-container": "#edfaff",
+            "inverse-primary": "#ffb68f",
+            "on-secondary-fixed-variant": "#633e29",
+            "primary": "#8e4413",
+            "on-tertiary-fixed-variant": "#004e5f",
+            "on-secondary-fixed": "#301403",
+            "error-container": "#ffdad6",
+            "on-primary-container": "#fff6f3",
+            "error": "#ba1a1a",
+            "tertiary": "#006277",
+            "secondary": "#7e553e",
+            "on-error-container": "#93000a",
+            "primary-container": "#ad5c2a",
+            "inverse-surface": "#2e3130",
+            "on-tertiary": "#ffffff",
+            "surface-container-low": "#f3f4f2",
+            "on-secondary-container": "#79503a",
+            "tertiary-fixed-dim": "#79d3ef",
+            "surface-bright": "#f9faf8",
+            "on-primary-fixed-variant": "#773301",
+            "on-surface-variant": "#54433a",
+            "on-error": "#ffffff",
+            "primary-fixed": "#ffdbca",
+            "surface-tint": "#954918",
+            "surface-container-high": "#e7e8e6",
+            "surface": "#f9faf8",
+            "tertiary-container": "#007c96",
+            "tertiary-fixed": "#b3ebff",
+            "on-primary": "#ffffff",
+            "secondary-container": "#fdc6a9",
+            "background": "#f9faf8",
+            "outline": "#877369",
+            "secondary-fixed": "#ffdbca",
+            "on-surface": "#191c1b",
+            "on-primary-fixed": "#331200",
+            "outline-variant": "#dac2b6",
+            "surface-dim": "#d9dad8",
+            "surface-container-highest": "#e2e3e1",
+            "surface-container-lowest": "#ffffff",
+            "inverse-on-surface": "#f0f1ef",
+            "on-tertiary-fixed": "#001f27",
+            "on-background": "#191c1b",
+            "on-secondary": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["\"Source Sans 3\"", "sans-serif"],
+            "mono": ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Design System Specific Core Rules */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: clamp(8px, 1vw, 16px);
+      
+      /* Exact palette tokens */
+      --c-paper: #F6F7F5;
+      --c-white: #FFFFFF;
+      --c-graphite: #252A27;
+      --c-quiet: #66706A;
+      --c-fine-rule: #D9DEDA;
+      --c-burnt-orange: #AD5C2A;
+      --c-field-green: #28734F;
+      --c-harvest-ochre: #94600C;
+      --c-brick-red: #AE3D36;
+    }
+
+    body {
+      background-color: var(--c-paper);
+      color: var(--c-graphite);
+      font-family: "Source Sans 3", sans-serif;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .num-tabular {
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion specifications */
+    @keyframes row-arrive {
+      from { opacity: 0.82; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    .result-row {
+      animation: row-arrive var(--dur-quick) var(--ease-out) both;
+    }
+    .result-row:nth-child(1) { animation-delay: 50ms; }
+    .result-row:nth-child(2) { animation-delay: 100ms; }
+    .result-row:nth-child(3) { animation-delay: 150ms; }
+    .result-row:nth-child(4) { animation-delay: 200ms; }
+    .result-row:nth-child(5) { animation-delay: 250ms; }
+    .result-row:nth-child(6) { animation-delay: 300ms; }
+
+    .live-indicator {
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    /* Interaction rules */
+    .btn-action {
+      height: 44px;
+      border-radius: 6px;
+      transition: opacity var(--dur-quick) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+    }
+    .btn-action:hover {
+      opacity: 0.92;
+    }
+    .btn-action:focus-visible {
+      outline: 2px solid var(--c-graphite);
+      outline-offset: 2px;
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background-color: var(--c-white);
+      color: var(--c-graphite);
+      border: 1px solid var(--c-fine-rule);
+    }
+    .btn-secondary:hover {
+      background-color: #FAFAFA;
+      border-color: #C8CECA;
+    }
+
+    /* Select and input resets with 44px min height and 6px radius */
+    .form-control-compact {
+      height: 44px;
+      border-radius: 6px;
+      border: 1px solid var(--c-fine-rule);
+      background-color: var(--c-white);
+      color: var(--c-graphite);
+      font-size: 14px;
+      line-height: 1.4;
+      padding-left: 12px;
+      padding-right: 32px;
+      transition: border-color var(--dur-quick) var(--ease-out);
+    }
+    .form-control-compact:focus {
+      outline: none;
+      border-color: var(--c-burnt-orange);
+      box-shadow: 0 0 0 1px var(--c-burnt-orange);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        scroll-behavior: auto !important;
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col m-0 p-0">
+<!-- =========================================================================
+       1. HEADER / SHELL
+       Exact header layout matching Cedar Draw Feedlot:
+       - Left: square mark with white "C" on #AD5C2A background, beside "Cedar Draw Feedlot"
+       - Shared menu with Feed-to-gain active
+       - Right: Mara Ortega, Feed manager, initials avatar "MO"
+       - No footer
+       ========================================================================= -->
+<header class="w-full bg-[#FFFFFF] border-b border-[#D9DEDA] sticky top-0 z-40">
+<div class="max-w-[1360px] mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+<!-- Left: Logo & Wordmark -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-7 h-7 bg-[#AD5C2A] rounded flex items-center justify-center text-white font-headline font-bold text-sm select-none">
+          C
+        </div>
+<span class="font-headline font-bold text-[17px] tracking-tight text-[#252A27]">
+          Cedar Draw Feedlot
+        </span>
+</div>
+<!-- Center: Shared Navigation Cluster (Scrollable horizontally on mid screens) -->
+<nav class="hidden lg:flex items-center gap-5 xl:gap-6 overflow-x-auto h-full text-[13.5px] font-body tracking-normal select-none px-4">
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#overview">Overview</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#import-records">Import records</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#lots-pens">Lots &amp; pens</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#feed-inventory">Feed inventory</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#inventory-outlook">Inventory outlook</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#rations">Rations</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#feeding-plans">Feeding plans</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#feeding-log">Feeding log</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#weight-records">Weight records</a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#operational-reports">Operational reports</a>
+<!-- Active Link: Feed-to-gain -->
+<a aria-current="page" class="font-semibold text-[#AD5C2A] border-b-2 border-[#AD5C2A] py-4 h-full flex items-center" href="#feed-to-gain">
+          Feed-to-gain
+        </a>
+<a class="text-[#66706A] hover:text-[#252A27] transition-colors py-4" href="#project-demo">Project &amp; demo</a>
+</nav>
+<!-- Right: User Profile (Mara Ortega) -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-8 h-8 rounded-full bg-[#EDEEEC] border border-[#D9DEDA] flex items-center justify-center font-headline font-semibold text-xs text-[#252A27] select-none">
+          MO
+        </div>
+<div class="hidden sm:flex flex-col text-left">
+<span class="text-sm font-semibold leading-tight text-[#252A27]">Mara Ortega</span>
+<span class="text-xs text-[#66706A] leading-tight">Feed manager</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Mobile Subnav Strip for full reachability -->
+<div class="lg:hidden w-full bg-[#FFFFFF] border-b border-[#D9DEDA] px-4 py-2 overflow-x-auto whitespace-nowrap">
+<div class="inline-flex items-center gap-4 text-xs font-medium">
+<span class="text-[#66706A]">Overview</span>
+<span class="text-[#66706A]">Lots &amp; pens</span>
+<span class="text-[#66706A]">Feeding log</span>
+<span class="text-[#66706A]">Weight records</span>
+<span class="font-semibold text-[#AD5C2A] border-b-2 border-[#AD5C2A] pb-0.5">Feed-to-gain</span>
+<span class="text-[#66706A]">Rations</span>
+</div>
+</div>
+<!-- =========================================================================
+       MAIN WORKSPACE
+       1,360px grid container with deliberate ledger structure
+       ========================================================================= -->
+<main class="w-full max-w-[1360px] mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 flex flex-col gap-6">
+<!-- 2. Page Title & Meta Context -->
+<section class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 border-b border-[#D9DEDA] pb-5">
+<div>
+<h1 class="font-headline font-[650] text-[26px] sm:text-[30px] leading-tight tracking-[-0.03em] text-[#252A27]">
+          Feed-to-gain
+        </h1>
+<div class="mt-1 flex items-center gap-2 text-sm text-[#66706A]">
+<span class="inline-flex items-center gap-1.5 font-normal">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-[#28734F] live-indicator"></span>
+<span>Facility: Cedar Draw Feedlot</span>
+</span>
+<span class="text-[#D9DEDA]">·</span>
+<span>As of 23 Apr 2025</span>
+<span class="text-[#D9DEDA]">·</span>
+<span>America/Denver</span>
+</div>
+</div>
+<div class="text-xs sm:text-sm text-[#66706A] font-medium self-end sm:self-auto">
+        Operational performance ledger
+      </div>
+</section>
+<!-- 3. Filter Band & Actions -->
+<section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 sm:p-5 flex flex-col gap-4">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+<!-- Filter Controls Cluster (Updates immediately on change, no Apply button) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 flex-1 max-w-4xl">
+<!-- Date range -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#66706A]" for="filter-daterange">
+              Date range
+            </label>
+<div class="relative">
+<input aria-label="Date range selection" class="form-control-compact w-full cursor-pointer bg-white font-medium text-xs sm:text-sm text-[#252A27] pr-8" id="filter-daterange" readonly="" type="text" value="1 Jan 2025 – 23 Apr 2025"/>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-[#66706A] pointer-events-none" data-icon="calendar_today">calendar_today</span>
+</div>
+</div>
+<!-- Breed -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#66706A]" for="filter-breed">
+              Breed
+            </label>
+<div class="relative">
+<select class="form-control-compact w-full appearance-none cursor-pointer pr-8" id="filter-breed">
+<option selected="">All breeds</option>
+<option>Angus</option>
+<option>Angus–Hereford</option>
+<option>Charolais-cross</option>
+<option>Simmental</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-[#66706A] pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Sex -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#66706A]" for="filter-sex">
+              Sex
+            </label>
+<div class="relative">
+<select class="form-control-compact w-full appearance-none cursor-pointer pr-8" id="filter-sex">
+<option selected="">All sexes</option>
+<option>Steers</option>
+<option>Heifers</option>
+<option>Mixed</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-[#66706A] pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Pen -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-[0.08em] text-[#66706A]" for="filter-pen">
+              Pen
+            </label>
+<div class="relative">
+<select class="form-control-compact w-full appearance-none cursor-pointer pr-8" id="filter-pen">
+<option selected="">All pens</option>
+<option>P-01</option>
+<option>P-02</option>
+<option>P-03</option>
+<option>P-04</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-[#66706A] pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Trailing Export Actions -->
+<div class="flex items-center gap-2.5 pt-1 lg:pt-0 shrink-0 self-start lg:self-end">
+<button class="btn-action btn-secondary px-4 inline-flex items-center gap-1.5 text-sm font-medium" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#66706A]" data-icon="download">download</span>
+<span>Export CSV</span>
+</button>
+<button class="btn-action btn-secondary px-4 inline-flex items-center gap-1.5 text-sm font-medium" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#66706A]" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span>Export PDF</span>
+</button>
+</div>
+</div>
+<!-- Headline Context Line -->
+<div class="pt-2 border-t border-[#D9DEDA] flex items-center justify-between text-xs sm:text-sm text-[#66706A]">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#66706A]"></span>
+<span class="font-medium text-[#252A27]">3 lots with measured weights in range</span>
+</div>
+<span class="text-xs text-[#66706A]">Filter updates automatically on input</span>
+</div>
+</section>
+<!-- 4. Comparison Report Table (Dominant Element) -->
+<section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] overflow-hidden shadow-none">
+<!-- Desktop and Tablet Table View -->
+<div class="overflow-x-auto w-full">
+<table class="w-full border-collapse text-left text-sm" role="table">
+<thead>
+<tr class="bg-[#FFFFFF] border-b border-[#D9DEDA] text-[#66706A] text-xs font-semibold uppercase tracking-[0.08em] select-none h-11">
+<th class="py-2.5 px-4 font-semibold" scope="col">Lot</th>
+<th class="py-2.5 px-4 font-semibold" scope="col">Breed / sex</th>
+<th class="py-2.5 px-4 font-semibold" scope="col">Pen</th>
+<th class="py-2.5 px-4 font-semibold" scope="col">Latest in-range weight &amp; date</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">Headcount</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">ADG</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">As-fed feed</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">FCR</th>
+<th class="py-2.5 px-4 font-semibold text-right" scope="col">Feed cost / lb gain</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#D9DEDA] font-body text-[#252A27]">
+<!-- Row 1: Lot L-239 -->
+<tr class="result-row h-12 hover:bg-[#F6F7F5] transition-colors">
+<td class="px-4 py-2.5 font-semibold text-[#252A27]">
+<span class="num-tabular font-medium text-[14px]">L-239</span>
+</td>
+<td class="px-4 py-2.5 text-[14px] text-[#252A27]">
+                Angus steers
+              </td>
+<td class="px-4 py-2.5">
+<span class="num-tabular text-[14px] text-[#66706A]">P-02</span>
+</td>
+<td class="px-4 py-2.5 text-[14px]">
+<span class="text-[#252A27]">21 Apr 2025</span>
+<span class="text-[#66706A] mx-1">·</span>
+<span class="num-tabular text-[#252A27] font-medium">1,010 lb</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular">72</span> <span class="text-[#66706A]">head</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-medium">2.95</span> <span class="text-[#66706A]">lb/day</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular">158,112</span> <span class="text-[#66706A]">lb</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-semibold text-[#252A27]">6.10</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-semibold text-[#252A27]">$0.93</span> <span class="text-[#66706A]">/ lb</span>
+</td>
+</tr>
+<!-- Row 2: Lot L-241 -->
+<tr class="result-row h-12 hover:bg-[#F6F7F5] transition-colors">
+<td class="px-4 py-2.5 font-semibold text-[#252A27]">
+<span class="num-tabular font-medium text-[14px]">L-241</span>
+</td>
+<td class="px-4 py-2.5 text-[14px] text-[#252A27]">
+                Angus–Hereford steers
+              </td>
+<td class="px-4 py-2.5">
+<span class="num-tabular text-[14px] text-[#66706A]">P-04</span>
+</td>
+<td class="px-4 py-2.5 text-[14px]">
+<span class="text-[#252A27]">20 Apr 2025</span>
+<span class="text-[#66706A] mx-1">·</span>
+<span class="num-tabular text-[#252A27] font-medium">842 lb</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular">60</span> <span class="text-[#66706A]">head</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-medium">2.35</span> <span class="text-[#66706A]">lb/day</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular">82,320</span> <span class="text-[#66706A]">lb</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-semibold text-[#252A27]">5.96</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-semibold text-[#252A27]">$0.91</span> <span class="text-[#66706A]">/ lb</span>
+</td>
+</tr>
+<!-- Row 3: Lot L-242 -->
+<tr class="result-row h-12 hover:bg-[#F6F7F5] transition-colors">
+<td class="px-4 py-2.5 font-semibold text-[#252A27]">
+<span class="num-tabular font-medium text-[14px]">L-242</span>
+</td>
+<td class="px-4 py-2.5 text-[14px] text-[#252A27]">
+                Charolais-cross heifers
+              </td>
+<td class="px-4 py-2.5">
+<span class="num-tabular text-[14px] text-[#66706A]">P-04</span>
+</td>
+<td class="px-4 py-2.5 text-[14px]">
+<span class="text-[#252A27]">20 Apr 2025</span>
+<span class="text-[#66706A] mx-1">·</span>
+<span class="num-tabular text-[#252A27] font-medium">706 lb</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular">56</span> <span class="text-[#66706A]">head</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-medium">2.05</span> <span class="text-[#66706A]">lb/day</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular">60,368</span> <span class="text-[#66706A]">lb</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-semibold text-[#252A27]">6.82</span>
+</td>
+<td class="px-4 py-2.5 text-right text-[14px]">
+<span class="num-tabular font-semibold text-[#252A27]">$1.04</span> <span class="text-[#66706A]">/ lb</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Mobile Stacked Card Records (Design System §5 mandate: reflow into stacked rows on phones) -->
+<div class="sm:hidden divide-y divide-[#D9DEDA]">
+<!-- Mobile Card 1 -->
+<div class="p-4 flex flex-col gap-2.5 bg-white result-row">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="num-tabular font-semibold text-base text-[#252A27]">L-239</span>
+<span class="text-xs px-2 py-0.5 rounded bg-[#F6F7F5] border border-[#D9DEDA] num-tabular text-[#66706A]">Pen P-02</span>
+</div>
+<span class="text-xs font-semibold num-tabular text-[#252A27]">$0.93 / lb</span>
+</div>
+<div class="text-sm font-medium text-[#252A27]">Angus steers</div>
+<div class="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#F6F7F5]">
+<div>
+<span class="text-[#66706A] block">Latest wt &amp; date</span>
+<span class="font-medium text-[#252A27]">21 Apr · 1,010 lb</span>
+</div>
+<div>
+<span class="text-[#66706A] block">Headcount</span>
+<span class="num-tabular text-[#252A27]">72 head</span>
+</div>
+<div>
+<span class="text-[#66706A] block">ADG</span>
+<span class="num-tabular text-[#252A27] font-semibold">2.95 lb/day</span>
+</div>
+<div>
+<span class="text-[#66706A] block">FCR</span>
+<span class="num-tabular font-semibold text-[#252A27]">6.10</span>
+</div>
+</div>
+</div>
+<!-- Mobile Card 2 -->
+<div class="p-4 flex flex-col gap-2.5 bg-white result-row">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="num-tabular font-semibold text-base text-[#252A27]">L-241</span>
+<span class="text-xs px-2 py-0.5 rounded bg-[#F6F7F5] border border-[#D9DEDA] num-tabular text-[#66706A]">Pen P-04</span>
+</div>
+<span class="text-xs font-semibold num-tabular text-[#252A27]">$0.91 / lb</span>
+</div>
+<div class="text-sm font-medium text-[#252A27]">Angus–Hereford steers</div>
+<div class="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#F6F7F5]">
+<div>
+<span class="text-[#66706A] block">Latest wt &amp; date</span>
+<span class="font-medium text-[#252A27]">20 Apr · 842 lb</span>
+</div>
+<div>
+<span class="text-[#66706A] block">Headcount</span>
+<span class="num-tabular text-[#252A27]">60 head</span>
+</div>
+<div>
+<span class="text-[#66706A] block">ADG</span>
+<span class="num-tabular text-[#252A27] font-semibold">2.35 lb/day</span>
+</div>
+<div>
+<span class="text-[#66706A] block">FCR</span>
+<span class="num-tabular font-semibold text-[#252A27]">5.96</span>
+</div>
+</div>
+</div>
+<!-- Mobile Card 3 -->
+<div class="p-4 flex flex-col gap-2.5 bg-white result-row">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="num-tabular font-semibold text-base text-[#252A27]">L-242</span>
+<span class="text-xs px-2 py-0.5 rounded bg-[#F6F7F5] border border-[#D9DEDA] num-tabular text-[#66706A]">Pen P-04</span>
+</div>
+<span class="text-xs font-semibold num-tabular text-[#252A27]">$1.04 / lb</span>
+</div>
+<div class="text-sm font-medium text-[#252A27]">Charolais-cross heifers</div>
+<div class="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#F6F7F5]">
+<div>
+<span class="text-[#66706A] block">Latest wt &amp; date</span>
+<span class="font-medium text-[#252A27]">20 Apr · 706 lb</span>
+</div>
+<div>
+<span class="text-[#66706A] block">Headcount</span>
+<span class="num-tabular text-[#252A27]">56 head</span>
+</div>
+<div>
+<span class="text-[#66706A] block">ADG</span>
+<span class="num-tabular text-[#252A27] font-semibold">2.05 lb/day</span>
+</div>
+<div>
+<span class="text-[#66706A] block">FCR</span>
+<span class="num-tabular font-semibold text-[#252A27]">6.82</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. Method Note -->
+<section class="bg-[#FFFFFF] border border-[#D9DEDA] rounded-[8px] p-4 text-xs sm:text-[13.5px] text-[#66706A] flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-[#66706A] shrink-0 mt-0.5" data-icon="info">info</span>
+<p class="leading-relaxed m-0 text-[#66706A]">
+<strong class="font-semibold text-[#252A27]">Method note:</strong> The date range selects the latest weight reading in range and includes feeding events only up to that reading; FCR uses as-fed pounds.
+      </p>
+</section>
+</main>
+<!-- Interactive script for instantaneous live filtering mockup -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const selects = document.querySelectorAll('select');
+      const rows = document.querySelectorAll('.result-row');
+
+      selects.forEach(select => {
+        select.addEventListener('change', () => {
+          // Re-trigger subtle arrival animation to signal updated data set
+          rows.forEach((row, index) => {
+            row.style.animation = 'none';
+            // Force reflow
+            void row.offsetWidth;
+            row.style.animation = `row-arrive 160ms cubic-bezier(0.16, 1, 0.3, 1) ${index * 50}ms both`;
+          });
+        });
+      });
+    });
+  </script>
+</body></html>

@@ -1,0 +1,1130 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project &amp; demo — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #252A27;
+      --text-muted: #66706A;
+      --border-color: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Font rules */
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Header Nav */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      width: 100%;
+    }
+
+    .header-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 650;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    nav.nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      white-space: nowrap;
+    }
+
+    nav.nav-links::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color var(--dur-quick) ease, border-color var(--dur-quick) ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .avatar-initials {
+      width: 32px;
+      height: 32px;
+      background: #EAECE9;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1.page-title {
+      font-size: 30px;
+      font-weight: 650;
+      line-height: 38px;
+      letter-spacing: -0.02em;
+    }
+
+    .facility-context {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--status-good);
+      display: inline-block;
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    /* Panels & Rules */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .panel-compact {
+      padding: 16px 20px;
+    }
+
+    .panel-header {
+      margin-bottom: 16px;
+    }
+
+    h2.section-title {
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 28px;
+      margin-bottom: 4px;
+    }
+
+    h3.subsection-title {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 24px;
+      margin-bottom: 8px;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 22px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      height: 44px;
+      padding: 0 20px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity var(--dur-quick) ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.94;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 18px;
+      border: 1px solid currentColor;
+      text-transform: capitalize;
+    }
+
+    .status-good {
+      color: var(--status-good);
+      background: rgba(40, 115, 79, 0.05);
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+      background: rgba(148, 96, 12, 0.05);
+    }
+
+    .status-failed {
+      color: var(--status-failed);
+      background: rgba(174, 61, 54, 0.05);
+    }
+
+    /* Demo Section Layout */
+    .demo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .demo-bar-info {
+      max-width: 760px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .result-card {
+      background: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .result-card-val {
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 32px;
+      margin-bottom: 4px;
+    }
+
+    .result-card-label {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .outcome-banner {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: #FFF8F7;
+      border: 1px solid rgba(174, 61, 54, 0.3);
+      border-radius: 6px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .outcome-content {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .outcome-text {
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    /* Architecture diagram */
+    .diagram-wrap {
+      background: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 24px;
+      margin-top: 16px;
+    }
+
+    .diagram-flow {
+      display: grid;
+      grid-template-columns: 1fr 40px 1.2fr 40px 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      min-height: 128px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .diagram-box.highlight {
+      border: 1.5px solid var(--primary);
+    }
+
+    .diagram-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .diagram-box-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 650;
+      color: var(--text-main);
+      margin: 4px 0;
+    }
+
+    .diagram-box-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 18px;
+    }
+
+    .diagram-arrow {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    /* Guided Sequence & Stepper */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .step-item {
+      display: grid;
+      grid-template-columns: 36px 180px 1fr 140px;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .step-artifact {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 650;
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    .step-detail {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Calculator Example Box */
+    .calc-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .calc-col-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border-color);
+      font-size: 15px;
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Tables */
+    .data-table-wrap {
+      overflow-x: auto;
+      margin-top: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-surface);
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: var(--bg-page);
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    table.data-table td {
+      height: 48px;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Staggered row animation */
+    table.data-table tbody tr {
+      animation: tableRowSettle var(--dur-quick) ease forwards;
+    }
+    table.data-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+    table.data-table tbody tr:nth-child(2) { animation-delay: 50ms; }
+    table.data-table tbody tr:nth-child(3) { animation-delay: 100ms; }
+    table.data-table tbody tr:nth-child(4) { animation-delay: 150ms; }
+    table.data-table tbody tr:nth-child(5) { animation-delay: 200ms; }
+    table.data-table tbody tr:nth-child(6) { animation-delay: 250ms; }
+
+    /* Split Two-Column Layout for End Sections */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* Keyframes */
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1.0; }
+    }
+
+    @keyframes tableRowSettle {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot {
+        animation: none;
+      }
+      table.data-table tbody tr {
+        animation: none;
+      }
+      .btn-primary {
+        transition: none;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+      .diagram-flow {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .diagram-arrow {
+        transform: rotate(90deg);
+        margin: 4px 0;
+      }
+      .calc-container {
+        grid-template-columns: 1fr;
+      }
+      .step-item {
+        grid-template-columns: 36px 1fr;
+        gap: 8px;
+      }
+      .step-item > div:nth-child(3),
+      .step-item > div:nth-child(4) {
+        grid-column: 2 / -1;
+      }
+      .two-col-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      h1.page-title {
+        font-size: 26px;
+        line-height: 34px;
+      }
+      table.data-table td {
+        height: 56px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Persistent App Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-mark">C</div>
+        <div class="brand-title">Cedar Draw Feedlot</div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="#overview" class="nav-item">Overview</a>
+        <a href="#import" class="nav-item">Import records</a>
+        <a href="#lots" class="nav-item">Lots &amp; pens</a>
+        <a href="#inventory" class="nav-item">Feed inventory</a>
+        <a href="#outlook" class="nav-item">Inventory outlook</a>
+        <a href="#rations" class="nav-item">Rations</a>
+        <a href="#plans" class="nav-item">Feeding plans</a>
+        <a href="#feeding-log" class="nav-item">Feeding log</a>
+        <a href="#weight-records" class="nav-item">Weight records</a>
+        <a href="#operational-reports" class="nav-item">Operational reports</a>
+        <a href="#feed-to-gain" class="nav-item">Feed-to-gain</a>
+        <a href="#project-demo" class="nav-item active">Project &amp; demo</a>
+      </nav>
+
+      <div class="user-profile">
+        <div class="avatar-initials">MO</div>
+        <div class="user-meta">
+          <span class="user-name">Mara Ortega</span>
+          <span class="user-role">Feed manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Header title row -->
+    <div class="page-title-row">
+      <h1 class="page-title">Project &amp; demo</h1>
+      <div class="facility-context">
+        <span class="live-dot"></span>
+        <span>Facility: Cedar Draw Feedlot</span>
+        <span>•</span>
+        <span class="mono">23 Apr 2025</span>
+        <span>•</span>
+        <span class="mono">America/Denver</span>
+      </div>
+    </div>
+
+    <!-- Section 1: Demo dataset -->
+    <section class="panel">
+      <div class="demo-bar">
+        <div class="demo-bar-info">
+          <h2 class="section-title">Demo dataset — separate from live operating records</h2>
+          <p class="section-desc">Loads 16 sample records on demand into a segregated verification partition for interactive testing, formula audit, and workflow demonstration without polluting live feedlot tallies or pen rosters.</p>
+        </div>
+        <button class="btn-primary" type="button">
+          Load demo dataset
+        </button>
+      </div>
+
+      <!-- Truthful Result Area -->
+      <div class="results-grid">
+        <div class="result-card">
+          <div class="result-card-val mono" style="color: var(--status-good);">12</div>
+          <div class="result-card-label">Added records (lots, bunks, scale tickets)</div>
+        </div>
+        <div class="result-card">
+          <div class="result-card-val mono" style="color: var(--status-waiting);">3</div>
+          <div class="result-card-label">Already-present records (unchanged)</div>
+        </div>
+        <div class="result-card">
+          <div class="result-card-val mono" style="color: var(--status-failed);">1</div>
+          <div class="result-card-label">Failed row (schema / constraint conflict)</div>
+        </div>
+      </div>
+
+      <div class="outcome-banner">
+        <div class="outcome-content">
+          <span class="status-badge status-failed">failed</span>
+          <span class="outcome-text"><strong>Partial load — review the failed record:</strong> Row 14 rejected due to capacity limit overflow in Pen P-04 (incoming 40 head exceeds 34 open spaces). Live operating records preserved.</span>
+        </div>
+        <span class="status-badge status-waiting">waiting</span>
+      </div>
+    </section>
+
+    <!-- Section 2: Proposed-solution summary -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="section-title">Proposed solution summary</h2>
+        <p class="section-desc">A unified, real-time operating system replacing disconnected whiteboards and spreadsheets with cross-validated cattle, inventory, and performance records.</p>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 220px;">Operational domain</th>
+              <th>Current feedlot challenge</th>
+              <th>System capability &amp; cross-validation</th>
+              <th style="width: 140px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-heading"><strong>Cattle &amp; pen occupancy</strong></td>
+              <td>Split purchase orders and unpenned lots get lost; pens exceed safe bunk capacity.</td>
+              <td>Explicit capacity enforcement (e.g. P-04 116/150 head, 34 open); unpenned lots (L-243, 24 head) flagged as unavailable for bunk delivery.</td>
+              <td><span class="status-badge status-good">good</span></td>
+            </tr>
+            <tr>
+              <td class="font-heading"><strong>Feed inventory &amp; bunk delivery</strong></td>
+              <td>Unmeasured spoilage and wastage are silently lumped into feed-to-gain conversions.</td>
+              <td>Direct ration formulations (Grower 1, Finisher 2) with distinct wastage logging (116 lb actual) and a 4.2% projected burn model.</td>
+              <td><span class="status-badge status-good">good</span></td>
+            </tr>
+            <tr>
+              <td class="font-heading"><strong>Performance intelligence</strong></td>
+              <td>ADG and FCR calculations lag weeks behind scale measurements and feed delivery logs.</td>
+              <td>Automated reconciliation linking verified scale dates to historical feed delivery pounds for precise cost per pound of gain.</td>
+              <td><span class="status-badge status-good">good</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 3: Architecture diagram -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="section-title">System architecture &amp; validation flow</h2>
+        <p class="section-desc">Responsive web client interfacing through strict validation pipelines to shared storage, deterministic calculation engines, and management outputs.</p>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-flow">
+          <!-- Step 1 -->
+          <div class="diagram-box">
+            <div>
+              <span class="diagram-tag">Client layer</span>
+              <div class="diagram-box-title">Responsive web app</div>
+            </div>
+            <div class="diagram-box-desc">Desktop and handheld bunk-side interfaces for Mara Ortega, Eli Chen, and Diego Ruiz.</div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="diagram-arrow">→</div>
+
+          <!-- Step 2 -->
+          <div class="diagram-box">
+            <div>
+              <span class="diagram-tag">Ingestion &amp; store</span>
+              <div class="diagram-box-title">Import &amp; record store</div>
+            </div>
+            <div class="diagram-box-desc">Validation path parsing PO/receiving CSV files, enforcing pen headroom and rejecting duplicate rows.</div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="diagram-arrow">→</div>
+
+          <!-- Step 3 (Highlight) -->
+          <div class="diagram-box highlight">
+            <div>
+              <span class="diagram-tag" style="color: var(--primary);">Calculation engine</span>
+              <div class="diagram-box-title">FeedToGainCalculator</div>
+            </div>
+            <div class="diagram-box-desc">Public calculation module compiling verified chute weights, feeding dates, as-fed intake, and formulation cost.</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="font-size: 14px; color: var(--text-muted);">
+            <strong>Downstream outputs:</strong> Inventory outlooks, bunk delivery sheets, lot gain scorecards, and management financial reports.
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="status-badge status-good">good</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Guided demonstration sequence -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="section-title">Guided demonstration sequence</h2>
+        <p class="section-desc">Trace an active cattle cohort through procurement, penning, feeding plans, execution logs, and final gain calculations.</p>
+      </div>
+
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num mono">1</div>
+          <div class="step-artifact">Purchase order PO-5831</div>
+          <div class="step-detail">Red Basin Cattle Co. (84 head, 612 lb) imported; split into 60 head assigned to L-241 in P-04 and 24 head to unpenned lot L-243.</div>
+          <div><span class="status-badge status-good">good</span></div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num mono">2</div>
+          <div class="step-artifact">Pen allocation (P-04)</div>
+          <div class="step-detail">Pen P-04 accepts L-241 (60 head) alongside L-242 (56 head) for 116 head total; remaining 34 open spaces reserved.</div>
+          <div><span class="status-badge status-good">good</span></div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num mono">3</div>
+          <div class="step-artifact">Ration Grower 1</div>
+          <div class="step-detail">Formulated at $0.15286/lb with 55% corn, 30% hay, 12% soybean meal, 3% mineral premix (1.51 Mcal/lb energy).</div>
+          <div><span class="status-badge status-good">good</span></div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num mono">4</div>
+          <div class="step-artifact">P-04 feeding plan</div>
+          <div class="step-detail">14.0 lb/head/day target generates 1,624 lb daily requirement (840 lb allocated to L-241, 784 lb to L-242).</div>
+          <div><span class="status-badge status-good">good</span></div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num mono">5</div>
+          <div class="step-artifact">Feeding event execution</div>
+          <div class="step-detail">22 Apr delivery logged by Mara Ortega: 1,624 lb delivered with 0 lb variance; updates inventory balances and lot feed totals.</div>
+          <div><span class="status-badge status-good">good</span></div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num mono">6</div>
+          <div class="step-artifact">Feed-to-gain report</div>
+          <div class="step-detail">Diego Ruiz verifies 842 lb average weight on 20 Apr; FeedToGainCalculator automatically computes real-time performance indicators.</div>
+          <div><span class="status-badge status-good">good</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Calculator example (L-241 inputs & returned outputs) -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="section-title">FeedToGainCalculator — Lot L-241 example</h2>
+        <p class="section-desc">Deterministic calculation module verifying animal growth metrics across verified scale events and feeding delivery history.</p>
+      </div>
+
+      <div class="calc-container">
+        <!-- Inputs -->
+        <div>
+          <div class="calc-col-title">Cohort &amp; measurement inputs</div>
+          <div class="metric-row">
+            <span class="metric-label">Cohort lot identifier</span>
+            <span class="metric-val mono">L-241 (Pen P-04)</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Breed &amp; sex</span>
+            <span class="metric-val">Angus–Hereford steers</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Applicable headcount</span>
+            <span class="metric-val mono">60 head</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Receipt baseline (12 Jan 2025)</span>
+            <span class="metric-val mono">612 lb / head</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Latest scale weight (20 Apr 2025)</span>
+            <span class="metric-val mono">842 lb / head</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Active ration formulation</span>
+            <span class="metric-val">Grower 1 ($0.15286 / lb)</span>
+          </div>
+        </div>
+
+        <!-- Returned Outputs -->
+        <div>
+          <div class="calc-col-title">Returned calculation outputs</div>
+          <div class="metric-row">
+            <span class="metric-label">Days on feed</span>
+            <span class="metric-val mono">98 days</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Total lot weight gain</span>
+            <span class="metric-val mono">13,800 lb</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Measured ADG</span>
+            <span class="metric-val mono" style="color: var(--status-good);">2.35 lb / day</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Cumulative as-fed feed</span>
+            <span class="metric-val mono">82,320 lb</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Feed conversion ratio (FCR)</span>
+            <span class="metric-val mono" style="color: var(--status-good);">5.96</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Feed cost per lb of gain</span>
+            <span class="metric-val mono" style="color: var(--status-good);">$0.91 / lb</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Projected market date</span>
+            <span class="metric-val mono">22 Nov 2025</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-column sections: Testing & Challenges -->
+    <div class="two-col-grid">
+      <!-- Section 6: Testing & validation coverage -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="section-title">Testing &amp; validation coverage</h2>
+          <p class="section-desc">Automated test suites guaranteeing arithmetic integrity and operational safety.</p>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Test suite</th>
+                <th>Target boundary</th>
+                <th style="width: 100px;">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Bunk capacity checks</strong></td>
+                <td>Refuses additions exceeding pen limits (e.g. 116 + 40 &gt; 150 head).</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+              <tr>
+                <td><strong>Duplicate deduplication</strong></td>
+                <td>Identifies duplicate PO line items in CSV ingestion (REC-8843).</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+              <tr>
+                <td><strong>Dry-matter / as-fed FCR</strong></td>
+                <td>Verifies ratio accuracy against cumulative feeding history up to scale timestamp.</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+              <tr>
+                <td><strong>Inventory burn rates</strong></td>
+                <td>Ensures single-day bunk draws match ingredient proportion percentages.</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section 7: Current challenges -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="section-title">Current operational challenges</h2>
+          <p class="section-desc">Unresolved edge cases flagged for supervisor attention.</p>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Constraint / operational issue</th>
+                <th style="width: 100px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Unmapped cattle</strong></td>
+                <td>REC-8844 (18 head Hereford-cross) received without assigned lot or pen; held outside bunk feeding allocations.</td>
+                <td><span class="status-badge status-waiting">waiting</span></td>
+              </tr>
+              <tr>
+                <td><strong>Over-capacity block</strong></td>
+                <td>REC-8845 (40 head Angus steers) cannot enter P-04 due to capacity cap (34 spaces open). Requires pen re-sorting.</td>
+                <td><span class="status-badge status-failed">refused</span></td>
+              </tr>
+              <tr>
+                <td><strong>Inventory estimates</strong></td>
+                <td>Forward projections depend heavily on configured 4.2% wastage ratio until scale receipts reconcile true shrinkage.</td>
+                <td><span class="status-badge status-waiting">waiting</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Two-column sections: Production-readiness & Go-to-market -->
+    <div class="two-col-grid" style="margin-top: 24px;">
+      <!-- Section 8: Production-readiness assessment -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="section-title">Production-readiness assessment</h2>
+          <p class="section-desc">Current release readiness across verified capabilities and pending security milestones.</p>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Operational state</th>
+                <th style="width: 100px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Operational workflows</strong></td>
+                <td>Core data paths verified: PO splits, pen capacity enforcement, feeding log entries, and feed-to-gain calculations.</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+              <tr>
+                <td><strong>Deployment security</strong></td>
+                <td>Role-neutral operational workspace confirmed; session isolation and token rotation require hardening.</td>
+                <td><span class="status-badge status-waiting">waiting</span></td>
+              </tr>
+              <tr>
+                <td><strong>Backup &amp; recovery</strong></td>
+                <td>Point-in-time state snapshots functioning; cross-region disaster recovery runbooks scheduled for sign-off.</td>
+                <td><span class="status-badge status-waiting">waiting</span></td>
+              </tr>
+              <tr>
+                <td><strong>Hardware integrations</strong></td>
+                <td>Scale head and truck display serial protocols ready for pilot hardware bench tests.</td>
+                <td><span class="status-badge status-waiting">waiting</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section 9: Go-to-market outline -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="section-title">Go-to-market outline</h2>
+          <p class="section-desc">Commercialization roadmap targeted at independent cattle yards and consulting nutritionists.</p>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Audience segment</th>
+                <th>Target deployment &amp; value proposition</th>
+                <th style="width: 100px;">Timeline</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Independent feedlots</strong></td>
+                <td>Yards between 500 and 5,000 head needing real-time feed cost tracking and automated bunk call calculations without legacy enterprise overhead.</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+              <tr>
+                <td><strong>Feedlot advisers</strong></td>
+                <td>Consulting animal nutritionists and livestock veterinarians managing multi-client ration optimization and audit logs.</td>
+                <td><span class="status-badge status-good">good</span></td>
+              </tr>
+              <tr>
+                <td><strong>Pilot partner program</strong></td>
+                <td>On-site deployment at 4 regional facilities in Colorado and Idaho to benchmark bunk scale telematics and weight validation.</td>
+                <td><span class="status-badge status-waiting">waiting</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["188 head on pen","pen occupancy","overview"],"words":["overview"]},{"id":"S-2","names":["import record","import"],"words":["import"]},{"id":"S-3","names":["lot pen"],"words":["lot","pen"]},{"id":"S-4","names":["feed inventory","inventory"],"words":["inventory"]},{"id":"S-6","names":["ration"],"words":["ration"]},{"id":"S-9","names":["weight record","weight"],"words":["weight"]},{"id":"S-12","names":["project demo"],"words":["project","demo"]},{"id":"S-5","names":["inventory outlook","outlook"],"words":["inventory","outlook"]},{"id":"S-7","names":["feeding plan","plan"],"words":["feeding","plan"]},{"id":"S-8","names":["feeding log","log"],"words":["feeding","log"]},{"id":"S-10","names":["operational report","operation","report operation"],"words":["report","operation"]},{"id":"S-11","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]}],L={"overview":"S-1","import records":"S-2","lots pens":"S-3","feed inventory":"S-4","inventory outlook":"S-5","rations":"S-6","feeding plans":"S-7","feeding log":"S-8","weight records":"S-9","operational reports":"S-10","feed to gain":"S-11"},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-12";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

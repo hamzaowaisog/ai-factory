@@ -1,0 +1,1 @@
+{"details":"The API matches the locked contract","facts":{"differences":0,"differencesShown":0,"notBuiltYetLeftOut":21,"operationsInApi":9,"operationsInContract":30,"partial":true},"gateId":"contract.matches","inputsHash":"169382cfa1e6643f3b86cb7e1d4b84429d84993855425b0c43978226af2b3b86","passed":true,"safety":false,"treeSha":"2bc7f6db2abb02278ab1cef9fec8e7aa700bcdda"}

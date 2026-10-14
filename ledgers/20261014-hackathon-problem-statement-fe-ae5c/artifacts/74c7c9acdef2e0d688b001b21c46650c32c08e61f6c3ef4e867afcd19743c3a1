@@ -1,0 +1,78 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test adds a distinct receiving row and checks every returned row's identifier, vendor, cost, head count, weight, breed, age, source, and status."
+     },
+     {
+      "acId": "AC-1.2",
+      "testId": "AC_1_2_DisplaysSynchronizationCountsAndFailedRowDetails",
+      "verdict": "weak",
+      "why": "Only one failed row is supplied, so the test would pass if the screen omitted all but the first of multiple failed rows instead of showing each row and its reason."
+     },
+     {
+      "acId": "AC-2.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies two assignments and checks the source purchase-order line plus each assignment's lot, pen, capacity, and current animal count."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_ShowsUnresolvedRecordsAsUnavailableForPenOperations",
+      "verdict": "weak",
+      "why": "The capacity-refusal assertions omit the affected source row and do not verify that a refused assignment is not presented as completed beyond searching for one exact phrase; duplicate and other row-level-problem cases are also not exercised."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test synchronizes twice, checks the duplicate outcome, and asserts the source identifier appears only once after the repeat."
+     },
+     {
+      "acId": "AC-3.2",
+      "testId": "AC_3_2_RetainsSubmittedAssumptionsWithRefreshedForecast",
+      "verdict": "weak",
+      "why": "The test changes both assumptions and never checks that the initial forecast uses the configured 2.8 default when measured ADG is absent."
+     },
+     {
+      "acId": "AC-3.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks every returned recommendation's message and each supplied ADG, projected market date, and plan-variance value."
+     },
+     {
+      "acId": "AC-4.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test supplies multiple items and checks each item's requested detail and stock values, along with the returned movement-history entries."
+     },
+     {
+      "acId": "AC-4.2",
+      "testId": "AC_4_2_ShowsActualWastageSeparatelyFromConsumptionEstimates",
+      "verdict": "weak",
+      "why": "The test checks the movement note and several numbers but does not assert that the returned movement is displayed as a distinct history entry separate from consumption estimates and the wastage ratio."
+     },
+     {
+      "acId": "AC-5.1",
+      "testId": "AC_5_1_ShowsProjectedBalancesForEverySupportedHorizon",
+      "verdict": "weak",
+      "why": "The test checks for a low-stock alert only before changing horizons, so it does not prove that no such alert appears for each selected horizon."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

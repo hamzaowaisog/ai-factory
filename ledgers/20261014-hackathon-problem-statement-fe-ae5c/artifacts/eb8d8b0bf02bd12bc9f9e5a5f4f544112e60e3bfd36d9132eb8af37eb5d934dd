@@ -1,0 +1,1 @@
+{"characterisation":[],"lock":[],"rules":{"productionExceptionOk":true},"tests":[{"acId":"AC-10.1","failsOnBase":true,"file":"tests/acceptance.part2.test.tsx","name":"AC_10_1_DisplaysReturnedCostEnergyAndInventoryConsumption","screen":"S-8","testId":"tests/acceptance.part2.test.tsx::ration and feeding workflows > AC_10_1_DisplaysReturnedCostEnergyAndInventoryConsumption"}]}

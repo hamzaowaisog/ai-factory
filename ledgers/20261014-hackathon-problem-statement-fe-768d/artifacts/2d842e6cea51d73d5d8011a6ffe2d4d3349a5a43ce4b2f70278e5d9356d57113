@@ -1,0 +1,114 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-1.5",
+      "testId": "AC_1_5_LotsAndPensMatchTheirSchemas",
+      "verdict": "weak",
+      "why": "The test checks that schema property names are present, but never checks their types or other schema constraints, so invalid Lot or Pen values could pass."
+     },
+     {
+      "acId": "AC-1.10",
+      "testId": "AC_1_10_InventoryMovementReturnsSavedMovementAndUpdatedItem",
+      "verdict": "weak",
+      "why": "It verifies a received movement only, so it does not show that a valid adjustment movement is returned with its submitted values and updated stock."
+     },
+     {
+      "acId": "AC-1.11",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 201, the submitted actual-wastage movement values and cause, and the resulting wastage, closing-stock, and available-quantity changes."
+     },
+     {
+      "acId": "AC-1.12",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200, the submitted wastageRatio in the PATCH response, and the same value on a subsequent inventory read."
+     },
+     {
+      "acId": "AC-1.14",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200, a returned ration and its required ration and ingredient fields, including the ingredient identity and proportion."
+     },
+     {
+      "acId": "AC-1.15",
+      "testId": "AC_1_15_RationCreationReturnsCalculatedRation",
+      "verdict": "weak",
+      "why": "The test does not compare the returned target-weight bounds or operational status with the submitted values, so incorrect values for those fields could pass."
+     },
+     {
+      "acId": "AC-1.18",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200, verifies that returned plans have the contract fields, and checks that every result matches both requested filters."
+     },
+     {
+      "acId": "AC-1.20",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200, verifies that returned activities have the contract fields, and checks that every result matches both requested filters."
+     },
+     {
+      "acId": "AC-1.22",
+      "testId": "AC_1_22_WeightReadingsAreReturnedInDateOrder",
+      "verdict": "weak",
+      "why": "The test only requires at least two readings even though its fixture creates three, so a response omitting an existing reading could still pass."
+     },
+     {
+      "acId": "AC-1.23",
+      "testId": "AC_1_23_WeightReadingCreationReturnsSeriesAndMetrics",
+      "verdict": "weak",
+      "why": "The test checks that metric fields exist but not that their values are refreshed to reflect the newly created reading."
+     },
+     {
+      "acId": "AC-1.24",
+      "testId": "AC_1_24_WeightReadingReplacementReturnsUpdatedSeriesAndMetrics",
+      "verdict": "weak",
+      "why": "The test checks that metric fields exist but not that their values are refreshed to reflect the replacement reading."
+     },
+     {
+      "acId": "AC-1.27",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts status 200, the requested start and end dates, and that each of the five required report sections is a list."
+     },
+     {
+      "acId": "AC-1.28",
+      "testId": "AC_1_28_FeedToGainReportUsesLatestInRangeWeightAndThroughDateFeed",
+      "verdict": "weak",
+      "why": "The fixture has only one eligible lot, so the test does not show that breed, sex, or penId filters exclude otherwise reportable rows."
+     },
+     {
+      "acId": "AC-1.31",
+      "testId": "AC_1_31_DocumentedErrorsReturnErrorResponseEnvelope",
+      "verdict": "weak",
+      "why": "The test covers malformed requests, one conflict, a missing lot, and one invalid horizon, but no documented service-failure case, so that named error case is untested."
+     },
+     {
+      "acId": "AC-1.32",
+      "testId": "AC_1_32_MissingLotForecastReturnsNotFoundError",
+      "verdict": "weak",
+      "why": "The mapping request uses a missing lot, missing pen, and nonexistent source line together, so a 404 caused by another missing record could pass without checking the missing-lot case."
+     },
+     {
+      "acId": "AC-1.38",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test records a feeding activity, asserts its feedCost and lotConsumption, and verifies that inventory stock falls by the tracked consumed quantities."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

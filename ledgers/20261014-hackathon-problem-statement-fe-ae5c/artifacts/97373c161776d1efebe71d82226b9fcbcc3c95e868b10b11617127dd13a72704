@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weight records — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-surface: #FFFFFF;
+      --text-main: #252A27;
+      --text-quiet: #66706A;
+      --border-rule: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-data {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1.heading-primary {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 30px;
+      font-weight: 650;
+      line-height: 38px;
+    }
+
+    @media (max-width: 768px) {
+      h1.heading-primary {
+        font-size: 26px;
+        line-height: 34px;
+      }
+    }
+
+    h2.heading-secondary {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 30px;
+    }
+
+    h3.heading-tertiary {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .panel-box {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+    }
+
+    .field-input, .select-input {
+      height: 44px;
+      border: 1px solid var(--border-rule);
+      border-radius: 6px;
+      background-color: #FFFFFF;
+      color: var(--text-main);
+      padding: 0 12px;
+      font-size: 16px;
+      width: 100%;
+      outline: none;
+      transition: border-color var(--dur-quick) ease;
+    }
+
+    .field-input:focus, .select-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .btn-primary {
+      height: 44px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border-radius: 6px;
+      padding: 0 20px;
+      font-size: 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      transition: opacity var(--dur-quick) ease, transform 90ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-outlined {
+      height: 44px;
+      background-color: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-rule);
+      border-radius: 6px;
+      padding: 0 16px;
+      font-size: 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color var(--dur-quick) ease, border-color var(--dur-quick) ease;
+    }
+
+    .btn-outlined:hover {
+      background-color: #F0F2F0;
+      border-color: #C2C9C4;
+    }
+
+    .btn-danger {
+      height: 44px;
+      background-color: var(--status-failed);
+      color: #FFFFFF;
+      border-radius: 6px;
+      padding: 0 16px;
+      font-size: 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      transition: opacity var(--dur-quick) ease;
+    }
+
+    .btn-danger:hover {
+      opacity: 0.9;
+    }
+
+    .action-link-btn {
+      min-height: 44px;
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color var(--dur-quick) ease;
+    }
+
+    .action-link-btn:hover {
+      background-color: #EFF1EF;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 600;
+      background-color: transparent;
+    }
+
+    .status-good {
+      color: var(--status-good);
+      border: 1px solid var(--status-good);
+    }
+
+    .status-waiting {
+      color: var(--status-waiting);
+      border: 1px solid var(--status-waiting);
+    }
+
+    .status-failed {
+      color: var(--status-failed);
+      border: 1px solid var(--status-failed);
+    }
+
+    /* Table specifications */
+    .data-table-row {
+      height: 48px;
+      border-bottom: 1px solid var(--border-rule);
+      animation: rowEntrance var(--dur-quick) ease forwards;
+    }
+
+    @media (max-width: 768px) {
+      .data-table-row {
+        height: 56px;
+      }
+    }
+
+    @keyframes rowEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .table-stagger-1 { animation-delay: 0ms; }
+    .table-stagger-2 { animation-delay: 50ms; }
+    .table-stagger-3 { animation-delay: 100ms; }
+    .table-stagger-4 { animation-delay: 150ms; }
+    .table-stagger-5 { animation-delay: 200ms; }
+    .table-stagger-6 { animation-delay: 250ms; }
+
+    /* Ambient breathing animation */
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1.0;
+      }
+    }
+
+    .ambient-dot {
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ambient-dot, .data-table-row, .btn-primary, .action-link-btn {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Menu item active style */
+    .nav-item-active {
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item-idle {
+      color: var(--text-quiet);
+    }
+    .nav-item-idle:hover {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-[#D9DEDA] h-14 w-full sticky top-0 z-50">
+    <div class="max-w-[1360px] mx-auto px-4 md:px-8 h-full flex items-center justify-between">
+      <!-- Left brand and nav -->
+      <div class="flex items-center space-x-6 overflow-x-auto no-scrollbar py-1">
+        <div class="flex items-center space-x-2 shrink-0">
+          <div class="w-7 h-7 rounded-[4px] bg-[#252A27] flex items-center justify-center text-white font-hanken font-bold text-sm">
+            C
+          </div>
+          <span class="font-hanken font-bold text-lg tracking-tight text-[#252A27] whitespace-nowrap">
+            Cedar Draw Feedlot
+          </span>
+        </div>
+
+        <nav class="flex items-center space-x-5 text-[15px] whitespace-nowrap">
+          <a href="#" class="nav-item-idle py-4">Overview</a>
+          <a href="#" class="nav-item-idle py-4">Import records</a>
+          <a href="#" class="nav-item-idle py-4">Lots &amp; pens</a>
+          <a href="#" class="nav-item-idle py-4">Feed inventory</a>
+          <a href="#" class="nav-item-idle py-4">Inventory outlook</a>
+          <a href="#" class="nav-item-idle py-4">Rations</a>
+          <a href="#" class="nav-item-idle py-4">Feeding plans</a>
+          <a href="#" class="nav-item-idle py-4">Feeding log</a>
+          <a href="#" class="nav-item-active py-4">Weight records</a>
+          <a href="#" class="nav-item-idle py-4">Operational reports</a>
+          <a href="#" class="nav-item-idle py-4">Feed-to-gain</a>
+          <a href="#" class="nav-item-idle py-4">Project &amp; demo</a>
+        </nav>
+      </div>
+
+      <!-- Right user profile -->
+      <div class="flex items-center space-x-2.5 shrink-0 pl-4 border-l border-[#D9DEDA]/60">
+        <div class="w-8 h-8 rounded-full bg-[#E5EAE7] text-[#252A27] font-mono-data text-xs font-semibold flex items-center justify-center">
+          MO
+        </div>
+        <div class="hidden sm:flex flex-col text-left">
+          <span class="text-sm font-semibold text-[#252A27] leading-tight">Mara Ortega</span>
+          <span class="text-xs text-[#66706A] leading-tight">Feed manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Surface -->
+  <main class="flex-1 max-w-[1360px] w-full mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6">
+
+    <!-- Top facility metadata and title -->
+    <div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 border-b border-[#D9DEDA] pb-4">
+      <div>
+        <h1 class="heading-primary text-[#252A27]">Weight records</h1>
+      </div>
+      <div class="flex items-center space-x-3 text-sm text-[#66706A]">
+        <span class="inline-flex items-center gap-1.5 font-medium">
+          <span class="w-2 h-2 rounded-full bg-[#28734F] ambient-dot"></span>
+          Facility: Cedar Draw Feedlot
+        </span>
+        <span>&bull;</span>
+        <span>Sample date: <span class="font-mono-data text-[#252A27]">23 Apr 2025</span></span>
+        <span>&bull;</span>
+        <span class="font-mono-data">America/Denver</span>
+      </div>
+    </div>
+
+    <!-- Active lot selection headline card -->
+    <section class="panel-box p-6 md:p-8">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#66706A]">Selected Lot</span>
+            <span class="font-mono-data text-sm font-semibold bg-[#EFF2F0] px-2 py-0.5 rounded text-[#252A27]">Pen P-04</span>
+            <span class="status-badge status-good">valid</span>
+          </div>
+          <div class="flex items-baseline gap-3 flex-wrap">
+            <span class="font-hanken text-3xl md:text-4xl font-bold tracking-tight text-[#252A27]">
+              L-241
+            </span>
+            <span class="font-hanken text-2xl md:text-3xl font-semibold text-[#252A27]">
+              <span class="font-mono-data font-bold">842 lb</span> average on <span class="font-mono-data font-semibold">20 Apr 2025</span>
+            </span>
+          </div>
+          <p class="text-sm text-[#66706A] mt-1">
+            Angus–Hereford steers received from Red Basin Ranch &bull; Target finish: <span class="font-mono-data">1,350 lb</span> &bull; Forecast market date: <span class="font-mono-data">22 Nov 2025</span>
+          </p>
+        </div>
+
+        <!-- Key operational context metrics -->
+        <div class="grid grid-cols-3 gap-3 md:gap-4 shrink-0 border-t lg:border-t-0 lg:border-l border-[#D9DEDA] pt-4 lg:pt-0 lg:pl-8">
+          <div class="bg-[#F6F7F5] p-3 md:p-4 rounded-[6px] border border-[#D9DEDA]">
+            <div class="text-xs text-[#66706A] uppercase font-semibold">Headcount</div>
+            <div class="text-xl md:text-2xl font-bold font-mono-data text-[#252A27] mt-1">60 <span class="text-sm font-normal text-[#66706A]">head</span></div>
+            <div class="text-xs text-[#66706A] mt-0.5">Assigned to Pen P-04</div>
+          </div>
+          <div class="bg-[#F6F7F5] p-3 md:p-4 rounded-[6px] border border-[#D9DEDA]">
+            <div class="text-xs text-[#66706A] uppercase font-semibold">Gain since receipt</div>
+            <div class="text-xl md:text-2xl font-bold font-mono-data text-[#28734F] mt-1">+230 <span class="text-sm font-normal text-[#66706A]">lb/head</span></div>
+            <div class="text-xs text-[#66706A] mt-0.5">612 lb receipt baseline</div>
+          </div>
+          <div class="bg-[#F6F7F5] p-3 md:p-4 rounded-[6px] border border-[#D9DEDA]">
+            <div class="text-xs text-[#66706A] uppercase font-semibold">Measured ADG</div>
+            <div class="text-xl md:text-2xl font-bold font-mono-data text-[#252A27] mt-1">2.35 <span class="text-sm font-normal text-[#66706A]">lb/day</span></div>
+            <div class="text-xs text-[#66706A] mt-0.5">Drives forecast date</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operational Split Layout: Form alongside series on desktop; stacked on mobile -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: Lot Measurement Entry Form & Lot Selector -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Entry Form Panel -->
+        <section class="panel-box p-6 space-y-5">
+          <div class="border-b border-[#D9DEDA] pb-3">
+            <h2 class="heading-secondary text-[#252A27]">Record lot weight</h2>
+            <p class="text-sm text-[#66706A] mt-1">
+              Enter verified chute or scale average weight and applicable headcount.
+            </p>
+          </div>
+
+          <form class="space-y-4" onsubmit="return false;">
+            <!-- Lot Target Selection with disabled L-243 -->
+            <div>
+              <label for="lot-select" class="block text-sm font-semibold text-[#252A27] mb-1.5">
+                Target lot
+              </label>
+              <select id="lot-select" class="select-input font-mono-data">
+                <option value="L-241" selected>L-241 (P-04 &bull; 60 head &bull; Angus–Hereford)</option>
+                <option value="L-242">L-242 (P-04 &bull; 56 head &bull; Charolais-cross)</option>
+                <option value="L-239">L-239 (P-02 &bull; 72 head &bull; Angus steers)</option>
+                <option value="L-243" disabled>L-243 (No pen — unavailable for pen operations)</option>
+              </select>
+              <p class="text-xs text-[#66706A] mt-1">
+                L-243 has no pen assigned and remains unavailable for pen operations.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Measurement Date -->
+              <div>
+                <label for="date-input" class="block text-sm font-semibold text-[#252A27] mb-1.5">
+                  Measurement date
+                </label>
+                <input id="date-input" type="text" class="field-input font-mono-data" value="23 Apr 2025">
+              </div>
+
+              <!-- Headcount -->
+              <div>
+                <label for="headcount-input" class="block text-sm font-semibold text-[#252A27] mb-1.5">
+                  Applicable headcount
+                </label>
+                <input id="headcount-input" type="number" class="field-input font-mono-data" value="60">
+              </div>
+            </div>
+
+            <!-- Average Weight -->
+            <div>
+              <label for="weight-input" class="block text-sm font-semibold text-[#252A27] mb-1.5">
+                Average weight (lb/head)
+              </label>
+              <div class="relative">
+                <input id="weight-input" type="text" class="field-input font-mono-data pr-12" placeholder="e.g. 842">
+                <span class="absolute right-3 top-2.5 text-sm font-mono-data text-[#66706A]">lb</span>
+              </div>
+            </div>
+
+            <!-- Recorded by -->
+            <div>
+              <label class="block text-sm font-semibold text-[#252A27] mb-1.5">
+                Recorded by
+              </label>
+              <div class="field-input flex items-center bg-[#F6F7F5] text-[#252A27] font-medium cursor-not-allowed">
+                Diego Ruiz (Cattle department &bull; Yard lead)
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <button type="button" class="btn-primary w-full">
+                Save weight record
+              </button>
+            </div>
+          </form>
+
+          <!-- Refresh Notice -->
+          <div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-[6px] p-3 text-xs text-[#66706A] leading-relaxed">
+            <span class="font-semibold text-[#252A27]">Operational rule:</span> Feed and weight saves, edits and deletions refresh the displayed metrics, lot gain calculations, and feed-to-gain performance in real time.
+          </div>
+        </section>
+
+        <!-- Lot Reference Status Card -->
+        <section class="panel-box p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-[#D9DEDA] pb-3">
+            <h3 class="heading-tertiary text-[#252A27]">Accepted yard lots</h3>
+            <span class="font-mono-data text-xs text-[#66706A]">212 head total</span>
+          </div>
+
+          <div class="space-y-3">
+            <!-- L-241 Active -->
+            <div class="p-3 rounded-[6px] border border-[#28734F]/40 bg-[#FFFFFF] flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold font-mono-data text-sm text-[#252A27]">L-241</span>
+                  <span class="text-xs text-[#66706A]">Pen P-04</span>
+                  <span class="status-badge status-good text-[12px] py-0 px-1.5">selected</span>
+                </div>
+                <div class="text-xs text-[#66706A] mt-0.5">60 head &bull; 842 lb (20 Apr) &bull; ADG 2.35</div>
+              </div>
+              <div class="font-mono-data text-sm font-semibold text-[#252A27]">
+                842 lb
+              </div>
+            </div>
+
+            <!-- L-239 -->
+            <div class="p-3 rounded-[6px] border border-[#D9DEDA] bg-[#FFFFFF] flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold font-mono-data text-sm text-[#252A27]">L-239</span>
+                  <span class="text-xs text-[#66706A]">Pen P-02</span>
+                  <span class="status-badge status-good text-[12px] py-0 px-1.5">valid</span>
+                </div>
+                <div class="text-xs text-[#66706A] mt-0.5">72 head &bull; 1,010 lb (21 Apr) &bull; ADG 2.95</div>
+              </div>
+              <div class="font-mono-data text-sm font-semibold text-[#252A27]">
+                1,010 lb
+              </div>
+            </div>
+
+            <!-- L-242 -->
+            <div class="p-3 rounded-[6px] border border-[#D9DEDA] bg-[#FFFFFF] flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold font-mono-data text-sm text-[#252A27]">L-242</span>
+                  <span class="text-xs text-[#66706A]">Pen P-04</span>
+                  <span class="status-badge status-good text-[12px] py-0 px-1.5">valid</span>
+                </div>
+                <div class="text-xs text-[#66706A] mt-0.5">56 head &bull; 706 lb (20 Apr) &bull; ADG 2.05</div>
+              </div>
+              <div class="font-mono-data text-sm font-semibold text-[#252A27]">
+                706 lb
+              </div>
+            </div>
+
+            <!-- L-243 Disabled State -->
+            <div class="p-3 rounded-[6px] border border-[#D9DEDA] bg-[#F6F7F5] flex items-center justify-between opacity-80">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold font-mono-data text-sm text-[#66706A]">L-243</span>
+                  <span class="status-badge status-waiting text-[12px] py-0 px-1.5">waiting</span>
+                </div>
+                <div class="text-xs text-[#66706A] mt-0.5">24 head &bull; 612 lb receipt baseline &bull; Default ADG 3.0</div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-semibold text-[#94600C]">No pen &mdash; unavailable for pen operations</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Dated Measurement Series & Calculated Feed-to-gain -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Dated Measurement Series Panel -->
+        <section class="panel-box p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-[#D9DEDA] pb-3">
+            <div>
+              <h2 class="heading-secondary text-[#252A27]">Dated measurement series</h2>
+              <p class="text-sm text-[#66706A]">Lot L-241 measurement audit history and chute records</p>
+            </div>
+            <div class="text-xs text-[#66706A] font-mono-data">
+              2 records in series
+            </div>
+          </div>
+
+          <!-- History Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-[#D9DEDA] text-xs font-semibold text-[#66706A] uppercase tracking-wider h-10">
+                  <th class="py-2 pr-4">Date</th>
+                  <th class="py-2 px-3">Avg weight</th>
+                  <th class="py-2 px-3">Head</th>
+                  <th class="py-2 px-3">Gain / ADG</th>
+                  <th class="py-2 px-3">Logged by</th>
+                  <th class="py-2 px-2 text-center">Status</th>
+                  <th class="py-2 pl-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#D9DEDA]">
+                <!-- Row 1: Receipt Baseline (12 Jan 2025) -->
+                <tr class="data-table-row table-stagger-1 hover:bg-[#F9FAF8] transition-colors">
+                  <td class="py-2 pr-4 font-mono-data text-[#252A27] font-medium whitespace-nowrap">
+                    12 Jan 2025
+                    <span class="block text-xs font-sans text-[#66706A]">Receipt baseline</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono-data font-semibold text-[#252A27] whitespace-nowrap">
+                    612 lb
+                  </td>
+                  <td class="py-2 px-3 font-mono-data text-[#252A27]">
+                    60 head
+                  </td>
+                  <td class="py-2 px-3 text-xs text-[#66706A]">
+                    Baseline entry
+                  </td>
+                  <td class="py-2 px-3 text-xs text-[#252A27]">
+                    Receiving trace
+                    <span class="block text-[#66706A] font-mono-data">PO-5831</span>
+                  </td>
+                  <td class="py-2 px-2 text-center whitespace-nowrap">
+                    <span class="status-badge status-good">valid</span>
+                  </td>
+                  <td class="py-2 pl-3 text-right whitespace-nowrap">
+                    <span class="text-xs text-[#66706A] italic">Baseline locked</span>
+                  </td>
+                </tr>
+
+                <!-- Row 2: Measured 20 Apr 2025 Reading -->
+                <tr class="data-table-row table-stagger-2 bg-[#FAFBF9] hover:bg-[#F4F6F4] transition-colors">
+                  <td class="py-2 pr-4 font-mono-data font-semibold text-[#252A27] whitespace-nowrap">
+                    20 Apr 2025
+                    <span class="block text-xs font-sans text-[#28734F]">Latest reading</span>
+                  </td>
+                  <td class="py-2 px-3 font-mono-data font-bold text-[#252A27] text-base whitespace-nowrap">
+                    842 lb
+                  </td>
+                  <td class="py-2 px-3 font-mono-data text-[#252A27]">
+                    60 head
+                  </td>
+                  <td class="py-2 px-3 font-mono-data text-xs text-[#252A27] whitespace-nowrap">
+                    <span class="text-[#28734F] font-semibold">+230 lb</span><br>
+                    <span>2.35 lb/d</span>
+                  </td>
+                  <td class="py-2 px-3 text-xs text-[#252A27] whitespace-nowrap">
+                    Diego Ruiz
+                    <span class="block text-[#66706A]">Yard lead</span>
+                  </td>
+                  <td class="py-2 px-2 text-center whitespace-nowrap">
+                    <span class="status-badge status-good">valid</span>
+                  </td>
+                  <td class="py-2 pl-3 text-right whitespace-nowrap">
+                    <div class="inline-flex items-center gap-1">
+                      <button type="button" class="action-link-btn text-[#252A27] border border-[#D9DEDA] bg-white text-xs">
+                        Edit
+                      </button>
+                      <button type="button" class="action-link-btn text-[#AE3D36] border border-[#D9DEDA] bg-white text-xs">
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Inline Delete Confirmation Component Requirement -->
+          <div class="mt-4 pt-4 border-t border-[#D9DEDA] bg-[#FFF9F8] p-4 rounded-[6px] border border-[#AE3D36]/30">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <span class="status-badge status-failed">refused</span>
+                <span class="text-sm font-semibold text-[#AE3D36]">
+                  Deleting this weight reading cannot be undone.
+                </span>
+              </div>
+              <div class="flex items-center gap-2 self-end sm:self-auto">
+                <button type="button" class="btn-outlined text-xs h-[38px] px-3">
+                  Cancel
+                </button>
+                <button type="button" class="btn-danger text-xs h-[38px] px-4 font-semibold">
+                  Confirm delete
+                </button>
+              </div>
+            </div>
+            <p class="text-xs text-[#66706A] mt-2">
+              Action applies to 20 Apr 2025 reading (842 lb, 60 head). Reverting will recalculate ADG, FCR, and inventory metrics across L-241.
+            </p>
+          </div>
+        </section>
+
+        <!-- Returned Feed-To-Gain Figures Panel -->
+        <section class="panel-box p-6 space-y-4">
+          <div class="border-b border-[#D9DEDA] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div>
+              <h2 class="heading-secondary text-[#252A27]">Returned feed-to-gain performance</h2>
+              <p class="text-sm text-[#66706A]">
+                Calculated with applicable headcount at each measurement date and as-fed feed pounds
+              </p>
+            </div>
+            <span class="text-xs font-mono-data text-[#66706A] bg-[#F6F7F5] px-2 py-1 rounded border border-[#D9DEDA]">
+              Range: 1 Jan–23 Apr 2025
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- As-fed Feed Pounds -->
+            <div class="bg-[#F6F7F5] p-4 rounded-[6px] border border-[#D9DEDA] flex flex-col justify-between">
+              <div>
+                <span class="text-xs font-semibold text-[#66706A] uppercase tracking-wider block">As-fed consumption</span>
+                <div class="text-2xl font-bold font-mono-data text-[#252A27] mt-2">
+                  82,320 <span class="text-sm font-normal text-[#66706A]">lb</span>
+                </div>
+              </div>
+              <div class="text-xs text-[#66706A] mt-3 pt-2 border-t border-[#D9DEDA]">
+                Total as-fed through latest reading (20 Apr)
+              </div>
+            </div>
+
+            <!-- FCR -->
+            <div class="bg-[#F6F7F5] p-4 rounded-[6px] border border-[#D9DEDA] flex flex-col justify-between">
+              <div>
+                <span class="text-xs font-semibold text-[#66706A] uppercase tracking-wider block">Feed conversion (FCR)</span>
+                <div class="text-2xl font-bold font-mono-data text-[#28734F] mt-2">
+                  5.96
+                </div>
+              </div>
+              <div class="text-xs text-[#66706A] mt-3 pt-2 border-t border-[#D9DEDA]">
+                13,800 lb lot gain over 98 days on feed
+              </div>
+            </div>
+
+            <!-- Feed Cost / Gain -->
+            <div class="bg-[#F6F7F5] p-4 rounded-[6px] border border-[#D9DEDA] flex flex-col justify-between">
+              <div>
+                <span class="text-xs font-semibold text-[#66706A] uppercase tracking-wider block">Feed cost per gain</span>
+                <div class="text-2xl font-bold font-mono-data text-[#252A27] mt-2">
+                  $0.91 <span class="text-sm font-normal text-[#66706A]">/lb gain</span>
+                </div>
+              </div>
+              <div class="text-xs text-[#66706A] mt-3 pt-2 border-t border-[#D9DEDA]">
+                Calculated on active Grower 1 ration deliveries
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic calculation note -->
+          <div class="text-xs text-[#66706A] pt-2 flex items-center justify-between flex-wrap gap-2">
+            <span>
+              Values automatically update upon verified chute scale additions, modifications, or deletions.
+            </span>
+            <span class="font-mono-data text-[#252A27]">
+              Lot L-241 &bull; 60 head in P-04
+            </span>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

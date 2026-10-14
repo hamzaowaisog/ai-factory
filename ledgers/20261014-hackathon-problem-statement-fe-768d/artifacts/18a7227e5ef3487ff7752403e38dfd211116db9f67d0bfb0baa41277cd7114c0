@@ -1,0 +1,773 @@
+diff --git a/App.Api/Data/InventoryEntities.cs b/App.Api/Data/InventoryEntities.cs
+new file mode 100644
+index 0000000..2785815
+--- /dev/null
++++ b/App.Api/Data/InventoryEntities.cs
+@@ -0,0 +1,88 @@
++using System.ComponentModel.DataAnnotations.Schema;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Metadata.Builders;
++
++namespace App.Api.Data;
++
++[Table("InventoryItems")]
++internal sealed class InventoryItemEntity
++{
++    public int Id { get; set; }
++    public string Name { get; set; } = "";
++    public string Category { get; set; } = "";
++    public string Unit { get; set; } = "";
++    public decimal UnitCost { get; set; }
++    public decimal DryMatterPercent { get; set; }
++    public decimal EnergyMcalPerKg { get; set; }
++    public string StorageLocation { get; set; } = "";
++    public decimal OpeningStockLb { get; set; }
++    public ICollection<InventoryMovementEntity> Movements { get; set; } = new List<InventoryMovementEntity>();
++}
++
++[Table("InventoryMovements")]
++internal sealed class InventoryMovementEntity
++{
++    public int Id { get; set; }
++    public int ItemId { get; set; }
++    public InventoryItemEntity Item { get; set; } = null!;
++    public string MovementType { get; set; } = "";
++    public DateOnly Date { get; set; }
++    public decimal QuantityLb { get; set; }
++    public string Note { get; set; } = "";
++    public string? WastageCause { get; set; }
++}
++
++[Table("InventorySettings")]
++internal sealed class InventorySettingEntity
++{
++    public int Id { get; set; }
++    public string Scope { get; set; } = "";
++    public decimal WastageRatio { get; set; }
++}
++
++internal sealed class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItemEntity>
++{
++    public void Configure(EntityTypeBuilder<InventoryItemEntity> builder)
++    {
++        builder.ToTable("InventoryItems");
++        builder.HasKey(x => x.Id);
++        builder.Property(x => x.Id).ValueGeneratedOnAdd();
++        builder.Property(x => x.Name).IsRequired();
++        builder.Property(x => x.Category).IsRequired();
++        builder.Property(x => x.Unit).IsRequired();
++        builder.Property(x => x.UnitCost).IsRequired();
++        builder.Property(x => x.DryMatterPercent).IsRequired();
++        builder.Property(x => x.EnergyMcalPerKg).IsRequired();
++        builder.Property(x => x.StorageLocation).IsRequired();
++        builder.Property(x => x.OpeningStockLb).IsRequired();
++    }
++}
++
++internal sealed class InventoryMovementConfiguration : IEntityTypeConfiguration<InventoryMovementEntity>
++{
++    public void Configure(EntityTypeBuilder<InventoryMovementEntity> builder)
++    {
++        builder.ToTable("InventoryMovements");
++        builder.HasKey(x => x.Id);
++        builder.Property(x => x.Id).ValueGeneratedOnAdd();
++        builder.HasOne(x => x.Item).WithMany(x => x.Movements).HasForeignKey(x => x.ItemId)
++            .OnDelete(DeleteBehavior.Restrict);
++        builder.Property(x => x.MovementType).IsRequired();
++        builder.Property(x => x.Date).IsRequired();
++        builder.Property(x => x.QuantityLb).IsRequired();
++        builder.Property(x => x.Note).IsRequired();
++    }
++}
++
++internal sealed class InventorySettingConfiguration : IEntityTypeConfiguration<InventorySettingEntity>
++{
++    public void Configure(EntityTypeBuilder<InventorySettingEntity> builder)
++    {
++        builder.ToTable("InventorySettings");
++        builder.HasKey(x => x.Id);
++        builder.Property(x => x.Id).ValueGeneratedOnAdd();
++        builder.HasIndex(x => x.Scope).IsUnique();
++        builder.Property(x => x.Scope).IsRequired();
++        builder.Property(x => x.WastageRatio).IsRequired();
++    }
++}
+diff --git a/App.Api/Data/RationEntities.cs b/App.Api/Data/RationEntities.cs
+new file mode 100644
+index 0000000..43fc582
+--- /dev/null
++++ b/App.Api/Data/RationEntities.cs
+@@ -0,0 +1,118 @@
++using System.ComponentModel.DataAnnotations.Schema;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Metadata.Builders;
++
++namespace App.Api.Data;
++
++[Table("Rations")]
++internal sealed class RationEntity
++{
++    public int Id { get; set; }
++    public string Name { get; set; } = "";
++    public string Type { get; set; } = "";
++    public decimal TargetWeightMinLb { get; set; }
++    public decimal TargetWeightMaxLb { get; set; }
++    public string OperationalStatus { get; set; } = "";
++    public ICollection<RationIngredientEntity> Ingredients { get; set; } = new List<RationIngredientEntity>();
++}
++
++[Table("RationIngredients")]
++internal sealed class RationIngredientEntity
++{
++    public int Id { get; set; }
++    public int RationId { get; set; }
++    public RationEntity Ration { get; set; } = null!;
++    public int ItemId { get; set; }
++    public InventoryItemEntity Item { get; set; } = null!;
++    public decimal ProportionPercent { get; set; }
++}
++
++[Table("RationCandidates")]
++internal sealed class RationCandidateEntity
++{
++    public int CandidateId { get; set; }
++    public bool Feasible { get; set; }
++    public decimal TargetWeightMinLb { get; set; }
++    public decimal TargetWeightMaxLb { get; set; }
++    public decimal MinimumDryMatterPercent { get; set; }
++    public decimal MinimumEnergyMcalPerKg { get; set; }
++    public decimal PredictedDryMatterPercent { get; set; }
++    public decimal PredictedEnergyMcalPerKg { get; set; }
++    public ICollection<RationCandidateIngredientEntity> Ingredients { get; set; } = new List<RationCandidateIngredientEntity>();
++}
++
++[Table("RationCandidateIngredients")]
++internal sealed class RationCandidateIngredientEntity
++{
++    public int Id { get; set; }
++    public int CandidateId { get; set; }
++    public RationCandidateEntity Candidate { get; set; } = null!;
++    public int ItemId { get; set; }
++    public InventoryItemEntity Item { get; set; } = null!;
++    public decimal ProportionPercent { get; set; }
++}
++
++internal sealed class RationConfiguration : IEntityTypeConfiguration<RationEntity>
++{
++    public void Configure(EntityTypeBuilder<RationEntity> builder)
++    {
++        builder.ToTable("Rations");
++        builder.HasKey(x => x.Id);
++        builder.Property(x => x.Id).ValueGeneratedOnAdd();
++        builder.HasIndex(x => x.Name).IsUnique();
++        builder.Property(x => x.Name).IsRequired();
++        builder.Property(x => x.Type).IsRequired();
++        builder.Property(x => x.TargetWeightMinLb).IsRequired();
++        builder.Property(x => x.TargetWeightMaxLb).IsRequired();
++        builder.Property(x => x.OperationalStatus).IsRequired();
++    }
++}
++
++internal sealed class RationIngredientConfiguration : IEntityTypeConfiguration<RationIngredientEntity>
++{
++    public void Configure(EntityTypeBuilder<RationIngredientEntity> builder)
++    {
++        builder.ToTable("RationIngredients");
++        builder.HasKey(x => x.Id);
++        builder.Property(x => x.Id).ValueGeneratedOnAdd();
++        builder.HasOne(x => x.Ration).WithMany(x => x.Ingredients).HasForeignKey(x => x.RationId)
++            .OnDelete(DeleteBehavior.Cascade);
++        builder.HasOne(x => x.Item).WithMany().HasForeignKey(x => x.ItemId)
++            .OnDelete(DeleteBehavior.Restrict);
++        builder.HasIndex(x => new { x.RationId, x.ItemId }).IsUnique();
++        builder.Property(x => x.ProportionPercent).IsRequired();
++    }
++}
++
++internal sealed class RationCandidateConfiguration : IEntityTypeConfiguration<RationCandidateEntity>
++{
++    public void Configure(EntityTypeBuilder<RationCandidateEntity> builder)
++    {
++        builder.ToTable("RationCandidates");
++        builder.HasKey(x => x.CandidateId);
++        builder.Property(x => x.CandidateId).ValueGeneratedOnAdd();
++        builder.Property(x => x.Feasible).IsRequired();
++        builder.Property(x => x.TargetWeightMinLb).IsRequired();
++        builder.Property(x => x.TargetWeightMaxLb).IsRequired();
++        builder.Property(x => x.MinimumDryMatterPercent).IsRequired();
++        builder.Property(x => x.MinimumEnergyMcalPerKg).IsRequired();
++        builder.Property(x => x.PredictedDryMatterPercent).IsRequired();
++        builder.Property(x => x.PredictedEnergyMcalPerKg).IsRequired();
++    }
++}
++
++internal sealed class RationCandidateIngredientConfiguration : IEntityTypeConfiguration<RationCandidateIngredientEntity>
++{
++    public void Configure(EntityTypeBuilder<RationCandidateIngredientEntity> builder)
++    {
++        builder.ToTable("RationCandidateIngredients");
++        builder.HasKey(x => x.Id);
++        builder.Property(x => x.Id).ValueGeneratedOnAdd();
++        builder.HasOne(x => x.Candidate).WithMany(x => x.Ingredients).HasForeignKey(x => x.CandidateId)
++            .OnDelete(DeleteBehavior.Cascade);
++        builder.HasOne(x => x.Item).WithMany().HasForeignKey(x => x.ItemId)
++            .OnDelete(DeleteBehavior.Restrict);
++        builder.HasIndex(x => new { x.CandidateId, x.ItemId }).IsUnique();
++        builder.Property(x => x.ProportionPercent).IsRequired();
++    }
++}
+diff --git a/App.Api/Endpoints/InventoryEndpoints.cs b/App.Api/Endpoints/InventoryEndpoints.cs
+new file mode 100644
+index 0000000..e89bebe
+--- /dev/null
++++ b/App.Api/Endpoints/InventoryEndpoints.cs
+@@ -0,0 +1,315 @@
++using System.Text.Json.Serialization;
++using App.Api.Data;
++using Microsoft.AspNetCore.Http;
++using Microsoft.AspNetCore.Mvc;
++using Microsoft.AspNetCore.OpenApi;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.OpenApi.Any;
++using Microsoft.OpenApi.Models;
++using Microsoft.Extensions.Options;
++
++namespace App.Api.Endpoints;
++
++internal sealed class InventoryEndpoints : IEndpointModule
++{
++    private const string DefaultScope = "default";
++    private const decimal DefaultWastageRatio = 0.04m;
++
++    public void MapEndpoints(IEndpointRouteBuilder app)
++    {
++        app.ServiceProvider.GetRequiredService<IOptionsMonitor<OpenApiOptions>>().Get("v1")
++            .AddOperationTransformer(new OutlookHorizonOperationTransformer());
++
++        app.MapGet("/inventory/items", GetInventoryItems)
++            .WithName("getInventoryItems")
++            .Produces<InventoryResponse>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
++
++        app.MapPost("/inventory/movements", RecordInventoryMovement)
++            .WithName("recordInventoryMovement")
++            .Produces<MovementCreatedResponse>(StatusCodes.Status201Created)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
++            .Produces<ErrorResponse>(StatusCodes.Status409Conflict)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity);
++
++        app.MapPost("/inventory/wastage", RecordActualWastage)
++            .WithName("recordActualWastage")
++            .Produces<MovementCreatedResponse>(StatusCodes.Status201Created)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
++            .Produces<ErrorResponse>(StatusCodes.Status409Conflict)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity);
++
++        app.MapPatch("/inventory/settings", UpdateInventorySettings)
++            .WithName("updateInventorySettings")
++            .Produces<InventorySettingsResponse>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity);
++
++        app.MapGet("/inventory/outlook", GetInventoryOutlook)
++            .WithName("getInventoryOutlook")
++            .Produces<OutlookResponse>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity)
++            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
++    }
++
++    private static async Task<InventoryResponse> GetInventoryItems(AppDb db)
++    {
++        var items = await db.Set<InventoryItemEntity>().AsNoTracking().OrderBy(item => item.Id).ToListAsync();
++        var movements = await db.Set<InventoryMovementEntity>().AsNoTracking()
++            .OrderBy(movement => movement.Date).ThenBy(movement => movement.Id).ToListAsync();
++        var movementsByItem = movements.GroupBy(movement => movement.ItemId)
++            .ToDictionary(group => group.Key, group => group.ToList());
++        var settings = await db.Set<InventorySettingEntity>().AsNoTracking()
++            .FirstOrDefaultAsync(setting => setting.Scope == DefaultScope);
++        var wastageRatio = settings?.WastageRatio ?? DefaultWastageRatio;
++
++        return new InventoryResponse((float)wastageRatio, items.Select(item => ToInventoryItem(item,
++            movementsByItem.GetValueOrDefault(item.Id) ?? [])).ToList());
++    }
++
++    private static async Task<IResult> RecordInventoryMovement(InventoryMovementRequest request, AppDb db)
++    {
++        if (request.Date == default || string.IsNullOrWhiteSpace(request.Note) || !CanStore(request.QuantityLb))
++            return ApiErrors.ValidationError(details: ["date, note, and a finite quantityLb are required."]);
++        if (request.MovementType == InventoryMovementRequestType.Received && request.QuantityLb <= 0)
++            return ApiErrors.ValidationError(details: ["Received quantityLb must be greater than zero."]);
++        if (request.MovementType == InventoryMovementRequestType.Adjustment && request.QuantityLb == 0)
++            return ApiErrors.ValidationError(details: ["Adjustment quantityLb must not be zero."]);
++
++        var item = await db.Set<InventoryItemEntity>().FirstOrDefaultAsync(value => value.Id == request.ItemId);
++        if (item is null) return ApiErrors.NotFound("The requested inventory item was not found.");
++
++        var movementType = request.MovementType == InventoryMovementRequestType.Received ? "received" : "adjustment";
++        var movement = new InventoryMovementEntity
++        {
++            ItemId = item.Id,
++            MovementType = movementType,
++            Date = request.Date,
++            QuantityLb = (decimal)request.QuantityLb,
++            Note = request.Note.Trim()
++        };
++        if (movementType == "adjustment" && (await CurrentStock(db, item) + movement.QuantityLb) < 0)
++            return ApiErrors.Conflict("The adjustment would make inventory stock negative.");
++
++        db.Add(movement);
++        await db.SaveChangesAsync();
++        var allMovements = await db.Set<InventoryMovementEntity>().AsNoTracking()
++            .Where(value => value.ItemId == item.Id).OrderBy(value => value.Date).ThenBy(value => value.Id).ToListAsync();
++        return Results.Json(new MovementCreatedResponse(ToMovement(movement),
++            ToInventoryItem(item, allMovements)), statusCode: StatusCodes.Status201Created);
++    }
++
++    private static async Task<IResult> RecordActualWastage(ActualWastageRequest request, AppDb db)
++    {
++        if (request.RecordDate == default || !CanStore(request.ActualWastageLb) || request.ActualWastageLb <= 0 ||
++            string.IsNullOrWhiteSpace(request.WastageCause))
++            return ApiErrors.ValidationError(details: ["recordDate, a positive actualWastageLb, and wastageCause are required."]);
++
++        var item = await db.Set<InventoryItemEntity>().FirstOrDefaultAsync(value => value.Id == request.ItemId);
++        if (item is null) return ApiErrors.NotFound("The requested inventory item was not found.");
++
++        var quantity = (decimal)request.ActualWastageLb;
++        if (await CurrentStock(db, item) < quantity)
++            return ApiErrors.Conflict("The wastage quantity exceeds available inventory stock.");
++
++        var movement = new InventoryMovementEntity
++        {
++            ItemId = item.Id,
++            MovementType = "actual_wastage",
++            Date = request.RecordDate,
++            QuantityLb = quantity,
++            Note = request.WastageCause.Trim(),
++            WastageCause = request.WastageCause.Trim()
++        };
++        db.Add(movement);
++        await db.SaveChangesAsync();
++        var allMovements = await db.Set<InventoryMovementEntity>().AsNoTracking()
++            .Where(value => value.ItemId == item.Id).OrderBy(value => value.Date).ThenBy(value => value.Id).ToListAsync();
++        return Results.Json(new MovementCreatedResponse(ToMovement(movement),
++            ToInventoryItem(item, allMovements)), statusCode: StatusCodes.Status201Created);
++    }
++
++    private static async Task<IResult> UpdateInventorySettings(InventorySettingsRequest request, AppDb db)
++    {
++        if (!float.IsFinite(request.WastageRatio) || request.WastageRatio < 0 || request.WastageRatio > 1)
++            return ApiErrors.ValidationError(details: ["wastageRatio must be between zero and one."]);
++
++        var setting = await db.Set<InventorySettingEntity>().FirstOrDefaultAsync(value => value.Scope == DefaultScope);
++        if (setting is null)
++        {
++            setting = new InventorySettingEntity { Scope = DefaultScope };
++            db.Add(setting);
++        }
++        setting.WastageRatio = (decimal)request.WastageRatio;
++        await db.SaveChangesAsync();
++        return Results.Ok(new InventorySettingsResponse((float)setting.WastageRatio));
++    }
++
++    private static async Task<IResult> GetInventoryOutlook([FromQuery] string horizon, [FromQuery] float wastageRatio, AppDb db)
++    {
++        var days = HorizonDays(horizon);
++        if (days is null)
++            return ApiErrors.ValidationError(details: ["horizon must be daily, weekly, monthly, quarterly, bi-annual, or annual."]);
++        if (!float.IsFinite(wastageRatio) || wastageRatio < 0 || wastageRatio > 1)
++            return ApiErrors.ValidationError(details: ["wastageRatio must be between zero and one."]);
++
++        var items = await db.Set<InventoryItemEntity>().AsNoTracking().OrderBy(item => item.Id).ToListAsync();
++        var movements = await db.Set<InventoryMovementEntity>().AsNoTracking().OrderBy(movement => movement.Date)
++            .ThenBy(movement => movement.Id).ToListAsync();
++        var balances = items.Select(item =>
++        {
++            var itemMovements = movements.Where(movement => movement.ItemId == item.Id).ToList();
++            var currentStock = InventoryTotals.For(item, itemMovements).ClosingStockLb;
++            var consumption = itemMovements.Where(movement => movement.MovementType == "consumed").ToList();
++            var dailyConsumption = consumption.Count == 0
++                ? 0m
++                : consumption.Sum(movement => movement.QuantityLb) /
++                  Math.Max(1, consumption.Max(movement => movement.Date.DayNumber) - consumption.Min(movement => movement.Date.DayNumber) + 1);
++            var projected = currentStock - dailyConsumption * days.Value * (1m + (decimal)wastageRatio);
++            return new OutlookBalance(item.Id, item.Name, (float)currentStock, (float)dailyConsumption, (float)projected);
++        }).ToList();
++
++        return Results.Ok(new OutlookResponse(ParseOutlookHorizon(horizon), wastageRatio, balances));
++    }
++
++    private static async Task<decimal> CurrentStock(AppDb db, InventoryItemEntity item)
++    {
++        var movements = await db.Set<InventoryMovementEntity>().AsNoTracking()
++            .Where(movement => movement.ItemId == item.Id).ToListAsync();
++        return InventoryTotals.For(item, movements).ClosingStockLb;
++    }
++
++    private static int? HorizonDays(string horizon) => horizon switch
++    {
++        "daily" => 1,
++        "weekly" => 7,
++        "monthly" => 30,
++        "quarterly" => 90,
++        "bi-annual" => 182,
++        "annual" => 365,
++        _ => null
++    };
++
++    private static OutlookHorizon ParseOutlookHorizon(string horizon) => horizon switch
++    {
++        "daily" => OutlookHorizon.Daily,
++        "weekly" => OutlookHorizon.Weekly,
++        "monthly" => OutlookHorizon.Monthly,
++        "quarterly" => OutlookHorizon.Quarterly,
++        "bi-annual" => OutlookHorizon.BiAnnual,
++        _ => OutlookHorizon.Annual
++    };
++
++    private static readonly string[] OutlookHorizons = ["daily", "weekly", "monthly", "quarterly", "bi-annual", "annual"];
++
++    private sealed class OutlookHorizonOperationTransformer : IOpenApiOperationTransformer
++    {
++        public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
++            CancellationToken cancellationToken)
++        {
++            if (operation.OperationId == "getInventoryOutlook")
++            {
++                var horizonParameter = operation.Parameters?.FirstOrDefault(parameter => parameter.Name == "horizon");
++                if (horizonParameter is not null)
++                {
++                    horizonParameter.Schema ??= new OpenApiSchema { Type = "string" };
++                    horizonParameter.Schema.Enum = OutlookHorizons
++                        .Select(value => (IOpenApiAny)new OpenApiString(value)).ToList();
++                }
++            }
++            return Task.CompletedTask;
++        }
++    }
++
++    private static bool CanStore(float value) => float.IsFinite(value) && Math.Abs((double)value) <= (double)decimal.MaxValue;
++
++    private static InventoryItem ToInventoryItem(InventoryItemEntity item, IReadOnlyList<InventoryMovementEntity> movements)
++    {
++        var totals = InventoryTotals.For(item, movements);
++        return new InventoryItem(item.Id, item.Name, item.Category, (float)totals.ClosingStockLb, item.Unit,
++            (float)item.UnitCost, (float)item.DryMatterPercent, (float)item.EnergyMcalPerKg, item.StorageLocation,
++            (float)totals.OpeningStockLb, (float)totals.ReceivedStockLb, (float)totals.ConsumedStockLb,
++            (float)totals.ActualWastageLb, (float)totals.ClosingStockLb,
++            movements.OrderBy(value => value.Date).ThenBy(value => value.Id).Select(ToMovement).ToList());
++    }
++
++    private static InventoryMovement ToMovement(InventoryMovementEntity movement) => new(
++        movement.Id, movement.ItemId, ParseMovementType(movement.MovementType), movement.Date, (float)movement.QuantityLb,
++        movement.Note, movement.WastageCause);
++
++    private static InventoryMovementType ParseMovementType(string movementType) => movementType switch
++    {
++        "opening" => InventoryMovementType.Opening,
++        "received" => InventoryMovementType.Received,
++        "consumed" => InventoryMovementType.Consumed,
++        "actual_wastage" => InventoryMovementType.ActualWastage,
++        _ => InventoryMovementType.Adjustment
++    };
++}
++
++internal static class InventoryTotals
++{
++    internal static InventoryStockTotals For(InventoryItemEntity item, IEnumerable<InventoryMovementEntity> movements)
++    {
++        var records = movements.ToList();
++        var opening = item.OpeningStockLb != 0
++            ? item.OpeningStockLb
++            : records.Where(movement => movement.MovementType == "opening").Sum(movement => movement.QuantityLb);
++        var received = records.Where(movement => movement.MovementType == "received").Sum(movement => movement.QuantityLb);
++        var consumed = records.Where(movement => movement.MovementType == "consumed").Sum(movement => movement.QuantityLb);
++        var wastage = records.Where(movement => movement.MovementType == "actual_wastage").Sum(movement => movement.QuantityLb);
++        var adjustments = records.Where(movement => movement.MovementType == "adjustment").Sum(movement => movement.QuantityLb);
++        return new InventoryStockTotals(opening, received, consumed, wastage, opening + received + adjustments - consumed - wastage);
++    }
++}
++
++internal sealed record InventoryStockTotals(decimal OpeningStockLb, decimal ReceivedStockLb, decimal ConsumedStockLb,
++    decimal ActualWastageLb, decimal ClosingStockLb);
++internal sealed record InventoryResponse(float WastageRatio, IReadOnlyList<InventoryItem> Items);
++internal sealed record InventoryItem(int Id, string Name, string Category, float AvailableQuantity, string Unit,
++    float UnitCost, float DryMatterPercent, float EnergyMcalPerKg, string StorageLocation, float OpeningStockLb,
++    float ReceivedStockLb, float ConsumedStockLb, float ActualWastageLb, float ClosingStockLb,
++    IReadOnlyList<InventoryMovement> Movements);
++internal sealed record InventoryMovement(int Id, int ItemId, InventoryMovementType MovementType, DateOnly Date,
++    float QuantityLb, string Note, string? WastageCause);
++internal sealed record MovementCreatedResponse(InventoryMovement Movement, InventoryItem Item);
++internal sealed record InventorySettingsRequest(float WastageRatio);
++internal sealed record InventorySettingsResponse(float WastageRatio);
++internal sealed record OutlookBalance(int ItemId, string ItemName, float CurrentStockLb,
++    float DailyEstimatedConsumptionLb, float ProjectedBalanceLb);
++internal sealed record OutlookResponse(OutlookHorizon Horizon, float WastageRatio, IReadOnlyList<OutlookBalance> Balances);
++internal sealed record InventoryMovementRequest(int ItemId, InventoryMovementRequestType MovementType, DateOnly Date,
++    float QuantityLb, string Note);
++internal sealed record ActualWastageRequest(int ItemId, DateOnly RecordDate, float ActualWastageLb, string WastageCause);
++
++[JsonConverter(typeof(JsonStringEnumConverter<InventoryMovementType>))]
++internal enum InventoryMovementType
++{
++    [JsonStringEnumMemberName("opening")] Opening,
++    [JsonStringEnumMemberName("received")] Received,
++    [JsonStringEnumMemberName("consumed")] Consumed,
++    [JsonStringEnumMemberName("actual_wastage")] ActualWastage,
++    [JsonStringEnumMemberName("adjustment")] Adjustment
++}
++
++[JsonConverter(typeof(JsonStringEnumConverter<InventoryMovementRequestType>))]
++internal enum InventoryMovementRequestType
++{
++    [JsonStringEnumMemberName("received")] Received,
++    [JsonStringEnumMemberName("adjustment")] Adjustment
++}
++
++[JsonConverter(typeof(JsonStringEnumConverter<OutlookHorizon>))]
++internal enum OutlookHorizon
++{
++    [JsonStringEnumMemberName("daily")] Daily,
++    [JsonStringEnumMemberName("weekly")] Weekly,
++    [JsonStringEnumMemberName("monthly")] Monthly,
++    [JsonStringEnumMemberName("quarterly")] Quarterly,
++    [JsonStringEnumMemberName("bi-annual")] BiAnnual,
++    [JsonStringEnumMemberName("annual")] Annual
++}
+diff --git a/App.Api/Endpoints/RationEndpoints.cs b/App.Api/Endpoints/RationEndpoints.cs
+new file mode 100644
+index 0000000..f8cc2d4
+--- /dev/null
++++ b/App.Api/Endpoints/RationEndpoints.cs
+@@ -0,0 +1,228 @@
++using App.Api.Data;
++using Microsoft.AspNetCore.Http;
++using Microsoft.EntityFrameworkCore;
++
++namespace App.Api.Endpoints;
++
++internal sealed class RationEndpoints : IEndpointModule
++{
++    public void MapEndpoints(IEndpointRouteBuilder app)
++    {
++        app.MapGet("/rations", GetRations)
++            .WithName("getRations")
++            .Produces<RationsResponse>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
++
++        app.MapPost("/rations", CreateRation)
++            .WithName("createRation")
++            .Produces<Ration>(StatusCodes.Status201Created)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status409Conflict)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity);
++
++        app.MapPost("/rations/optimize", OptimizeRation)
++            .WithName("optimizeRation")
++            .Produces<OptimizationResponse>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity);
++
++        app.MapPost("/rations/selection", SelectRationCandidate)
++            .WithName("selectRationCandidate")
++            .Produces<RationSelectionResponse>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
++            .Produces<ErrorResponse>(StatusCodes.Status422UnprocessableEntity);
++    }
++
++    private static async Task<RationsResponse> GetRations(AppDb db)
++    {
++        var rations = await db.Set<RationEntity>().AsNoTracking().Include(ration => ration.Ingredients)
++            .ThenInclude(ingredient => ingredient.Item).OrderBy(ration => ration.Id).ToListAsync();
++        return new RationsResponse(rations.Select(ToRation).ToList());
++    }
++
++    private static async Task<IResult> CreateRation(RationRequest request, AppDb db)
++    {
++        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Type) ||
++            string.IsNullOrWhiteSpace(request.OperationalStatus) || !CanStore(request.TargetWeightMinLb) ||
++            !CanStore(request.TargetWeightMaxLb) || request.TargetWeightMinLb <= 0 ||
++            request.TargetWeightMaxLb < request.TargetWeightMinLb || request.Ingredients is null ||
++            request.Ingredients.Count == 0)
++            return ApiErrors.ValidationError(details: ["Ration identity, target weights, status, and ingredients are required and must be valid."]);
++
++        if (request.Ingredients.Any(ingredient => ingredient.ItemId <= 0 || !float.IsFinite(ingredient.ProportionPercent) ||
++                ingredient.ProportionPercent <= 0))
++            return ApiErrors.ValidationError(details: ["Ingredient itemIds and proportions must be positive finite values."]);
++        if (request.Ingredients.Select(ingredient => ingredient.ItemId).Distinct().Count() != request.Ingredients.Count)
++            return ApiErrors.ValidationError(details: ["Each ingredient itemId may only appear once."]);
++        if (Math.Abs(request.Ingredients.Sum(ingredient => ingredient.ProportionPercent) - 100f) > 0.01f)
++            return ApiErrors.ValidationError(details: ["Ingredient proportions must total 100 percent."]);
++
++        var name = request.Name.Trim();
++        if (await db.Set<RationEntity>().AnyAsync(ration => ration.Name == name))
++            return ApiErrors.Conflict("A ration with that name already exists.");
++
++        var itemIds = request.Ingredients.Select(ingredient => ingredient.ItemId).ToArray();
++        var items = await db.Set<InventoryItemEntity>().Where(item => itemIds.Contains(item.Id)).ToDictionaryAsync(item => item.Id);
++        if (items.Count != itemIds.Length)
++            return ApiErrors.ValidationError("One or more ration ingredients reference an unknown inventory item.");
++
++        var ration = new RationEntity
++        {
++            Name = name,
++            Type = request.Type.Trim(),
++            TargetWeightMinLb = (decimal)request.TargetWeightMinLb,
++            TargetWeightMaxLb = (decimal)request.TargetWeightMaxLb,
++            OperationalStatus = request.OperationalStatus.Trim(),
++            Ingredients = request.Ingredients.Select(ingredient => new RationIngredientEntity
++            {
++                ItemId = ingredient.ItemId,
++                ProportionPercent = (decimal)ingredient.ProportionPercent
++            }).ToList()
++        };
++        db.Add(ration);
++        await db.SaveChangesAsync();
++
++        foreach (var ingredient in ration.Ingredients)
++            ingredient.Item = items[ingredient.ItemId];
++        return Results.Json(ToRation(ration), statusCode: StatusCodes.Status201Created);
++    }
++
++    private static async Task<IResult> OptimizeRation(RationOptimizationRequest request, AppDb db)
++    {
++        if (!CanStore(request.TargetWeightMinLb) || !CanStore(request.TargetWeightMaxLb) ||
++            !CanStore(request.MinimumDryMatterPercent) || !CanStore(request.MinimumEnergyMcalPerKg) ||
++            request.TargetWeightMinLb <= 0 || request.TargetWeightMaxLb < request.TargetWeightMinLb ||
++            request.MinimumDryMatterPercent < 0 || request.MinimumDryMatterPercent > 100 ||
++            request.MinimumEnergyMcalPerKg < 0)
++            return ApiErrors.ValidationError(details: ["Optimization constraints are outside their valid ranges."]);
++
++        var items = await db.Set<InventoryItemEntity>().AsNoTracking().OrderBy(item => item.Id).ToListAsync();
++        var mixes = CreateCandidateMixes(items);
++        var candidates = mixes.Select(mix =>
++        {
++            var cost = mix.Sum(part => part.Item.UnitCost * part.ProportionPercent / 100m);
++            var dryMatter = mix.Sum(part => part.Item.DryMatterPercent * part.ProportionPercent / 100m);
++            var energy = mix.Sum(part => part.Item.EnergyMcalPerKg * part.ProportionPercent / 100m);
++            return new RationCandidateEntity
++            {
++                Feasible = dryMatter >= (decimal)request.MinimumDryMatterPercent && energy >= (decimal)request.MinimumEnergyMcalPerKg,
++                TargetWeightMinLb = (decimal)request.TargetWeightMinLb,
++                TargetWeightMaxLb = (decimal)request.TargetWeightMaxLb,
++                MinimumDryMatterPercent = (decimal)request.MinimumDryMatterPercent,
++                MinimumEnergyMcalPerKg = (decimal)request.MinimumEnergyMcalPerKg,
++                PredictedDryMatterPercent = dryMatter,
++                PredictedEnergyMcalPerKg = energy,
++                Ingredients = mix.Select(part => new RationCandidateIngredientEntity
++                {
++                    ItemId = part.Item.Id,
++                    ProportionPercent = part.ProportionPercent
++                }).ToList()
++            };
++        }).ToList();
++
++        db.AddRange(candidates);
++        await db.SaveChangesAsync();
++        foreach (var candidate in candidates)
++            foreach (var ingredient in candidate.Ingredients)
++                ingredient.Item = items.Single(item => item.Id == ingredient.ItemId);
++
++        var feasible = candidates.Where(candidate => candidate.Feasible)
++            .OrderBy(CandidateCost).ThenBy(candidate => candidate.CandidateId).Select(ToCandidate).ToList();
++        var infeasible = candidates.Where(candidate => !candidate.Feasible)
++            .OrderBy(CandidateCost).ThenBy(candidate => candidate.CandidateId).Select(ToCandidate).ToList();
++        return Results.Ok(new OptimizationResponse(feasible, infeasible));
++    }
++
++    private static async Task<IResult> SelectRationCandidate(RationSelectionRequest request, AppDb db)
++    {
++        if (request.CandidateId <= 0)
++            return ApiErrors.ValidationError(details: ["candidateId must be greater than zero."]);
++
++        var candidate = await db.Set<RationCandidateEntity>().Include(value => value.Ingredients)
++            .ThenInclude(ingredient => ingredient.Item).FirstOrDefaultAsync(value => value.CandidateId == request.CandidateId);
++        if (candidate is null)
++            return ApiErrors.NotFound("The requested ration candidate was not found.");
++        if (!candidate.Feasible)
++            return ApiErrors.ValidationError("Only feasible ration candidates can be selected.");
++
++        return Results.Ok(new RationSelectionResponse(ToCandidate(candidate), false));
++    }
++
++    private static List<List<CandidatePart>> CreateCandidateMixes(IReadOnlyList<InventoryItemEntity> items)
++    {
++        var mixes = new List<List<CandidatePart>>();
++        foreach (var item in items)
++            mixes.Add([new CandidatePart(item, 100m)]);
++
++        for (var first = 0; first < items.Count; first++)
++        {
++            for (var second = first + 1; second < items.Count; second++)
++            {
++                for (var firstPercent = 10; firstPercent < 100; firstPercent += 10)
++                {
++                    mixes.Add([
++                        new CandidatePart(items[first], firstPercent),
++                        new CandidatePart(items[second], 100m - firstPercent)
++                    ]);
++                }
++            }
++        }
++
++        if (items.Count > 2)
++        {
++            var share = decimal.Round(100m / items.Count, 6);
++            var equalMix = items.Select(item => new CandidatePart(item, share)).ToList();
++            equalMix[^1] = equalMix[^1] with { ProportionPercent = 100m - equalMix.Take(equalMix.Count - 1).Sum(part => part.ProportionPercent) };
++            mixes.Add(equalMix);
++        }
++        return mixes;
++    }
++
++    private static decimal CandidateCost(RationCandidateEntity candidate) => candidate.Ingredients
++        .Sum(ingredient => ingredient.Item.UnitCost * ingredient.ProportionPercent / 100m);
++
++    private static Ration ToRation(RationEntity ration)
++    {
++        var ingredients = ration.Ingredients.OrderBy(ingredient => ingredient.ItemId)
++            .Select(ingredient => ToRationIngredient(ingredient.Item, ingredient.ProportionPercent)).ToList();
++        var costPerLb = ration.Ingredients.Sum(ingredient => ingredient.Item.UnitCost * ingredient.ProportionPercent / 100m);
++        return new Ration(ration.Id, ration.Name, ration.Type, (float)ration.TargetWeightMinLb,
++            (float)ration.TargetWeightMaxLb, ration.OperationalStatus, (float)costPerLb, ingredients);
++    }
++
++    private static RationCandidate ToCandidate(RationCandidateEntity candidate)
++    {
++        var ingredients = candidate.Ingredients.OrderBy(ingredient => ingredient.ItemId)
++            .Select(ingredient => ToRationIngredient(ingredient.Item, ingredient.ProportionPercent)).ToList();
++        var costPerLb = CandidateCost(candidate);
++        return new RationCandidate(candidate.CandidateId, candidate.Feasible, (float)costPerLb, ingredients,
++            (float)candidate.PredictedDryMatterPercent, (float)candidate.PredictedEnergyMcalPerKg);
++    }
++
++    private static RationIngredient ToRationIngredient(InventoryItemEntity item, decimal proportionPercent) => new(
++        item.Id, item.Name, (float)proportionPercent, (float)item.DryMatterPercent, (float)item.EnergyMcalPerKg,
++        (float)item.UnitCost);
++
++    private static bool CanStore(float value) => float.IsFinite(value) && Math.Abs((double)value) <= (double)decimal.MaxValue;
++
++    private sealed record CandidatePart(InventoryItemEntity Item, decimal ProportionPercent);
++}
++
++internal sealed record RationsResponse(IReadOnlyList<Ration> Rations);
++internal sealed record Ration(int Id, string Name, string Type, float TargetWeightMinLb, float TargetWeightMaxLb,
++    string OperationalStatus, float CostPerLb, IReadOnlyList<RationIngredient> Ingredients);
++internal sealed record RationIngredient(int ItemId, string Name, float ProportionPercent, float DryMatterPercent,
++    float EnergyMcalPerKg, float CostPerLb);
++internal sealed record RationRequest(string Name, string Type, float TargetWeightMinLb, float TargetWeightMaxLb,
++    string OperationalStatus, IReadOnlyList<RationIngredientRequest> Ingredients);
++internal sealed record RationIngredientRequest(int ItemId, float ProportionPercent);
++internal sealed record RationOptimizationRequest(float TargetWeightMinLb, float TargetWeightMaxLb,
++    float MinimumDryMatterPercent, float MinimumEnergyMcalPerKg);
++internal sealed record RationCandidate(int CandidateId, bool Feasible, float CostPerLb,
++    IReadOnlyList<RationIngredient> Ingredients, float PredictedDryMatterPercent, float PredictedEnergyMcalPerKg);
++internal sealed record OptimizationResponse(List<RationCandidate> FeasibleCandidates,
++    List<RationCandidate> InfeasibleCandidates);
++internal sealed record RationSelectionRequest(int CandidateId);
++internal sealed record RationSelectionResponse(RationCandidate SelectedCandidate, bool Applied);

@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "function getGetOverviewResponseMock|const getGetOverviewResponseMock",
+    "glob": "**/*"
+   },
+   "ms": 3,
+   "resultChars": 427,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;function getGetOverviewResponseMock|const getGetOverviewResponseMock&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\nlib/api/client.msw.ts:48: export const getGetOverviewResponseMock = (): OverviewOkResponse => ({\"activeLotCount\":8,\"activePenCount\":4,\"totalAnimals\":188,\"pens\":[{\"id\":1,\"name\":\"Pen 01\",\"capacity\":60,\"currentAnimalCount\":52,\"ac\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "dailyBunkRateByPen|rationUsage",
+    "glob": "**/*"
+   },
+   "ms": 3,
+   "resultChars": 1905,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;dailyBunkRateByPen|rationUsage&quot;,&quot;glob&quot;:&quot;**/*&quot;}\">\ncontracts/openapi.yaml:655: - rationUsage\ncontracts/openapi.yaml:656: - dailyBunkRateByPen\ncontracts/openapi.yaml:687: rationUsage:\ncontracts/openapi.yaml:690: $ref: \"#/components/schemas/RationUsage\"\ncontracts/openapi.yaml:691: dailyBunkRateByPen:\ncontracts/openapi.yaml:763: RationUsage:\ncontracts/openapi.yaml:1968: - rationUsage\ncontracts/openapi.yaml:1992: rationUsage:\ncontracts/openapi.yaml:1995: $ref: \"#/components/schemas/RationUsage\"\ncontracts/openapi.yaml:2265: rationUsage:\ncontracts/openapi.yaml:2269: dailyBunkRateByPen:\ncontracts/openapi.yaml:2862: rationUsage:\nlib/api/client.msw.ts:48: export const getGetOverviewResponseMock = (): OverviewOkResponse => ({\"activeLotCount\":8,\"activePenCount\":4,\"totalAnimals\":188,\"pens\":[{\"id\":1,\"name\":\"Pen 01\",\"capacity\":60,\"currentAnimalCount\":52,\"ac\nlib/api/client.msw.ts:100: export const getGetOperationalReportsResponseMock = (): OperationalReportsOkResponse => ({\"startDate\":\"2026-10-01\",\"endDate\":\"2026-10-14\",\"pens\":[{\"penId\":1,\"penName\":\"Pen 01\",\"occupancy\":\"52 / 60\",\"r\nlib/api/client.schemas.ts:47: rationUsage: RationUsage[];\nlib/api/client.schemas.ts:48: dailyBunkRateByPen: PenBunkRate[];\nlib/api/client.schemas.ts:75: export interface RationUsage {\nlib/api/client.schemas.ts:614: rationUsage: RationUsage[];\ntests/acceptance.part3.test.tsx:397: expectDashboardMetric(overview.rationUsage[0].rationName, String(overview.rationUsage[0].feedLb));\ntests/acceptance.part3.test.tsx:398: expectDashboardMetric(\"daily bunk rate\", String(overview.dailyBunkRateByPen[0].lbPerHeadPerDay));\ntests/acceptance.part4.test.tsx:57: expect(text).toContain(response.rationUsage[0].rationName);\ntests/acceptance.part4.test.tsx:58: expect(text).toContain(String(response.rationUsage[0].feedLb));\n</untrusted_document>"
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-6.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks the ration name and type, ingredient and proportion, dry matter and energy values, weight range, and cost per pound shown on the ration screen."
+     },
+     {
+      "acId": "AC-7.1",
+      "testId": "AC_7_1_ShowsFeasibleMixesWithNutritionAndCost",
+      "verdict": "weak",
+      "why": "The test does not trigger an optimization request and its fixture has only one feasible mix, so it cannot prove returned mixes are displayed in lowest-cost order."
+     },
+     {
+      "acId": "AC-7.2",
+      "testId": "AC_7_2_RequiresSelectingSuggestionBeforeUsingRation",
+      "verdict": "weak",
+      "why": "The test does not assert that the suggestion is shown as unapplied before selection, or that the selected ration is displayed for use afterward."
+     },
+     {
+      "acId": "AC-8.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test generates a plan and asserts its date, pen, assigned lot, animal count, ration, planned quantity, feeding time, per-animal quantity, cost, expected energy, and status."
+     },
+     {
+      "acId": "AC-8.2",
+      "testId": "AC_8_2_DisplaysReturnedPlanStatus",
+      "verdict": "weak",
+      "why": "The test checks only Planned and does not verify display of the other named returned statuses: In progress, Completed, and Skipped."
+     },
+     {
+      "acId": "AC-8.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test displays planned and actual quantities and variance from a saved plan, then asserts the corresponding values returned and displayed after the user generates an adjusted plan."
+     },
+     {
+      "acId": "AC-9.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts the returned plan ID, planned and actual quantities, variance, status, cost, energy, ingredient consumption, and lot consumption."
+     },
+     {
+      "acId": "AC-9.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test successfully saves without selecting a plan link and asserts that the returned activity is shown as Unplanned."
+     },
+     {
+      "acId": "AC-9.3",
+      "testId": "AC_9_3_CollectsAndDisplaysSeparateQuantitiesForEachLot",
+      "verdict": "weak",
+      "why": "Although it requires separate inputs, the test does not assert that each returned quantity is associated with its corresponding lot name."
+     },
+     {
+      "acId": "AC-10.1",
+      "testId": "AC_10_1_DisplaysReturnedCostEnergyAndInventoryConsumption",
+      "verdict": "weak",
+      "why": "The test checks values in the feeding-log screen after saving but does not open activity details or the affected inventory or lot views named by the criterion."
+     },
+     {
+      "acId": "AC-10.2",
+      "testId": "AC_10_2_ShowsInventoryShortageWithoutSavingActivity",
+      "verdict": "weak",
+      "why": "Checking only that Unplanned is absent does not establish that the activity is not shown as saved under another status or confirmation state."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

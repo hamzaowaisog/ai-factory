@@ -1,0 +1,66 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 4,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-16.1",
+      "testId": "AC_16_1_ShowsFilteredFeedToGainRowsAndSelectedFilters",
+      "verdict": "weak",
+      "why": "The test selects only the breed already present in the mock response and does not assert the request’s filters or that the displayed row set excludes lots outside the returned filtered list."
+     },
+     {
+      "acId": "AC-16.2",
+      "testId": "AC_16_2_ShowsMetricsFromTheLatestWeightInTheSelectedRange",
+      "verdict": "weak",
+      "why": "The test changes only sex, does not verify the submitted sex filter or exercise a changed date range, and checks the selection rule on the mock rather than proving the displayed metrics follow it."
+     },
+     {
+      "acId": "AC-16.3",
+      "testId": "AC_16_3_ShowsTheReturnedFeedToGainFilterError",
+      "verdict": "weak",
+      "why": "The test asserts the exact error for an invalid date range but does not test the criterion’s alternative case of an unsupported filter value."
+     },
+     {
+      "acId": "AC-17.1",
+      "testId": "AC_17_1_DownloadsFilteredFeedToGainRowsAsCsv",
+      "verdict": "weak",
+      "why": "The test checks CSV content with substring matches but does not parse CSV columns to prove the feed-cost-per-pound-of-gain field is correctly labeled and associated with each displayed row’s value."
+     },
+     {
+      "acId": "AC-18.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test verifies a downloadable PDF with valid PDF structure and checks that every displayed response row and its values appear in the PDF content."
+     },
+     {
+      "acId": "AC-19.2",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test checks each category’s count and record details, confirms partial status is shown, and rejects a complete label for the partial-load response."
+     },
+     {
+      "acId": "AC-20.1",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test asserts visible content for the solution, architecture, demonstration, validation, challenges, production readiness, and go-to-market areas."
+     },
+     {
+      "acId": "AC-21.1",
+      "testId": "AC_21_1_ShowsTheSameOperationalViewsAndControlsInSeparateUserContexts",
+      "verdict": "weak",
+      "why": "The test compares page text and button labels across users but does not compare non-button controls such as inputs, selects, or their enabled state."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

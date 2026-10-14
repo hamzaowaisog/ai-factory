@@ -1,0 +1,28 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "PostgreSQL|Database|EnsureDeleted|Seed:Demo|WebApplicationFactory",
+    "glob": "App.Tests/**/*.cs"
+   },
+   "ms": 4,
+   "resultChars": 2653,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;PostgreSQL|Database|EnsureDeleted|Seed:Demo|WebApplicationFactory&quot;,&quot;glob&quot;:&quot;App.Tests/**/*.cs&quot;}\">\nApp.Tests/AcceptancePart1Tests.cs:14: public sealed class AcceptancePart1Tests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart1Tests.cs:17: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/AcceptancePart1Tests.cs:20: public AcceptancePart1Tests(WebApplicationFactory<Program> factory)\nApp.Tests/AcceptancePart1Tests.cs:631: var connection = db.Database.GetDbConnection();\nApp.Tests/AcceptancePart1Tests.cs:716: public sealed class Part1CharacterisationTests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart1Tests.cs:719: public Part1CharacterisationTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();\nApp.Tests/AcceptancePart2Tests.cs:156: private readonly WebApplicationFactory<Program> _factory = new();\nApp.Tests/AcceptancePart2Tests.cs:182: await db.Database.ExecuteSqlInterpolatedAsync(sql);\nApp.Tests/AcceptancePart3Tests.cs:13: public sealed class AcceptancePart3Tests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart3Tests.cs:48: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/AcceptancePart3Tests.cs:50: public AcceptancePart3Tests(WebApplicationFactory<Program> factory) => _factory = factory;\nApp.Tests/AcceptancePart3Tests.cs:72: await db.Database.OpenConnectionAsync();\nApp.Tests/AcceptancePart3Tests.cs:73: var connection = db.Database.GetDbConnection();\nApp.Tests/AcceptancePart3Tests.cs:106: private WebApplicationFactory<Program> CreateSeededFactory() => _factory.WithWebHostBuilder(builder =>\nApp.Tests/AcceptancePart3Tests.cs:110: [\"Seed:Demo\"] = \"true\"\nApp.Tests/AcceptancePart4Tests.cs:11: public sealed class AcceptancePart4Tests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/AcceptancePart4Tests.cs:13: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/AcceptancePart4Tests.cs:15: public AcceptancePart4Tests(WebApplicationFactory<Program> factory) => _factory = factory;\nApp.Tests/AcceptancePart4Tests.cs:51: private WebApplicationFactory<Program> CreateFactoryWithoutDemoSeeding() =>\nApp.Tests/AcceptancePart4Tests.cs:55: [\"Seed:Demo\"] = \"false\"\nApp.Tests/HealthTests.cs:7: public class HealthTests : IClassFixture<WebApplicationFactory<Program>>\nApp.Tests/HealthTests.cs:9: private readonly WebApplicationFactory<Program> _factory;\nApp.Tests/HealthTests.cs:10: public HealthTests(WebApplicationFactory<Program> factory) => _factory = factory;\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "AC_5_1|AC_5_2",
+    "glob": "App.Tests/**/*"
+   },
+   "ms": 2,
+   "resultChars": 372,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;AC_5_1|AC_5_2&quot;,&quot;glob&quot;:&quot;App.Tests/**/*&quot;}\">\nApp.Tests/AcceptancePart4Tests.cs:18: public async Task AC_5_1_UsesTestCreatedValuesWhenDemoSeedingIsDisabled()\nApp.Tests/AcceptancePart4Tests.cs:39: public async Task AC_5_2_ReturnsAnEmptyCollectionWithoutDemoRows()\n</untrusted_document>"
+  }
+ ]
+}

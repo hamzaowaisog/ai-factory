@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lots &amp; pens — Cedar Draw Feedlot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;650;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-page: #F6F7F5;
+      --bg-panel: #FFFFFF;
+      --text-main: #252A27;
+      --text-quiet: #66706A;
+      --border-rule: #D9DEDA;
+      --primary: #AD5C2A;
+      --status-good: #28734F;
+      --status-waiting: #94600C;
+      --status-failed: #AE3D36;
+      --dur-quick: 160ms;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 30px;
+      font-weight: 650;
+      line-height: 36px;
+    }
+
+    h2 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 28px;
+    }
+
+    h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+
+    /* Edge panels with a 1px rule and no shadow */
+    .panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+      box-shadow: none;
+    }
+
+    /* Form controls: 44px tall, 6px roundness, visible focus ring #AD5C2A */
+    .input-field {
+      height: 44px;
+      border: 1px solid var(--border-rule);
+      border-radius: 6px;
+      background-color: var(--bg-panel);
+      color: var(--text-main);
+      padding: 0 12px;
+      outline: none;
+      transition: border-color var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(173, 92, 42, 0.25);
+    }
+
+    .btn-primary {
+      height: 44px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border-radius: 6px;
+      font-weight: 600;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color var(--dur-quick) ease, transform 90ms ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background-color: #964f23;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes statusBreathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeUp var(--dur-quick) ease-out forwards;
+    }
+
+    .status-dot-pulse {
+      animation: statusBreathe 8s ease-in-out infinite;
+    }
+
+    .table-row-animate:nth-child(1) { animation: entranceFadeUp var(--dur-quick) ease-out 0ms forwards; }
+    .table-row-animate:nth-child(2) { animation: entranceFadeUp var(--dur-quick) ease-out 50ms forwards; }
+    .table-row-animate:nth-child(3) { animation: entranceFadeUp var(--dur-quick) ease-out 100ms forwards; }
+    .table-row-animate:nth-child(4) { animation: entranceFadeUp var(--dur-quick) ease-out 150ms forwards; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Specific status outlines */
+    .status-badge-good {
+      color: var(--status-good);
+      border: 1px solid var(--status-good);
+      border-radius: 6px;
+      padding: 2px 8px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .status-badge-waiting {
+      color: var(--status-waiting);
+      border: 1px solid var(--status-waiting);
+      border-radius: 6px;
+      padding: 2px 8px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .status-badge-failed {
+      color: var(--status-failed);
+      border: 1px solid var(--status-failed);
+      border-radius: 6px;
+      padding: 2px 8px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .menu-link {
+      color: var(--text-quiet);
+      padding: 16px 0;
+      font-weight: 500;
+      transition: color var(--dur-quick) ease;
+      position: relative;
+      white-space: nowrap;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .menu-link:hover {
+      color: var(--text-main);
+    }
+
+    .menu-link.active {
+      color: var(--primary);
+      font-weight: 600;
+      border-bottom: 2px solid var(--primary);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Shared Header: exactly as defined -->
+  <header class="w-full bg-white border-b border-[#D9DEDA]">
+    <div class="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between gap-6 overflow-x-auto">
+      
+      <!-- Brand & Navigation -->
+      <div class="flex items-center gap-7 shrink-0">
+        <!-- Brand Wordmark + Mark -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded bg-[#252A27] flex items-center justify-center text-white font-bold text-sm tracking-tight font-heading">
+            C
+          </div>
+          <span class="font-heading font-bold text-base text-[#252A27] tracking-tight">Cedar Draw Feedlot</span>
+        </div>
+
+        <!-- Shared Menu -->
+        <nav class="flex items-center gap-5 text-sm">
+          <a href="#" class="menu-link">Overview</a>
+          <a href="#" class="menu-link">Import records</a>
+          <a href="#" class="menu-link active">Lots &amp; pens</a>
+          <a href="#" class="menu-link">Feed inventory</a>
+          <a href="#" class="menu-link">Inventory outlook</a>
+          <a href="#" class="menu-link">Rations</a>
+          <a href="#" class="menu-link">Feeding plans</a>
+          <a href="#" class="menu-link">Feeding log</a>
+          <a href="#" class="menu-link">Weight records</a>
+          <a href="#" class="menu-link">Operational reports</a>
+          <a href="#" class="menu-link">Feed-to-gain</a>
+          <a href="#" class="menu-link">Project &amp; demo</a>
+        </nav>
+      </div>
+
+      <!-- User Profile at right -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="w-8 h-8 rounded-full bg-[#EAECE9] border border-[#D9DEDA] flex items-center justify-center font-heading font-semibold text-xs text-[#252A27]">
+          MO
+        </div>
+        <div class="flex flex-col text-left">
+          <span class="text-sm font-semibold text-[#252A27] leading-none">Mara Ortega</span>
+          <span class="text-xs text-[#66706A] leading-tight mt-0.5">Feed manager</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Workspace -->
+  <main class="max-w-[1440px] mx-auto px-6 py-8">
+
+    <!-- Page Title & Operational Context -->
+    <div class="flex flex-col md:flex-row md:items-baseline justify-between mb-6 pb-2 border-b border-[#D9DEDA]/60">
+      <h1 class="text-[#252A27]">Lots &amp; pens</h1>
+      <div class="text-sm text-[#66706A] mt-1 md:mt-0 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#28734F] status-dot-pulse inline-block"></span>
+        <span>Sample date: <span class="font-mono-num text-[#252A27]">23 Apr 2025</span></span>
+        <span class="text-[#D9DEDA]">|</span>
+        <span>Facility time: <span class="font-mono-num text-[#252A27]">America/Denver</span></span>
+      </div>
+    </div>
+
+    <!-- Concise Pen-Occupancy & Headcount Summary Line -->
+    <section class="panel p-5 mb-6">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        
+        <!-- Summary metrics -->
+        <div class="flex flex-wrap items-center gap-6 divide-y lg:divide-y-0 lg:divide-x divide-[#D9DEDA]">
+          <div class="flex items-center gap-3">
+            <div class="flex flex-col">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[#66706A]">Total Occupied Capacity</span>
+              <div class="flex items-baseline gap-2 mt-0.5">
+                <span class="text-2xl font-bold font-heading text-[#252A27]"><span class="font-mono-num">188</span> / <span class="font-mono-num">270</span></span>
+                <span class="text-sm text-[#66706A]">head across <span class="font-mono-num">2</span> active pens</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:pl-6 pt-3 lg:pt-0 flex items-center gap-4">
+            <div class="flex flex-col">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[#66706A]">Pen P-04</span>
+              <div class="text-base text-[#252A27] mt-0.5">
+                <span class="font-mono-num font-semibold">116</span> / <span class="font-mono-num">150</span> head
+                <span class="text-xs font-mono-num text-[#28734F] ml-1.5">(34 open)</span>
+              </div>
+              <span class="text-xs text-[#66706A]">Lots: L-241 (60), L-242 (56)</span>
+            </div>
+          </div>
+
+          <div class="lg:pl-6 pt-3 lg:pt-0 flex items-center gap-4">
+            <div class="flex flex-col">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[#66706A]">Pen P-02</span>
+              <div class="text-base text-[#252A27] mt-0.5">
+                <span class="font-mono-num font-semibold">72</span> / <span class="font-mono-num">120</span> head
+                <span class="text-xs font-mono-num text-[#28734F] ml-1.5">(48 open)</span>
+              </div>
+              <span class="text-xs text-[#66706A]">Lot: L-239 (72)</span>
+            </div>
+          </div>
+
+          <div class="lg:pl-6 pt-3 lg:pt-0 flex items-center gap-4">
+            <div class="flex flex-col">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[#94600C]">Awaiting Pen Assignment</span>
+              <div class="text-base text-[#252A27] mt-0.5">
+                <span class="font-mono-num font-semibold">24</span> head pending
+              </div>
+              <span class="text-xs text-[#66706A]">Lot: L-243 (no pen assigned)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total accepted headcount badge -->
+        <div class="bg-[#F6F7F5] border border-[#D9DEDA] rounded-md px-4 py-2.5 shrink-0 text-sm">
+          <span class="text-[#66706A]">Accepted inventory:</span>
+          <span class="font-mono-num font-semibold text-[#252A27] ml-1">212</span> head
+          <span class="text-xs text-[#66706A] ml-1">(188 penned + 24 awaiting pen)</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Two-Column Workspace: Table beside Selected-Lot Detail -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Column: Searchable Lot-and-Pen Table (Traceable Record) -->
+      <section class="lg:col-span-7 panel p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2>Lot &amp; pen records</h2>
+            <p class="text-sm text-[#66706A] mt-0.5">Traceable lot assignments, purchase order links, and pen capacity allocations.</p>
+          </div>
+          
+          <!-- Search input -->
+          <div class="w-full sm:w-64">
+            <label for="table-search" class="sr-only">Search lot or pen</label>
+            <input 
+              type="text" 
+              id="table-search"
+              placeholder="Search lot, pen, or PO..." 
+              value="" 
+              class="input-field w-full text-sm"
+            >
+          </div>
+        </div>
+
+        <!-- Traceable Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-[#D9DEDA] text-xs font-semibold uppercase tracking-wider text-[#66706A]">
+                <th class="py-3 px-3">Lot</th>
+                <th class="py-3 px-3">Pen</th>
+                <th class="py-3 px-3">Head</th>
+                <th class="py-3 px-3">Breed &amp; Sex</th>
+                <th class="py-3 px-3">PO Line Trace</th>
+                <th class="py-3 px-3 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#D9DEDA] text-sm">
+              
+              <!-- Row 1: L-241 (Selected) -->
+              <tr class="table-row-animate bg-[#F6F7F5]/80 hover:bg-[#F6F7F5] transition-colors cursor-pointer border-l-4 border-l-[#AD5C2A]">
+                <td class="py-3 px-3">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono-num font-semibold text-[#252A27]">L-241</span>
+                    <span class="text-xs bg-[#AD5C2A]/10 text-[#AD5C2A] px-1.5 py-0.5 rounded font-medium">Selected</span>
+                  </div>
+                </td>
+                <td class="py-3 px-3">
+                  <span class="font-mono-num font-medium text-[#252A27]">P-04</span>
+                  <span class="text-xs text-[#66706A] block font-mono-num">116/150</span>
+                </td>
+                <td class="py-3 px-3 font-mono-num font-medium text-[#252A27]">60</td>
+                <td class="py-3 px-3 text-[#252A27]">Angus–Hereford steers</td>
+                <td class="py-3 px-3">
+                  <div class="font-mono-num text-xs text-[#252A27]">PO-5831 line 1</div>
+                  <div class="text-xs text-[#66706A]">Split (60 of 84 head)</div>
+                </td>
+                <td class="py-3 px-3 text-right">
+                  <span class="status-badge-good">good</span>
+                </td>
+              </tr>
+
+              <!-- Row 2: L-242 -->
+              <tr class="table-row-animate hover:bg-[#F6F7F5]/50 transition-colors cursor-pointer">
+                <td class="py-3 px-3">
+                  <span class="font-mono-num font-semibold text-[#252A27]">L-242</span>
+                </td>
+                <td class="py-3 px-3">
+                  <span class="font-mono-num font-medium text-[#252A27]">P-04</span>
+                  <span class="text-xs text-[#66706A] block font-mono-num">116/150</span>
+                </td>
+                <td class="py-3 px-3 font-mono-num font-medium text-[#252A27]">56</td>
+                <td class="py-3 px-3 text-[#252A27]">Charolais-cross heifers</td>
+                <td class="py-3 px-3">
+                  <div class="font-mono-num text-xs text-[#252A27]">PO-5840 line 1</div>
+                  <div class="text-xs text-[#66706A]">Direct (56 head)</div>
+                </td>
+                <td class="py-3 px-3 text-right">
+                  <span class="status-badge-good">good</span>
+                </td>
+              </tr>
+
+              <!-- Row 3: L-239 -->
+              <tr class="table-row-animate hover:bg-[#F6F7F5]/50 transition-colors cursor-pointer">
+                <td class="py-3 px-3">
+                  <span class="font-mono-num font-semibold text-[#252A27]">L-239</span>
+                </td>
+                <td class="py-3 px-3">
+                  <span class="font-mono-num font-medium text-[#252A27]">P-02</span>
+                  <span class="text-xs text-[#66706A] block font-mono-num">72/120</span>
+                </td>
+                <td class="py-3 px-3 font-mono-num font-medium text-[#252A27]">72</td>
+                <td class="py-3 px-3 text-[#252A27]">Angus steers</td>
+                <td class="py-3 px-3">
+                  <div class="font-mono-num text-xs text-[#252A27]">PO-5790 line 1</div>
+                  <div class="text-xs text-[#66706A]">Direct (72 head)</div>
+                </td>
+                <td class="py-3 px-3 text-right">
+                  <span class="status-badge-good">good</span>
+                </td>
+              </tr>
+
+              <!-- Row 4: L-243 (Awaiting Pen) -->
+              <tr class="table-row-animate hover:bg-[#F6F7F5]/50 transition-colors cursor-pointer bg-[#FFFDF8]">
+                <td class="py-3 px-3">
+                  <span class="font-mono-num font-semibold text-[#252A27]">L-243</span>
+                </td>
+                <td class="py-3 px-3">
+                  <span class="text-xs text-[#94600C] font-semibold bg-[#94600C]/10 px-2 py-0.5 rounded">No pen</span>
+                  <span class="text-xs text-[#66706A] block">Unavailable</span>
+                </td>
+                <td class="py-3 px-3 font-mono-num font-medium text-[#252A27]">24</td>
+                <td class="py-3 px-3 text-[#252A27]">Angus–Hereford steers</td>
+                <td class="py-3 px-3">
+                  <div class="font-mono-num text-xs text-[#252A27]">PO-5831 line 1</div>
+                  <div class="text-xs text-[#66706A]">Split (24 of 84 head)</div>
+                </td>
+                <td class="py-3 px-3 text-right">
+                  <span class="status-badge-waiting">waiting</span>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Traceability note below table -->
+        <div class="mt-5 p-3.5 bg-[#F6F7F5] rounded-md border border-[#D9DEDA] flex items-start gap-3 text-xs text-[#66706A]">
+          <div class="mt-0.5 font-bold text-[#AD5C2A]">i</div>
+          <div>
+            <strong class="text-[#252A27]">Purchase Order Line Traceability:</strong>
+            <span class="font-mono-num text-[#252A27]">PO-5831 line 1</span> (84 head received from Red Basin Cattle Co.) is split between
+            <span class="font-mono-num font-semibold text-[#252A27]">L-241</span> (60 head penned in <span class="font-mono-num font-semibold text-[#252A27]">P-04</span>) and 
+            <span class="font-mono-num font-semibold text-[#252A27]">L-243</span> (24 head, unpenned). Animals in L-243 remain marked “No pen — unavailable for pen operations” until capacity is assigned.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Selected-Lot Detail & Assumption Editor -->
+      <section class="lg:col-span-5 panel p-6">
+        
+        <!-- Header of detail pane -->
+        <div class="flex items-start justify-between pb-4 border-b border-[#D9DEDA]">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2>Selected lot: L-241</h2>
+              <span class="status-badge-good">good</span>
+            </div>
+            <p class="text-sm text-[#66706A] mt-0.5">Pen <span class="font-mono-num font-semibold text-[#252A27]">P-04</span> · 60 head · Angus–Hereford steers</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-[#66706A] block">Trace Link</span>
+            <span class="font-mono-num text-xs font-semibold text-[#252A27]">PO-5831 line 1</span>
+          </div>
+        </div>
+
+        <!-- Real documentary photograph of cattle in pen -->
+        <div class="my-5">
+          <div class="aspect-[4/3] w-full overflow-hidden rounded-md border border-[#D9DEDA] bg-[#EAECE9]">
+            <img 
+              src="https://lh3.googleusercontent.com/aida/AEtjO1Uq0eTX7rbotaSG2eGlgGupFOAVz7iYCPnLYh3wVec8z2uR6Q1luegzBD5zc8UqR5i4Dtqy8p43CfPhZz7tCStaW7AO8tkedFb2iYNIhWldG2ByPDGmcxojf12nGKV_apCqt5UlqIzFKPtDEfARZVJAUhmlzaLFL9g2gbRp2dkpL5ZEFFPytwFBsso6tupNk9TAwwAq_HJnka008jF69J9LRxqcn5jmNafleUgT6fHxKWriEHB8BArnrg" 
+              alt="Angus and Angus-Hereford cross steers feeding in pen P-04 at Cedar Draw Feedlot"
+              class="w-full h-full object-cover"
+            >
+          </div>
+          <div class="flex justify-between items-center text-xs text-[#66706A] mt-1.5 px-0.5">
+            <span>Pen P-04 feed bunk · Angus–Hereford steers</span>
+            <span class="font-mono-num">America/Denver</span>
+          </div>
+        </div>
+
+        <!-- Lot Performance & Weight Measurement Summary -->
+        <div class="mb-5 pb-5 border-b border-[#D9DEDA]">
+          <h3 class="mb-3 text-[#252A27]">Operational metrics</h3>
+          
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="p-3 bg-[#F6F7F5] rounded border border-[#D9DEDA]/70">
+              <span class="text-xs text-[#66706A] block">Received date</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">12 Jan 2025</span>
+              <span class="text-xs text-[#66706A] block mt-0.5">at <span class="font-mono-num">612 lb</span></span>
+            </div>
+
+            <div class="p-3 bg-[#F6F7F5] rounded border border-[#D9DEDA]/70">
+              <span class="text-xs text-[#66706A] block">Latest weight reading</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">842 lb</span>
+              <span class="text-xs text-[#66706A] block mt-0.5">on <span class="font-mono-num">20 Apr 2025</span></span>
+            </div>
+
+            <div class="p-3 bg-[#F6F7F5] rounded border border-[#D9DEDA]/70">
+              <span class="text-xs text-[#66706A] block">Measured ADG</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span class="font-mono-num font-bold text-base text-[#252A27]">2.35</span>
+                <span class="text-xs text-[#66706A]">lb/day</span>
+              </div>
+              <span class="text-[11px] text-[#28734F] block mt-0.5">Drives forecast</span>
+            </div>
+
+            <div class="p-3 bg-[#F6F7F5] rounded border border-[#D9DEDA]/70">
+              <span class="text-xs text-[#66706A] block">Forecast market date</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">22 Nov 2025</span>
+              <span class="text-xs text-[#66706A] block mt-0.5">Target <span class="font-mono-num">1,350 lb</span></span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 mt-2 text-xs">
+            <div class="p-2 border border-[#D9DEDA]/60 rounded text-center">
+              <span class="text-[#66706A] block">Feed as-fed</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">82,320 lb</span>
+            </div>
+            <div class="p-2 border border-[#D9DEDA]/60 rounded text-center">
+              <span class="text-[#66706A] block">FCR</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">5.96</span>
+            </div>
+            <div class="p-2 border border-[#D9DEDA]/60 rounded text-center">
+              <span class="text-[#66706A] block">Feed cost / gain</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">$0.91/lb</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assumption Editor Form -->
+        <div>
+          <h3 class="mb-3 text-[#252A27]">Projection assumptions</h3>
+          <p class="text-xs text-[#66706A] mb-4">
+            Measured ADG (<span class="font-mono-num">2.35 lb/day</span>) is actively used because valid scale readings exist. Unmeasured lots (like <span class="font-mono-num">L-243</span>) use the default rate of <span class="font-mono-num">3.0 lb/day</span> from receipt weight (<span class="font-mono-num">612 lb</span>).
+          </p>
+
+          <form action="#" method="POST" onsubmit="return false;" class="space-y-4">
+            
+            <!-- Target Weight Field -->
+            <div>
+              <label for="target-weight" class="block text-xs font-semibold uppercase tracking-wider text-[#66706A] mb-1.5">
+                Target weight (lb)
+              </label>
+              <div class="relative">
+                <input 
+                  type="number" 
+                  id="target-weight" 
+                  name="target_weight" 
+                  value="1350" 
+                  class="input-field w-full font-mono-num font-medium text-base pr-12"
+                >
+                <span class="absolute right-3 top-2.5 text-xs text-[#66706A] pointer-events-none">lb</span>
+              </div>
+            </div>
+
+            <!-- Default Gain Rate Field -->
+            <div>
+              <label for="default-gain-rate" class="block text-xs font-semibold uppercase tracking-wider text-[#66706A] mb-1.5">
+                Default gain rate (lb/day)
+              </label>
+              <div class="relative">
+                <input 
+                  type="number" 
+                  step="0.05" 
+                  id="default-gain-rate" 
+                  name="default_gain_rate" 
+                  value="3.00" 
+                  class="input-field w-full font-mono-num font-medium text-base pr-16"
+                >
+                <span class="absolute right-3 top-2.5 text-xs text-[#66706A] pointer-events-none">lb/day</span>
+              </div>
+              <span class="text-[12px] text-[#66706A] mt-1 block">Used when no scale measurements are recorded for the lot.</span>
+            </div>
+
+            <!-- Forecast calculation readout -->
+            <div class="p-3 bg-[#F6F7F5] rounded border border-[#D9DEDA] flex items-center justify-between text-xs">
+              <span class="text-[#66706A]">Remaining gain required:</span>
+              <span class="font-mono-num font-semibold text-[#252A27]">508 lb <span class="font-normal text-[#66706A]">(at 2.35 lb/day = 216 days to 22 Nov)</span></span>
+            </div>
+
+            <!-- Primary in-page action -->
+            <div class="pt-2">
+              <button type="submit" class="btn-primary w-full text-base">
+                Save lot assumptions
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

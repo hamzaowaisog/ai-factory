@@ -1,0 +1,479 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Feeding log · Cedar Draw Feedlot</title>
+<!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;650;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-highest": "#e2e3e1",
+            "on-secondary-fixed-variant": "#633e29",
+            "on-error-container": "#93000a",
+            "tertiary-fixed-dim": "#79d3ef",
+            "surface-container-lowest": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#f3f4f2",
+            "inverse-on-surface": "#f0f1ef",
+            "secondary-container": "#fdc6a9",
+            "tertiary-container": "#007c96",
+            "primary-fixed-dim": "#ffb68f",
+            "primary-fixed": "#ffdbca",
+            "on-tertiary-fixed-variant": "#004e5f",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#331200",
+            "surface": "#f9faf8",
+            "error": "#ba1a1a",
+            "on-tertiary": "#ffffff",
+            "primary-container": "#ad5c2a",
+            "tertiary-fixed": "#b3ebff",
+            "outline-variant": "#dac2b6",
+            "on-tertiary-container": "#edfaff",
+            "on-error": "#ffffff",
+            "on-background": "#191c1b",
+            "surface-container": "#edeeec",
+            "inverse-surface": "#2e3130",
+            "surface-tint": "#954918",
+            "on-surface-variant": "#54433a",
+            "on-primary-container": "#fff6f3",
+            "secondary-fixed": "#ffdbca",
+            "on-secondary-fixed": "#301403",
+            "on-secondary-container": "#79503a",
+            "surface-dim": "#d9dad8",
+            "surface-variant": "#e2e3e1",
+            "surface-bright": "#f9faf8",
+            "secondary-fixed-dim": "#f1bb9f",
+            "surface-container-high": "#e7e8e6",
+            "on-primary-fixed-variant": "#773301",
+            "inverse-primary": "#ffb68f",
+            "tertiary": "#006277",
+            "primary": "#8e4413",
+            "outline": "#877369",
+            "on-tertiary-fixed": "#001f27",
+            "background": "#f9faf8",
+            "on-surface": "#191c1b",
+            "on-primary": "#ffffff",
+            "secondary": "#7e553e",
+            /* Strict Work Surface Palette Extensions */
+            "paper-canvas": "#F6F7F5",
+            "white-surface": "#FFFFFF",
+            "graphite-ink": "#252A27",
+            "quiet-graphite": "#66706A",
+            "fine-rule": "#D9DEDA",
+            "action-orange": "#AD5C2A",
+            "field-green": "#28734F",
+            "harvest-ochre": "#94600C",
+            "brick-red": "#AE3D36"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"],
+            label: ["\"Source Sans 3\"", "sans-serif"]
+          },
+          letterSpacing: {
+            'tight-h': '-0.03em',
+            'track-col': '0.08em'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: clamp(8px, 1vw, 16px);
+    }
+
+    body {
+      background-color: #F6F7F5;
+      color: #252A27;
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .num-tabular {
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion specifications */
+    @keyframes page-arrive {
+      from { opacity: 0.82; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    .panel-reveal {
+      animation: page-arrive var(--dur-slow) var(--ease-out) both;
+    }
+
+    .result-row {
+      animation: page-arrive var(--dur-quick) var(--ease-out) both;
+    }
+    .result-row:nth-child(1) { animation-delay: 50ms; }
+    .result-row:nth-child(2) { animation-delay: 110ms; }
+
+    .live-indicator {
+      animation: status-breathe 8s ease-in-out infinite;
+    }
+
+    /* Interactive state rules */
+    .btn-action {
+      transition: opacity var(--dur-quick) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+    }
+    .btn-action:hover {
+      opacity: 0.92;
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+    .btn-action:focus-visible {
+      outline: 2px solid #252A27;
+      outline-offset: 2px;
+    }
+
+    .input-flat {
+      height: 44px;
+      border-radius: 6px;
+      border: 1px solid #D9DEDA;
+      background-color: #FFFFFF;
+      transition: border-color var(--dur-quick) var(--ease-out);
+    }
+    .input-flat:focus {
+      outline: none;
+      border-color: #252A27;
+      box-shadow: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        scroll-behavior: auto !important;
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-paper-canvas text-graphite-ink flex flex-col selection:bg-secondary-container">
+<!-- TOP HEADER -->
+<header class="w-full bg-white-surface border-b border-fine-rule sticky top-0 z-30">
+<div class="max-w-[1360px] mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
+<!-- Brand & Wordmark -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-[6px] bg-[#AD5C2A] text-white flex items-center justify-center font-headline font-bold text-base leading-none select-none">
+            C
+          </div>
+<span class="font-headline font-bold text-lg tracking-tight-h text-graphite-ink">Cedar Draw Feedlot</span>
+</div>
+<!-- Navigation Menu -->
+<nav aria-label="Main Navigation" class="hidden xl:flex items-center gap-5 text-[15px] font-body">
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Overview</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Import records</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Lots &amp; pens</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Feed inventory</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Inventory outlook</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Rations</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Feeding plans</a>
+<a aria-current="page" class="border-b-2 border-action-orange text-action-orange font-semibold py-4" href="#">Feeding log</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Weight records</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Operational reports</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Feed-to-gain</a>
+<a class="text-quiet-graphite hover:text-graphite-ink py-4 transition-colors" href="#">Project &amp; demo</a>
+</nav>
+</div>
+<!-- User Identification (Mara Ortega) -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-graphite-ink flex items-center justify-center font-headline font-semibold text-xs tracking-tight border border-fine-rule">
+          MO
+        </div>
+<div class="flex flex-col text-left">
+<span class="text-sm font-semibold leading-tight text-graphite-ink">Mara Ortega</span>
+<span class="text-xs text-quiet-graphite leading-tight">Feed manager</span>
+</div>
+</div>
+</div>
+<!-- Mobile Navigation Sub-bar -->
+<div class="xl:hidden overflow-x-auto border-t border-fine-rule px-4 py-2 flex items-center gap-4 text-sm bg-white-surface">
+<span class="text-quiet-graphite whitespace-nowrap">Feeding plans</span>
+<span class="text-action-orange font-semibold border-b-2 border-action-orange pb-0.5 whitespace-nowrap">Feeding log</span>
+<span class="text-quiet-graphite whitespace-nowrap">Lots &amp; pens</span>
+<span class="text-quiet-graphite whitespace-nowrap">Rations</span>
+<span class="text-quiet-graphite whitespace-nowrap">Feed inventory</span>
+</div>
+</header>
+<!-- MAIN CANVAS -->
+<main class="w-full max-w-[1360px] mx-auto px-4 md:px-8 py-8 flex-1">
+<!-- PAGE TITLE & METADATA LEDGER -->
+<div class="mb-8 pb-4 border-b border-fine-rule flex flex-col md:flex-row md:items-baseline justify-between gap-3">
+<div>
+<h1 class="font-headline font-[650] text-[26px] md:text-[30px] leading-tight text-graphite-ink tracking-tight-h">
+          Feeding log
+        </h1>
+</div>
+<div class="flex items-center gap-2 text-sm text-quiet-graphite">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-field-green live-indicator inline-block"></span>
+<span class="font-body">Facility: Cedar Draw Feedlot</span>
+<span class="text-fine-rule">·</span>
+<span class="font-body">Sample date: <span class="num-tabular text-graphite-ink">23 Apr 2025</span></span>
+<span class="text-fine-rule">·</span>
+<span class="num-tabular">America/Denver</span>
+</div>
+</div>
+<!-- TWO-COLUMN WORK AREA (CSS GRID) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- LEFT COLUMN: FAST ENTRY FORM -->
+<section class="lg:col-span-5 bg-white-surface rounded-[8px] border border-fine-rule p-6 panel-reveal">
+<div class="mb-5 border-b border-fine-rule pb-3">
+<h2 class="font-headline font-[650] text-[20px] text-graphite-ink tracking-tight-h">
+            Record pen feeding
+          </h2>
+<p class="text-sm text-quiet-graphite mt-0.5">Enter delivered quantities per lot for scheduled allotment.</p>
+</div>
+<form class="space-y-4" id="feeding-form">
+<!-- Pen & Date -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-semibold text-graphite-ink mb-1.5" for="pen-select">Pen</label>
+<select class="input-flat w-full px-3 text-graphite-ink text-sm bg-white-surface" id="pen-select">
+<option selected="">P-04 (116 head · 34 open)</option>
+<option>P-02 (72 head · 0 open)</option>
+<option>P-06 (140 head · 12 open)</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-semibold text-graphite-ink mb-1.5" for="feeding-date">Date</label>
+<input class="input-flat w-full px-3 text-graphite-ink text-sm num-tabular" id="feeding-date" type="text" value="22 Apr 2025">
+</div>
+</div>
+<!-- Ration & Plan -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-semibold text-graphite-ink mb-1.5" for="ration-name">Ration</label>
+<input class="input-flat w-full px-3 text-graphite-ink text-sm" id="ration-name" readonly="" type="text" value="Grower 1">
+<span class="text-xs text-quiet-graphite mt-1 block">548–900 lb growing cattle</span>
+</div>
+<div>
+<label class="block text-sm font-semibold text-graphite-ink mb-1.5" for="feeding-plan">Feeding plan (optional)</label>
+<input class="input-flat w-full px-3 text-graphite-ink text-sm num-tabular" id="feeding-plan" type="text" value="P04-2025-0422">
+</div>
+</div>
+<!-- Separate Actual Quantities for P-04 Lots -->
+<div class="pt-2 border-t border-fine-rule">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold uppercase tracking-track-col text-quiet-graphite">Per-lot delivery allotment</span>
+<span class="text-xs text-quiet-graphite">Required</span>
+</div>
+<div class="space-y-3 bg-paper-canvas p-3 rounded-[6px] border border-fine-rule">
+<!-- Lot 1 -->
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="font-semibold text-graphite-ink">L-241</span>
+<span class="text-quiet-graphite">60 head · Angus–Hereford steers</span>
+</div>
+<div class="relative">
+<input class="input-flat w-full pl-3 pr-9 text-sm num-tabular text-right font-medium" id="lot-241-input" type="number" value="840">
+<span class="absolute right-3 top-3 text-xs text-quiet-graphite pointer-events-none">lb</span>
+</div>
+</div>
+<!-- Lot 2 -->
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="font-semibold text-graphite-ink">L-242</span>
+<span class="text-quiet-graphite">56 head · Charolais-cross heifers</span>
+</div>
+<div class="relative">
+<input class="input-flat w-full pl-3 pr-9 text-sm num-tabular text-right font-medium" id="lot-242-input" type="number" value="784">
+<span class="absolute right-3 top-3 text-xs text-quiet-graphite pointer-events-none">lb</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Readout Summary Row -->
+<div class="bg-white-surface border border-fine-rule rounded-[6px] p-3 text-sm flex items-center justify-between">
+<div class="text-quiet-graphite text-xs">
+<span>60 head</span> + <span>56 head</span> = <strong class="text-graphite-ink font-semibold">116 head total</strong>
+</div>
+<div class="text-right">
+<span class="text-xs text-quiet-graphite block">Calculated total</span>
+<span class="font-headline font-bold text-lg text-graphite-ink num-tabular" id="calculated-total">1,624 lb</span>
+</div>
+</div>
+<!-- Primary Action Button -->
+<button class="btn-action w-full h-[44px] bg-action-orange text-white-surface font-semibold text-sm rounded-[6px] flex items-center justify-center gap-2" type="submit">
+<span>Save feeding record</span>
+</button>
+<!-- Subtext / Note -->
+<p class="text-xs text-quiet-graphite text-center leading-relaxed">
+            Per-lot consumption and feed-to-gain metrics refresh automatically after a save.
+          </p>
+</form>
+</section>
+<!-- RIGHT COLUMN: RETURNED SAVED RESULT & RECENT LOGS -->
+<section class="lg:col-span-7 space-y-6">
+<!-- RETURNED SAVED RESULT PANEL -->
+<article class="bg-white-surface rounded-[8px] border border-fine-rule p-6 panel-reveal">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-fine-rule pb-4 mb-5">
+<div>
+<div class="flex items-center gap-2.5">
+<h3 class="font-headline font-[650] text-[18px] text-graphite-ink tracking-tight-h">
+                  Saved feeding record
+                </h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-field-green text-field-green bg-white-surface">
+                  saved
+                </span>
+</div>
+<p class="text-xs text-quiet-graphite mt-1 num-tabular">
+                22 Apr 2025 · Mara Ortega
+              </p>
+</div>
+<span class="text-xs text-quiet-graphite font-body">Pen P-04 · Grower 1</span>
+</div>
+<!-- Key Metrics Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+<div class="p-3 bg-paper-canvas rounded-[6px] border border-fine-rule">
+<span class="text-xs text-quiet-graphite block uppercase tracking-track-col font-medium">Feed cost</span>
+<span class="font-headline font-bold text-xl text-graphite-ink num-tabular mt-0.5 block">$248.24</span>
+</div>
+<div class="p-3 bg-paper-canvas rounded-[6px] border border-fine-rule">
+<span class="text-xs text-quiet-graphite block uppercase tracking-track-col font-medium">Energy</span>
+<span class="font-headline font-bold text-xl text-graphite-ink num-tabular mt-0.5 block">2,452 <span class="text-xs font-normal text-quiet-graphite">Mcal</span></span>
+</div>
+<div class="p-3 bg-paper-canvas rounded-[6px] border border-fine-rule">
+<span class="text-xs text-quiet-graphite block uppercase tracking-track-col font-medium">Total consumed</span>
+<span class="font-headline font-bold text-xl text-graphite-ink num-tabular mt-0.5 block">1,624 <span class="text-xs font-normal text-quiet-graphite">lb</span></span>
+<span class="text-[11px] text-quiet-graphite num-tabular block truncate mt-0.5">840 lb L-241 · 784 lb L-242</span>
+</div>
+<div class="p-3 bg-paper-canvas rounded-[6px] border border-fine-rule">
+<span class="text-xs text-quiet-graphite block uppercase tracking-track-col font-medium">Plan variance</span>
+<span class="font-headline font-bold text-xl text-graphite-ink num-tabular mt-0.5 block">0 <span class="text-xs font-normal text-quiet-graphite">lb</span></span>
+</div>
+</div>
+<!-- Inventory Consumption Breakdown -->
+<div class="mb-5">
+<h4 class="text-xs font-semibold uppercase tracking-track-col text-quiet-graphite mb-2.5">
+              Inventory consumption breakdown
+            </h4>
+<div class="border border-fine-rule rounded-[6px] divide-y divide-fine-rule bg-white-surface">
+<div class="p-2.5 px-3.5 flex justify-between items-center text-sm">
+<span class="font-medium text-graphite-ink">Yellow corn</span>
+<span class="num-tabular font-medium text-graphite-ink">893.2 lb</span>
+</div>
+<div class="p-2.5 px-3.5 flex justify-between items-center text-sm">
+<span class="font-medium text-graphite-ink">Alfalfa hay</span>
+<span class="num-tabular font-medium text-graphite-ink">487.2 lb</span>
+</div>
+<div class="p-2.5 px-3.5 flex justify-between items-center text-sm">
+<span class="font-medium text-graphite-ink">Soybean meal</span>
+<span class="num-tabular font-medium text-graphite-ink">194.9 lb</span>
+</div>
+<div class="p-2.5 px-3.5 flex justify-between items-center text-sm">
+<span class="font-medium text-graphite-ink">Mineral premix</span>
+<span class="num-tabular font-medium text-graphite-ink">48.7 lb</span>
+</div>
+</div>
+</div>
+<!-- Reconciliation Confirmation Note -->
+<div class="p-3 bg-paper-canvas rounded-[6px] border border-fine-rule flex items-start gap-2 text-xs text-quiet-graphite">
+<span aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-field-green mt-1 flex-shrink-0"></span>
+<span>Per-lot consumption and feed-to-gain metrics refreshed across L-241 and L-242.</span>
+</div>
+</article>
+<!-- RECENT FEEDING LOG TABLE -->
+<article class="bg-white-surface rounded-[8px] border border-fine-rule p-6 panel-reveal">
+<div class="flex items-center justify-between mb-4 border-b border-fine-rule pb-3">
+<h3 class="font-headline font-[650] text-[18px] text-graphite-ink tracking-tight-h">
+              Recent feeding log
+            </h3>
+<span class="text-xs text-quiet-graphite">2 events shown</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm border-collapse">
+<thead>
+<tr class="border-b border-fine-rule text-[11px] font-semibold text-quiet-graphite uppercase tracking-track-col">
+<th class="py-2.5 pr-4">Date</th>
+<th class="py-2.5 pr-4">Pen</th>
+<th class="py-2.5 pr-4">Manager</th>
+<th class="py-2.5 pr-4">Delivered ration &amp; lots</th>
+<th class="py-2.5 pr-4 text-right">Variance</th>
+<th class="py-2.5 pl-4 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-fine-rule">
+<!-- Row 1 -->
+<tr class="result-row hover:bg-paper-canvas transition-colors duration-160">
+<td class="py-3.5 pr-4 num-tabular text-graphite-ink whitespace-nowrap">22 Apr 2025</td>
+<td class="py-3.5 pr-4 font-semibold text-graphite-ink whitespace-nowrap">P-04</td>
+<td class="py-3.5 pr-4 text-quiet-graphite whitespace-nowrap">Mara Ortega</td>
+<td class="py-3.5 pr-4">
+<span class="font-semibold text-graphite-ink">1,624 lb</span> <span class="text-quiet-graphite">Grower 1</span>
+<span class="block text-xs text-quiet-graphite num-tabular mt-0.5">L-241: 840 lb · L-242: 784 lb</span>
+</td>
+<td class="py-3.5 pr-4 text-right num-tabular text-graphite-ink">0 lb</td>
+<td class="py-3.5 pl-4 text-right whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-field-green text-field-green bg-white-surface">
+                      saved
+                    </span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="result-row hover:bg-paper-canvas transition-colors duration-160">
+<td class="py-3.5 pr-4 num-tabular text-graphite-ink whitespace-nowrap">19 Apr 2025</td>
+<td class="py-3.5 pr-4 font-semibold text-graphite-ink whitespace-nowrap">P-02</td>
+<td class="py-3.5 pr-4 text-quiet-graphite whitespace-nowrap">Mara Ortega</td>
+<td class="py-3.5 pr-4">
+<span class="font-semibold text-graphite-ink">1,296 lb</span> <span class="text-quiet-graphite">Grower 1</span>
+<span class="block text-xs text-quiet-graphite num-tabular mt-0.5">L-239: 72 head</span>
+</td>
+<td class="py-3.5 pr-4 text-right num-tabular text-graphite-ink">0 lb</td>
+<td class="py-3.5 pl-4 text-right whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-field-green text-field-green bg-white-surface">
+                      saved
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+</section>
+</div>
+</main>
+
+<script>(function(){var T=[{"id":"S-1","names":["188 head on pen","pen occupancy","overview"],"words":["overview"]},{"id":"S-2","names":["import record","import"],"words":["import"]},{"id":"S-3","names":["lot pen"],"words":["lot","pen"]},{"id":"S-4","names":["feed inventory","inventory"],"words":["inventory"]},{"id":"S-6","names":["ration"],"words":["ration"]},{"id":"S-9","names":["weight record","weight"],"words":["weight"]},{"id":"S-12","names":["project demo"],"words":["project","demo"]},{"id":"S-5","names":["inventory outlook","outlook"],"words":["inventory","outlook"]},{"id":"S-7","names":["feeding plan","plan"],"words":["feeding","plan"]},{"id":"S-8","names":["feeding log","log"],"words":["feeding","log"]},{"id":"S-10","names":["operational report","operation","report operation"],"words":["report","operation"]},{"id":"S-11","names":["feed to gain","report feed to gain"],"words":["report","feed","gain"]}],L={"overview":"S-1","import records":"S-2","lots pens":"S-3","feed inventory":"S-4","inventory outlook":"S-5","rations":"S-6","feeding plans":"S-7","weight records":"S-9","operational reports":"S-10","feed to gain":"S-11","project demo":"S-12"},A={},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-8";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

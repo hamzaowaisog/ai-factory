@@ -1,0 +1,26 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 5,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "verdicts": [
+     {
+      "testId": "tests/acceptance.part2.test.tsx::ration and feeding workflows > AC_10_1_DisplaysReturnedCostEnergyAndInventoryConsumption",
+      "verdict": "test",
+      "why": "The assertion at `tests/acceptance.part2.test.tsx:357`, `await expectText(\"Yellow corn\");`, uses `findByText` through the helper, which requires a unique match. The inventory screen correctly renders that ingredient name in several places (heading, item selector, movement record), so target a specific element or use an all-matches query; the acceptance criterion does not require uniqueness.",
+      "files": [
+       "tests/acceptance.part2.test.tsx"
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "coverage": [
+     {
+      "acId": "AC-2.1",
+      "testId": "AC_2_1_PersistsWeightReadingChangesAndDeletionAcrossRestarts",
+      "verdict": "weak",
+      "why": "The test verifies a weight-reading CRUD cycle, but it does not ensure the App PostgreSQL database starts with no application records as the criterion specifies."
+     },
+     {
+      "acId": "AC-2.2",
+      "testId": "AC_2_2_InitializesPersistentStorageForContractEntities",
+      "verdict": "weak",
+      "why": "The test only checks that GET /rations returns an array; it does not inspect or assert row-capable persistent tables for the required entities and relationships."
+     },
+     {
+      "acId": "AC-2.3",
+      "testId": "",
+      "verdict": "proves-it",
+      "why": "The test seeds the referenced inventory item, creates a ration, restarts the API host, and asserts GET /rations returns that ration with its saved fields and ingredient."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

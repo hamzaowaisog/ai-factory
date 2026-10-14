@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "tests/acceptance.part1.test.tsx",
+    "start": 378,
+    "end": 460
+   },
+   "ms": 0,
+   "resultChars": 2182,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;tests/acceptance.part1.test.tsx&quot;,&quot;start&quot;:378,&quot;end&quot;:460}\">\ntests/acceptance.part1.test.tsx lines 378-415\n378\t  it(\"AC_5_1_ShowsProjectedBalancesForEverySupportedHorizon\", async () => {\n379\t    at(\"/inventory/outlook\");\n380\t    const user = userEvent.setup();\n381\t    const requestedHorizons: string[] = [];\n382\t    const projected = { daily: 47280, weekly: 41752, monthly: 20600, quarterly: 6400, \"bi-annual\": 1600, annual: 120 };\n383\t    const requestedRatios: number[] = [];\n384\t    server.use(\n385\t      getGetInventoryOutlookMockHandler(async ({ request }) => {\n386\t        const url = new URL(request.url);\n387\t        const horizon = url.searchParams.get(\"horizon\") ?? \"weekly\";\n388\t        requestedHorizons.push(horizon);\n389\t        const response = getGetInventoryOutlookResponseMock();\n390\t        response.horizon = horizon as typeof response.horizon;\n391\t        response.wastageRatio = Number(url.searchParams.get(\"wastageRatio\") ?? 0.04);\n392\t        requestedRatios.push(response.wastageRatio);\n393\t        response.balances[0].dailyEstimatedConsumptionLb = 920 * (1 + response.wastageRatio);\n394\t        response.balances[0].projectedBalanceLb = projected[horizon as keyof typeof projected];\n395\t        return response;\n396\t      }),\n397\t    );\n398\t    render(<InventoryOutlookContainer />);\n399\t\n400\t    await expectText(\"Yellow corn\");\n401\t    expect(pageText()).toContain(\"4%\");\n402\t    expect(pageText()).not.toMatch(/low stock/i);\n403\t\n404\t    const horizons = [\"Daily\", \"Weekly\", \"Monthly\", \"Quarterly\", \"Bi-annual\", \"Annual\"];\n405\t    for (const horizon of horizons) {\n406\t      await user.click(screen.getByText(horizon, { exact: true }));\n407\t      await waitFor(() => expect(requestedHorizons).toContain(horizon.toLowerCase()));\n408\t      await expectText(horizon);\n409\t      await expectText(formattedNumber(projected[horizon.toLowerCase() as keyof typeof projected]));\n410\t      await expectText(/956\\.8|957/);\n411\t      expect(requestedRatios[requestedHorizons.indexOf(horizon.toLowerCase())]).toBe(0.04);\n412\t    }\n413\t  });\n414\t});\n415\t\n</untrusted_document>"
+  }
+ ]
+}
