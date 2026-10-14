@@ -48,6 +48,11 @@ export interface ThinkSpec<T> {
   hardTimeout?: boolean;
   /** Use this effort instead of the route's (e.g. a lighter critic on the light lane). */
   effort?: Effort;
+  /**
+   * Mark the briefing's stable head (everything before feedback, task and recap) for prompt caching: for a step that may call
+   * the model twice in a row over the same large input (distill's repair). Anthropic only; OpenAI caches long prefixes itself.
+   */
+  cacheBriefing?: boolean;
 }
 
 export type ThinkResult<T> =
@@ -155,7 +160,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   });
   ctx.log(`${spec.label ?? spec.stage}: ${model} (effort ${effort}), pack ${pack.manifest.packTokens} tokens`);
   const r = await runner.run({
-    step: spec.stage, model, effort, pack, schema: spec.schema,
+    step: spec.stage, model, effort, pack, schema: spec.schema, ...(spec.cacheBriefing ? { cacheBriefing: true } : {}),
     // never more than what's left of the run's cost limit
     limits: { maxTurns: spec.maxTurns ?? 8, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), spec.maxUsd ?? 2, ctx.share), timeoutSec: spec.timeoutSec ?? 900, ...(spec.hardTimeout ? { hardTimeout: true } : {}) },
   });

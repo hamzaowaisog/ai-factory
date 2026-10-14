@@ -95,6 +95,47 @@ export const IntentBody = z.object({
 export const Intent = withHeader(IntentBody.shape);
 export type Intent = z.infer<typeof Intent>;
 
+/** A Google Meet transcript (Gemini notes export), parsed by code (src/sources/transcript.ts). */
+export const Turn = z.object({ id: Id, time: z.string(), speaker: z.string(), text: z.string() });
+export type Turn = z.infer<typeof Turn>;
+export const Transcript = z.object({
+  format: z.literal("gemini-meet"), title: z.string().optional(), date: z.string().optional(),
+  /** Gemini's own notes: unverified, a pointer for the model, never evidence */
+  notes: z.string(), turns: z.array(Turn).min(1), speakers: z.array(z.string()),
+});
+export type Transcript = z.infer<typeof Transcript>;
+
+export const IntentStatus = z.enum(["decided", "deferred", "excluded", "open"]);
+export type IntentStatus = z.infer<typeof IntentStatus>;
+export const SpeakerRole = z.object({ name: z.string(), role: z.enum(["client", "team"]), source: z.enum(["roster", "default", "card"]) });
+export type SpeakerRole = z.infer<typeof SpeakerRole>;
+
+/** distill: the model's answer (speaker and role are filled in by code from the turn). */
+export const DistillOut = z.object({
+  project: z.object({ name: z.string().optional(), goal: z.string() }),
+  requirements: z.array(z.object({ id: Id, text: z.string(), status: IntentStatus, quote: z.string(), turn: Id, supersedes: z.array(z.string()).optional() })),
+  constraints: z.array(z.object({ id: Id, text: z.string(), quote: z.string().optional(), turn: Id.optional() })),
+  openQuestions: z.array(z.object({ id: Id, text: z.string(), turn: Id.optional() })),
+  warnings: z.array(z.string()),
+});
+export type DistillOut = z.infer<typeof DistillOut>;
+
+/** distill: the client intent as stored and shown on the intent card. */
+export const ClientIntentBody = DistillOut.extend({
+  requirements: z.array(z.object({
+    id: Id, text: z.string(), status: IntentStatus, quote: z.string().optional(), turn: Id.optional(), supersedes: z.array(z.string()).optional(),
+    speaker: z.string().optional(), role: z.enum(["client", "team"]).optional(),
+    addedBy: z.object({ by: z.string(), note: z.string() }).optional(),
+  })),
+  speakers: z.array(SpeakerRole),
+  dropped: z.array(z.object({ id: Id, text: z.string(), quote: z.string(), turn: z.string(), why: z.string() })),
+  skill: z.object({ name: z.string(), sha256: z.string() }),
+  edits: z.number().int().min(0),
+});
+export type ClientIntentBody = z.infer<typeof ClientIntentBody>;
+export const ClientIntent = withHeader(ClientIntentBody.shape);
+export type ClientIntent = z.infer<typeof ClientIntent>;
+
 /** ground: claims about today's behaviour, each anchored to file lines (+ symbol). */
 export const CurrentBehaviourBody = z.object({
   claims: z.array(z.object({

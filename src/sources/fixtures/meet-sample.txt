@@ -1,0 +1,65 @@
+## Meeting Jan 5, 2026 at 10:00 PKT
+
+Please rate the new Quick notes tab by taking a short survey.
+
+### Summary
+
+An invented meeting for the factory's tests: a clinic booking app is scoped, video consultations move to phase two, and a pharmacy stock system is mentioned at the end.
+
+### Decisions
+
+Video consultations deferred to phase two. Mobile app excluded from the first version.
+
+### Details
+
+Opening: Alex Morgan, Sam Rivera and Jordan Lee met to scope a clinic booking app (00:00:41).
+
+## Meeting Jan 5, 2026 at 10:00 PKT - Transcript
+
+### 00:00:41
+
+Alex Morgan: Okay. Uh, can you hear me?
+
+Sam Rivera: Yes, yes. Loud and clear.
+
+Alex Morgan: Good. Uh I turned on the transcript so we have the notes later.
+
+### 00:03:10
+
+Alex Morgan: So uh this is a clinic booking app. Patients can book an appointment online and uh cancel it up to 24 hours before.
+
+Sam Rivera: Okay. And the doctors see their own calendar only?
+
+Alex Morgan: Yes. Each doctor sees only uh his own appointments. The receptionist sees everything.
+
+### 00:06:40
+
+Alex Morgan: And we want uh video consultations as well.
+
+Sam Rivera: All right.
+
+### 00:11:05
+
+Jordan Lee: Video is a big piece. I suggest we keep it for phase two.
+
+Alex Morgan: Okay yeah, video in phase two, fine.
+
+### 00:14:00
+
+Alex Morgan: No mobile app for now, just the website. And the reminder goes by uh SMS, the day before.
+
+Sam Rivera: Noted. Is the queue in progress state needed for the receptionist?
+
+Alex Morgan: Uh yes, the receptionist marks it.
+
+### Session ended after 00:16:59
+
+### 00:48:32
+
+Alex Morgan: One more thing. For our pharmacy business we need a stock system. Uh different project.
+
+Sam Rivera: Okay, let's keep that for its own call.
+
+### Transcription ended after 00:54:44
+
+This editable transcript was computer generated and might contain errors. People can also change the text after it was created.

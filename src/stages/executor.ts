@@ -5,7 +5,7 @@ import { judgedTests } from "./test-defect.js";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import type { Failure, LedgerEvent } from "../contracts/index.js";
+import type { Failure, LedgerEvent, Transcript } from "../contracts/index.js";
 import { ensureGuidelines } from "../conventions/auto.js";
 import { reviewDelivered } from "../merge/once.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
@@ -91,7 +91,7 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; /** the models the person starting the run chose */ models?: Choice; /** a build that asks whatever its project says (the API side of a new product) */ asks?: boolean; /** false: a guided run; left out, the project decides */ autonomous?: boolean } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; /** the models the person starting the run chose */ models?: Choice; /** a build that asks whatever its project says (the API side of a new product) */ asks?: boolean; /** false: a guided run; left out, the project decides */ autonomous?: boolean; /** a Google Meet transcript request: stored for the distill step */ transcript?: Transcript } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
   const choice: Choice = { ...(opts.models?.picks && Object.keys(opts.models.picks).length ? { picks: opts.models.picks } : {}), ...(opts.models?.preset ? { preset: opts.models.preset } : {}) };
@@ -140,13 +140,14 @@ export async function createRun(request: string, projectName: string, operator: 
   // an estimate has no critic record of its own to hand a build run: an empty one, stated as inherited
   if (lin?.kind === "build" && !lin.approved.criticSha) lin.approved.criticSha = ledger.putJson({ findings: [], note: `inherited from approved estimate ${lin.approved.runId}` });
   const requestSha = ledger.putArtifact(request);
+  const transcriptSha = opts.transcript ? ledger.putJson(opts.transcript) : undefined;
   // design references were read before the run existed; their pictures are stored now, under the run
   const references = storeReferences(ledger, opts.references ?? []);
   await ledger.append({
     type: "run.created",
     data: {
       mode: opts.mode ?? "brownfield", project: project.project, ...(noRepo ? {} : { repoPath: project.repo, baseRef: project.baseBranch, baseCommit }), ...(noRepo ? {} : { repoId: project.project }),
-      request, requestSha, operator, versions: versions(),
+      request, requestSha, operator, versions: versions(), ...(transcriptSha ? { transcriptSha } : {}),
       // every step's model, fixed here: a later change to the defaults or the project file does not move a run that has begun
       routes: resolveRun(project, choice), ...(choice.picks || choice.preset ? { models: choice } : {}),
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),

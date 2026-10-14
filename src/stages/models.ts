@@ -73,6 +73,8 @@ export const sameAsCritic = (model: string): string => `the critic is ${modelNam
  * pre-PR reviewer are on GPT-6 so they differ from the critic's default and from the implementer.
  */
 export const STEPS: Record<string, StepSpec> = {
+  // reads a whole meeting and judges decided / deferred / excluded: the clarifier's tier (PENDING team decision; a person can pick another in the picker)
+  distill: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium" },
   intake: { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
   ground: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   sketches: { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "medium" },

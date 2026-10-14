@@ -5,7 +5,8 @@ import { z } from "zod";
 import { CurrentBehaviourBody, IntentBody, type Risk } from "../contracts/index.js";
 import { failure } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
-import { readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { meetingContext, meetingMarked, meetingPrompt, notAskedAssumption, type MeetingContext } from "./meeting-clarify.js";
 import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
 import { ESTIMATE_SOURCES, repoInventory } from "./design-inputs.js";
 import type { Reference } from "../contracts/reference.js";
@@ -49,6 +50,8 @@ export const ClarifierOut = z.object({
     difference: z.string().optional(),
     /** a topic id from the standard-topics table, when the question is about one */
     topic: z.string().optional(),
+    /** a transcript run: the id of the item the meeting left open that this question asks (spec 2026-10-14 transcript-intent §5b) */
+    meeting: z.string().optional(),
   })),
   conflicts: z.array(z.string()),
 });
@@ -118,11 +121,14 @@ export function assumedFrom(q: ScoredQuestion, n: number, defaults?: Pick<Defaul
   return std ? { ...base, text: `${q.text} → assumed: ${std.answer}`, fromDefault: std.id } : { ...base, text: `${q.text} → assumed: ${q.recommended}` };
 }
 
-export function selectQuestions(scored: ScoredQuestion[], cap: number, idStart = 1, defaults?: Pick<Defaults, "topics">): { asked: ScoredQuestion[]; assumptions: Assumption[] } {
-  const eligible = scored.filter((q) => q.score >= ASK_THRESHOLD)
+export function selectQuestions(scored: ScoredQuestion[], cap: number, idStart = 1, defaults?: Pick<Defaults, "topics">, forced?: Set<string>): { asked: ScoredQuestion[]; assumptions: Assumption[] } {
+  // questions a meeting left open are asked first, whatever their score; nobody is asked when the cap is 0 (hands-off)
+  const must = cap > 0 ? scored.filter((q) => forced?.has(q.id)) : [];
+  const eligible = scored.filter((q) => !must.includes(q) && q.score >= ASK_THRESHOLD)
     .sort((a, b) => b.score - a.score || GOAL_FIRST.indexOf(a.category) - GOAL_FIRST.indexOf(b.category));
-  const asked = eligible.slice(0, cap).map((q, i) => ({ ...q, id: `Q-${idStart + i}` }));
-  const askedSet = new Set(eligible.slice(0, cap));
+  const picked = [...must, ...eligible.slice(0, Math.max(0, cap - must.length))];
+  const asked = picked.map((q, i) => ({ ...q, id: `Q-${idStart + i}` }));
+  const askedSet = new Set(picked);
   const assumptions = scored.filter((q) => !askedSet.has(q)).map((q, i) => assumedFrom(q, idStart + i, defaults));
   return { asked, assumptions };
 }
@@ -243,7 +249,8 @@ For each disagreement: id D-1.., the span, a short topic, and the readings: whic
   return { ok: true, sketches, diffs: verifyDifferences(al.output.differences, sketches) };
 }
 
-async function runClarifier(ctx: StepContext, intent: Intent, cb: CB, sketches: Sketch[], diffs: Difference[], prior?: ClarifyResult) {
+async function runClarifier(ctx: StepContext, intent: Intent, cb: CB, sketches: Sketch[], diffs: Difference[], prior?: ClarifyResult, meeting?: MeetingContext) {
+  const meetingText = meeting ? meetingPrompt(meeting, prior ? 2 : 1) : "";
   return think(ctx, {
     stage: "clarifier", route: "clarifier", cls: "read-large", budgetTokens: 20000, tools: [], schema: ClarifierOut, maxTurns: 4,
     sections: [
@@ -255,6 +262,7 @@ If a question is about one of the "standard-topics", give that topic's id in "to
 Never ask what the code or the readings already answer.${lightSpec(intent) ? `\nThis is a small, low-risk change: ask at most ${LIGHT_QUESTIONS} questions, and only ones whose answer changes the code. Everything else (wider scope, other places, existing data) becomes an assumption: keep the change as small as the request allows.` : ""}${prior ? "\nThe human already answered some questions. Only ask NEW questions that their answers opened up; don't repeat or rephrase answered ones." : ""}
 ${UNTRUSTED_NOTE}`),
       S.reference("standard-topics", `Standard topics (tag a question with its topic id):\n${topicsText(loadDefaults())}`),
+      ...(meetingText ? [S.reference("meeting", meetingText)] : []),
       S.artifact("intent", "intent", intent.spans),
       S.artifact("cb", "current-behaviour", cb),
       S.artifact("sketches", "sketches", sketches),
@@ -298,17 +306,24 @@ export const clarifyStep: StepDef = {
   async run(ctx) {
     const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
     const cb = requireOutput<CB>(ctx.state, ctx.ledger, "ground");
-    const cacheKey = hashJson({ step: "clarify", defaults: loadDefaults().version, intent: ctx.state.steps.get("intake")!.outputs[0], cb: ctx.state.steps.get("ground")!.outputs[0] });
+    // a transcript run: what the meeting left open is asked, what the client ruled out is not (spec 2026-10-14 transcript-intent §5b)
+    const meeting = meetingContext(ctx.state, ctx.ledger, request(ctx));
+    const distilled = outputOf(ctx.state, "distill");
+    const cacheKey = hashJson({ step: "clarify", defaults: loadDefaults().version, intent: ctx.state.steps.get("intake")!.outputs[0], cb: ctx.state.steps.get("ground")!.outputs[0], ...(distilled ? { meeting: distilled } : {}) });
     let pending = pendingFor(ctx, cacheKey);
     if (!pending) {
       const sk = await runSketches(ctx, intent, cb);
       if (!sk.ok) return sk.outcome;
-      const cl = await runClarifier(ctx, intent, cb, sk.sketches, sk.diffs);
+      const cl = await runClarifier(ctx, intent, cb, sk.sketches, sk.diffs, undefined, meeting);
       if (!cl.ok) return cl.outcome;
-      const scored = scoreQuestions(cl.output.questions, sk.diffs, cb);
+      const marked = meeting ? meetingMarked(scoreQuestions(cl.output.questions, sk.diffs, cb), meeting) : undefined;
+      const scored = marked?.questions ?? scoreQuestions(cl.output.questions, sk.diffs, cb);
       // a hands-off estimate asks nobody: the requirements come refined, so each question takes its recommended answer as an assumption
       const handsOff = !humanReview(ctx.state.info);
-      const { asked, assumptions } = selectQuestions(scored, handsOff ? 0 : lightSpec(intent) ? LIGHT_QUESTIONS : ROUND1_CAP, 1, loadDefaults());
+      const selected = selectQuestions(scored, handsOff ? 0 : lightSpec(intent) ? LIGHT_QUESTIONS : ROUND1_CAP, 1, loadDefaults(), marked?.forced);
+      const { asked } = selected;
+      // a meeting item no question carries stays visible as a high-risk assumption
+      const assumptions = [...selected.assumptions, ...(marked?.missing ?? []).map((m, i) => notAskedAssumption(m, `ASM-${scored.length + i + 1}`))];
       // runs with match references only: the app's own look against the client's (on top of the model's questions)
       const restyle = restyleQuestion(ctx.state.info.references ?? [], repoInventory(ctx, ESTIMATE_SOURCES), intent.spans.map((s) => s.id), asked.length + 1);
       pending = handsOff
@@ -335,7 +350,7 @@ export const clarify2Step: StepDef = {
     if (!pending) {
       const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
       const cb = requireOutput<CB>(ctx.state, ctx.ledger, "ground");
-      const cl = await runClarifier(ctx, intent, cb, [], r1.differences, r1);
+      const cl = await runClarifier(ctx, intent, cb, [], r1.differences, r1, meetingContext(ctx.state, ctx.ledger, request(ctx)));
       if (!cl.ok) return cl.outcome;
       const already = new Set(r1.asked.map((q) => q.text.toLowerCase()));
       const fresh = scoreQuestions(cl.output.questions.filter((q) => !already.has(q.text.toLowerCase())), [], cb)

@@ -43,7 +43,7 @@ export const StageName = z.enum([
   // stages-aligned §6 additions
   "discover-read", "sketches", "clarifier", "merge", "lint", "critic", "round-trip",
   "spec-gate", "design-read", "design-mock", "stub-commit", "a5-check",
-  "conflict-resolve", "revise-classify",
+  "conflict-resolve", "revise-classify", "distill",
 ]);
 export type StageName = z.infer<typeof StageName>;
 

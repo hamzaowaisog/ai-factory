@@ -39,6 +39,11 @@ export const ContextPack = z.object({
    * existing pack keeps its exact bytes and its packSha.
    */
   toolsAt: z.enum(["base", "under-review"]).optional(),
+  /**
+   * Characters at the start of `user` that stay the same across one step's calls: every user section before feedback, task and
+   * recap (sorted last). A step may ask for it to be cached (ThinkSpec.cacheBriefing). Not part of the hashed body: packSha is unchanged.
+   */
+  userStable: z.number().optional(),
   manifest: z.object({
     stage: StageName,
     model: z.string(),

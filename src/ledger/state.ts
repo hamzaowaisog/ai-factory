@@ -67,7 +67,9 @@ export interface RunInfo {
   /** `factory start --file`: the file the request came from */
   requestFile?: string;
   /** where the request came from: typed prompt, file, Jira ticket */
-  sources?: { kind: "prompt" | "file" | "jira" | "docx" | "pdf" | "frames"; name?: string; key?: string; url?: string; summary?: string }[];
+  sources?: { kind: "prompt" | "file" | "jira" | "docx" | "pdf" | "frames" | "transcript"; name?: string; key?: string; url?: string; summary?: string }[];
+  /** a Google Meet transcript request: the parsed transcript's artifact; the distill step reads it, and its approved brief replaces `request` */
+  transcriptSha?: string;
   /** design references the user attached (R-1, R-2, ...), read at intake; their pictures are ledger artifacts */
   references?: Reference[];
   versions?: Record<string, string>;
@@ -232,6 +234,8 @@ export function replay(events: LedgerEvent[]): RunState {
         // the cost cap depends on these: class from intake, size from plan
         if (typeof data.changeClass === "string") s.info.changeClass = data.changeClass as ChangeClass;
         if (typeof data.complexity === "string") { s.info.complexity = data.complexity as Complexity; s.info.spendAtPlan = s.costUsd; }
+        // a transcript run: the approved client intent's brief is the request every later step reads (transcript-intent spec §2)
+        if (step === "distill" && typeof data.brief === "string") s.info.request = data.brief;
         stopped(step);
         closeActive(ev.ts);
         break;
