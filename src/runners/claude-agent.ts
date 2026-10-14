@@ -3,6 +3,7 @@
 // files masked, restored packages read-only, the agent env template (dummy values), and a network
 // that reaches only the factory's API proxy. A step may ask for a database of its own (AgentDatabase): an empty
 // PostgreSQL that lives as long as the session, so the agent can run the tests that need one.
+import { Redactor } from "../context/secrets.js";
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -304,7 +305,11 @@ export class ClaudeAgentRunner implements Runner {
       // a session that was cut off wrote no end line: the trace gets one, so its time and totals are counted like any other
       if (!ended && existsSync(progressFile)) { const u = fromProgress(); x.onProgress?.({ ts: Date.now(), kind: "end", status: code === undefined ? "timeout" : "cut off", turns: u.turns, costUsd: u.estUsd }); }
       if (code === undefined) return { status: "timeout", usage: fromProgress() };
-      if (!existsSync(resultPath)) return { status: "error", error: `Agent exited ${code} without a result`, usage: fromProgress() };
+      if (!existsSync(resultPath)) {
+        // why it ended, in its own last words: the container's last lines (the retry, the ledger and a person read them)
+        const tail = await this.rt.logs(id).then((l) => l.split("\n").map((x) => x.trim()).filter(Boolean).slice(-3).map((x) => new Redactor().redact(x).text).join(" | ").slice(-400), () => "");
+        return { status: "error", error: `Agent exited ${code} without a result${code === 143 || code === 137 ? " (stopped from outside)" : ""}${tail ? `: ${tail}` : ""}`, usage: fromProgress() };
+      }
       const out = JSON.parse(readFileSync(resultPath, "utf8")) as AgentOut;
       // result.json is also written when the SDK threw before its result message: no total then
       const noTotal = !out.turns && !out.costUsd && !out.usage?.input_tokens && !out.usage?.output_tokens;
