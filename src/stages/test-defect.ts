@@ -84,8 +84,19 @@ export function relocked<L extends { lock: { file: string; sha: string }[]; unlo
 export function testsToJudge(events: LedgerEvent[], stepKey: string): string[] {
   const last = [...events].reverse().find((e) => e.type === "step.failed" && String(e.key ?? "").startsWith(`${stepKey}/`));
   const asked = (last?.data as { testCheck?: string[] } | undefined)?.testCheck ?? [];
-  const done = new Set(judgedTests(events).map((j) => j.testId));
+  const done = settledTests(events);
   return asked.filter((id) => !done.has(id));
+}
+
+/**
+ * The tests not to judge again: judged anything but rewritten, or judged twice. A rewritten test that fails again is judged
+ * once more, on its new failure (run ae5c, TASK-10: the rewrite fixed one of three checks with the same fault, and the next
+ * two attempts went to the implementer).
+ */
+export function settledTests(events: LedgerEvent[]): Set<string> {
+  const by = new Map<string, Judged[]>();
+  for (const j of judgedTests(events)) by.set(j.testId, [...(by.get(j.testId) ?? []), j]);
+  return new Set([...by].filter(([, js]) => js.length >= 2 || !js.at(-1)!.rewritten).map(([id]) => id));
 }
 
 export const JudgeOut = z.object({

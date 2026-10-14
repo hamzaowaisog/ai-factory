@@ -1,7 +1,7 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
 import { execFileSync } from "node:child_process";
-import { judgedTests } from "./test-defect.js";
+import { settledTests } from "./test-defect.js";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -483,8 +483,9 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
       case "fail": {
         const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
         const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
-        // a locked test is read against its criterion once in a run: after that the ladder climbs as for any other failure
-        const judged = new Set(judgedTests(ledger.events()).map((j) => j.testId));
+        // a locked test is read against its criterion once in a run (twice when the first rewrote it): after that the ladder
+        // climbs as for any other failure
+        const judged = settledTests(ledger.events());
         const rules = (a5Done: Set<string>): LadderOptions => ({
           // policy.retryBudget (default 6; a trial project can say 2)
           ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), modelSteps: modelSteps(project, step.stage), backoffSpentMs: backoffSpent, a5Done,

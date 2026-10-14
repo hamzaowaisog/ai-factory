@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LedgerEvent } from "../contracts/index.js";
 import { DEFAULT_LADDER, nextOnFailure, RUNGS, type AttemptRecord } from "../gates/ladder.js";
 import { matchesAny } from "../util/glob.js";
-import { filesToOpen, judgedTests, openedFiles, OPEN_MAX, parkReason, relocked, rewrittenTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
+import { filesToOpen, judgedTests, openedFiles, OPEN_MAX, parkReason, relocked, rewrittenTests, settledTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
 
 let seq = 0;
 const ev = (type: string, key: string, data: Record<string, unknown>): LedgerEvent => ({ seq: ++seq, type, key, data } as unknown as LedgerEvent);
@@ -19,6 +19,17 @@ describe("the test-or-code check: what the ledger says", () => {
     expect(testsToJudge([failed], "implement/TASK-20")).toEqual([]);
     expect(testsToJudge([failed], "implement/TASK")).toEqual([]);
     expect(testsToJudge([failed, ev("step.failed", "implement/TASK-2/3", {})], "implement/TASK-2")).toEqual([]);
+  });
+
+  it("asks once more about a rewritten test that fails again, and never a third time (run ae5c, TASK-10)", () => {
+    const failed = ev("step.failed", "implement/TASK-2/4", { testCheck: ["T::a"] });
+    const first = judged({ verdict: "test", rewritten });
+    expect(testsToJudge([first, failed], "implement/TASK-2")).toEqual(["T::a"]);
+    expect(settledTests([first])).toEqual(new Set());
+    // judged as the code's fault, a rewrite refused, or judged twice: settled
+    expect(settledTests([judged({ verdict: "code" })])).toEqual(new Set(["T::a"]));
+    expect(settledTests([judged({ verdict: "test", rejected: "touched another test" })])).toEqual(new Set(["T::a"]));
+    expect(testsToJudge([first, judged({ verdict: "test", rewritten }), failed], "implement/TASK-2")).toEqual([]);
   });
 
   it("locks a rewritten file at its new content and names the rewrite as an unlock", () => {

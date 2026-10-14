@@ -1895,8 +1895,8 @@ export function implementStep(taskId: string): StepDef {
       if (lenientTests(ctx.project)) {
         const evs = ctx.ledger.events();
         const out = new Set(disputedTests(evs).map((d) => d.testId));
-        const again = judgedTests(evs).filter((j) => j.step === key && j.verdict === "test" && j.rewritten && !out.has(j.testId)).filter((j) => {
-          const at = evs.find((e) => e.type === "test.judged" && (e.data as { testId?: string; rewritten?: unknown })?.testId === j.testId && (e.data as { rewritten?: unknown }).rewritten)?.seq ?? 0;
+        const again = [...new Map(judgedTests(evs).filter((j) => j.step === key && j.verdict === "test" && j.rewritten && !out.has(j.testId)).map((j) => [j.testId, j])).values()].filter((j) => {
+          const at = evs.findLast((e) => e.type === "test.judged" && (e.data as { testId?: string; rewritten?: unknown })?.testId === j.testId && (e.data as { rewritten?: unknown }).rewritten)?.seq ?? 0;
           const after = evs.filter((e) => e.type === "step.failed" && e.seq > at && String(e.key).startsWith(`${key}/`));
           return after.length >= 2 && ctx.priorFailures.some((f) => LOCKED_CHECKS.has(f.check) && f.testId === j.testId);
         });
