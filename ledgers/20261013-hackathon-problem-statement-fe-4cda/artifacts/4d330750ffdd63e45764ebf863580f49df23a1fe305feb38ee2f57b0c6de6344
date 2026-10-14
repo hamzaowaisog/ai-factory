@@ -1,0 +1,186 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-2",
+      "ears": "The Feedlot Operations API shall persist all application values its operations read or change, including derived or cached values used by later requests, in PostgreSQL through the existing App connection string, make committed values available to later requests and after restart, and initialize required application structures without deleting or changing compatible pre-existing data.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 8,
+        "lineEnd": 9,
+        "quote": "builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\n    ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_4»")));"
+       },
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 22,
+        "lineEnd": 22,
+        "quote": "        db.Database.EnsureCreated();"
+       },
+       {
+        "path": "App.Api/AppDb.cs",
+        "lineStart": 5,
+        "lineEnd": 7,
+        "quote": "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n}"
+       }
+      ],
+      "sources": [
+       "I-2",
+       "Q-1",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "A PostgreSQL database configured through the App connection string contains a compatible pre-existing row and the application starts.",
+        "when": "The application initializes its database structures and a contract operation reads or changes application data.",
+        "then": "The pre-existing row remains in the database, and the response reflects persisted data after the request.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "A contract operation creates or changes application data, including a value differing from the existing value.",
+        "when": "The API completes the operation successfully.",
+        "then": "The corresponding database row contains the submitted values and derived or cached values returned in the response.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "A successful API mutation has been committed to the configured PostgreSQL database.",
+        "when": "The API process restarts and a contract read operation retrieves that data.",
+        "then": "The response fields contain the committed values from the database row.",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.4",
+        "given": "A PostgreSQL test fixture contains an authorized principal established as test setup, an empty application-data state, and a contract operation valid for that principal that creates or changes an application record.",
+        "when": "The client uses the contract operation and then reads the record through the corresponding API list or detail operation.",
+        "then": "The response contains the saved value and a PostgreSQL row contains the same value.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When Seed:Demo is false at application startup, the Feedlot Operations API shall skip SeedData.Run and insert no demo rows, and serve contract operations without requiring demo seed rows.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 22,
+        "lineEnd": 24,
+        "quote": "        db.Database.EnsureCreated();\n        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       },
+       {
+        "path": "App.Tests/HealthTests.cs",
+        "lineStart": 12,
+        "lineEnd": 17,
+        "quote": "    [Fact]\n    public async Task ApiIsUp()\n    {\n        var res = await _factory.CreateClient().GetAsync(\"/\");\n        Assert.Equal(HttpStatusCode.OK, res.StatusCode);\n    }"
+       }
+      ],
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "Seed:Demo is false, the database has no operational or demo rows, and a test fixture provisions a valid non-demo account with the contract-required authorization state directly in PostgreSQL without inserting demo rows.",
+        "when": "A client signs in using the fixture credentials and uses the returned authorization to call contract operations valid for an empty operational data state.",
+        "then": "The response status and fields conform to the contract without requiring a seeded record.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "The App database is empty and Seed:Demo is false.",
+        "when": "The application starts and its database-backed list operations are requested.",
+        "then": "Every application-data table has a demo row count of zero, and the response lists contain no demo-seeded records.",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.3",
+        "given": "A clean PostgreSQL database and application configuration Seed:Demo=false.",
+        "when": "The application starts and a test queries the application tables and calls list API operations.",
+        "then": "The demo-data row count is zero and the list responses contain no demo rows.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When a feeding event is created or corrected, or a saved feeding event is voided, the Feedlot Operations API shall atomically reject any creation or correction requiring unavailable ingredient inventory without changing persisted event, inventory, movement, or lot feed-rollup values, apply successful corrections as replacements of the prior event's inventory and rollup effects, and reverse a voided event's inventory and rollup effects.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4",
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "An ingredient has less available inventory than a proposed feeding event requires and inventory and lot rollup values have been recorded.",
+        "when": "The client posts the feeding event.",
+        "then": "The response status is 409 and the inventory row, feeding-event row count, and lot feed totals remain unchanged.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "Inventory contains less than the required quantity of at least one ingredient for a feeding event.",
+        "when": "A client submits the event to the createFeedingEvent operation.",
+        "then": "The response status is 409, no feeding-event row or inventory-movement row is added, and inventory quantities and lot feed and cost rollup values remain unchanged.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "A test-created ration and inventory where one ingredient has less stock than the event requires, with recorded pre-request inventory and lot totals.",
+        "when": "The client submits POST /api/feeding-events for that event.",
+        "then": "The response status is 409, no event row exists for the rejected request, the inventory row values are unchanged, and the lot feed-total response values are unchanged.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.4",
+        "given": "A saved feeding event has an inventory movement and lot feed rollup values, and a proposed correction requires more of at least one ingredient than is available after accounting for the saved event's existing inventory effect.",
+        "when": "The client submits the correction through PATCH /api/feeding-events/{eventId}.",
+        "then": "The response status is 409, the saved event row and its inventory-movement rows remain unchanged, and the inventory row values and lot feed and cost rollup values remain unchanged.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.5",
+        "given": "A saved feeding event has an inventory movement and lot feed rollup values, and a valid correction changes the delivered quantity to a different quantity with sufficient inventory.",
+        "when": "The client submits the correction through PATCH /api/feeding-events/{eventId}.",
+        "then": "The response event and lotFeedTotals contain the corrected values, the event's inventory movements reflect only the corrected consumption, and the inventory row reflects the corrected net consumption rather than both the original and corrected quantities.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.6",
+        "given": "A saved feeding event has an inventory movement and lot feed rollup values.",
+        "when": "The client voids the event through POST /api/feeding-events/{eventId}/void.",
+        "then": "The response event status is Voided, its inventoryMovements include the reversal of the event's inventory consumption, the inventory row reflects the restored quantity, and the lotFeedTotals exclude the voided event's feed and cost.",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.7",
+        "given": "Inventory has a known quantity of an ingredient, and two otherwise valid concurrent POST /api/feeding-events requests each require no more than that quantity individually but together require more than the available quantity.",
+        "when": "The client sends both requests concurrently.",
+        "then": "The two response statuses are one contract-declared success status and one 409; exactly one feeding-event row and its corresponding inventory-movement rows are added, and the inventory row equals the starting quantity minus the successful event's consumption and remains nonnegative.",
+        "level": "api"
+       }
+      ],
+      "stability": 1
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

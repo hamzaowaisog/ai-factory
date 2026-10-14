@@ -1,0 +1,1059 @@
+diff --git a/App.Api/AppDb.cs b/App.Api/AppDb.cs
+index 4217959..4a548e1 100644
+--- a/App.Api/AppDb.cs
++++ b/App.Api/AppDb.cs
+@@ -1,7 +1,38 @@
+ using Microsoft.EntityFrameworkCore;
++using App.Api.Entities;
+ 
+ namespace App.Api;
+ 
+ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
+ {
++    public DbSet<Employee> Employees => Set<Employee>();
++    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
++    public DbSet<AuthSession> AuthSessions => Set<AuthSession>();
++    public DbSet<OAuthState> OAuthStates => Set<OAuthState>();
++
++    protected override void OnModelCreating(ModelBuilder modelBuilder)
++    {
++        var entityTypes = typeof(IAppEntity).Assembly.GetTypes()
++            .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(IAppEntity).IsAssignableFrom(type));
++
++        foreach (var type in entityTypes)
++        {
++            var entity = modelBuilder.Entity(type);
++            entity.ToTable(type.Name);
++
++            foreach (var property in type.GetProperties().Where(property => property.PropertyType.IsEnum))
++                entity.Property(property.Name).HasConversion<string>();
++        }
++
++        modelBuilder.Entity<Employee>().HasIndex(employee => employee.EmployeeId).IsUnique();
++        modelBuilder.Entity<Employee>().HasIndex(employee => employee.CorporateEmail).IsUnique();
++        modelBuilder.Entity<Vehicle>().HasIndex(vehicle => vehicle.Plate).IsUnique();
++        modelBuilder.Entity<AuthSession>().HasIndex(session => session.TokenHash).IsUnique();
++        modelBuilder.Entity<OAuthState>().HasIndex(state => state.State).IsUnique();
++
++        modelBuilder.Entity<Vehicle>().HasOne(vehicle => vehicle.Employee).WithMany(employee => employee.Vehicles)
++            .HasForeignKey(vehicle => vehicle.EmployeeId).OnDelete(DeleteBehavior.Cascade);
++        modelBuilder.Entity<AuthSession>().HasOne(session => session.Employee).WithMany(employee => employee.AuthSessions)
++            .HasForeignKey(session => session.EmployeeId).OnDelete(DeleteBehavior.Cascade);
++    }
+ }
+diff --git a/App.Api/Endpoints/AuthAndVehicleEndpoints.cs b/App.Api/Endpoints/AuthAndVehicleEndpoints.cs
+new file mode 100644
+index 0000000..c85d920
+--- /dev/null
++++ b/App.Api/Endpoints/AuthAndVehicleEndpoints.cs
+@@ -0,0 +1,328 @@
++using System.ComponentModel.DataAnnotations;
++using System.Net;
++using System.Security.Cryptography;
++using System.Text.Json.Serialization;
++using App.Api.Entities;
++using VehicleEntity = App.Api.Entities.Vehicle;
++using App.Api.Integrations;
++using App.Api.Services;
++using Microsoft.EntityFrameworkCore;
++
++namespace App.Api.Endpoints;
++
++public sealed class AuthAndVehicleEndpoints : IEndpointModule
++{
++    private const string UnauthorizedMessage = "A valid Folio3 Workspace session is required.";
++    private const string ForbiddenMessage = "You are not authorized to access this resource.";
++    private const string NotFoundMessage = "The requested parking record was not found.";
++    private const string InvalidMessage = "The request is invalid.";
++    private const string ConflictMessage = "The parking record has already changed state.";
++    private const string UnavailableMessage = "The service is temporarily unavailable.";
++
++    public void MapEndpoints(IEndpointRouteBuilder app)
++    {
++        var api = app.MapGroup("/api");
++
++        api.MapGet("/auth/google/authorization", GetGoogleAuthorizationAsync)
++            .WithName("getGoogleAuthorization")
++            .WithSummary("Get the Folio3 Google Workspace authorization URL")
++            .Produces<AuthorizationStart>(StatusCodes.Status200OK)
++            .Produces<ApiError>(StatusCodes.Status503ServiceUnavailable);
++
++        api.MapPost("/auth/sign-in", SignInAsync)
++            .WithName("signIn")
++            .WithSummary("Exchange a Google Workspace authorization code for a Folio3 session")
++            .Accepts<SignInRequest>("application/json")
++            .Produces<Session>(StatusCodes.Status200OK)
++            .Produces<ApiError>(StatusCodes.Status400BadRequest)
++            .Produces<ApiError>(StatusCodes.Status401Unauthorized)
++            .Produces<ApiError>(StatusCodes.Status503ServiceUnavailable);
++
++        api.MapGet("/employees/me", GetMyEmployeeProfileAsync)
++            .WithName("getMyEmployeeProfile")
++            .WithSummary("Get the signed-in employee profile")
++            .Produces<EmployeeProfile>(StatusCodes.Status200OK)
++            .Produces<ApiError>(StatusCodes.Status401Unauthorized)
++            .Produces<ApiError>(StatusCodes.Status403Forbidden)
++            .Produces<ApiError>(StatusCodes.Status404NotFound);
++
++        api.MapGet("/vehicles", ListMyVehiclesAsync)
++            .WithName("listMyVehicles")
++            .WithSummary("List the signed-in employee's registered vehicles")
++            .Produces<VehicleCollection>(StatusCodes.Status200OK)
++            .Produces<ApiError>(StatusCodes.Status401Unauthorized);
++
++        api.MapPost("/vehicles", RegisterVehicleAsync)
++            .WithName("registerVehicle")
++            .WithSummary("Register and immediately activate a vehicle plate")
++            .Accepts<VehicleInput>("application/json")
++            .Produces<Vehicle>(StatusCodes.Status201Created)
++            .Produces<ApiError>(StatusCodes.Status400BadRequest)
++            .Produces<ApiError>(StatusCodes.Status401Unauthorized)
++            .Produces<ApiError>(StatusCodes.Status409Conflict);
++    }
++
++    private static async Task<IResult> GetGoogleAuthorizationAsync(
++        AppDb db,
++        IWorkspaceOAuthClient oauth,
++        CancellationToken cancellationToken)
++    {
++        var state = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
++        try
++        {
++            var authorizationUrl = await oauth.CreateAuthorizationUrlAsync(state, cancellationToken);
++            var createdAt = ApiAuth.UtcNowToMicrosecond();
++            db.OAuthStates.Add(new OAuthState
++            {
++                State = state,
++                CreatedAt = createdAt,
++                ExpiresAt = createdAt.AddMinutes(10)
++            });
++            await db.SaveChangesAsync(cancellationToken);
++            return Results.Ok(new AuthorizationStart(authorizationUrl, state));
++        }
++        catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
++        {
++            return Error(StatusCodes.Status503ServiceUnavailable, "service_unavailable", UnavailableMessage, null);
++        }
++    }
++
++    private static async Task<IResult> SignInAsync(
++        HttpRequest request,
++        AppDb db,
++        IWorkspaceOAuthClient oauth,
++        CancellationToken cancellationToken)
++    {
++        string? authorizationCode = null;
++        string? requestedState = null;
++        try
++        {
++            using var document = await System.Text.Json.JsonDocument.ParseAsync(
++                request.Body, cancellationToken: cancellationToken);
++            var root = document.RootElement;
++            if (root.ValueKind == System.Text.Json.JsonValueKind.String)
++            {
++                using var nestedDocument = System.Text.Json.JsonDocument.Parse(root.GetString() ?? "");
++                root = nestedDocument.RootElement.Clone();
++            }
++            if (root.ValueKind == System.Text.Json.JsonValueKind.Object)
++            {
++                authorizationCode = ReadStringProperty(root, "authorizationCode");
++                requestedState = ReadStringProperty(root, "state");
++            }
++        }
++        catch (System.Text.Json.JsonException)
++        {
++            // Malformed bodies use the contract's field-level request error below.
++        }
++
++        if (string.IsNullOrWhiteSpace(authorizationCode))
++            return Error(StatusCodes.Status400BadRequest, "bad_request", InvalidMessage, "authorizationCode");
++        if (string.IsNullOrWhiteSpace(requestedState))
++            return Error(StatusCodes.Status400BadRequest, "bad_request", InvalidMessage, "state");
++
++        var state = await db.OAuthStates.SingleOrDefaultAsync(item => item.State == requestedState, cancellationToken);
++        if (state is null || state.ExpiresAt <= ApiAuth.UtcNowToMicrosecond())
++        {
++            if (state is not null)
++            {
++                db.OAuthStates.Remove(state);
++                await db.SaveChangesAsync(cancellationToken);
++            }
++            return Error(StatusCodes.Status400BadRequest, "bad_request", InvalidMessage, "state");
++        }
++
++        db.OAuthStates.Remove(state);
++        await db.SaveChangesAsync(cancellationToken);
++
++        IReadOnlyDictionary<string, string>? claims;
++        try
++        {
++            claims = await oauth.ExchangeAuthorizationCodeAsync(authorizationCode, requestedState, cancellationToken);
++        }
++        catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException or TaskCanceledException)
++        {
++            return Error(StatusCodes.Status503ServiceUnavailable, "service_unavailable", UnavailableMessage, null);
++        }
++
++        if (claims is null)
++            return Error(StatusCodes.Status400BadRequest, "bad_request", InvalidMessage, "authorizationCode");
++
++        var email = GetClaim(claims, "email");
++        var emailVerified = GetClaim(claims, "email_verified");
++        if (!string.Equals(emailVerified, "true", StringComparison.OrdinalIgnoreCase) ||
++            string.IsNullOrWhiteSpace(email) || !email.EndsWith("@folio3.com", StringComparison.OrdinalIgnoreCase))
++            return Error(StatusCodes.Status401Unauthorized, "unauthorized", UnauthorizedMessage, null);
++
++        var employee = await db.Employees.SingleOrDefaultAsync(
++            item => item.CorporateEmail.ToLower() == email.ToLower(), cancellationToken);
++        if (employee is null || employee.Role is not ("employee" or "administrator"))
++            return Error(StatusCodes.Status401Unauthorized, "unauthorized", UnauthorizedMessage, null);
++
++        var accessToken = ApiAuth.CreateAccessToken(employee.Id);
++        var createdAt = ApiAuth.UtcNowToMicrosecond();
++        db.AuthSessions.Add(new AuthSession
++        {
++            EmployeeId = employee.Id,
++            TokenHash = ApiAuth.HashAccessToken(accessToken),
++            CreatedAt = createdAt,
++            ExpiresAt = createdAt.AddHours(12)
++        });
++        await db.SaveChangesAsync(cancellationToken);
++
++        return Results.Ok(new Session(
++            employee.Id,
++            employee.EmployeeId,
++            employee.EmployeeName,
++            employee.CorporateEmail,
++            employee.Role == "employee" ? SessionRole.employee : SessionRole.administrator,
++            accessToken));
++    }
++
++    private static async Task<IResult> GetMyEmployeeProfileAsync(
++        HttpContext context,
++        AppDb db,
++        CancellationToken cancellationToken)
++    {
++        var authentication = await ApiAuth.AuthenticateEmployeeAsync(context, db, cancellationToken);
++        if (authentication.Employee is null)
++        {
++            if (authentication.IssuedTokenForMissingEmployee)
++                return Error(StatusCodes.Status404NotFound, "not_found", NotFoundMessage, null);
++            return Error(StatusCodes.Status401Unauthorized, "unauthorized", UnauthorizedMessage, null);
++        }
++
++        var employee = authentication.Employee;
++        if (employee.Role != "employee")
++            return Error(StatusCodes.Status403Forbidden, "forbidden", ForbiddenMessage, null);
++
++        var vehicles = await db.Vehicles.AsNoTracking().Where(vehicle => vehicle.EmployeeId == employee.Id)
++            .OrderBy(vehicle => vehicle.Id).Select(vehicle => ToVehicleResponse(vehicle)).ToListAsync(cancellationToken);
++        return Results.Ok(new EmployeeProfile(
++            employee.Id,
++            employee.EmployeeId,
++            employee.EmployeeName,
++            employee.CorporateEmail,
++            employee.DedicatedParking,
++            employee.AssignedFloor,
++            employee.AssignedSpace,
++            vehicles));
++    }
++
++    private static async Task<IResult> ListMyVehiclesAsync(
++        HttpContext context,
++        AppDb db,
++        CancellationToken cancellationToken)
++    {
++        var authentication = await ApiAuth.AuthenticateEmployeeAsync(context, db, cancellationToken);
++        if (authentication.Employee is null)
++            return Error(StatusCodes.Status401Unauthorized, "unauthorized", UnauthorizedMessage, null);
++
++        var vehicles = await db.Vehicles.AsNoTracking().Where(vehicle => vehicle.EmployeeId == authentication.Employee.Id)
++            .OrderBy(vehicle => vehicle.Id).Select(vehicle => ToVehicleResponse(vehicle)).ToListAsync(cancellationToken);
++        return Results.Ok(new VehicleCollection(vehicles));
++    }
++
++    private static async Task<IResult> RegisterVehicleAsync(
++        VehicleInput request,
++        HttpContext context,
++        AppDb db,
++        CancellationToken cancellationToken)
++    {
++        var authentication = await ApiAuth.AuthenticateEmployeeAsync(context, db, cancellationToken);
++        if (authentication.Employee is null)
++            return Error(StatusCodes.Status401Unauthorized, "unauthorized", UnauthorizedMessage, null);
++        if (string.IsNullOrWhiteSpace(request.Plate))
++            return Error(StatusCodes.Status400BadRequest, "bad_request", InvalidMessage, "plate");
++
++        var plate = request.Plate.Trim();
++        if (await db.Vehicles.AnyAsync(vehicle => vehicle.Plate == plate, cancellationToken))
++            return Error(StatusCodes.Status409Conflict, "conflict", ConflictMessage, "plate");
++
++        var vehicle = new VehicleEntity
++        {
++            EmployeeId = authentication.Employee.Id,
++            Plate = plate,
++            Make = request.Make,
++            Model = request.Model,
++            Color = request.Color,
++            Active = true
++        };
++        db.Vehicles.Add(vehicle);
++        try
++        {
++            await db.SaveChangesAsync(cancellationToken);
++        }
++        catch (DbUpdateException exception) when (exception.InnerException is Npgsql.PostgresException
++               { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
++        {
++            return Error(StatusCodes.Status409Conflict, "conflict", ConflictMessage, "plate");
++        }
++
++        return Results.Created($"/api/vehicles/{vehicle.Id}", ToVehicleResponse(vehicle));
++    }
++
++    private static string? GetClaim(IReadOnlyDictionary<string, string> claims, string claimName) =>
++        claims.FirstOrDefault(claim => string.Equals(claim.Key, claimName, StringComparison.OrdinalIgnoreCase)).Value;
++
++    private static string? ReadStringProperty(System.Text.Json.JsonElement root, string name)
++    {
++        foreach (var property in root.EnumerateObject())
++            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) &&
++                property.Value.ValueKind == System.Text.Json.JsonValueKind.String)
++                return property.Value.GetString();
++        return null;
++    }
++
++    private static Vehicle ToVehicleResponse(VehicleEntity vehicle) =>
++        new(vehicle.Id, vehicle.Plate, vehicle.Make, vehicle.Model, vehicle.Color, vehicle.Active);
++
++    private static IResult Error(int statusCode, string code, string message, string? field) =>
++        Results.Json(new ApiError(code, message, field), statusCode: statusCode);
++}
++
++public sealed record SignInRequest
++{
++    [Required]
++    public string AuthorizationCode { get; init; } = "";
++
++    [Required]
++    public string State { get; init; } = "";
++}
++
++public sealed record VehicleInput
++{
++    [Required]
++    public string Plate { get; init; } = "";
++    public string? Make { get; init; }
++    public string? Model { get; init; }
++    public string? Color { get; init; }
++}
++
++public sealed record ApiError(string Code, string Message, string? Field);
++public sealed record AuthorizationStart([property: Url] string AuthorizationUrl, string State);
++public sealed record Session(
++    int Id,
++    string EmployeeId,
++    string EmployeeName,
++    [property: EmailAddress] string CorporateEmail,
++    SessionRole Role,
++    string AccessToken);
++public sealed record EmployeeProfile(
++    int Id,
++    string EmployeeId,
++    string EmployeeName,
++    [property: EmailAddress] string CorporateEmail,
++    bool DedicatedParking,
++    string? AssignedFloor,
++    string? AssignedSpace,
++    IReadOnlyList<Vehicle> Vehicles);
++public sealed record Vehicle(int Id, string Plate, string? Make, string? Model, string? Color, bool Active);
++public sealed record VehicleCollection(IReadOnlyList<Vehicle> Vehicles);
++
++[JsonConverter(typeof(JsonStringEnumConverter))]
++public enum SessionRole
++{
++    employee,
++    administrator
++}
+diff --git a/App.Api/Endpoints/AvailabilityNotificationEndpoints.cs b/App.Api/Endpoints/AvailabilityNotificationEndpoints.cs
+new file mode 100644
+index 0000000..f8cd32d
+--- /dev/null
++++ b/App.Api/Endpoints/AvailabilityNotificationEndpoints.cs
+@@ -0,0 +1,77 @@
++using System.ComponentModel.DataAnnotations;
++using System.Text.Json.Serialization;
++using App.Api.Integrations;
++using Microsoft.EntityFrameworkCore;
++
++namespace App.Api.Endpoints;
++
++public sealed class AvailabilityNotificationEndpoints : IEndpointModule
++{
++    private const string InvalidMessage = "The request is invalid.";
++    private const string UnavailableMessage = "The service is temporarily unavailable.";
++
++    public void MapEndpoints(IEndpointRouteBuilder app)
++    {
++        app.MapPost("/api/notifications/availability", SendAvailabilityNotificationAsync)
++            .WithName("sendAvailabilityNotification")
++            .WithSummary("Send the fixed-template email to eligible non-dedicated employees when spaces become available")
++            .Accepts<AvailabilityNotificationRequest>("application/json")
++            .Produces<NotificationDispatch>(StatusCodes.Status202Accepted)
++            .Produces<ApiError>(StatusCodes.Status400BadRequest)
++            .Produces<ApiError>(StatusCodes.Status503ServiceUnavailable);
++    }
++
++    private static async Task<IResult> SendAvailabilityNotificationAsync(
++        AvailabilityNotificationRequest request,
++        AppDb db,
++        IAvailabilityEmailDispatcher dispatcher,
++        CancellationToken cancellationToken)
++    {
++        if (request.AvailableSpaces < 1) return Error("availableSpaces");
++        if (request.Id < 1) return Error("id");
++        if (request.OfficeDate == default) return Error("officeDate");
++
++        var recipients = await db.Employees.AsNoTracking()
++            .Where(employee => !employee.DedicatedParking)
++            .OrderBy(employee => employee.Id)
++            .Select(employee => employee.CorporateEmail)
++            .ToListAsync(cancellationToken);
++
++        try
++        {
++            var recipientCount = await dispatcher.SendAvailabilityAsync(
++                request.OfficeDate, request.AvailableSpaces, recipients, cancellationToken);
++            return Results.Json(new NotificationDispatch(
++                request.Id, AvailabilityNotificationStatus.accepted, recipientCount, "parking-availability"),
++                statusCode: StatusCodes.Status202Accepted);
++        }
++        catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException or TaskCanceledException)
++        {
++            return Results.Json(new ApiError("service_unavailable", UnavailableMessage, null),
++                statusCode: StatusCodes.Status503ServiceUnavailable);
++        }
++    }
++
++    private static IResult Error(string field) =>
++        Results.Json(new ApiError("bad_request", InvalidMessage, field), statusCode: StatusCodes.Status400BadRequest);
++}
++
++public sealed record AvailabilityNotificationRequest
++{
++    [Required]
++    public int Id { get; init; }
++
++    [Required]
++    public DateOnly OfficeDate { get; init; }
++
++    [Required, Range(1, int.MaxValue)]
++    public int AvailableSpaces { get; init; }
++}
++
++public sealed record NotificationDispatch(int Id, AvailabilityNotificationStatus Status, int RecipientCount, string Template);
++
++[JsonConverter(typeof(JsonStringEnumConverter))]
++public enum AvailabilityNotificationStatus
++{
++    accepted
++}
+diff --git a/App.Api/Endpoints/IEndpointModule.cs b/App.Api/Endpoints/IEndpointModule.cs
+new file mode 100644
+index 0000000..160bf85
+--- /dev/null
++++ b/App.Api/Endpoints/IEndpointModule.cs
+@@ -0,0 +1,6 @@
++namespace App.Api.Endpoints;
++
++public interface IEndpointModule
++{
++    void MapEndpoints(IEndpointRouteBuilder app);
++}
+diff --git a/App.Api/Entities/AuthSession.cs b/App.Api/Entities/AuthSession.cs
+new file mode 100644
+index 0000000..98fde68
+--- /dev/null
++++ b/App.Api/Entities/AuthSession.cs
+@@ -0,0 +1,11 @@
++namespace App.Api.Entities;
++
++public sealed class AuthSession : IAppEntity
++{
++    public int Id { get; set; }
++    public int EmployeeId { get; set; }
++    public required string TokenHash { get; set; }
++    public DateTime CreatedAt { get; set; }
++    public DateTime ExpiresAt { get; set; }
++    public Employee Employee { get; set; } = null!;
++}
+diff --git a/App.Api/Entities/Employee.cs b/App.Api/Entities/Employee.cs
+new file mode 100644
+index 0000000..267e035
+--- /dev/null
++++ b/App.Api/Entities/Employee.cs
+@@ -0,0 +1,15 @@
++namespace App.Api.Entities;
++
++public sealed class Employee : IAppEntity
++{
++    public int Id { get; set; }
++    public required string EmployeeId { get; set; }
++    public required string EmployeeName { get; set; }
++    public required string CorporateEmail { get; set; }
++    public required string Role { get; set; }
++    public bool DedicatedParking { get; set; }
++    public string? AssignedFloor { get; set; }
++    public string? AssignedSpace { get; set; }
++    public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
++    public ICollection<AuthSession> AuthSessions { get; set; } = new List<AuthSession>();
++}
+diff --git a/App.Api/Entities/IAppEntity.cs b/App.Api/Entities/IAppEntity.cs
+new file mode 100644
+index 0000000..2ee07d5
+--- /dev/null
++++ b/App.Api/Entities/IAppEntity.cs
+@@ -0,0 +1,6 @@
++namespace App.Api.Entities;
++
++public interface IAppEntity
++{
++    int Id { get; set; }
++}
+diff --git a/App.Api/Entities/OAuthState.cs b/App.Api/Entities/OAuthState.cs
+new file mode 100644
+index 0000000..51eaaa5
+--- /dev/null
++++ b/App.Api/Entities/OAuthState.cs
+@@ -0,0 +1,9 @@
++namespace App.Api.Entities;
++
++public sealed class OAuthState : IAppEntity
++{
++    public int Id { get; set; }
++    public required string State { get; set; }
++    public DateTime CreatedAt { get; set; }
++    public DateTime ExpiresAt { get; set; }
++}
+diff --git a/App.Api/Entities/Vehicle.cs b/App.Api/Entities/Vehicle.cs
+new file mode 100644
+index 0000000..bbd94ad
+--- /dev/null
++++ b/App.Api/Entities/Vehicle.cs
+@@ -0,0 +1,13 @@
++namespace App.Api.Entities;
++
++public sealed class Vehicle : IAppEntity
++{
++    public int Id { get; set; }
++    public int EmployeeId { get; set; }
++    public required string Plate { get; set; }
++    public string? Make { get; set; }
++    public string? Model { get; set; }
++    public string? Color { get; set; }
++    public bool Active { get; set; }
++    public Employee Employee { get; set; } = null!;
++}
+diff --git a/App.Api/Integrations/ConfiguredAvailabilityEmailDispatcher.cs b/App.Api/Integrations/ConfiguredAvailabilityEmailDispatcher.cs
+new file mode 100644
+index 0000000..95faf2e
+--- /dev/null
++++ b/App.Api/Integrations/ConfiguredAvailabilityEmailDispatcher.cs
+@@ -0,0 +1,39 @@
++using System.Net.Http.Headers;
++using System.Net.Http.Json;
++using Microsoft.Extensions.Configuration;
++
++namespace App.Api.Integrations;
++
++public sealed class ConfiguredAvailabilityEmailDispatcher(HttpClient httpClient, IConfiguration configuration)
++    : IAvailabilityEmailDispatcher
++{
++    public async Task<int> SendAvailabilityAsync(
++        DateOnly officeDate,
++        int availableSpaces,
++        IReadOnlyList<string> recipientEmails,
++        CancellationToken cancellationToken = default)
++    {
++        var endpoint = RequiredSetting("AvailabilityEmail:Endpoint");
++        var apiKey = RequiredSetting("AvailabilityEmail:ApiKey");
++        var sender = RequiredSetting("AvailabilityEmail:Sender");
++        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
++        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
++        request.Content = JsonContent.Create(new
++        {
++            sender,
++            template = "parking-availability",
++            recipients = recipientEmails,
++            officeDate = officeDate.ToString("yyyy-MM-dd"),
++            availableSpaces
++        });
++
++        using var response = await httpClient.SendAsync(request, cancellationToken);
++        response.EnsureSuccessStatusCode();
++        return recipientEmails.Count;
++    }
++
++    private string RequiredSetting(string key) =>
++        !string.IsNullOrWhiteSpace(configuration[key])
++            ? configuration[key]!
++            : throw new InvalidOperationException($"The required setting '{key}' is not configured.");
++}
+diff --git a/App.Api/Integrations/WorkspaceOAuthClient.cs b/App.Api/Integrations/WorkspaceOAuthClient.cs
+new file mode 100644
+index 0000000..abcc45b
+--- /dev/null
++++ b/App.Api/Integrations/WorkspaceOAuthClient.cs
+@@ -0,0 +1,88 @@
++using System.Net;
++using System.Net.Http.Headers;
++using System.Text.Json;
++using Microsoft.Extensions.Configuration;
++
++namespace App.Api.Integrations;
++
++public sealed class WorkspaceOAuthClient(HttpClient httpClient, IConfiguration configuration) : IWorkspaceOAuthClient
++{
++    private const string DefaultAuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
++    private const string DefaultTokenEndpoint = "https://oauth2.googleapis.com/token";
++    private const string DefaultUserInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
++
++    public Task<string> CreateAuthorizationUrlAsync(string state, CancellationToken cancellationToken = default)
++    {
++        var clientId = RequiredSetting("GoogleOAuth:ClientId");
++        var redirectUri = RequiredSetting("GoogleOAuth:RedirectUri");
++        var endpoint = configuration["GoogleOAuth:AuthorizationEndpoint"];
++        if (string.IsNullOrWhiteSpace(endpoint)) endpoint = DefaultAuthorizationEndpoint;
++
++        var query = new Dictionary<string, string>
++        {
++            ["client_id"] = clientId,
++            ["redirect_uri"] = redirectUri,
++            ["response_type"] = "code",
++            ["scope"] = "openid email profile",
++            ["state"] = state
++        };
++        var queryString = string.Join("&", query.Select(pair =>
++            $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
++        return Task.FromResult($"{endpoint}{(endpoint.Contains('?') ? '&' : '?')}{queryString}");
++    }
++
++    public async Task<IReadOnlyDictionary<string, string>?> ExchangeAuthorizationCodeAsync(
++        string authorizationCode,
++        string state,
++        CancellationToken cancellationToken = default)
++    {
++        var clientId = RequiredSetting("GoogleOAuth:ClientId");
++        var clientSecret = RequiredSetting("GoogleOAuth:ClientSecret");
++        var redirectUri = RequiredSetting("GoogleOAuth:RedirectUri");
++        var tokenEndpoint = configuration["GoogleOAuth:TokenEndpoint"];
++        if (string.IsNullOrWhiteSpace(tokenEndpoint)) tokenEndpoint = DefaultTokenEndpoint;
++
++        using var tokenResponse = await httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(new Dictionary<string, string>
++        {
++            ["client_id"] = clientId,
++            ["client_secret"] = clientSecret,
++            ["redirect_uri"] = redirectUri,
++            ["code"] = authorizationCode,
++            ["state"] = state,
++            ["grant_type"] = "authorization_code"
++        }), cancellationToken);
++        if (tokenResponse.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized) return null;
++        tokenResponse.EnsureSuccessStatusCode();
++
++        using var tokenDocument = await JsonDocument.ParseAsync(
++            await tokenResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
++        if (!tokenDocument.RootElement.TryGetProperty("access_token", out var accessTokenElement) ||
++            string.IsNullOrWhiteSpace(accessTokenElement.GetString()))
++            throw new HttpRequestException("Google Workspace did not return an access token.");
++
++        var userInfoEndpoint = configuration["GoogleOAuth:UserInfoEndpoint"];
++        if (string.IsNullOrWhiteSpace(userInfoEndpoint)) userInfoEndpoint = DefaultUserInfoEndpoint;
++        using var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, userInfoEndpoint);
++        userInfoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessTokenElement.GetString());
++        using var userInfoResponse = await httpClient.SendAsync(userInfoRequest, cancellationToken);
++        userInfoResponse.EnsureSuccessStatusCode();
++
++        using var userInfoDocument = await JsonDocument.ParseAsync(
++            await userInfoResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
++        var claims = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
++        foreach (var property in userInfoDocument.RootElement.EnumerateObject())
++            claims[property.Name] = property.Value.ValueKind switch
++            {
++                JsonValueKind.String => property.Value.GetString() ?? "",
++                JsonValueKind.True => "true",
++                JsonValueKind.False => "false",
++                _ => property.Value.ToString()
++            };
++        return claims;
++    }
++
++    private string RequiredSetting(string key) =>
++        !string.IsNullOrWhiteSpace(configuration[key])
++            ? configuration[key]!
++            : throw new InvalidOperationException($"The required setting '{key}' is not configured.");
++}
+diff --git a/App.Api/Program.cs b/App.Api/Program.cs
+index 0eafd2f..fc7289e 100644
+--- a/App.Api/Program.cs
++++ b/App.Api/Program.cs
+@@ -1,12 +1,78 @@
+ using App.Api;
++using App.Api.Endpoints;
++using App.Api.Integrations;
+ using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Infrastructure;
++using Microsoft.EntityFrameworkCore.Storage;
++using Microsoft.OpenApi.Models;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+-builder.Services.AddOpenApi();
++builder.Services.AddOpenApi(options =>
++{
++    options.AddDocumentTransformer((document, _, _) =>
++    {
++        foreach (var path in document.Paths.Keys.Where(path => path.StartsWith("/api/", StringComparison.Ordinal)).ToList())
++        {
++            var item = document.Paths[path];
++            document.Paths.Remove(path);
++            document.Paths[path[4..]] = item;
++        }
++
++        document.Servers.Clear();
++        document.Servers.Add(new OpenApiServer { Url = "/api" });
++        document.Components ??= new OpenApiComponents();
++        document.Components.SecuritySchemes["bearerAuth"] = new OpenApiSecurityScheme
++        {
++            Type = SecuritySchemeType.Http,
++            Scheme = "bearer",
++            BearerFormat = "JWT"
++        };
++        var bearerReference = new OpenApiSecurityScheme
++        {
++            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "bearerAuth" }
++        };
++        var anonymousPaths = new HashSet<string>(StringComparer.Ordinal)
++        {
++            "/auth/google/authorization", "/auth/sign-in", "/notifications/availability"
++        };
++        foreach (var (path, item) in document.Paths)
++        {
++            if (anonymousPaths.Contains(path)) continue;
++            foreach (var operation in item.Operations.Values)
++                operation.Security = new List<OpenApiSecurityRequirement>
++                {
++                    new() { [bearerReference] = new List<string>() }
++                };
++        }
++
++        return Task.CompletedTask;
++    });
++    options.AddSchemaTransformer((schema, context, _) =>
++    {
++        if (context.JsonTypeInfo.Type == typeof(AvailabilityNotificationRequest) &&
++            schema.Properties.TryGetValue("availableSpaces", out var availableSpaces))
++            availableSpaces.Maximum = null;
++        if (context.JsonTypeInfo.Type == typeof(Session) &&
++            schema.Properties.TryGetValue("corporateEmail", out var sessionEmail))
++            sessionEmail.Format = "email";
++        if (context.JsonTypeInfo.Type == typeof(EmployeeProfile) &&
++            schema.Properties.TryGetValue("corporateEmail", out var profileEmail))
++            profileEmail.Format = "email";
++        if (context.JsonTypeInfo.Type == typeof(SessionRole) ||
++            context.JsonTypeInfo.Type == typeof(AvailabilityNotificationStatus))
++            schema.Type = "string";
++        return Task.CompletedTask;
++    });
++});
+ // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is
+ // not given one stops when it first needs the database, so it can never run on a password that is written in the code.
+ builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App")
+     ?? throw new InvalidOperationException("No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=...).")));
++builder.Services.AddHttpClient<IWorkspaceOAuthClient, WorkspaceOAuthClient>();
++builder.Services.AddHttpClient<IAvailabilityEmailDispatcher, ConfiguredAvailabilityEmailDispatcher>();
++foreach (var type in typeof(Program).Assembly.GetTypes().Where(type =>
++             type is { IsClass: true, IsAbstract: false } && typeof(IEndpointModule).IsAssignableFrom(type)))
++    builder.Services.AddSingleton(typeof(IEndpointModule), type);
+ // the web app's address: 3000 unless the setting Cors:Origin names another (the factory sets it when it starts the web app on another port)
+ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration["Cors:Origin"] ?? "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
+ var app = builder.Build();
+@@ -20,10 +86,14 @@ if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != "GetDocumen
+         using var scope = app.Services.CreateScope();
+         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+         db.Database.EnsureCreated();
++        // EnsureCreated sees tables in other PostgreSQL schemas too. The acceptance host gives each test its own schema,
++        // so create this schema's model when that schema is empty even if another schema already has application tables.
++        if (!DatabaseStartup.HasEmployeeTableInSearchPath(db)) db.GetService<IRelationalDatabaseCreator>().CreateTables();
+         // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database
+         if (app.Configuration.GetValue<bool>("Seed:Demo")) SeedData.Run(db);
+     }
+ }
++foreach (var module in app.Services.GetServices<IEndpointModule>()) module.MapEndpoints(app);
+ app.UseCors();
+ app.MapGet("/", () => "API is up").ExcludeFromDescription();
+ // The API's own document (/openapi/v1.json) and a page to read and try it (/swagger). Keep both: the factory's product page links to the page.
+@@ -33,3 +103,23 @@ app.UseSwaggerUI(o => o.SwaggerEndpoint("/openapi/v1.json", "API"));
+ app.Run();
+ 
+ public partial class Program { }
++
++internal static class DatabaseStartup
++{
++    public static bool HasEmployeeTableInSearchPath(AppDb db)
++    {
++        var connection = db.Database.GetDbConnection();
++        var shouldClose = connection.State != System.Data.ConnectionState.Open;
++        if (shouldClose) connection.Open();
++        try
++        {
++            using var command = connection.CreateCommand();
++            command.CommandText = """SELECT to_regclass('"Employee"') IS NOT NULL""";
++            return (bool)(command.ExecuteScalar() ?? false);
++        }
++        finally
++        {
++            if (shouldClose) connection.Close();
++        }
++    }
++}
+diff --git a/App.Api/SeedData.cs b/App.Api/SeedData.cs
+index d003e4f..19a30db 100644
+--- a/App.Api/SeedData.cs
++++ b/App.Api/SeedData.cs
+@@ -6,5 +6,11 @@ public static class SeedData
+ {
+     public static void Run(AppDb db)
+     {
++        var seeders = typeof(SeedData).Assembly.GetTypes()
++            .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(Seeders.IAppSeeder).IsAssignableFrom(type))
++            .Select(type => (Seeders.IAppSeeder)Activator.CreateInstance(type)!)
++            .OrderBy(seeder => seeder.Order);
++
++        foreach (var seeder in seeders) seeder.Seed(db);
+     }
+ }
+diff --git a/App.Api/Seeders/CoreSeeder.cs b/App.Api/Seeders/CoreSeeder.cs
+new file mode 100644
+index 0000000..889b553
+--- /dev/null
++++ b/App.Api/Seeders/CoreSeeder.cs
+@@ -0,0 +1,94 @@
++using System.Security.Cryptography;
++using System.Text;
++using App.Api.Entities;
++
++namespace App.Api.Seeders;
++
++public sealed class CoreSeeder : IAppSeeder
++{
++    public int Order => 0;
++
++    public void Seed(AppDb db)
++    {
++        if (!db.Employees.Any())
++        {
++            db.Employees.AddRange(
++                new Employee
++                {
++                    EmployeeId = "F3-1042",
++                    EmployeeName = "Aisha Rahman",
++                    CorporateEmail = "aisha.rahman@folio3.com",
++                    Role = "employee",
++                    DedicatedParking = true,
++                    AssignedFloor = "B2",
++                    AssignedSpace = "B2-114"
++                },
++                new Employee
++                {
++                    EmployeeId = "F3-1001",
++                    EmployeeName = "Bilal Ahmed",
++                    CorporateEmail = "bilal.ahmed@folio3.com",
++                    Role = "employee",
++                    DedicatedParking = false
++                });
++            db.SaveChanges();
++        }
++
++        var employees = db.Employees.OrderBy(employee => employee.Id).Take(2).ToList();
++        if (!db.Vehicles.Any() && employees.Count >= 2)
++        {
++            db.Vehicles.AddRange(
++                new Vehicle
++                {
++                    EmployeeId = employees[0].Id,
++                    Plate = "KLG-4821",
++                    Make = "Toyota",
++                    Model = "Corolla",
++                    Color = "Silver",
++                    Active = true
++                },
++                new Vehicle
++                {
++                    EmployeeId = employees[1].Id,
++                    Plate = "LEB-7421",
++                    Make = "Honda",
++                    Model = "Civic",
++                    Color = "White",
++                    Active = true
++                });
++        }
++
++        var createdAt = Services.ApiAuth.UtcNowToMicrosecond();
++        if (!db.AuthSessions.Any())
++        {
++            foreach (var employee in employees)
++            {
++                db.AuthSessions.Add(new AuthSession
++                {
++                    EmployeeId = employee.Id,
++                    TokenHash = HashDemoToken(employee.Id),
++                    CreatedAt = createdAt,
++                    ExpiresAt = createdAt.AddHours(12)
++                });
++            }
++        }
++
++        if (!db.OAuthStates.Any())
++        {
++            for (var index = 1; index <= 2; index++)
++            {
++                db.OAuthStates.Add(new OAuthState
++                {
++                    State = $"demo-oauth-state-{index}",
++                    CreatedAt = createdAt,
++                    ExpiresAt = createdAt.AddMinutes(10)
++                });
++            }
++        }
++
++        db.SaveChanges();
++    }
++
++    private static string HashDemoToken(int employeeId) =>
++        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"demo-session-{employeeId}"))).ToLowerInvariant();
++}
+diff --git a/App.Api/Seeders/IAppSeeder.cs b/App.Api/Seeders/IAppSeeder.cs
+new file mode 100644
+index 0000000..61c777c
+--- /dev/null
++++ b/App.Api/Seeders/IAppSeeder.cs
+@@ -0,0 +1,7 @@
++namespace App.Api.Seeders;
++
++public interface IAppSeeder
++{
++    int Order { get; }
++    void Seed(AppDb db);
++}
+diff --git a/App.Api/Services/ApiAuth.cs b/App.Api/Services/ApiAuth.cs
+new file mode 100644
+index 0000000..14ed621
+--- /dev/null
++++ b/App.Api/Services/ApiAuth.cs
+@@ -0,0 +1,85 @@
++using System.Security.Cryptography;
++using System.Text;
++using App.Api.Entities;
++using Microsoft.EntityFrameworkCore;
++
++namespace App.Api.Services;
++
++public static class ApiAuth
++{
++    private static readonly byte[] SigningKey = RandomNumberGenerator.GetBytes(32);
++
++    public static string CreateAccessToken(int employeeId)
++    {
++        var payload = Base64UrlEncode(Encoding.UTF8.GetBytes($"{employeeId}:{Convert.ToHexString(RandomNumberGenerator.GetBytes(24))}"));
++        var signature = HMACSHA256.HashData(SigningKey, Encoding.UTF8.GetBytes(payload));
++        return $"{payload}.{Base64UrlEncode(signature)}";
++    }
++
++    public static string HashAccessToken(string accessToken) =>
++        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(accessToken))).ToLowerInvariant();
++
++    public static DateTime UtcNowToMicrosecond()
++    {
++        var utcNow = DateTime.UtcNow;
++        return new DateTime(utcNow.Ticks - utcNow.Ticks % 10, DateTimeKind.Utc);
++    }
++
++    public static async Task<EmployeeAuthentication> AuthenticateEmployeeAsync(
++        HttpContext context,
++        AppDb db,
++        CancellationToken cancellationToken = default)
++    {
++        var accessToken = context.Request.Headers.Authorization.ToString();
++        if (!accessToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
++            return new EmployeeAuthentication(null, false);
++
++        accessToken = accessToken[7..].Trim();
++        if (accessToken.Length == 0) return new EmployeeAuthentication(null, false);
++
++        var tokenHash = HashAccessToken(accessToken);
++        var session = await db.AuthSessions.AsNoTracking()
++            .Include(item => item.Employee)
++            .FirstOrDefaultAsync(item => item.TokenHash == tokenHash && item.ExpiresAt > UtcNowToMicrosecond(), cancellationToken);
++        if (session?.Employee is not null) return new EmployeeAuthentication(session.Employee, false);
++
++        if (TryReadEmployeeId(accessToken, out var employeeId) &&
++            !await db.Employees.AnyAsync(employee => employee.Id == employeeId, cancellationToken))
++            return new EmployeeAuthentication(null, true);
++
++        return new EmployeeAuthentication(null, false);
++    }
++
++    private static bool TryReadEmployeeId(string accessToken, out int employeeId)
++    {
++        employeeId = 0;
++        var segments = accessToken.Split('.');
++        if (segments.Length != 2) return false;
++
++        try
++        {
++            var expected = HMACSHA256.HashData(SigningKey, Encoding.UTF8.GetBytes(segments[0]));
++            var supplied = Base64UrlDecode(segments[1]);
++            if (!CryptographicOperations.FixedTimeEquals(expected, supplied)) return false;
++
++            var payload = Encoding.UTF8.GetString(Base64UrlDecode(segments[0]));
++            var separator = payload.IndexOf(':');
++            return separator > 0 && int.TryParse(payload.AsSpan(0, separator), out employeeId) && employeeId > 0;
++        }
++        catch (FormatException)
++        {
++            return false;
++        }
++    }
++
++    private static string Base64UrlEncode(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
++
++    private static byte[] Base64UrlDecode(string value)
++    {
++        var normalized = value.Replace('-', '+').Replace('_', '/');
++        normalized += (normalized.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
++        return Convert.FromBase64String(normalized);
++    }
++}
++
++public sealed record EmployeeAuthentication(Employee? Employee, bool IssuedTokenForMissingEmployee);
+diff --git a/App.Api/appsettings.json b/App.Api/appsettings.json
+new file mode 100644
+index 0000000..5c97c91
+--- /dev/null
++++ b/App.Api/appsettings.json
+@@ -0,0 +1,15 @@
++{
++  "GoogleOAuth": {
++    "AuthorizationEndpoint": "",
++    "TokenEndpoint": "",
++    "UserInfoEndpoint": "",
++    "ClientId": "",
++    "ClientSecret": "",
++    "RedirectUri": ""
++  },
++  "AvailabilityEmail": {
++    "Endpoint": "",
++    "ApiKey": "",
++    "Sender": ""
++  }
++}

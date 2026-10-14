@@ -1,0 +1,146 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Bootstrap modular API, additive database setup, and sign-in/session slice",
+      "reqs": [
+       "REQ-6",
+       "Sign-in/session operation slice: establish the common API, persistence, security, and demo-seeder conventions used by later slices. Full REQ-1 and REQ-2 acceptance is completed after all slices are integrated."
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/SeedData.cs",
+       "App.Api/appsettings.json",
+       "App.Api/Infrastructure/**",
+       "App.Api/Auth/**"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use minimal API modules discovered by the shared interface; map their contract-relative paths beneath the /api server prefix.",
+       "Use AppDb with discovered entity configurations and ordered additive table initializers; do not call EnsureCreated or modify unrelated tables.",
+       "Keep startup demo seeding behind Seed:Demo and let ordered seeder modules supply each domain's sample rows. Existing /, OpenAPI, and Swagger remain anonymous."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 480,
+      "complexity": "standard",
+      "approach": "Wire the first route slice and app entry now: scan/register IEndpointModule implementations under the contract server prefix, and scan ordered database initializers and demo seeders. Add AppDb model configuration discovery and additive per-table startup initialization instead of database-wide EnsureCreated; retain anonymous /, /openapi/v1.json, and /swagger. Implement sign-in/session with bearer-token authentication, live permission checks, declared error/status shapes, and an AuthEndpointModule. Declare Auth:SigningKey in appsettings.json with an empty value; require deployment configuration rather than embedding a secret. SeedData.Run should discover seeders and remain gated at startup by Seed:Demo."
+     },
+     {
+      "id": "TASK-7",
+      "title": "Implement atomic feeding-event, inventory, and lot-rollup operations",
+      "reqs": [
+       "REQ-7",
+       "REQ-8",
+       "Feeding-event list/create/correct/void API slice, including contract response movement and lotFeedTotals data."
+      ],
+      "fileScope": [
+       "App.Api/Domain/Feeding/**",
+       "App.Api/Endpoints/FeedingEndpointModule.cs"
+      ],
+      "exemplars": [
+       "App.Api/AppDb.cs",
+       "App.Api/Domain/Inventory/**"
+      ],
+      "conventions": [
+       "Use one database transaction for event state, movement rows, stock, and lot rollups; serialize/lock stock checks to make concurrent requests safe.",
+       "Keep event-lot allocations and event-movement links persisted separately; corrections replace prior effects, and void reversals cannot be applied twice."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6"
+      ],
+      "plannedLoc": 850,
+      "complexity": "rules-or-algorithm",
+      "approach": "Add FeedingEvent, FeedingEventLotAllocation, and FeedingEventMovement entities and initializer. Implement each mutation in a PostgreSQL transaction with serialized/locked inventory rows, validate all ingredient requirements before committing, and update inventory plus lot feed/cost rollups as one unit. Calculate ingredient consumption from as-fed proportions and ration cost from as-fed unit costs, using dry matter only for nutritional values. Corrections replace the prior event effects; voids restore stock and remove the event from rollups without double reversal. Wire all four event routes and use the contract-declared 409/422/success responses."
+     },
+     {
+      "id": "TASK-8",
+      "title": "Implement operational, feed-to-gain, and profitability reports and exports",
+      "reqs": [
+       "REQ-9",
+       "Operational report/filter/export, feed-to-gain report/filter/export, and profitability report/filter/export API slices."
+      ],
+      "fileScope": [
+       "App.Api/Domain/Reports/**",
+       "App.Api/Endpoints/ReportsEndpointModule.cs"
+      ],
+      "exemplars": [
+       "App.Api/Domain/Feeding/**",
+       "App.Api/Endpoints/InventoryEndpointModule.cs"
+      ],
+      "conventions": [
+       "Build report and export results from the same authorization-filtered, operational-only query; do not include sampleData rows.",
+       "Return nullable metrics where the contract marks them nullable and encode artifacts using ExportResponse rather than an uncontracted download response."
+      ],
+      "dependsOn": [
+       "TASK-2",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6",
+       "TASK-7"
+      ],
+      "plannedLoc": 580,
+      "complexity": "rules-or-algorithm",
+      "approach": "Implement permission-filtered, sample-isolated report queries and date/pen/lot/breed/sex/ROI filters over saved operational records. Reuse the same filtered query for each report and its export so exports cannot leak excluded rows. Generate CSV and the contract's PDF artifact without adding a package; encode export bytes in the declared JSON fields. Return nullable feed-to-gain values when their positive denominator is unavailable, and apply the specified unavailable-metric and projected-date behavior in report responses."
+     },
+     {
+      "id": "TASK-9",
+      "title": "Implement sample-data management and complete contract/persistence acceptance",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-4",
+       "REQ-5",
+       "Sample-data status/load/reset/replace APIs; operations affect only sampleData=true rows and never delete operational or fixture-account rows."
+      ],
+      "fileScope": [
+       "App.Api/Domain/SampleData/**",
+       "App.Api/Endpoints/SampleDataEndpointModule.cs"
+      ],
+      "exemplars": [
+       "App.Api/SeedData.cs",
+       "App.Api/Domain/Feeding/**"
+      ],
+      "conventions": [
+       "Use the same ordered demo seeders for explicit load and Seed:Demo startup, while keeping startup seeding configuration-gated.",
+       "Reset/replace are scoped exclusively to sampleData=true rows and require explicit confirmation; preserve operational data and fixture accounts.",
+       "Keep the locked OpenAPI file untouched and treat /api as its server base path."
+      ],
+      "dependsOn": [
+       "TASK-1",
+       "TASK-2",
+       "TASK-3",
+       "TASK-4",
+       "TASK-5",
+       "TASK-6",
+       "TASK-7",
+       "TASK-8"
+      ],
+      "plannedLoc": 600,
+      "complexity": "standard",
+      "approach": "Add the SampleDataRecord table, seeder, and the final four contract routes. Load via the same discovered seeders used by Seed:Demo startup; reset/replace delete only demo-marked records in FK-safe order, require confirmed=true, and preserve operational rows and the test fixture. Make repeated explicit loads report already_loaded. At this point verify every operation is wired to the exact locked contract methods, paths, schemas, statuses, and security; verify committed values survive restart and additive initialization preserves unrelated and existing application rows; ensure all application tables receive two or three coherent demo rows when Seed:Demo=true and none are startup-seeded when false. Do not edit contracts/openapi.yaml."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

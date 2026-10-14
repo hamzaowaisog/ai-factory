@@ -1,0 +1,65 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-5",
+      "ears": "When Seed:Demo is false at application startup, the Feedlot Operations API shall skip SeedData.Run and insert no demo rows, and serve contract operations without requiring demo seed rows.",
+      "op": "MODIFIED",
+      "sources": [
+       "I-4",
+       "Q-7"
+      ],
+      "stability": 1,
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 22,
+        "lineEnd": 24,
+        "quote": "        db.Database.EnsureCreated();\n        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);"
+       },
+       {
+        "path": "App.Tests/HealthTests.cs",
+        "lineStart": 12,
+        "lineEnd": 17,
+        "quote": "    [Fact]\n    public async Task ApiIsUp()\n    {\n        var res = await _factory.CreateClient().GetAsync(\"/\");\n        Assert.Equal(HttpStatusCode.OK, res.StatusCode);\n    }"
+       }
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "level": "api",
+        "given": "Seed:Demo is false, the database has no operational or demo rows, and a test-only account fixture, separate from demo seed data, provisions a valid non-demo account with the contract-required authorization state directly in PostgreSQL.",
+        "when": "A client signs in using the fixture credentials and uses the returned authorization to call contract operations valid for an empty operational data state.",
+        "then": "The response status and fields conform to the contract without requiring a seeded record."
+       },
+       {
+        "id": "AC-5.2",
+        "level": "api",
+        "given": "The App database is empty, Seed:Demo is false, and a test-only account fixture separate from demo seed data provisions an account with the contract-required authorization state.",
+        "when": "The application starts and a client authenticated with that fixture requests each protected database-backed list operation.",
+        "then": "Every application-data table has a demo row count of zero, and each response list contains no demo-seeded records."
+       },
+       {
+        "id": "AC-5.3",
+        "level": "api",
+        "given": "A clean PostgreSQL database, Seed:Demo=false, and a test-only account fixture separate from demo seed data that provisions an account with the contract-required authorization state.",
+        "when": "The application starts and a test queries the application tables and calls list API operations using a client authenticated with that fixture.",
+        "then": "The demo-data row count is zero and the response lists contain no demo rows."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

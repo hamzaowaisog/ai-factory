@@ -109,6 +109,12 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(retryMode(prev(["locked-failed", "lock-set"]), 0).reason).toBe("the previous attempt failed on lock-set");
   });
 
+  it("keeps after a difference from the locked contract or data model (run e8ef: 15 passing tests were written again)", () => {
+    expect(mode(["contract"])).toBe("keep");
+    expect(mode(["contract", "data-model", "locked-failed"], 1)).toBe("keep");
+    expect(mode(["contract", "lock-set"])).toBe("reset");
+  });
+
   it("keeps after a flagged secret or a design lint finding, also when it parked the run", () => {
     expect(mode(["secret"])).toBe("keep");
     expect(mode(["design-fidelity", "secret"], 1)).toBe("keep");

@@ -1442,7 +1442,10 @@ async function gateAll(ctx: StepContext, step: string, treeSha: string, gates: [
 }
 
 /** Failures that leave the previous attempt's code worth building on: only behaviour (or the build) was wrong. */
-const KEEPABLE = new Set(["build", "locked-failed", "locked-flaky", "regression", "new-failure", "secret", "design-fidelity"]);
+// "contract" and "data-model" name each difference from the locked document (a status code, a field, a column): a few lines to
+// change, not a reason to write the task again (run e8ef: TASK-1 passed all 15 locked tests, was reset for two contract
+// differences, and the rewrite failed 8 of them).
+const KEEPABLE = new Set(["build", "locked-failed", "locked-flaky", "regression", "new-failure", "secret", "design-fidelity", "contract", "data-model"]);
 /**
  * Findings that name their own lines: a flagged value, a colour or style the design lint refused. The fix is a few
  * lines of the change, so it is kept and the findings go back (run 1679: TASK-2 wrote its screen five times for them).

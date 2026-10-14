@@ -1,0 +1,46 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation declared in the OpenAPI contract, matching its methods, paths, inputs, schemas, security, statuses, and behavior."
+     },
+     {
+      "n": 2,
+      "text": "Persist all application values in PostgreSQL through the existing App connection string, preserve compatible pre-existing data during initialization, and make committed data available after restart."
+     },
+     {
+      "n": 3,
+      "text": "When Seed:Demo is true on a clean database, run the demo seeder and populate application tables with believable contract-example rows; when false, skip seeding and serve operations without requiring demo rows."
+     },
+     {
+      "n": 4,
+      "text": "Expose only backend API and documentation surfaces, with no product-facing web application screens or frontend implementation."
+     },
+     {
+      "n": 5,
+      "text": "Calculate ingredient consumption and ration cost from as-fed proportions and costs, using dry-matter values only for nutritional calculations."
+     },
+     {
+      "n": 6,
+      "text": "Atomically reject feeding-event creations or corrections that require unavailable inventory without changing persisted event, inventory, movement, or lot rollup values; apply successful corrections as replacements of prior effects and reverse a voided event’s effects."
+     },
+     {
+      "n": 7,
+      "text": "Return ADG, feed-to-gain metrics, and projected ship dates as unavailable when their required positive denominator or gain is absent."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

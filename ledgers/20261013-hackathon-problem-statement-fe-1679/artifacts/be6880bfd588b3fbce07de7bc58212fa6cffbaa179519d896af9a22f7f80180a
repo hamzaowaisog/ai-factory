@@ -1,0 +1,2 @@
+// Written by the factory: the API client and its test handlers are generated from the locked contract (contracts/openapi.yaml).
+module.exports = { api: { input: "./contracts/openapi.yaml", output: { mode: "split", target: "./lib/api/client.ts", client: "fetch", baseUrl: "http://localhost:5080/api", mock: { type: "msw", useExamples: true, delay: 0 } } } };

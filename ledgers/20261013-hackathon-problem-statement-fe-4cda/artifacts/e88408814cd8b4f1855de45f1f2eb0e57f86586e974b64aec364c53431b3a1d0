@@ -1,0 +1,35 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "problems": [
+       1
+      ],
+      "text": "How should AC-5.1 provide an authenticated principal for protected list requests while keeping seeding disabled?",
+      "options": [
+       "Add a test-only account fixture, separate from demo seed data, and authenticate the protected-list requests with it.",
+       "Have the test harness inject an authenticated principal without creating an account in the database.",
+       "Provide a test account and token through the test environment rather than AC-5.1.",
+       "Change AC-5.2 and AC-5.3 to verify the protected lists reject unauthenticated requests instead of expecting list responses."
+      ],
+      "recommended": "Add a test-only account fixture, separate from demo seed data, and authenticate the protected-list requests with it.",
+      "reason": "This supplies the missing principal while keeping demo seeding disabled and leaving the contract's declared security requirements intact.",
+      "impact": 3,
+      "impactReason": "It determines the identity and permissions used to access protected API data."
+     }
+    ],
+    "inRequest": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

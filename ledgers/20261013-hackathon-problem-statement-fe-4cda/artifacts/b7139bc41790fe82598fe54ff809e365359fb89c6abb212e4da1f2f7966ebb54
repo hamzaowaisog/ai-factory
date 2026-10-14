@@ -1,0 +1,38 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "search",
+   "input": {
+    "pattern": "feeding-events|createFeedingEvent|insufficient|409",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 4,
+   "resultChars": 1066,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;feeding-events|createFeedingEvent|insufficient|409&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:246: '409':\ncontracts/openapi.yaml:341: '409':\ncontracts/openapi.yaml:624: '409':\ncontracts/openapi.yaml:810: '409':\ncontracts/openapi.yaml:864: '409':\ncontracts/openapi.yaml:920: '409':\ncontracts/openapi.yaml:1077: '409':\ncontracts/openapi.yaml:1130: '409':\ncontracts/openapi.yaml:1204: '409':\ncontracts/openapi.yaml:1292: '409':\ncontracts/openapi.yaml:1350: '409':\ncontracts/openapi.yaml:1408: '409':\ncontracts/openapi.yaml:1414: /feeding-events:\ncontracts/openapi.yaml:1463: operationId: createFeedingEvent\ncontracts/openapi.yaml:1517: '409':\ncontracts/openapi.yaml:1523: /feeding-events/{eventId}:\ncontracts/openapi.yaml:1587: '409':\ncontracts/openapi.yaml:1593: /feeding-events/{eventId}/void:\ncontracts/openapi.yaml:1651: '409':\ncontracts/openapi.yaml:2065: '409':\ncontracts/openapi.yaml:2097: '409':\ncontracts/openapi.yaml:2137: '409':\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "daysOnFeed|projectedShipDate|feedConversionRatio|costOfGain|adg",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 1,
+   "resultChars": 2399,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;daysOnFeed|projectedShipDate|feedConversionRatio|costOfGain|adg&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:89: - adg\ncontracts/openapi.yaml:90: - costOfGain\ncontracts/openapi.yaml:104: averageAdg: 3.1\ncontracts/openapi.yaml:105: averageCostOfGain: 1.42\ncontracts/openapi.yaml:119: adg: 3.1\ncontracts/openapi.yaml:123: rankingMeasure: \"adg\"\ncontracts/openapi.yaml:139: daysOnFeed: 92\ncontracts/openapi.yaml:141: adg: 3.4\ncontracts/openapi.yaml:143: costOfGain: 1.38\ncontracts/openapi.yaml:391: daysOnFeed: 92\ncontracts/openapi.yaml:393: adg: 3.4\ncontracts/openapi.yaml:395: costOfGain: 1.38\ncontracts/openapi.yaml:396: projectedShipDate: \"2026-09-18\"\ncontracts/openapi.yaml:536: daysOnFeed: 92\ncontracts/openapi.yaml:538: adg: 3.4\ncontracts/openapi.yaml:540: feedConversionRatio: 7.1\ncontracts/openapi.yaml:541: costOfGain: 1.38\ncontracts/openapi.yaml:542: projectedShipDate: \"2026-09-18\"\ncontracts/openapi.yaml:1704: costOfGain: 1.38\ncontracts/openapi.yaml:1713: daysOnFeed: 92\ncontracts/openapi.yaml:1715: adg: 3.4\ncontracts/openapi.yaml:1728: highestAdgLot: \"L-2407\"\ncontracts/openapi.yaml:1832: daysOnFeed: 30\ncontracts/openapi.yaml:1834: adg: 3.4\ncontracts/openapi.yaml:1837: costOfGain: 1.38\ncontracts/openapi.yaml:1952: daysOnFeed: 92\ncontracts/openapi.yaml:2307: - averageAdg\ncontracts/openapi.yaml:2308: - averageCostOfGain\ncontracts/openapi.yaml:2314: averageAdg:\ncontracts/openapi.yaml:2318: averageCostOfGain:\ncontracts/openapi.yaml:2335: - daysOnFeed\ncontracts/openapi.yaml:2337: - adg\ncontracts/openapi.yaml:2339: - costOfGain\ncontracts/openapi.yaml:2357: daysOnFeed:\ncontracts/openapi.yaml:2363: adg:\ncontracts/openapi.yaml:2371: costOfGain:\ncontracts/openapi.yaml:2420: - adg\ncontracts/openapi.yaml:2479: adg:\ncontracts/openapi.yaml:2750: - daysOnFeed\ncontracts/openapi.yaml:2752: - adg\ncontracts/openapi.yaml:2754: - costOfGain\ncontracts/openapi.yaml:2755: - projectedShipDate\ncontracts/openapi.yaml:2773: daysOnFeed:\ncontracts/openapi.yaml:2779: adg:\ncontracts/openapi.yaml:2787: costOfGain:\ncontracts/openapi.yaml:2791: projectedShipDate:\ncontracts/openapi.yaml:2905: - daysOnFeed\ncontracts/openapi.yaml:2907: - adg\ncontracts/openapi.yaml:2909: - feedConversionRatio\ncontracts/openapi.yaml:2910: - costOfGain\n… more matches; narrow the pattern or glob\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "ingredient.*percentage|dryMatter|proportion|as-fed",
+    "glob": "contracts/openapi.yaml"
+   },
+   "ms": 0,
+   "resultChars": 1169,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;ingredient.*percentage|dryMatter|proportion|as-fed&quot;,&quot;glob&quot;:&quot;contracts/openapi.yaml&quot;}\">\ncontracts/openapi.yaml:745: dryMatterPercent: 88.0\ncontracts/openapi.yaml:797: dryMatterPercent: 90.0\ncontracts/openapi.yaml:849: dryMatterPercent: 88.0\ncontracts/openapi.yaml:907: dryMatterPercent: 88.0\ncontracts/openapi.yaml:1024: proportion: 62.0\ncontracts/openapi.yaml:1029: dryMatterPercent: 88.0\ncontracts/openapi.yaml:1064: proportion: 70.0\ncontracts/openapi.yaml:1069: dryMatterPercent: 88.0\ncontracts/openapi.yaml:1115: proportion: 64.0\ncontracts/openapi.yaml:1120: dryMatterPercent: 88.0\ncontracts/openapi.yaml:3165: - dryMatterPercent\ncontracts/openapi.yaml:3189: dryMatterPercent:\ncontracts/openapi.yaml:3277: - dryMatterPercent\ncontracts/openapi.yaml:3291: dryMatterPercent:\ncontracts/openapi.yaml:3428: - proportion\ncontracts/openapi.yaml:3433: proportion:\ncontracts/openapi.yaml:3449: - dryMatterPercent\ncontracts/openapi.yaml:3472: dryMatterPercent:\ncontracts/openapi.yaml:3538: - targetDryMatterBasis\ncontracts/openapi.yaml:3544: targetDryMatterBasis:\n</untrusted_document>"
+  }
+ ]
+}

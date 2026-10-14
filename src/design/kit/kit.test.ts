@@ -21,6 +21,25 @@ const mem = (files: Record<string, string>): FileSource => ({ list: () => Object
 const exportsOf = (text: string) => [...text.matchAll(/export\s+(?:async\s+)?(?:function|const|class|interface|type)\s+(\w+)/g)].map((m) => m[1]!)
   .concat([...text.matchAll(/export\s*\{([^}]+)\}/g)].flatMap((m) => m[1]!.split(",").map((x) => x.trim().split(/\s+as\s+/).pop()!.replace(/^type\s+/, ""))));
 
+/** A test file for a scaffolded app: every screen, live and in each of its states (layers and toasts are states too), rendered the way a screen test renders it. */
+const renderEveryScreen = (screens: { id: string; container: string; containerName: string; states: Record<string, string> }[], next: boolean): string => [
+  // the name is put in here so that vitest does not read this file itself as a jsdom test
+  `// @vitest-environment ${"jsdom"}`,
+  `import { render } from "@testing-library/react";`,
+  `import { expect, it } from "vitest";`,
+  ...screens.map((s) => `import { ${s.containerName} } from "@/${s.container.replace(/^src\//, "").replace(/\.tsx$/, "")}";`),
+  ...screens.flatMap((s) => [undefined, ...Object.keys(s.states)].map((state) =>
+    `it(${JSON.stringify(`${s.id} ${state ?? "live"}`)}, () => { render(<${s.containerName} fixture={${JSON.stringify(state)}} />); expect(document.body.textContent).not.toBe(""); });`)),
+  // and a page that reaches the router directly: it renders, reads the address the test set and its navigation is recorded
+  `import { fireEvent } from "@testing-library/react";`,
+  `import { at, nav } from "./support/screen";`,
+  next
+    ? `import NextLink from "next/link";\nimport { usePathname, useRouter, useSearchParams } from "next/navigation";\nconst Direct = () => { const r = useRouter(); return <><p>{usePathname()}|{useSearchParams().get("tab")}</p><button onClick={() => r.push("/x")}>go</button><NextLink href="/y">y</NextLink></>; };`
+    : `import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from "react-router";\nconst Direct = () => { const go = useNavigate(); const [q] = useSearchParams(); return <><p>{useLocation().pathname}|{q.get("tab")}</p><button onClick={() => go("/x")}>go</button><RouterLink to="/y">y</RouterLink></>; };`,
+  `it("the router used directly", () => { at("/orders/7", { tab: "paid" }); const { getByText } = render(<Direct />); expect(getByText("/orders/7|paid")).toBeTruthy(); fireEvent.click(getByText("go")); fireEvent.click(getByText("y")); expect(nav.went).toEqual(["/x", "/y"]); });`,
+  ``,
+].join("\n");
+
 describe("the shadcn kit", () => {
   it("pins every package exactly and carries shadcn/ui's licence with its components (PR #11 review, item 19)", () => {
     const m = kit.manifest;
@@ -184,7 +203,16 @@ describe("the scaffold", () => {
       expect(file("vitest.config.ts").text).toContain(`setupFiles: ["tests/support/setup.ts"]`);
       expect(file("vitest.config.ts").text).toContain(`oxc: { jsx: { runtime: "automatic" } }`);
       expect(file(SCREEN_SETUP).text).toContain(`vi.mock("@/lib/nav"`);
+      // render() gives a page what the frame gives it, and both parts are in the kit
+      expect(file(SCREEN_SETUP).text).toContain(`vi.mock("@testing-library/react"`);
+      for (const part of ["tooltip", "sonner"]) {
+        expect(file(SCREEN_SETUP).text).toContain(`@/components/ui/${part}`);
+        expect(l.files.some((f) => f.path.endsWith(`components/ui/${part}.tsx`)), part).toBe(true);
+      }
       expect(file(SCREEN_HELPER).text).toContain("export const nav");
+      // a page that uses the router's own package, not lib/nav, gets the stand-in of the target's router and never the other's
+      for (const [pkg, mine] of [["next/navigation", target === "next-shadcn"], ["next/link", target === "next-shadcn"], ["react-router", target === "vite-shadcn"]] as const)
+        expect(file(SCREEN_SETUP).text.includes(`vi.mock("${pkg}"`), `${target} ${pkg}`).toBe(mine);
       expect(l.protected).toEqual(expect.arrayContaining([SCREEN_SETUP, SCREEN_HELPER]));
     }
   });
@@ -255,8 +283,14 @@ describe("the scaffold", () => {
     for (const target of ["vite-shadcn", "next-shadcn"] as const) {
       const dir = mkdtempSync(join(tmpdir(), `kit-${target}-`));
       try {
-        writeScaffold(scaffold({ ...base, target }), dir);
+        const l = scaffold({ ...base, target });
+        writeScaffold(l, dir);
+        writeFileSync(join(dir, "tests/kit-render.test.tsx"), renderEveryScreen(l.screens, target === "next-shadcn"));
         execFileSync("npm", ["install", "--no-audit", "--no-fund"], { cwd: dir, stdio: "pipe" });
+        // every screen renders on its own in every state it has, with only what the test setup puts around it
+        try { execFileSync("npx", ["vitest", "run"], { cwd: dir, stdio: "pipe" }); }
+        catch (e) { throw new Error(`${target}: a screen does not render in a test\n${String((e as { stdout?: Buffer }).stdout ?? e).slice(-4000)}`); }
+        rmSync(join(dir, "tests/kit-render.test.tsx"));
         execFileSync("npx", target === "vite-shadcn" ? ["vite", "build"] : ["next", "build"], { cwd: dir, stdio: "pipe", env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" } });
         // every kit file typechecks in both targets (after the build, which writes next-env.d.ts)
         execFileSync("npx", ["tsc", "-p", ".", "--noEmit"], { cwd: dir, stdio: "pipe" });

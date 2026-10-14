@@ -6,7 +6,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { cleanBrief, writerView } from "./brief.js";
 import { planUiSize, uiSizeCardLine } from "./card.js";
 import { compareA11y, compareLayout, diffFromGit, lintDiff, overall, traceScreens } from "./fidelity.js";
-import { designFidelityLint, designSizeCap, sizeCapVerdict } from "./gates.js";
+import { designFidelityLint, designScopeLock, designSizeCap, sizeCapVerdict } from "./gates.js";
 import { buildInventory, cssTokens, variantsOf } from "./inventory.js";
 import { detectLayout, importSpecifiers, pageOf, resolveImport, stripJsonComments } from "./layout.js";
 import { isTypeOrImportOnly, nameWords, plannedChanges, sizeChange, sizeFromGit, type PlannedFile } from "./size.js";
@@ -287,6 +287,17 @@ describe("design: UI change size", () => {
     const line = uiSizeCardLine(planUiSize(d, files, ["app/(shop)/invoices/page.tsx", "components/invoices/*.tsx"]))!;
     expect(line).toContain("UI size: **new screen**");
     expect(line).toContain("route /invoices");
+  });
+});
+
+describe("design: scope of a build from an approved design", () => {
+  it("takes a non-functional requirement of the approved spec as approved, and still refuses an unknown one (run c0aa)", () => {
+    const approvedSpec = { requirements: [{ id: "REQ-1" }], nfrs: [{ id: "NFR-1" }] } as never;
+    const check = (reqs: string[]) => designScopeLock.predicate({ plan: { tasks: [{ id: "TASK-1", reqs }] }, approvedSpec }, {} as never);
+    expect(check(["NFR-1"]).passed).toBe(true);
+    expect(check(["REQ-1", "NFR-1"]).passed).toBe(true);
+    expect(check(["NFR-2"]).details).toContain("TASK-1 delivers NFR-2, which the approved design's spec does not have");
+    expect(check([]).passed).toBe(false);
   });
 });
 

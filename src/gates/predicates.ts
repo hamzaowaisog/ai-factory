@@ -109,6 +109,9 @@ export const noSecrets = defineGate<{ scan: SecretScan }>({
 
 // ---------- test runs ----------
 
+/** What a failed test said, in one line, for the one who has to fix it: without it a retry can only guess. */
+const said = (r: { message?: string } | undefined): string => (r?.message ? ` It failed with: ${r.message.replace(/\s+/g, " ").trim().slice(0, 300)}` : "");
+
 /** Evidence is valid and every expectation holds; locked tests must pass first time. */
 export const testExpectations = defineGate<{ run: TestRun; baseline?: TestRun }>({
   id: "tests.expectations", after: "implement", safety: true, waiver: "none",
@@ -126,7 +129,7 @@ export const testExpectations = defineGate<{ run: TestRun; baseline?: TestRun }>
       const r = byId.get(e.id);
       if (!r || r.outcome === "notRun" || r.outcome === "skipped") fs.push(failure("expected-fail-missing", `Expected failing test didn't run: ${e.id}`, { testId: e.id }));
       else if (r.outcome === "passed") fs.push(failure("expected-fail-passed", `${e.id} passed, but it should fail before the change`, { testId: e.id }));
-      else if (!r.failureKind || !e.kinds.includes(r.failureKind)) fs.push(failure("wrong-failure-kind", `${e.id} failed with ${r.failureKind ?? "unknown"}, expected ${e.kinds.join(" or ")}`, { testId: e.id }));
+      else if (!r.failureKind || !e.kinds.includes(r.failureKind)) fs.push(failure("wrong-failure-kind", `${e.id} failed with ${r.failureKind ?? "unknown"}, expected ${e.kinds.join(" or ")}.${said(r)}`, { testId: e.id }));
     }
     // a Node test file that did not load ran none of its tests, locked or not: a failure, not a pass, unless it did not load before the change either (PR #17 review, item 6)
     const loadedBefore = (id: string) => !baseline?.results.some((b) => b.id === id && b.outcome === "failed");
@@ -135,7 +138,7 @@ export const testExpectations = defineGate<{ run: TestRun; baseline?: TestRun }>
       const baseFailed = new Set(baseline?.results.filter((r) => r.outcome === "failed").map((r) => r.id) ?? []);
       for (const id of run.compareToBaseline) {
         const r = byId.get(id);
-        if (r?.outcome === "failed" && !r.flaky && !baseFailed.has(id)) fs.push(failure("new-failure", `New failure vs baseline: ${id}`, { testId: id, frames: r.frames ?? [] }));
+        if (r?.outcome === "failed" && !r.flaky && !baseFailed.has(id)) fs.push(failure("new-failure", `New failure vs baseline: ${id}.${said(r)}`, { testId: id, frames: r.frames ?? [] }));
       }
       // a baseline test that ran then and is gone or skipped now; not after a failed build (already reported),
       // nor the known failures the run left out on purpose (skipped by method, so compare by method)
@@ -170,15 +173,6 @@ export function thrownByProductionCode(frames: string[] | undefined): boolean {
   return !/test/i.test(method);
 }
 
-/**
- * What the test said when it failed, first line only. Without it the writer is told "fails with exception" and has to guess
- * (run c0aa: six tests crashed on a missing provider, three attempts, the same six each time).
- */
-const said = (message: string | undefined): string => {
-  const first = (message ?? "").split("\n").map((l) => l.trim()).find(Boolean);
-  return first ? `: ${first.slice(0, 200)}` : "";
-};
-
 export const failsOnBase = defineGate<{ run1: TestRun; run2: TestRun; tests: AcceptanceTests & { rules?: { productionExceptionOk?: boolean } } }>({
   id: "author-tests.fails-on-base", after: "author-tests", safety: false, waiver: "none",
   predicate: ({ run1, run2, tests }) => {
@@ -192,17 +186,17 @@ export const failsOnBase = defineGate<{ run1: TestRun; run2: TestRun; tests: Acc
         const r = byId.get(t.testId);
         if (!r || r.outcome === "notRun" || r.outcome === "skipped") fs.push(failure("not-executed", `${t.testId} (${t.acId}) didn't run`, { testId: t.testId }));
         // a must-keep-passing criterion ("stays upper case"): it passes on the old code and must keep passing
-        else if (t.failsOnBase === false) { if (r.outcome !== "passed") fs.push(failure("keep-passing", `${t.testId} (${t.acId}) describes behaviour that works today, but fails on the old code${said(r.message)}`, { testId: t.testId })); }
+        else if (t.failsOnBase === false) { if (r.outcome !== "passed") fs.push(failure("keep-passing", `${t.testId} (${t.acId}) describes behaviour that works today, but fails on the old code.${said(r)}`, { testId: t.testId })); }
         else if (r.outcome === "passed") fs.push(failure("passes-on-base", `${t.testId} (${t.acId}) already passes before any change`, { testId: t.testId }));
         // only locks written with this rule accept production crashes, so older runs re-check as recorded
         else if (tests.rules?.productionExceptionOk && r.failureKind === "exception" && thrownByProductionCode(r.frames)) { /* a crash bug, failing for the right reason */ }
-        else if (!ok.has(r.failureKind ?? "")) fs.push(failure("wrong-failure-kind", `${t.testId} fails with ${r.failureKind ?? "unknown"}, not an assertion or not-implemented${said(r.message)}`, { testId: t.testId, frames: r.frames ?? [] }));
+        else if (!ok.has(r.failureKind ?? "")) fs.push(failure("wrong-failure-kind", `${t.testId} fails with ${r.failureKind ?? "unknown"}, not an assertion or not-implemented.${said(r)}`, { testId: t.testId, frames: r.frames ?? [] }));
       }
       for (const c of tests.characterisation) {
         const r = byId.get(c.testId);
         // not a normal retry: a characterisation test describes behaviour that works TODAY, so failing on the
         // old code means the test is wrong or needs something the lab doesn't have
-        if (r?.outcome !== "passed") fs.push(failure("characterisation", `Characterisation test ${c.testId} fails on the old code, so it doesn't describe today's behaviour: the test is wrong, or it needs a service or data the test lab doesn't have (an external API, seeded rows). Rewrite it as a small unit test next to the changed class, or drop it.${r?.message ? ` It failed with: ${r.message.slice(0, 200)}` : ""}`, { testId: c.testId }));
+        if (r?.outcome !== "passed") fs.push(failure("characterisation", `Characterisation test ${c.testId} fails on the old code, so it doesn't describe today's behaviour: the test is wrong, or it needs a service or data the test lab doesn't have (an external API, seeded rows). Rewrite it as a small unit test next to the changed class, or drop it.${said(r)}`, { testId: c.testId }));
       }
     }
     if (!tests.tests.length) fs.push(failure("no-tests", "No acceptance tests were written"));

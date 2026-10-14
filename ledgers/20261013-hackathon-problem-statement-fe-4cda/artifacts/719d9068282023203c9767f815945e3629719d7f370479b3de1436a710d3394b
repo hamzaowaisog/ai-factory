@@ -1,0 +1,50 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Implement every HTTP operation in the OpenAPI contract with its declared methods, paths, parameters, schemas, security, statuses, and behavior."
+     },
+     {
+      "n": 2,
+      "text": "Persist application values, including derived and cached values, in PostgreSQL through the existing App connection string; make committed values available to later requests and after restart; and initialize required structures without deleting or changing compatible existing data."
+     },
+     {
+      "n": 3,
+      "text": "When Seed:Demo is true on a clean database, run SeedData.Run at startup to populate each application table with two or three believable sample rows based on contract examples."
+     },
+     {
+      "n": 4,
+      "text": "When Seed:Demo is false, do not run SeedData.Run or insert demo rows at startup, and serve contract operations without requiring demo rows."
+     },
+     {
+      "n": 5,
+      "text": "Keep the repository a backend API and documentation surface, without product-facing web screens or frontend implementation."
+     },
+     {
+      "n": 6,
+      "text": "Calculate ingredient consumption and ration cost from as-fed ingredient weights, using dry-matter values only for nutritional calculations."
+     },
+     {
+      "n": 7,
+      "text": "Reject a feeding event with status 409, without changing inventory or feed rollups, when any required ration ingredient exceeds available inventory."
+     },
+     {
+      "n": 8,
+      "text": "Return ADG as null when Days on Feed is zero; return feedConversionRatio and costOfGain as null when a weight-gain denominator is nonpositive; and return projectedShipDate as null when ADG is nonpositive or no positive gain remains toward the target."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

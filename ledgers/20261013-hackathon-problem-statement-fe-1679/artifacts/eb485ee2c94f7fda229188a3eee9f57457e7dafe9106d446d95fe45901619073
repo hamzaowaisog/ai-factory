@@ -1,0 +1,621 @@
+diff --git a/components/screens/s-4/container.tsx b/components/screens/s-4/container.tsx
+index 7badf2f..1e98ebf 100644
+--- a/components/screens/s-4/container.tsx
++++ b/components/screens/s-4/container.tsx
+@@ -1,13 +1,611 @@
+ "use client";
+ 
+ // S-4 Allocations (/allocations): the approved Stitch page, built by the coding task in this file.
+-// Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;
+-// match its layout, sections and words. Fixture mode (?fixture=S-4:<state>) must show the approved sample content in
+-// that state with no backend; the states the design drew: Allocation conflict returned for mapped quantity exceeding updated head count, Save refusal returned by service, Save success.
++// Fixture mode (?fixture=S-4:<state>) uses the approved sample content without calling the API.
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
++import { AlertCircle, CheckCircle2, LoaderCircle, RefreshCw } from "lucide-react";
++import { Button } from "@/components/ui/button";
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
++import { Checkbox } from "@/components/ui/checkbox";
++import { Input } from "@/components/ui/input";
++import { Notice, NoticeDescription, NoticeTitle } from "@/components/ui/notice";
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
++import { Skeleton } from "@/components/ui/skeleton";
++import { StatusBadge } from "@/components/ui/status-badge";
++import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
++import { getAllocations, saveAllocations } from "@/lib/api/client";
++import type { AllocationsResponse, LotPenAllocation, PoLineAllocation } from "@/lib/api/client.schemas";
++import { clearSession, updatePermissions } from "@/lib/auth/session";
++import { useNav } from "@/lib/nav";
++
++const fixtureAllocations: AllocationsResponse = {
++  permissions: ["allocations.view", "allocations.manage"],
++  poLines: [
++    { id: 701, sourceIdentifier: "PO-8841-01", sourceHead: 80, lotId: 2407, lotCode: "L-2407", allocatedHead: 82, traceabilityStatus: "Conflict" },
++    { id: 702, sourceIdentifier: "PO-8841-02", sourceHead: 126, lotId: 2409, lotCode: "L-2409", allocatedHead: 126, traceabilityStatus: "Matched" },
++    { id: 703, sourceIdentifier: "PO-8841-03", sourceHead: 94, lotId: 2413, lotCode: "L-2413", allocatedHead: 94, traceabilityStatus: "Matched" },
++  ],
++  lotPens: [
++    { id: 901, lotId: 2407, lotCode: "L-2407", penId: 4, penCode: "P-04", allocatedHead: 82 },
++    { id: 902, lotId: 2411, lotCode: "L-2411", penId: 4, penCode: "P-04", allocatedHead: 60 },
++    { id: 903, lotId: 2409, lotCode: "L-2409", penId: 7, penCode: "P-07", allocatedHead: 126 },
++    { id: 904, lotId: 2413, lotCode: "L-2413", penId: 12, penCode: "P-12", allocatedHead: 94 },
++  ],
++  pens: [
++    { id: 4, penCode: "P-04", capacity: 160, currentHead: 140, mappedHead: 142 },
++    { id: 7, penCode: "P-07", capacity: 150, currentHead: 126, mappedHead: 126 },
++    { id: 12, penCode: "P-12", capacity: 180, currentHead: 94, mappedHead: 94 },
++  ],
++};
++
++const fixtureSavedAllocations: AllocationsResponse = {
++  ...fixtureAllocations,
++  poLines: fixtureAllocations.poLines.map((line) => line.id === 701 ? { ...line, allocatedHead: 80, traceabilityStatus: "Matched" } : line),
++  lotPens: fixtureAllocations.lotPens.map((mapping) => mapping.id === 901 ? { ...mapping, allocatedHead: 80 } : mapping),
++  pens: fixtureAllocations.pens.map((pen) => pen.id === 4 ? { ...pen, mappedHead: 140 } : pen),
++};
++
++const sampleLotDetails: Record<string, { description: string; note: string }> = {
++  "L-2407": { description: "Angus steers", note: "84 days on feed • 1,146 lb current wt" },
++  "L-2409": { description: "Hereford steers", note: "72 days on feed • 1,098 lb current wt" },
++  "L-2411": { description: "Angus heifers", note: "90 days on feed • 1,108 lb current wt" },
++  "L-2413": { description: "Charolais-cross steers", note: "43 days on feed • 1,056 lb current wt" },
++};
++
++const fixtureActivity = "2025-06-18 10:10 MT • Tomas Reed repeated PO-8841 import; line 1 updated to 80 head vs 82 mapped.";
++
++function errorMessage(error: unknown, fallback: string) {
++  return error instanceof Error && error.message ? error.message : fallback;
++}
++
++function hasConflict(line: PoLineAllocation) {
++  return /conflict|review|exceed/i.test(line.traceabilityStatus) || line.allocatedHead > line.sourceHead;
++}
++
++function clonePoLines(lines: PoLineAllocation[]) {
++  return lines.map((line) => ({ ...line }));
++}
++
++function cloneLotPens(mappings: LotPenAllocation[]) {
++  return mappings.map((mapping) => ({ ...mapping }));
++}
++
+ export function AllocationsContainer({ fixture }: { fixture?: string }) {
++  const nav = useNav();
++  const goRef = useRef(nav.go);
++  goRef.current = nav.go;
++  const isFixture = fixture !== undefined;
++  const fixtureKey = fixture?.toLowerCase().replace(/[^a-z0-9]+/g, "-") ?? "";
++  const fixtureRefusal = fixtureKey.includes("save-refusal");
++  const fixtureSuccess = fixtureKey.includes("save-success");
++  const fixtureResponse = fixtureSuccess ? fixtureSavedAllocations : fixtureAllocations;
++  const [allocations, setAllocations] = useState<AllocationsResponse | null>(() => isFixture ? fixtureResponse : null);
++  const [draftPoLines, setDraftPoLines] = useState<PoLineAllocation[]>(() => isFixture ? clonePoLines(fixtureResponse.poLines) : []);
++  const [draftLotPens, setDraftLotPens] = useState<LotPenAllocation[]>(() => isFixture ? cloneLotPens(fixtureResponse.lotPens) : []);
++  const [loading, setLoading] = useState(!isFixture);
++  const [saving, setSaving] = useState(false);
++  const [error, setError] = useState(() => fixtureRefusal ? "The allocation service refused the save because the mapped quantity conflicts with the returned source count. Saved mappings are unchanged." : "");
++  const [saveRefused, setSaveRefused] = useState(fixtureRefusal);
++  const [feedback, setFeedback] = useState(() => fixtureSuccess ? "Allocations saved. The returned mapping values are now active." : "");
++  const [selectedPoIds, setSelectedPoIds] = useState<number[]>([]);
++  const [selectedLotPenIds, setSelectedLotPenIds] = useState<number[]>([]);
++  const [editingPoIds, setEditingPoIds] = useState<number[]>([]);
++  const [editingLotPenIds, setEditingLotPenIds] = useState<number[]>([]);
++  const [expandedPenId, setExpandedPenId] = useState<number | null>(null);
++
++  const clearForUnauthorized = useCallback(() => {
++    clearSession();
++    setAllocations(null);
++    setDraftPoLines([]);
++    setDraftLotPens([]);
++    setSelectedPoIds([]);
++    setSelectedLotPenIds([]);
++    setEditingPoIds([]);
++    setEditingLotPenIds([]);
++    setError("");
++    setSaveRefused(false);
++    setFeedback("");
++    setLoading(false);
++    setSaving(false);
++    goRef.current("/sign-in");
++  }, []);
++
++  const loadAllocations = useCallback(async () => {
++    if (isFixture) return;
++    setLoading(true);
++    setError("");
++    setSaveRefused(false);
++    setFeedback("");
++    try {
++      const response = await getAllocations();
++      if (response.status === 200) {
++        setAllocations(response.data);
++        setDraftPoLines(clonePoLines(response.data.poLines));
++        setDraftLotPens(cloneLotPens(response.data.lotPens));
++        updatePermissions(response.data.permissions);
++      } else if (response.status === 401) {
++        clearForUnauthorized();
++      } else if (response.status === 403) {
++        setAllocations(null);
++        setDraftPoLines([]);
++        setDraftLotPens([]);
++        updatePermissions([]);
++        setError(response.data.message || "You no longer have permission to view these allocation mappings.");
++      } else {
++        setError(response.data.message || "The allocation mappings could not be loaded.");
++      }
++    } catch (requestError) {
++      setError(errorMessage(requestError, "The allocation service could not be reached."));
++    } finally {
++      setLoading(false);
++    }
++  }, [clearForUnauthorized, isFixture]);
++
++  useEffect(() => {
++    if (!isFixture) void loadAllocations();
++  }, [isFixture, loadAllocations]);
++
++  const poLines = allocations?.poLines ?? [];
++  const lotPens = allocations?.lotPens ?? [];
++  const pens = allocations?.pens ?? [];
++  const permissions = allocations?.permissions ?? [];
++  const canView = permissions.includes("allocations.view") || permissions.includes("allocations.manage");
++  const canManage = permissions.includes("allocations.manage");
++  const isDirty = useMemo(() => JSON.stringify(draftPoLines) !== JSON.stringify(poLines)
++    || JSON.stringify(draftLotPens) !== JSON.stringify(lotPens), [draftLotPens, draftPoLines, lotPens, poLines]);
++  const totalCurrentHead = pens.reduce((total, pen) => total + pen.currentHead, 0);
++  const totalCapacity = pens.reduce((total, pen) => total + pen.capacity, 0);
++  const utilization = totalCapacity > 0 ? (totalCurrentHead / totalCapacity) * 100 : 0;
++  const allPoSelected = poLines.length > 0 && poLines.every((line) => selectedPoIds.includes(line.id));
++  const somePoSelected = poLines.some((line) => selectedPoIds.includes(line.id));
++  const allLotPensSelected = lotPens.length > 0 && lotPens.every((mapping) => selectedLotPenIds.includes(mapping.id));
++  const someLotPensSelected = lotPens.some((mapping) => selectedLotPenIds.includes(mapping.id));
++  const lotChoices = useMemo(() => {
++    const choices = new Map<number, string>();
++    [...poLines, ...lotPens].forEach((mapping) => choices.set(mapping.lotId, mapping.lotCode));
++    return [...choices.entries()];
++  }, [lotPens, poLines]);
++  const conflictLines = draftPoLines.filter(hasConflict);
++  const sourceDocument = poLines[0]?.sourceIdentifier.replace(/-[^-]+$/, "") ?? (isFixture ? "PO-8841" : "—");
++  const state = fixture ?? (loading ? "loading-allocations" : saving ? "saving-allocations" : error ? saveRefused ? "save-refusal-returned-by-service" : "allocation-service-error" : feedback.includes("Allocations saved") ? "save-success" : conflictLines.length > 0 ? "allocation-conflict-returned-for-mapped-quantity-exceeding-updated-head-count" : "default");
++
++  function restoreDrafts() {
++    setDraftPoLines(clonePoLines(poLines));
++    setDraftLotPens(cloneLotPens(lotPens));
++    setEditingPoIds([]);
++    setEditingLotPenIds([]);
++    setSelectedPoIds([]);
++    setSelectedLotPenIds([]);
++    setFeedback("");
++    setError("");
++    setSaveRefused(false);
++  }
++
++  function updatePoLine(id: number, update: Partial<PoLineAllocation>) {
++    setDraftPoLines((current) => current.map((line) => line.id === id ? { ...line, ...update } : line));
++  }
++
++  function updateLotPen(id: number, update: Partial<LotPenAllocation>) {
++    setDraftLotPens((current) => current.map((mapping) => mapping.id === id ? { ...mapping, ...update } : mapping));
++  }
++
++  function beginPoEdit(id: number) {
++    setEditingPoIds((current) => current.includes(id) ? current : [...current, id]);
++    setSelectedPoIds((current) => current.includes(id) ? current : [...current, id]);
++    setError("");
++    setSaveRefused(false);
++    setFeedback("");
++  }
++
++  function beginLotPenEdit(id: number) {
++    setEditingLotPenIds((current) => current.includes(id) ? current : [...current, id]);
++    setSelectedLotPenIds((current) => current.includes(id) ? current : [...current, id]);
++    setError("");
++    setSaveRefused(false);
++    setFeedback("");
++  }
++
++  async function reverifySelected() {
++    if (selectedPoIds.length === 0 || loading || saving) return;
++    setError("");
++    setSaveRefused(false);
++    setFeedback("");
++    if (isFixture) {
++      const selected = new Set(selectedPoIds);
++      setDraftPoLines((current) => current.map((line) => selected.has(line.id)
++        ? { ...line, traceabilityStatus: line.allocatedHead > line.sourceHead ? "Conflict" : "Matched" }
++        : line));
++      setFeedback("Selected PO lines re-verified against the returned source counts.");
++      return;
++    }
++    setLoading(true);
++    try {
++      const response = await getAllocations();
++      if (response.status === 200) {
++        setAllocations(response.data);
++        setDraftPoLines(clonePoLines(response.data.poLines));
++        setDraftLotPens(cloneLotPens(response.data.lotPens));
++        updatePermissions(response.data.permissions);
++        setFeedback("Selected PO lines re-verified against the latest returned mappings.");
++      } else if (response.status === 401) {
++        clearForUnauthorized();
++      } else if (response.status === 403) {
++        setAllocations(null);
++        setDraftPoLines([]);
++        setDraftLotPens([]);
++        updatePermissions([]);
++        setError(response.data.message || "You no longer have permission to re-verify allocation mappings.");
++      } else {
++        setError(response.data.message || "Selected PO lines could not be re-verified.");
++      }
++    } catch (requestError) {
++      setError(errorMessage(requestError, "The allocation service could not be reached."));
++    } finally {
++      setLoading(false);
++    }
++  }
++
++  function acceptSourceCount() {
++    if (!canManage || selectedPoIds.length === 0) return;
++    const selected = new Set(selectedPoIds);
++    setDraftPoLines((current) => current.map((line) => selected.has(line.id)
++      ? { ...line, allocatedHead: line.sourceHead, traceabilityStatus: "Matched" }
++      : line));
++    setEditingPoIds((current) => [...new Set([...current, ...selectedPoIds])]);
++    setError("");
++    setSaveRefused(false);
++    setFeedback("Selected mapped quantities now match their returned source counts. Save to apply the changes.");
++  }
++
++  async function save() {
++    if (!canManage || !isDirty || saving) return;
++    setSaving(true);
++    setError("");
++    setSaveRefused(false);
++    setFeedback("");
++    if (isFixture) {
++      if (fixtureRefusal) {
++        setDraftPoLines(clonePoLines(poLines));
++        setDraftLotPens(cloneLotPens(lotPens));
++        setError("The allocation service refused the save because the mapped quantity conflicts with the returned source count. Saved mappings are unchanged.");
++        setSaveRefused(true);
++      } else {
++        const next = { ...allocations!, poLines: clonePoLines(draftPoLines), lotPens: cloneLotPens(draftLotPens) };
++        setAllocations(next);
++        setDraftPoLines(clonePoLines(next.poLines));
++        setDraftLotPens(cloneLotPens(next.lotPens));
++        setFeedback("Allocations saved. The returned mapping values are now active.");
++      }
++      setEditingPoIds([]);
++      setEditingLotPenIds([]);
++      setSaving(false);
++      return;
++    }
++    try {
++      const response = await saveAllocations({ poLines: draftPoLines, lotPens: draftLotPens });
++      if (response.status === 200) {
++        setAllocations(response.data);
++        setDraftPoLines(clonePoLines(response.data.poLines));
++        setDraftLotPens(cloneLotPens(response.data.lotPens));
++        updatePermissions(response.data.permissions);
++        setFeedback("Allocations saved. The returned mapping values are now active.");
++        setEditingPoIds([]);
++        setEditingLotPenIds([]);
++      } else if (response.status === 401) {
++        clearForUnauthorized();
++      } else if (response.status === 403) {
++        setAllocations((current) => current ? { ...current, permissions: current.permissions.filter((permission) => permission !== "allocations.manage") } : current);
++        updatePermissions(["allocations.view"]);
++        setDraftPoLines(clonePoLines(poLines));
++        setDraftLotPens(cloneLotPens(lotPens));
++        setEditingPoIds([]);
++        setEditingLotPenIds([]);
++        setError(response.data.message || "You no longer have permission to change allocation mappings.");
++      } else {
++        setDraftPoLines(clonePoLines(poLines));
++        setDraftLotPens(cloneLotPens(lotPens));
++        setEditingPoIds([]);
++        setEditingLotPenIds([]);
++        setError(response.data.message || "The allocation service refused the save. Saved mappings are unchanged.");
++        setSaveRefused(true);
++      }
++    } catch (requestError) {
++      setDraftPoLines(clonePoLines(poLines));
++      setDraftLotPens(cloneLotPens(lotPens));
++      setEditingPoIds([]);
++      setEditingLotPenIds([]);
++      setError(errorMessage(requestError, "The allocation service could not be reached. Saved mappings are unchanged."));
++      setSaveRefused(false);
++    } finally {
++      setSaving(false);
++    }
++  }
++
++  function togglePo(id: number, checked: boolean | "indeterminate") {
++    setSelectedPoIds((current) => checked === true ? current.includes(id) ? current : [...current, id] : current.filter((selectedId) => selectedId !== id));
++  }
++
++  function toggleLotPen(id: number, checked: boolean | "indeterminate") {
++    setSelectedLotPenIds((current) => checked === true ? current.includes(id) ? current : [...current, id] : current.filter((selectedId) => selectedId !== id));
++  }
++
++  function togglePenDetails(id: number) {
++    setExpandedPenId((current) => current === id ? null : id);
++  }
++
++  function renderSaveButtons(footer = false) {
++    return (
++      <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
++        <Button type="button" variant="outline" className="flex-1 sm:flex-initial" aria-label={footer ? "Discard changes at bottom" : undefined} onClick={restoreDrafts} disabled={!isDirty || saving}>
++          Discard changes
++        </Button>
++        <Button type="button" className="flex-1 sm:flex-initial" aria-label={footer ? "Save allocations at bottom" : undefined} onClick={() => void save()} disabled={!canManage || !isDirty || saving || loading}>
++          {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
++          {saving ? "Saving allocations…" : "Save allocations"}
++        </Button>
++      </div>
++    );
++  }
++
+   return (
+-    <main data-screen="S-4" data-state={fixture ?? "default"}>
+-      <h1>Allocations</h1>
++    <main data-screen="S-4" data-state={state} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
++      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
++        <div>
++          <h1 className="font-heading text-3xl font-semibold tracking-tight">Allocations</h1>
++          <p className="mt-1 text-sm text-muted-foreground">Red Mesa Yard • <span className="font-mono">America/Denver (Mountain Time)</span> • Capacity <span className="font-mono">{totalCapacity.toLocaleString("en-US")}</span> head across <span className="font-mono">{pens.map((pen) => pen.penCode).join(", ") || "—"}</span></p>
++        </div>
++        {renderSaveButtons()}
++      </div>
++
++      {loading && allocations === null && (
++        <div className="grid gap-3" aria-label="Loading allocations">
++          <Skeleton className="h-24 w-full" />
++          <Skeleton className="h-72 w-full" />
++        </div>
++      )}
++
++      {error && (
++        <Notice tone="bad">
++          <AlertCircle aria-hidden="true" />
++          <NoticeTitle>{saveRefused ? "Allocation save refused" : "Allocation service error"}</NoticeTitle>
++          <NoticeDescription>{error} The last saved mapping values remain displayed.</NoticeDescription>
++        </Notice>
++      )}
++
++      {feedback && (
++        <Notice tone="ok">
++          <CheckCircle2 aria-hidden="true" />
++          <NoticeTitle>{feedback.includes("saved") ? "Save success" : "Allocation update"}</NoticeTitle>
++          <NoticeDescription>{feedback}</NoticeDescription>
++        </Notice>
++      )}
++
++      {conflictLines.length > 0 && (
++        <Card className="border-s-4 border-s-destructive">
++          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
++            <div className="flex items-start gap-3 sm:items-center">
++              <StatusBadge tone="bad"><span className="size-2 rounded-full bg-current" />Allocation conflict</StatusBadge>
++              <p className="text-sm leading-snug">
++                <strong className="font-mono font-semibold">{conflictLines[0].lotCode}</strong>{isFixture ? <> in <strong className="font-mono font-semibold">P-04</strong>: Repeated PO-8841 import</> : ` (${conflictLines[0].sourceIdentifier})`}{" "}updated source count to <span className="font-mono font-semibold">{conflictLines[0].sourceHead}</span> head, below the retained <span className="font-mono font-semibold">{conflictLines[0].allocatedHead}</span> head mapped. Allocation retained; review required.
++              </p>
++            </div>
++            {isFixture && <span className="shrink-0 font-mono text-xs text-muted-foreground">2025-06-18 10:10 MT</span>}
++          </CardContent>
++        </Card>
++      )}
++
++      {allocations && !canView && (
++        <Notice tone="warn">
++          <AlertCircle aria-hidden="true" />
++          <NoticeTitle>Allocation access unavailable</NoticeTitle>
++          <NoticeDescription>Your returned permissions do not include access to view allocation mappings.</NoticeDescription>
++        </Notice>
++      )}
++
++      {allocations && canView && <>
++        <Card>
++          <CardHeader className="flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-center">
++            <div>
++              <div className="flex items-center gap-2">
++                <span className="flex size-6 items-center justify-center rounded-full bg-foreground font-heading text-xs font-bold text-background">1</span>
++                <CardTitle className="text-lg">Step 1: PO Line to Lot Worklist</CardTitle>
++              </div>
++              <CardDescription className="mt-1 pl-8">Source document <span className="font-mono font-semibold text-foreground">{sourceDocument}</span> lines mapped against yard inventory lots.</CardDescription>
++            </div>
++            <div className="flex flex-wrap items-center gap-2 pl-8 md:pl-0">
++              <span className="text-xs text-muted-foreground">Batch actions:</span>
++              <Button type="button" variant="outline" size="sm" onClick={() => void reverifySelected()} disabled={!canManage || selectedPoIds.length === 0 || loading || saving}>
++                <RefreshCw className={loading ? "animate-spin" : ""} aria-hidden="true" />Re-verify selected
++              </Button>
++              <Button type="button" variant="outline" size="sm" onClick={acceptSourceCount} disabled={!canManage || selectedPoIds.length === 0 || saving}>
++                Accept source count
++              </Button>
++            </div>
++          </CardHeader>
++          {loading && allocations && <div className="px-6 py-2 text-sm text-muted-foreground">Refreshing returned allocation mappings…</div>}
++          <Table className="min-w-[960px]">
++            <TableHeader>
++              <TableRow className="bg-muted/50">
++                <TableHead className="w-12 text-center">
++                  <Checkbox aria-label="Select all PO-line mappings" checked={allPoSelected ? true : somePoSelected ? "indeterminate" : false} onCheckedChange={(checked) => setSelectedPoIds(checked === true ? poLines.map((line) => line.id) : [])} disabled={!canManage || poLines.length === 0} />
++                </TableHead>
++                <TableHead>PO Line</TableHead>
++                <TableHead>Breed &amp; Class</TableHead>
++                <TableHead>Target Lot</TableHead>
++                <TableHead className="text-end">Source Head</TableHead>
++                <TableHead className="text-end">Retained Mapped</TableHead>
++                <TableHead>Traceability Status</TableHead>
++                <TableHead className="text-end">Action</TableHead>
++              </TableRow>
++            </TableHeader>
++            <TableBody>
++              {draftPoLines.map((line) => {
++                const conflicted = hasConflict(line);
++                const lineIsEditing = editingPoIds.includes(line.id) && canManage;
++                const detail = isFixture ? sampleLotDetails[line.lotCode] : undefined;
++                return (
++                  <TableRow key={line.id} data-state={selectedPoIds.includes(line.id) ? "selected" : undefined} className={conflicted ? "bg-destructive/5" : undefined}>
++                    <TableCell className="text-center"><Checkbox aria-label={`Select ${line.sourceIdentifier}`} checked={selectedPoIds.includes(line.id)} onCheckedChange={(checked) => togglePo(line.id, checked)} disabled={!canManage} /></TableCell>
++                    <TableCell className="font-mono font-semibold">{line.sourceIdentifier}<span className="block font-sans text-xs font-normal text-muted-foreground">{isFixture ? line.id === 701 ? "Receipt Mar 26" : line.id === 702 ? "Receipt Apr 07" : "Created May 06" : "Source record"}</span></TableCell>
++                    <TableCell className="whitespace-normal font-medium">{(isFixture ? detail?.description : undefined) ?? "—"}<span className="block text-xs font-normal text-muted-foreground">{(isFixture ? detail?.note : undefined) ?? "Returned PO-line allocation"}</span></TableCell>
++                    <TableCell>
++                      {lineIsEditing ? (
++                        <Select value={String(line.lotId)} onValueChange={(value) => {
++                          const choice = lotChoices.find(([id]) => id === Number(value));
++                          if (choice) updatePoLine(line.id, { lotId: choice[0], lotCode: choice[1] });
++                        }}>
++                          <SelectTrigger className="w-36 font-mono text-xs" aria-label={`Target lot for ${line.sourceIdentifier}`}><SelectValue /></SelectTrigger>
++                          <SelectContent>{lotChoices.map(([id, code]) => <SelectItem key={id} value={String(id)}>{code}</SelectItem>)}</SelectContent>
++                        </Select>
++                      ) : <><span className="font-mono font-semibold">{line.lotCode}</span><span className="block text-xs text-muted-foreground">Lot assignment</span></>}
++                    </TableCell>
++                    <TableCell className="text-end font-mono font-semibold">
++                      <span className={conflicted ? "text-destructive" : undefined}>{line.sourceHead}</span>
++                      {conflicted && <span className="block text-[11px] font-sans font-normal text-destructive">Updated via repeat import</span>}
++                    </TableCell>
++                    <TableCell className="text-end">
++                        {lineIsEditing ? <Input aria-label={`Mapped head for ${line.sourceIdentifier}`} type="number" min="0" value={line.allocatedHead} onChange={(event) => {
++                          const allocatedHead = Number(event.target.value);
++                          updatePoLine(line.id, { allocatedHead, traceabilityStatus: allocatedHead > line.sourceHead ? "Conflict" : "Matched" });
++                        }} className="ml-auto w-24 text-end font-mono" /> : <span className="font-mono font-bold">{line.allocatedHead}</span>}
++                      {conflicted && <span className="block text-[11px] text-muted-foreground">Retained allocation</span>}
++                    </TableCell>
++                    <TableCell><StatusBadge tone={conflicted ? "bad" : "ok"}><span className="size-1.5 rounded-full bg-current" />{conflicted ? `Conflict (${line.sourceHead - line.allocatedHead} head)` : line.traceabilityStatus || "Matched"}</StatusBadge></TableCell>
++                    <TableCell className="text-end">
++                      {canManage && <Button type="button" size="sm" variant="ghost" className={conflicted ? "text-destructive" : "text-muted-foreground"} onClick={() => beginPoEdit(line.id)}>{conflicted ? "Resolve conflict" : "Edit mapping"}</Button>}
++                    </TableCell>
++                  </TableRow>
++                );
++              })}
++              {draftPoLines.length === 0 && <TableRow><TableCell colSpan={8} className="h-24 text-center text-muted-foreground">No PO-line mappings returned.</TableCell></TableRow>}
++            </TableBody>
++          </Table>
++        </Card>
++
++        <hr className="h-0.5 border-0 bg-border-strong" />
++
++        <Card>
++          <CardHeader className="flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-center">
++            <div>
++              <div className="flex items-center gap-2">
++                <span className="flex size-6 items-center justify-center rounded-full bg-foreground font-heading text-xs font-bold text-background">2</span>
++                <CardTitle className="text-lg">Step 2: Lot to Pen Assignments &amp; Pen Capacity</CardTitle>
++              </div>
++              <CardDescription className="mt-1 pl-8">Current pen occupancy, operational animal count limits, and physical lot location mappings.</CardDescription>
++            </div>
++            <div className="flex flex-wrap items-center gap-2 pl-8 text-xs text-muted-foreground md:pl-0">
++              <span>Yard active head: <strong className="font-mono text-foreground">{totalCurrentHead.toLocaleString("en-US")}</strong></span><span>•</span>
++              <span>Total yard capacity: <strong className="font-mono text-foreground">{totalCapacity.toLocaleString("en-US")}</strong> head ({utilization.toFixed(1)}% utilized)</span>
++            </div>
++          </CardHeader>
++
++          <CardContent className="pt-6">
++            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
++              {pens.map((pen) => {
++                const assigned = draftLotPens.filter((mapping) => mapping.penId === pen.id);
++                const penConflict = assigned.some((mapping) => draftPoLines.some((line) => line.lotId === mapping.lotId && hasConflict(line)));
++                const ratio = pen.capacity > 0 ? Math.min(100, (pen.currentHead / pen.capacity) * 100) : 0;
++                return (
++                  <Card key={pen.id} className="flex flex-col justify-between rounded-md">
++                    <CardContent className="flex h-full flex-col justify-between gap-4 p-4">
++                      <div>
++                        <div className="mb-2 flex items-center justify-between gap-2">
++                          <span className="font-mono text-lg font-bold">Pen {pen.penCode}</span>
++                          <StatusBadge tone={penConflict ? "warn" : "ok"}><span className="size-1.5 rounded-full bg-current" />{penConflict ? "Flagged for review" : "Operational normal"}</StatusBadge>
++                        </div>
++                        <div className="flex items-baseline justify-between border-b py-1 text-sm"><span className="text-muted-foreground">Current animal count</span><strong className="font-mono text-base">{pen.currentHead} <span className="font-sans text-xs font-normal text-muted-foreground">head</span></strong></div>
++                        <div className="flex items-baseline justify-between border-b py-1 text-sm"><span className="text-muted-foreground">Physical capacity</span><span className="font-mono">{pen.capacity} <span className="font-sans text-xs text-muted-foreground">head</span></span></div>
++                        <div className="mb-3 flex items-baseline justify-between py-1 text-sm"><span className="text-muted-foreground">Occupancy utilization</span><span className="font-mono font-semibold">{pen.capacity > 0 ? ((pen.currentHead / pen.capacity) * 100).toFixed(1) : "0.0"}%</span></div>
++                        <div className="mb-4 h-2 overflow-hidden rounded-sm bg-muted" role="progressbar" aria-label={`${pen.penCode} occupancy`} aria-valuenow={ratio} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-success" style={{ width: `${ratio}%` }} /></div>
++                        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assigned Lots</div>
++                        <div className="space-y-1.5">
++                          {assigned.map((mapping) => {
++                            const detail = isFixture ? sampleLotDetails[mapping.lotCode] : undefined;
++                            const sourceLine = draftPoLines.find((line) => line.lotId === mapping.lotId);
++                            return <div key={mapping.id} className="flex items-center justify-between gap-2 rounded-md bg-muted/50 p-2 text-xs">
++                              <div><span className="font-mono font-semibold">{mapping.lotCode}</span><span className="ml-1 text-muted-foreground">{detail?.description ?? "Mapped lot"}</span></div>
++                              <div className="text-end"><span className="font-mono font-semibold">{mapping.allocatedHead} mapped</span><span className={`block font-mono text-[10px] ${sourceLine && hasConflict(sourceLine) ? "text-destructive" : "text-muted-foreground"}`}>{sourceLine ? `(source: ${sourceLine.sourceHead})` : `(current: ${mapping.allocatedHead})`}</span></div>
++                            </div>;
++                          })}
++                          {assigned.length === 0 && <p className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">No lots assigned.</p>}
++                        </div>
++                      </div>
++                      <div className="flex items-center justify-between border-t pt-3">
++                        <span className={`text-[11px] font-medium ${penConflict ? "text-warning" : "text-muted-foreground"}`}>{penConflict ? "Head-count variance review" : pen.id === 7 ? "On plan (Grower 2,772 lb)" : pen.id === 12 ? "Finisher 2,274.8 lb plan" : "Pen assignment status"}</span>
++                        <div className="flex items-center gap-2">
++                          {canManage && penConflict && <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs text-brand-text" onClick={() => assigned.forEach((mapping) => beginLotPenEdit(mapping.id))}>Adjust pen</Button>}
++                          <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground" aria-expanded={expandedPenId === pen.id} onClick={() => togglePenDetails(pen.id)}>Pen details</Button>
++                        </div>
++                      </div>
++                      {expandedPenId === pen.id && <p className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">Pen {pen.penCode}: {pen.currentHead} head currently counted, {pen.capacity} head physical capacity, {pen.mappedHead} head mapped.</p>}
++                    </CardContent>
++                  </Card>
++                );
++              })}
++              {pens.length === 0 && <p className="text-sm text-muted-foreground">No pen capacity information returned.</p>}
++            </div>
++
++            <div className="mt-6">
++              <h2 className="mb-3 font-heading text-xl font-semibold">Lot to Pen Assignment Editor</h2>
++              <Table className="min-w-[900px]">
++                <TableHeader>
++                  <TableRow className="bg-muted/50">
++                    <TableHead className="w-12 text-center"><Checkbox aria-label="Select all lot-to-pen mappings" checked={allLotPensSelected ? true : someLotPensSelected ? "indeterminate" : false} onCheckedChange={(checked) => setSelectedLotPenIds(checked === true ? lotPens.map((mapping) => mapping.id) : [])} disabled={!canManage || lotPens.length === 0} /></TableHead>
++                    <TableHead>Lot ID</TableHead>
++                    <TableHead>Breed &amp; Class</TableHead>
++                    <TableHead className="text-end">Mapped Head</TableHead>
++                    <TableHead>Target Pen Assignment</TableHead>
++                    <TableHead className="text-end">Pen Head / Capacity</TableHead>
++                    <TableHead>Traceability Status</TableHead>
++                    <TableHead className="text-end">Controls</TableHead>
++                  </TableRow>
++                </TableHeader>
++                <TableBody>
++                  {draftLotPens.map((mapping) => {
++                    const editing = canManage;
++                    const pen = pens.find((item) => item.id === mapping.penId);
++                    const line = draftPoLines.find((item) => item.lotId === mapping.lotId);
++                    const conflicted = line ? hasConflict(line) : false;
++                    const detail = isFixture ? sampleLotDetails[mapping.lotCode] : undefined;
++                    return <TableRow key={mapping.id} data-state={selectedLotPenIds.includes(mapping.id) ? "selected" : undefined}>
++                      <TableCell className="text-center"><Checkbox aria-label={`Select lot mapping ${mapping.lotCode} to ${mapping.penCode}`} checked={selectedLotPenIds.includes(mapping.id)} onCheckedChange={(checked) => toggleLotPen(mapping.id, checked)} disabled={!canManage} /></TableCell>
++                      <TableCell className="font-mono font-semibold">{mapping.lotCode}</TableCell>
++                      <TableCell className="whitespace-normal">{detail?.description ?? "Mapped lot"}<span className="block text-xs text-muted-foreground">{detail?.note ?? "Returned lot-to-pen mapping"}</span></TableCell>
++                      <TableCell className="text-end">
++                        {editing ? <Input aria-label={`Mapped head for ${mapping.lotCode}`} type="number" min="0" value={mapping.allocatedHead} onChange={(event) => updateLotPen(mapping.id, { allocatedHead: Number(event.target.value) })} className="ml-auto w-24 text-end font-mono" /> : <span className="font-mono font-bold">{mapping.allocatedHead}</span>}
++                        <span className={`block text-xs font-mono ${conflicted ? "text-destructive" : "text-muted-foreground"}`}>{line ? conflicted ? `Source updated: ${line.sourceHead}` : "Source verified" : "Baseline verified"}</span>
++                      </TableCell>
++                      <TableCell>
++                        {editing ? <Select value={String(mapping.penId)} onValueChange={(value) => {
++                          const selectedPen = pens.find((item) => item.id === Number(value));
++                          if (selectedPen) updateLotPen(mapping.id, { penId: selectedPen.id, penCode: selectedPen.penCode });
++                        }}>
++                          <SelectTrigger className="w-36 font-mono text-xs" aria-label={`Target pen for ${mapping.lotCode}`}><SelectValue /></SelectTrigger>
++                          <SelectContent>{pens.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.penCode} ({item.currentHead}/{item.capacity})</SelectItem>)}</SelectContent>
++                        </Select> : <span className="font-mono font-medium">{mapping.penCode}</span>}
++                      </TableCell>
++                      <TableCell className="text-end font-mono font-medium">{pen ? `${pen.currentHead} / ${pen.capacity}` : "—"}</TableCell>
++                      <TableCell><StatusBadge tone={conflicted ? "bad" : "ok"}><span className="size-1.5 rounded-full bg-current" />{conflicted ? "Conflict retained" : "Assigned"}</StatusBadge></TableCell>
++                      <TableCell className="text-end">{canManage && <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs" aria-pressed={editingLotPenIds.includes(mapping.id)} onClick={() => beginLotPenEdit(mapping.id)}>Reassign</Button>}</TableCell>
++                    </TableRow>;
++                  })}
++                  {draftLotPens.length === 0 && <TableRow><TableCell colSpan={8} className="h-24 text-center text-muted-foreground">No lot-to-pen assignments returned.</TableCell></TableRow>}
++                </TableBody>
++              </Table>
++            </div>
++          </CardContent>
++        </Card>
++
++        <Card>
++          <CardContent className="flex flex-col items-center justify-between gap-4 p-4 sm:flex-row">
++            <div className="text-xs text-muted-foreground">
++              <span>Recent allocation activity:</span> <span className="ml-1 font-medium text-foreground">{isFixture ? fixtureSuccess ? "2025-06-18 10:12 MT" : fixtureActivity.split(" • ")[0] : "Current saved response"}</span> • {isFixture ? fixtureSuccess ? "Allocation changes saved for PO-8841 and lot assignments." : fixtureActivity.split(" • ")[1] : "PO-line and lot-to-pen quantities are returned by the allocation service."}
++              {isFixture && conflictLines.length > 0 && <span className="block text-warning">{conflictLines[0].sourceIdentifier} has {conflictLines[0].allocatedHead} mapped against {conflictLines[0].sourceHead} returned source head.</span>}
++            </div>
++            {renderSaveButtons(true)}
++          </CardContent>
++        </Card>
++      </>}
+     </main>
+   );
+ }
