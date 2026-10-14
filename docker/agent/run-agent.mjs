@@ -6,6 +6,15 @@ import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 // progress for the factory's run trace: the host reads this file while the agent works
 const progress = (p) => { try { appendFileSync("/job/out/progress.jsonl", JSON.stringify({ ts: Date.now(), ...p }) + "\n"); } catch { /* never break the run */ } };
 const short = (s, n = 100) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n - 3) + "..." : s; };
+// the session in full, for the ledger: every command as it was given and what came back, and everything the agent said.
+// progress.jsonl above is the short form the run log shows; this is what answers "what did it actually run, and what did it see?"
+const ENTRY_KEPT = 20_000, TRANSCRIPT_KEPT = 8_000_000;
+let transcribed = 0;
+const cut = (v) => { let s; try { s = typeof v === "string" ? v : JSON.stringify(v ?? ""); } catch { s = String(v); } return s.length > ENTRY_KEPT ? `${s.slice(0, ENTRY_KEPT)}... (${s.length - ENTRY_KEPT} more characters not kept)` : s; };
+const transcript = (e) => {
+  if (transcribed > TRANSCRIPT_KEPT) return;
+  try { const line = JSON.stringify({ ts: Date.now(), ...e }) + "\n"; transcribed += line.length; appendFileSync("/job/out/transcript.jsonl", transcribed > TRANSCRIPT_KEPT ? JSON.stringify({ ts: Date.now(), kind: "cut", note: "the transcript reached its size limit; later entries were not kept" }) + "\n" : line); } catch { /* never break the run */ }
+};
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
 const job = JSON.parse(readFileSync("/job/in.json", "utf8"));
@@ -53,10 +62,12 @@ const hooks = {
         const reason = editDecision(ti.file_path ?? ti.notebook_path);
         if (reason) {
           out.deniedEdits.push(rel(ti.file_path ?? ti.notebook_path));
+          transcript({ kind: "refused", tool, input: cut(ti), why: reason });
           return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } };
         }
       }
       if (tool === "Bash" && /\bgit\b|curl|wget|nc |ssh |dotnet\s+(add|nuget)|npm\s+(i|install|add)\b/.test(String(ti.command ?? ""))) {
+        transcript({ kind: "refused", tool, input: cut(ti), why: "no git, network or package installs" });
         return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "No git, network or package installs here. New packages must be declared in the plan." } };
       }
       return {};
@@ -70,6 +81,7 @@ const hooks = {
       let chars = 0;
       try { chars = typeof r === "string" ? r.length : JSON.stringify(r ?? "").length; } catch { /* size unknown */ }
       progress({ kind: "result", tool: input.tool_name, target: short(rel(ti.file_path ?? ti.notebook_path ?? ti.path ?? "") || ti.command || ti.pattern || ""), chars });
+      transcript({ kind: "call", tool: input.tool_name, input: cut(ti), output: cut(r), chars });
       // this hook runs only for a call that ran (a denied edit never gets here)
       if (EDIT_TOOLS.includes(input.tool_name) || (input.tool_name === "Bash" && WRITING_COMMAND.test(String(ti.command ?? "")))) idleTurns.clear();
       return {};
@@ -91,6 +103,7 @@ async function scripted(script) {
   for (const w of script.writes ?? []) {
     progress({ kind: "tool", tool: "Write", target: rel(w.path) });
     const reason = editDecision(`/work/${w.path}`);
+    transcript(reason ? { kind: "refused", tool: "Write", input: cut({ file_path: rel(w.path) }), why: reason } : { kind: "call", tool: "Write", input: cut({ file_path: rel(w.path), content: w.content }), output: "", chars: 0 });
     if (reason) { out.deniedEdits.push(rel(w.path)); continue; }
     mkdirSync(dirname(`/work/${w.path}`), { recursive: true });
     writeFileSync(`/work/${w.path}`, w.content);
@@ -104,7 +117,7 @@ async function scripted(script) {
 
 async function main() {
   if (job.script) return scripted(job.script);
-  if (job.agent === "codex") return (await import("./run-codex.mjs")).runCodex(job, out, { progress, short, rel });
+  if (job.agent === "codex") return (await import("./run-codex.mjs")).runCodex(job, out, { progress, short, rel, transcript, cut });
   const ctxLimits = job.context ?? {};
   const stop = new AbortController();
   const res = query({
@@ -135,6 +148,7 @@ async function main() {
     if (m.type === "assistant") {
       const u = m.message?.usage ?? {};
       const text = (m.message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text).join(" ");
+      if (text) transcript({ kind: "said", id: m.message?.id, text: cut(text) });
       progress({ kind: "turn", id: m.message?.id, in: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0), out: u.output_tokens ?? 0, cacheRead: u.cache_read_input_tokens ?? 0, cacheWrite: u.cache_creation_input_tokens ?? 0, text: short(text, 160) });
       // too long without changing a file: stopped here, and the core keeps what was written as unfinished work.
       // No SDK total comes after this, so the core counts the spend from the turn lines above.

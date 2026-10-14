@@ -13,7 +13,7 @@ This note lists every fault found, what it cost, its cause, and the fix.
 | 3 | A task's code is wiped after a contract difference | API | 2 of 3 wipes rewrote working code | fixed, not committed |
 | 4 | The contract check rejects correct shared error answers | API | about 24.5 min and $1.00 of $1.08 | fixed, not committed |
 
-Faults 5 to 7 were found by the review of the checks further down and are fixed too. All seven fixes pass type checks and the full suite (2,109 passed, 2 skipped). None has been through a paid run.
+Faults 5 to 8 were found by the review of the checks further down and are fixed too. Faults 1 to 7 passed type checks and the full suite (2,109 passed, 2 skipped). The work after that (the router stand-ins under fault 2, fault 8, and the ledger records in the last section) passed type checks and the test files it touches (24 files, 471 tests); the full suite was not run again. None of it has been through a paid run.
 
 One symptom reported during the runs did not happen: a failing test did not cause a writer's other tests to be written again. On every author-tests retry in both runs the log says "keeping the previous attempt's 4 test files", and one writer edited only the named tests.
 
@@ -88,7 +88,16 @@ Attempt 1 was correct. It was rejected with "not in the contract: GET /api/auth/
 2. The check lists real differences before "not in the contract" lines. Attempt 1's list starts with a "not in the contract" line, so it had no real difference.
 3. Comparing the run's contract with a copy of itself that has the shared answers written out in full gives 53 differences. The first five are word for word those of attempt 1.
 
-The build output of attempt 1 itself is no longer on disk, so the check was not re-run on that exact file.
+4. The ledger keeps the document each build wrote, as an input of the check. Today's check was run again on all four (attempt 3 did not build):
+
+| Attempt | Check then | Check now | Differences now |
+|---|---|---|---|
+| 1 | failed | passes | 0 |
+| 2 | failed | fails | 6 |
+| 4 | failed | fails | 3 |
+| 5 | passed | fails | 13 (error answers declared with no body) |
+
+So attempt 1 was right and was thrown away, attempts 2 and 4 were rightly refused, and attempt 5 was accepted only because it dropped the bodies.
 
 **What it cost.** About 24.5 minutes and $1.00 of the task's $1.08, including the $0.875 attempt on the strong model.
 
@@ -127,14 +136,15 @@ The review sees only failures. A check that wrongly passes leaves no trace in a 
 | 5 | Contract check reads `allOf` around a pointer as "any type" | Proven on run e1b5: `status` is written that way, the API correctly says string, and TASK-2 failed twice on "the contract says any, the API has string". 6 of 11 contracts use the form | fixed |
 | 6 | An error that cannot change on a retry is retried like a model's mistake | `src/stages/executor.ts:411` gives every thrown error the same class as a failed check. 14 attempts in 4 runs repeated an identical error: a design package already approved (d7a6, 5), no container runtime (3c44, 4), a briefing over its size limit (b497, 3), npm install failing (9fcb, 2) | fixed |
 | 7 | The design-scope check refuses a non-functional requirement the spec has | `build.b1-design-scope` (`src/design/gates.ts:147`) counted only the spec's functional requirements as approved. Run c0aa's approved spec has NFR-1, and the plan's set-up task was refused three times for delivering it (about 6.5 minutes), then the plan was accepted anyway. It failed all 3 times it ever ran | fixed |
-
-Likely the same as fault 5, not verified: run e8ef also failed on "the contract says string, the API has any" for three status fields. The API's built document is no longer on disk.
+| 8 | Contract check reads a field given only as a list of allowed values as "any type" | Proven on run e8ef, TASK-1 attempt 4: the build wrote `role` as `{ enum: [...] }` with no type, and the check said "the contract says string, the API has any" | fixed |
 
 **How each was fixed.**
 
 - **5.** `src/gates/contract.ts`: `allOf` around a pointer is read as the type it points at, several `allOf` parts as one object, and `oneOf` or `anyOf` with one real member (the other says only "or null") as that member. Covered by the same test as fault 4.
 - **6.** `src/gates/ladder.ts`: the same thrown error on two attempts in a row stops the run with that error, where it used to move to a stronger model. A first occurrence is still retried once, since an install or a network call can recover. A briefing over its size limit already stopped at once. Test in `src/gates/gates.test.ts`.
 - **7.** `src/design/gates.ts`: the spec's non-functional requirements count as approved. A requirement the spec does not have is still refused, and so is a task that delivers none. Test in `src/design/design.test.ts`.
+
+- **8.** `src/gates/contract.ts`: a field with allowed values and no type is read as the type of those values (text, whole number, number or yes/no). Values of another type are still a difference; mixed values are still "any". Test in `src/gates/contract.test.ts`. Run again on run e8ef's stored documents, no "any" line is left.
 
 ### Found in the ledgers, already fixed before this review
 
@@ -156,3 +166,29 @@ The spec anchor rule, plan coverage, test compile errors, the design layout chec
 
 - The estimate checks and the merge gate: they have no failures in these ledgers to replay.
 - Checks that pass when they should fail, beyond the one found.
+
+## What the ledger records now
+
+Reading these two runs meant joining four files by hand, and some answers were not in any of them. Six changes, so a later run can be read from its ledger alone. None changes what a check decides or what a retry does.
+
+| # | Gap | Now |
+|---|---|---|
+| 1 | A check result did not say which attempt it belonged to, and kept 500 characters of its detail | `gate.result` carries `attempt`, 4,000 characters of detail, the number of failures, how long it took, and `result`: the name of the file with the whole result |
+| 2 | An attempt's story was spread over events, the trace and the run log | One `attempt.summary` event when an attempt ends, however it ends (passed, retried, parked, waiting, went back, closed) |
+| 3 | A retry said "Retrying with the failures" and no more | `step.failed` carries `ladder`: which rule decided, attempts used and allowed, attempts on this rung, whether the failure or the change was the same as before, stronger rungs left, the next rung. A park, a close and a step going back record their reason on the step's own event |
+| 4 | A check that passed gave no figures; a check that did not run left no record | The contract check records how many operations it compared and how many it left out as not built yet. A check that did not run on a coding attempt is a `gate.skipped` event with its reason |
+| 5 | A failed build kept no log (.NET) or 40 lines (Node); the agent's commands were cut to 100 characters and their output was not kept | A failed restore or build keeps its whole log. The agent writes its whole session to a file (each command as given, what came back, what it said, each refused edit), stored in the ledger as `agent.transcript` |
+| 6 | No command told the story | `factory explain <run> [step]` |
+
+**The attempt summary** (`src/stages/attempt-summary.ts`) holds: step, attempt, rung and model; how it ended; total time and time by part (agent, model, build, tests, checks); cost and tokens by model; every check with its result, or the reason it did not run; whether the last attempt's code or tests were kept or wiped, and why; the failure's kind and signature; the retry decision with its rule; the park reason or the card; and every file the attempt left in the ledger, by name.
+
+**`factory explain`** (`src/cli/explain.ts`) prints that per attempt. `--full` prints every check's whole detail and every file. It reads the raw events, so it works on older runs too, with less to say: no time split, no skipped checks, no retry rule. Tried on run e8ef, read-only.
+
+**Limits.**
+
+- The time by part is the time between two lines of the run log, counted to the earlier line. It is close, not exact.
+- Skipped checks are recorded for a coding task. Other steps run all their checks or none.
+- The agent's session file needs the agent image built again; a run on the old image keeps the short form only. One entry keeps 20,000 characters, one session 8 MB. The file is masked for secrets like every other stored file.
+- An attempt cut off by a crash leaves no summary; `factory explain` shows it from the raw events.
+
+**Tests.** `src/stages/attempt-summary.test.ts` (the summary, the time split, the explain output, an older run), `src/gates/gates.test.ts` (the check record, the skipped check, the retry rule for every decision), `src/stages/e2e.test.ts` (a run that parks on a safety check: one summary per attempt, the skipped checks, the rule; a contract failure: the figures; a retry on kept code: the note).

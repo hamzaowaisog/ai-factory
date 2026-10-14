@@ -703,6 +703,21 @@ describe("brownfield slice end to end (fakes)", () => {
     const r = await execute(runId);
     expect(r.status).toBe("parked");
     expect(r.message).toMatch(/Safety check failed twice/);
+    // every attempt left one summary, and the checks its refused change never reached are on record with the reason
+    const events = ledger.events();
+    const sums = events.filter((e) => e.type === "attempt.summary" && e.key?.startsWith("implement/TASK-1/")).map((e) => e.data as { attempt: number; result: string; checks: { gateId: string; passed: boolean }[]; skipped: { gateId: string; reason: string }[]; decision: { action: string; ladder?: { rule: string } }; parked?: string; ms: number });
+    expect(sums.map((x) => [x.attempt, x.result])).toEqual([[1, "retry"], [2, "parked"]]);
+    expect(sums[0]!.checks.find((c) => !c.passed)?.gateId).toBe("task.lock-set-unchanged");
+    expect(sums[0]!.skipped.find((k) => k.gateId === "tests.expectations")?.reason).toMatch(/the change itself was refused first \(.*\), so the code was not built or run/);
+    expect(sums[0]!.decision).toMatchObject({ action: "retry", ladder: { rule: "safety", attempts: 1 } });
+    expect(sums[1]!).toMatchObject({ decision: { action: "park", ladder: { rule: "safety", attempts: 2 } }, parked: expect.stringMatching(/Safety check failed twice/) });
+    // each check result says which attempt it belongs to
+    expect(events.filter((e) => e.type === "gate.result" && (e.data as { step?: string }).step === "implement/TASK-1").map((e) => (e.data as { attempt?: number }).attempt)).toEqual(expect.arrayContaining([1, 2]));
+    // a step that passed has its summary too, and the summaries change nothing a re-check or a replay reads
+    expect(events.some((e) => e.type === "attempt.summary" && e.key === "author-tests/1" && (e.data as { result: string }).result === "passed")).toBe(true);
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+    const { explainRun } = await import("../cli/explain.js");
+    expect(explainRun(events, { step: "implement/TASK-1" })).toMatch(/attempt 2 .*→ {2}PARKED[\s\S]*rule: a safety check failed\. Attempts 2 of/);
   });
 
   it("a rejection revises the spec and plan and shows a new card; a second rejection parks", async () => {
@@ -1052,6 +1067,10 @@ describe("a .NET API held to a locked API contract (fakes)", () => {
     expect(s.gates.some((g) => g.gateId === "contract.matches" && !g.passed)).toBe(true);
     expect(s.steps.get("implement/TASK-1")?.status).not.toBe("completed");
     expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/The API does not match the locked contract: missing in the API: GET \/api\/appointments\/today 200 body\[\]\.patient/);
+    // the check's record says how much it compared, and names the attempt
+    const failed = ledger.events().find((e) => e.type === "gate.result" && (e.data as { gateId?: string }).gateId === "contract.matches" && !(e.data as { passed?: boolean }).passed)!;
+    expect(failed.data).toMatchObject({ attempt: 1, facts: { operationsInContract: expect.any(Number), operationsInApi: expect.any(Number), differences: expect.any(Number), partial: true } });
+    expect((failed.data as { facts: { differences: number } }).facts.differences).toBeGreaterThan(0);
   });
 
   it("a build that writes no document fails the gate plainly", async () => {
@@ -1144,6 +1163,10 @@ describe("implement loop across tasks (fakes)", () => {
     // the last task's run already required every task's locked test: integrate reuses it
     expect(s.steps.get("integrate")!.data).toMatchObject({ reusedRunFrom: "implement/TASK-3" });
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+    // the summary of a retry says whether the last attempt's code was kept, and why
+    const kept = ledger.events().filter((e) => e.type === "attempt.summary" && e.key?.startsWith("implement/TASK-3/")).map((e) => e.data as { attempt: number; result: string; notes?: Record<string, string> });
+    expect(kept[0]).toMatchObject({ attempt: 1, result: "retry" });
+    expect(kept[1]).toMatchObject({ attempt: 2, result: "passed", notes: { previousCode: "kept", previousCodeWhy: expect.stringMatching(/failed only on locked-failed/) } });
   }, 30_000);
 
   it("a plan built in layers: a task that cannot reach its own test hands it to the last task, without parking or another paid attempt", async () => {

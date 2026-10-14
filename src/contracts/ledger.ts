@@ -19,6 +19,11 @@ export const EventType = z.enum([
   // the plan's stubs did not build on the code the stub commit writes under them (a scaffold, a new product): the plan is
   // patched and approved again before any test is written
   "plan.refused",
+  // a check that did not run on an attempt, and why
+  "gate.skipped",
+  // one per attempt of a step, written when it ends (passed, failed, parked, waiting): what ran, what each check said, what
+  // the retry rules decided and on what, and every file the attempt left in the ledger, by name
+  "attempt.summary",
 ]);
 export type EventType = z.infer<typeof EventType>;
 
@@ -44,6 +49,8 @@ export const GateResult = z.object({
   passed: z.boolean(),
   details: z.string(),
   failures: z.array(Failure).optional(),
+  /** figures about what the check looked at (operations compared, tests counted) */
+  facts: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   /** safety failures can't be waived and take rung 1 of the ladder */
   safety: z.boolean().default(false),
   inputsHash: Sha,

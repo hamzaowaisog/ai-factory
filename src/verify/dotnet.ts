@@ -21,6 +21,9 @@ import { parseTrx } from "./trx.js";
 import { parseBuildWarnings } from "./warnings.js";
 import { buildTestRun, type Expectations, markFlaky, needsProbe, rerunCandidates } from "./validate.js";
 
+/** How much of a failed restore or build log the ledger keeps (characters, from the end): in practice all of it. */
+export const LOG_KEPT = 1_000_000;
+
 export interface ProduceInput {
   runId: string;
   key: string;                 // step key, for container labels
@@ -313,7 +316,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget" }], cmd: ["dotnet", "restore", ...sln],
       });
       const rCode = await rt.wait(r, project.dotnet.buildTimeoutSec * 1000);
-      phase("restore", `lab: restore ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tRestore)})`, rCode === 0 ? undefined : { logTail: (await rt.logs(r)).split("\n").slice(-40).join("\n") });
+      phase("restore", `lab: restore ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tRestore)})`, rCode === 0 ? undefined : { logTail: (await rt.logs(r)).slice(-LOG_KEPT) });
       logs.restore = await rt.logs(r);
       await finish(r);
       // a backend with EF Core migrations: fetch the tool that runs them, once per packages folder, for the schema read below
@@ -343,9 +346,11 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         });
         const tBuild = Date.now();
         const bCode = await rt.wait(b, project.dotnet.buildTimeoutSec * 1000);
-        phase("build", `lab: build ${bCode === 0 ? "ok" : `FAILED (exit ${bCode ?? "timeout"})`} (${secs(tBuild)})`);
+        const builtIn = secs(tBuild);
         await rt.stop(b); // stop before read
         logs.build = await rt.logs(b);
+        // a failed build keeps its whole output in the ledger: the parsed errors are what the next attempt is told, the log is the proof
+        phase("build", `lab: build ${bCode === 0 ? "ok" : `FAILED (exit ${bCode ?? "timeout"})`} (${builtIn})`, bCode === 0 ? undefined : { logTail: logs.build.slice(-LOG_KEPT) });
         await finish(b);
         build = { kind: "build", ok: bCode === 0, errors: parseBuildErrors(logs.build) };
         lint = { kind: "lint", tool: "dotnet-build", version: toolVersions["dotnet"] ?? "unknown", findings: parseBuildWarnings(logs.build) };

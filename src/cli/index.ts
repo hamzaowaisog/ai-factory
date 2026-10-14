@@ -488,6 +488,14 @@ program.command("logs").argument("<run>")
     }
   });
 
+program.command("explain").argument("<run>").argument("[step]", "one step, e.g. author-tests or implement/TASK-1 (implement: every task)")
+  .option("--full", "every check's whole detail and every file of each attempt")
+  .description("each attempt of each step: what ran, what every check said or why it did not run, why it was retried, parked or passed, and where its files are")
+  .action(async (run: string, step: string | undefined, o: { full?: boolean }) => {
+    const { explainRun } = await import("./explain.js");
+    log(explainRun(openRun(run).events(), { step, full: o.full }));
+  });
+
 program.command("report").argument("[run]")
   .option("--all", "compare steps across all runs, with outcome numbers on top")
   .option("--json", "with --all: print {outcomes, stages} as JSON; with --cost: the cost report as JSON")

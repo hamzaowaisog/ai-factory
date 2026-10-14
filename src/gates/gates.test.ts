@@ -7,7 +7,7 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { matchesAny } from "../util/glob.js";
 import {
   DEFAULT_POLICY, configIntegrity, diffInScope, evaluate, failsOnBase, isBlocking, isConfigIntegrityPath,
-  isSecretPath, lockSetUnchanged, mergePolicy, nextOnFailure, noEscapeHatches, planChecks, runGate,
+  isSecretPath, ladderFacts, lockSetUnchanged, mergePolicy, nextOnFailure, noEscapeHatches, planChecks, runGate, skipGate,
   testExpectations, verifyEvidence, type AttemptRecord, type DiffSummary, type LadderOptions, RUNGS,
 } from "./index.js";
 
@@ -209,6 +209,25 @@ describe("failure ladder", () => {
   });
   const a = (over: Partial<AttemptRecord>): AttemptRecord => ({ category: "other", signature: "s", rung: 0, ...over });
 
+  it("says which rule decided and what it looked at, for every decision it makes", () => {
+    expect(ladderFacts([a({})], opts())).toMatchObject({ rule: "retry", attempts: 1, maxAttempts: 6, rung: 0, attemptsAtRung: 1, attemptsPerRung: 2, sameSignature: false, sameDiff: false, nextRung: 0 });
+    expect(ladderFacts([a({}), a({})], opts())).toMatchObject({ rule: "same-failure", attempts: 2, sameSignature: true, nextRung: 1 });
+    expect(ladderFacts([a({ signature: "x" }), a({ signature: "y" })], opts())).toMatchObject({ rule: "rung-used", sameSignature: false, attemptsAtRung: 2, nextRung: 1 });
+    expect(ladderFacts([a({ signature: "x", diffSha: "d" }), a({ signature: "y", diffSha: "d" })], opts())).toMatchObject({ sameDiff: true });
+    const boom = a({ signature: "exception:No usable container runtime" });
+    expect(ladderFacts([boom, boom], opts())).toMatchObject({ rule: "same-error" });
+    expect(ladderFacts([boom, boom], opts()).nextRung).toBeUndefined();
+    expect(ladderFacts([a({ category: "safety" }), a({ category: "safety" })], opts())).toMatchObject({ rule: "safety" });
+    expect(ladderFacts([a({ category: "rate-limit" })], opts())).toMatchObject({ rule: "rate-limit", attempts: 0 });
+    expect(ladderFacts(Array.from({ length: 6 }, (_, i) => a({ signature: `s${i}`, rung: Math.floor(i / 2) })), opts())).toMatchObject({ rule: "attempts-used", attempts: 6 });
+    const locked = [a({ category: "locked-test", lockedFailedIds: ["T::A"] }), a({ category: "locked-test", lockedFailedIds: ["T::A"], signature: "t" })];
+    expect(ladderFacts(locked, opts())).toMatchObject({ rule: "same-locked-test" });
+    // one model and nothing above it: no rung left to move to
+    expect(ladderFacts([a({})], opts({ availableRungs: new Set(["retry"]) }))).toMatchObject({ rungsAvailable: ["retry"], rungsLeft: 0 });
+    // the facts never change the decision
+    for (const h of [[a({})], [a({}), a({})], [boom, boom], locked]) expect(nextOnFailure(h, opts())).toEqual(nextOnFailure(h, opts()));
+  });
+
   it("parks on the same thrown error twice, where a failed check would move to a stronger model", () => {
     const boom = a({ signature: "exception:No usable container runtime" });
     expect(nextOnFailure([boom], opts()).action).toBe("retry");
@@ -255,5 +274,28 @@ describe("recorded gates can be re-checked", () => {
     expect(verifyEvidence(l).every((c) => c.ok)).toBe(true);
     writeFileSync(join(l.artifactsDir, d), JSON.stringify(diff([{ path: "src/B.cs" }])));
     expect(verifyEvidence(l).some((c) => !c.ok)).toBe(true);
+  });
+
+  it("a check's record names its attempt, keeps its detail and points at the whole result; a check that did not run is recorded with its reason", async () => {
+    const l = Ledger.create("run-g2");
+    await l.append({ type: "run.created", data: { mode: "brownfield", project: "p" } }, HUMAN_WRITER);
+    await l.append({ type: "step.started", key: "implement/TASK-1/1" }, HUMAN_WRITER);
+    await l.append({ type: "step.started", key: "implement/TASK-1/2" }, HUMAN_WRITER);
+    // a change far outside the task's files
+    const paths = Array.from({ length: 40 }, (_, i) => `src/Somewhere/Deep/Folder/File${i}.cs`);
+    const d = l.putJson(diff(paths.map((path) => ({ path }))));
+    const r = await runGate(diffInScope, l, HUMAN_WRITER, { diff: d, task: l.putJson({ fileScope: ["src/A.cs"] }) }, DEFAULT_POLICY, { step: "implement/TASK-1" });
+    expect(r.passed).toBe(false);
+    const ev = l.events().find((e) => e.type === "gate.result")!;
+    expect(ev.data).toMatchObject({ gateId: diffInScope.id, step: "implement/TASK-1", attempt: 2, passed: false, result: ev.outputs![0], failureCount: r.failures?.length ?? 0 });
+    expect((ev.data as { details: string }).details).toBe(r.details.slice(0, 4000));
+    expect(l.getJson<{ details: string }>(ev.outputs![0]!).details).toBe(r.details);
+    expect(typeof (ev.data as { ms: number }).ms).toBe("number");
+    // the richer record changes nothing a re-check reads
+    expect(verifyEvidence(l).every((c) => c.ok)).toBe(true);
+
+    await skipGate(testExpectations, l, HUMAN_WRITER, { step: "implement/TASK-1" }, "the change itself was refused first");
+    expect(l.events().find((e) => e.type === "gate.skipped")!.data).toEqual({ gateId: testExpectations.id, step: "implement/TASK-1", attempt: 2, reason: "the change itself was refused first" });
+    expect(verifyEvidence(l).every((c) => c.ok)).toBe(true);
   });
 });

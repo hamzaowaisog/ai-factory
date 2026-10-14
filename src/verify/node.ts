@@ -8,7 +8,7 @@ import type { BuildRun, TestResult } from "../contracts/index.js";
 import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { FEED_PROXY_URL, FEEDS_NET } from "../runners/netinfra.js";
-import { copyDir, copyTree, hostUser, saveBuild, splitCurl, type AcceptResult, type ProduceInput, type ProduceOutput } from "./dotnet.js";
+import { copyDir, copyTree, hostUser, LOG_KEPT, saveBuild, splitCurl, type AcceptResult, type ProduceInput, type ProduceOutput } from "./dotnet.js";
 import { type ContainerSpec, stopAndRemove } from "./runtime.js";
 import { buildTestRun, markFlaky, rerunCandidates, type Expectations } from "./validate.js";
 import { isLoadError, loadFailures, parseVitestJson, titleOf, titlePattern } from "./vitest.js";
@@ -105,7 +105,7 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
     });
     const rCode = await rt.wait(r, project.node.buildTimeoutSec * 1000);
     logs.restore = await rt.logs(r);
-    phase("restore", `lab: npm install ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tInstall)})`, rCode === 0 ? undefined : { logTail: logs.restore.split("\n").slice(-40).join("\n") });
+    phase("restore", `lab: npm install ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tInstall)})`, rCode === 0 ? undefined : { logTail: logs.restore.slice(-LOG_KEPT) });
     await finish(r);
     const installFailed: BuildRun = { kind: "build", ok: false, errors: [{ file: "package.json", line: 0, code: "RESTORE", msg: `npm install failed (exit ${rCode ?? "timeout"})` }] };
     if (inp.restoreOnly) return failedRun(rCode === 0 ? { kind: "build", ok: true, errors: [] } : installFailed, toolVersions, rCode === 0 ? 0 : 1);
@@ -118,7 +118,7 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
     await rt.stop(b);
     logs.build = await rt.logs(b);
     await finish(b);
-    phase("build", `lab: build ${bCode === 0 ? "ok" : `FAILED (exit ${bCode ?? "timeout"})`} (${secs(tBuild)})`, bCode === 0 ? undefined : { logTail: logs.build.split("\n").slice(-40).join("\n") });
+    phase("build", `lab: build ${bCode === 0 ? "ok" : `FAILED (exit ${bCode ?? "timeout"})`} (${secs(tBuild)})`, bCode === 0 ? undefined : { logTail: logs.build.slice(-LOG_KEPT) });
     if (bCode !== 0) {
       const errors = parseNodeBuildErrors(logs.build);
       return failedRun({ kind: "build", ok: false, errors: errors.length ? errors : [{ file: "", line: 0, code: "BUILD", msg: `npm run build failed (exit ${bCode ?? "timeout"}): ${logs.build.split("\n").filter(Boolean).slice(-3).join(" ").slice(0, 400)}` }] }, toolVersions);

@@ -59,7 +59,7 @@ export function agentDatabase(project: Pick<ProjectConfig, "stack" | "database">
 }
 
 /** `result`: what a tool call returned, in characters. `compact`: the session's context was summarised (`pre` = tokens before). */
-export interface AgentProgress { ts: number; kind: "start" | "tool" | "result" | "compact" | "turn" | "end"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string; chars?: number; pre?: number; trigger?: string }
+export interface AgentProgress { ts: number; kind: "start" | "tool" | "result" | "compact" | "turn" | "end" | /** the whole session, read from transcript.jsonl when it ends (`text`) */ "transcript"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string; chars?: number; pre?: number; trigger?: string }
 
 /**
  * Spend from the per-turn lines when the agent left no SDK total (timeout, crash): tokens summed,
@@ -289,6 +289,11 @@ export class ClaudeAgentRunner implements Runner {
       }
       await this.rt.stop(id, 5); // kills leftover processes before the core commits
       await settle(progressFile);
+      // the session in full (every command as given, what came back, what the agent said), before the job folder goes
+      const transcriptFile = join(outDir, "transcript.jsonl");
+      if (x.onProgress && existsSync(transcriptFile)) {
+        try { x.onProgress({ ts: Date.now(), kind: "transcript", text: readFileSync(transcriptFile, "utf8") }); } catch { /* the trace never breaks a run */ }
+      }
       const resultPath = join(outDir, "result.json");
       // no SDK total (timeout, crash): count the spend from the per-turn lines before the folder goes
       const fromProgress = (): Usage => ({ ...usageFromProgress(progressFile, job.model), wallMs: Date.now() - started });

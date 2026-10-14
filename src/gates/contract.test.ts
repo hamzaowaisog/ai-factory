@@ -119,6 +119,24 @@ describe("the locked API contract", () => {
     expect(contractDiff(shared, nullable)).toEqual([]);
   });
 
+  it("reads a field given only as a list of allowed values as the type of those values (run e8ef, TASK-1 attempt 4)", () => {
+    // a .NET enum field comes out of the build as { enum: [...] } with no type; the contract says string
+    const listed = built();
+    listed.components.schemas.Appointment.properties.status = { enum: ["Confirmed", "Cancelled"] };
+    expect(contractDiff(contract, listed)).toEqual([]);
+    // values of another type are still a difference, and a list of mixed types is no type at all
+    const numbers = built();
+    numbers.components.schemas.Appointment.properties.status = { enum: [0, 1] };
+    expect(contractDiff(contract, numbers)).toEqual(["GET /api/appointments/today 200 body[].status: the contract says string, the API has integer"]);
+    const mixed = built();
+    mixed.components.schemas.Appointment.properties.status = { enum: ["Confirmed", 1] };
+    expect(contractDiff(contract, mixed)).toEqual(["GET /api/appointments/today 200 body[].status: the contract says string, the API has any"]);
+  });
+
+  it("says how much it compared, so a pass can be told from a pass on nothing", () => {
+    expect(gate(builtText)).toMatchObject({ passed: true, facts: { operationsInContract: 2, operationsInApi: 2, differences: 0, partial: false } });
+  });
+
   it("fails plainly when the build wrote no document", () => {
     expect(gate(undefined)).toMatchObject({ passed: false, details: expect.stringMatching(/did not write the API's OpenAPI document at Api\/openapi\/built\.json/) });
   });

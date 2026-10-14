@@ -45,6 +45,47 @@ function nextAvailable(from: number, avail: Set<Rung>, modelSteps = 1): number |
   return undefined;
 }
 
+/** Which rule of the ladder decided, in the order they are checked. */
+export type LadderRule = "rate-limit" | "attempts-used" | "safety" | "same-locked-test" | "same-error" | "same-failure" | "rung-used" | "retry";
+
+/** What the ladder looked at when it decided, for the ledger: a retry that cannot be explained cannot be fixed. */
+export interface LadderFacts {
+  rule: LadderRule;
+  /** attempts that count (a rate limit does not), this one included, and the most allowed */
+  attempts: number; maxAttempts: number;
+  /** the rung this attempt ran at, how many attempts ran there, and how many a rung gets */
+  rung: number; rungKind?: Rung; attemptsAtRung: number; attemptsPerRung: number;
+  /** the failure is the same as the attempt before; the change is the same as the attempt before */
+  sameSignature: boolean; sameDiff: boolean;
+  /** the rungs this step has (a project with one model has no stronger one), and those above this one */
+  rungsAvailable: Rung[]; rungsLeft: number;
+  /** the rung the next attempt runs at, when there is one */
+  nextRung?: number; nextRungKind?: Rung;
+}
+
+/** The facts behind nextOnFailure's decision on the same inputs. */
+export function ladderFacts(history: AttemptRecord[], o: LadderOptions): LadderFacts {
+  const last = history[history.length - 1]!, prev = history[history.length - 2];
+  const counted = history.filter((h) => h.category !== "rate-limit");
+  const action = nextOnFailure(history, o);
+  const sameSignature = !!prev && prev.signature === last.signature, sameDiff = !!prev && !!last.diffSha && prev.diffSha === last.diffSha;
+  const attemptsAtRung = counted.filter((h) => h.rung === last.rung).length;
+  const rule: LadderRule = last.category === "rate-limit" ? "rate-limit"
+    : counted.length >= o.maxAttempts ? "attempts-used"
+    : last.category === "safety" ? "safety"
+    : action.action === "a5-check" ? "same-locked-test"
+    : sameSignature && last.signature.startsWith("exception:") ? "same-error"
+    : sameSignature || sameDiff ? "same-failure"
+    : attemptsAtRung >= o.attemptsPerRung ? "rung-used" : "retry";
+  let rungsLeft = 0;
+  for (let r = last.rung + 1; rungKind(r, o.modelSteps); r++) if (o.availableRungs.has(rungKind(r, o.modelSteps)!)) rungsLeft++;
+  return {
+    rule, attempts: counted.length, maxAttempts: o.maxAttempts, rung: last.rung, rungKind: rungKind(last.rung, o.modelSteps), attemptsAtRung, attemptsPerRung: o.attemptsPerRung,
+    sameSignature, sameDiff, rungsAvailable: RUNGS.filter((r) => o.availableRungs.has(r)), rungsLeft,
+    ...(action.action === "retry" ? { nextRung: action.rung, nextRungKind: rungKind(action.rung, o.modelSteps) } : {}),
+  };
+}
+
 /** Decide what to do after the latest failed attempt. `history` is oldest first and counted attempts only. */
 export function nextOnFailure(history: AttemptRecord[], o: LadderOptions): LadderAction {
   const last = history[history.length - 1];
