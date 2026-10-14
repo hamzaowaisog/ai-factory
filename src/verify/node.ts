@@ -2,7 +2,7 @@
 // copy → install (npm registry only, through the feed proxy, no install scripts) → build (no network) → vitest (no network)
 // → stop everything → read the JSON report. Accept starts the built app (npm start, or vite preview) and sends the probes.
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import type { BuildRun, TestResult } from "../contracts/index.js";
 import { sha256 } from "../util/hash.js";
@@ -96,8 +96,19 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
       return failedRun({ kind: "build", ok: false, errors: [{ file: "package.json", line: 0, code: "NO-APP", msg: "the repo has no package.json at its root" }] }, toolVersions);
     }
 
-    // install: only the npm registry, through the feed proxy; install scripts never run
+    // install: only the npm registry, through the feed proxy; install scripts never run. Package files this run already
+    // installed (every task keeps them: run ae5c installed the same packages 13 times, 35 to 48 s each) are copied in instead.
     const tInstall = Date.now();
+    const installed = !inp.restoreOnly && inp.buildCache ? join(inp.buildCache, "installs", sha256(JSON.stringify([packageFilesKey(src), project.node.image])).slice(0, 24)) : undefined;
+    if (installed && existsSync(join(installed, "node_modules"))) {
+      try {
+        copyDir(join(installed, "node_modules"), join(src, "node_modules"));
+        utimesSync(installed, new Date(), new Date());
+        phase("restore", `lab: reused the npm install of these package files (${secs(tInstall)})`);
+      } catch { rmSync(join(src, "node_modules"), { recursive: true, force: true }); }
+    }
+    const fresh = !existsSync(join(src, "node_modules"));
+    if (fresh) {
     const r = await launch({
       role: "restore", image: project.node.image, network: FEEDS_NET, workdir: "/src",
       env: { ...NODE_ENV, HTTPS_PROXY: FEED_PROXY_URL, HTTP_PROXY: FEED_PROXY_URL },
@@ -110,6 +121,8 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
     const installFailed: BuildRun = { kind: "build", ok: false, errors: [{ file: "package.json", line: 0, code: "RESTORE", msg: `npm install failed (exit ${rCode ?? "timeout"})` }] };
     if (inp.restoreOnly) return failedRun(rCode === 0 ? { kind: "build", ok: true, errors: [] } : installFailed, toolVersions, rCode === 0 ? 0 : 1);
     if (rCode !== 0) return failedRun(installFailed, toolVersions);
+    if (installed) saveInstall(join(src, "node_modules"), installed);
+    }
 
     // build, no network (a package with no build script builds nothing)
     const tBuild = Date.now();
@@ -258,4 +271,29 @@ async function bootAndProbe(
     },
     probes,
   };
+}
+
+/** The package files an install is made from: the same text, the same node_modules. */
+export function packageFilesKey(dir: string): string {
+  const read = (f: string) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8") : "");
+  return sha256(`package.json\n${read("package.json")}\npackage-lock.json\n${read("package-lock.json")}`);
+}
+
+/** Save a good install under its package files' key (written to a side folder first, so a half copy is never reused). */
+function saveInstall(nodeModules: string, dest: string): void {
+  if (existsSync(dest)) return;
+  const tmp = `${dest}.partial-${randomBytes(3).toString("hex")}`;
+  try {
+    copyDir(nodeModules, join(tmp, "node_modules"));
+    renameSync(tmp, dest);
+    pruneInstalls(join(dest, ".."), 2);
+  } catch { rmSync(tmp, { recursive: true, force: true }); }
+}
+
+/** Keep the `keep` most recently used saved installs of a run; a task that changes the package files makes a new one. */
+function pruneInstalls(dir: string, keep: number): void {
+  try {
+    const all = readdirSync(dir).map((n) => join(dir, n)).filter((p) => !p.includes(".partial-")).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+    for (const old of all.slice(keep)) rmSync(old, { recursive: true, force: true });
+  } catch { /* a saved install that cannot be pruned only costs disk */ }
 }

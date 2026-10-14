@@ -246,7 +246,13 @@ export const planStep: StepDef = {
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. The stubs are built as they are, on the untouched code, before anything is implemented: a stub may only use types the repo already has or that another stub declares (an interface the endpoint classes share is a stub of its own). Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
 ${outsideSystemsPlanRule(ctx.project.stack)}
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
-- newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.`),
+- newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.
+
+BEFORE YOU ANSWER, check the plan against what the factory checks it with (a plan that fails one is sent back):
+- Every requirement is in some task's reqs: ${[...spec.requirements.map((r) => r.id), ...(approvedDesign ? (spec.nfrs ?? []).map((n) => n.id) : [])].join(", ")}${approvedDesign ? ".\n- Every task delivers at least one of those ids, and only those (a set-up or design-system task lists the requirement whose screens it first makes work)." : "."}
+- No two tasks share a file, and no glob of one task matches a file of another.
+- dependsOn names only tasks that come earlier in the list.
+- At least 2 options, the chosen one among them, and a decision record.`),
       S.profile("repomap", `Repository map:\n${map}`),
       S.artifact("spec", "spec", spec),
       S.artifact("cb", "current-behaviour", cb),
