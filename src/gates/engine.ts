@@ -6,7 +6,8 @@ import { hashJson } from "../util/hash.js";
 import type { Ledger, Writer } from "../ledger/ledger.js";
 import type { Policy } from "./policy.js";
 
-export interface Verdict { passed: boolean; details: string; failures?: Failure[] }
+/** `facts`: figures about what the check looked at (how many operations, tests, files), recorded with its result. */
+export interface Verdict { passed: boolean; details: string; failures?: Failure[]; facts?: Record<string, string | number | boolean> }
 
 export interface GateDef<I = any> {
   id: string;
@@ -50,6 +51,7 @@ export function evaluate(def: GateDef, ledger: Ledger, inputs: GateInputs, polic
     passed: verdict.passed,
     details: verdict.details,
     failures: verdict.failures,
+    ...(verdict.facts ? { facts: verdict.facts } : {}),
     safety: def.safety,
     inputsHash: gateInputsHash(def.id, inputs, policy),
     treeSha,
@@ -61,6 +63,7 @@ export async function runGate(
   def: GateDef, ledger: Ledger, writer: Writer, inputs: GateInputs, policy: Policy,
   ctx: { step: string; treeSha?: string },
 ): Promise<GateResult> {
+  const t0 = Date.now();
   const result = evaluate(def, ledger, inputs, policy, ctx.treeSha);
   const policySha = ledger.putJson(policy);
   const resultSha = ledger.putJson(result);
@@ -70,9 +73,37 @@ export async function runGate(
     inputsHash: result.inputsHash,
     treeSha: ctx.treeSha,
     outputs: [resultSha],
-    data: { gateId: def.id, passed: result.passed, safety: def.safety, step: ctx.step, inputs, policySha, details: result.details.slice(0, 500) },
+    // `result` is the whole result as a file (every failure, uncut); `details` is its first lines, for reading the ledger by eye
+    data: {
+      gateId: def.id, passed: result.passed, safety: def.safety, step: ctx.step, ...attemptOf(ledger, ctx.step), inputs, policySha, result: resultSha,
+      details: result.details.slice(0, DETAILS_KEPT), failureCount: result.failures?.length ?? 0, ...(result.facts ? { facts: result.facts } : {}), ms: Date.now() - t0,
+    },
   }, writer);
   return result;
+}
+
+/** How much of a check's one-line detail an event keeps (the whole result is always in its `result` file). */
+export const DETAILS_KEPT = 4000;
+
+/** The attempt of `step` that is running: its last `step.started` (keys are `<step>/<n>`). None for a check outside a step. */
+function attemptOf(ledger: Ledger, step: string): { attempt?: number } {
+  const events = ledger.events();
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i]!;
+    if (e.type !== "step.started" || !e.key?.startsWith(`${step}/`)) continue;
+    const n = Number(e.key.slice(step.length + 1));
+    if (Number.isInteger(n)) return { attempt: n };
+  }
+  return {};
+}
+
+/**
+ * A check that did not run on this attempt, and why: without it a ledger cannot tell "not applicable" from "forgotten".
+ * It decides nothing; `factory explain` lists it beside the checks that ran.
+ */
+export async function skipGate(def: GateDef | string, ledger: Ledger, writer: Writer, ctx: { step: string; treeSha?: string }, reason: string): Promise<void> {
+  const gateId = typeof def === "string" ? def : def.id;
+  await ledger.append({ type: "gate.skipped", key: ctx.step, treeSha: ctx.treeSha, data: { gateId, step: ctx.step, ...attemptOf(ledger, ctx.step), reason } }, writer);
 }
 
 export interface EvidenceCheck { gateId: string; seq: number; ok: boolean; reason?: string }

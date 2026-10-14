@@ -74,6 +74,8 @@ export interface StepContext {
   /** failures from the previous attempt of this step (failures.json) */
   priorFailures: Failure[];
   log: (msg: string) => void;
+  /** a fact about this attempt for its summary in the ledger (the last attempt's work was kept or wiped, and why) */
+  note?: (name: string, value: string | number | boolean) => void;
   /** the run trace (model turns, tool calls, container phases); see src/util/trace.ts */
   trace: Trace;
   /** record model usage as it happens */

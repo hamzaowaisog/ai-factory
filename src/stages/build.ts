@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult, TestRun } from "../contracts/index.js";
 import { scanText } from "../context/secrets.js";
-import { failure, runGate, type GateDef } from "../gates/engine.js";
+import { failure, runGate, skipGate, type GateDef } from "../gates/engine.js";
 import {
   configIntegrity, diffInScope, diffSize, ESCAPE_HATCHES, failsOnBase, lockSetUnchanged, noEscapeHatches, noSecrets, testExpectations,
   type DiffSummary,
@@ -282,6 +282,10 @@ export function agentTracer(ctx: Pick<StepContext, "trace">, who: string) {
     } else if (p.kind === "compact") {
       compactions++;
       ctx.trace.event("agent.compact", `${who}: context summarised${p.pre ? ` at ${Math.round(p.pre / 1000)}K tokens` : ""}`, { pre: p.pre, trigger: p.trigger });
+    } else if (p.kind === "transcript") {
+      // stored masked, like every blob: the commands the agent ran, in full, and what each gave back
+      const sha = p.text ? ctx.trace.blob(p.text) : undefined;
+      if (sha) ctx.trace.event("agent.transcript", `${who}: full session kept (${p.text!.split("\n").filter(Boolean).length} entries; file ${sha.slice(0, 8)})`, { transcriptSha: sha });
     } else if (p.kind === "start") ctx.trace.event("agent.start", `${who}: agent started (${p.model ?? "?"})`);
     else if (p.kind === "end") {
       ctx.trace.event("agent.end", `${who}: agent finished: ${p.status} after ${p.turns ?? "?"} turns, $${(p.costUsd ?? 0).toFixed(3)}`);
@@ -831,6 +835,7 @@ export const authorTestsStep: StepDef = {
     if (mode.mode === "reset") { keptFiles = []; await resetHard(wt, start, keptOnReset(ctx.project)); }
     else ctx.log(`author-tests: keeping the previous attempt's ${keptFiles.length} test file${keptFiles.length === 1 ? "" : "s"} (${mode.reason})`);
     const prevOut = mode.mode === "keep" && prev?.out ? AuthorOut.safeParse(ctx.ledger.getJson(prev.out)).data : undefined;
+    if (prev) { ctx.note?.("previousTests", mode.mode === "keep" ? `kept (${keptFiles.length} files)` : "wiped"); ctx.note?.("previousTestsWhy", mode.reason); }
     const retry = { retryMode: mode.mode, retryReason: mode.reason };
     const routed = modelFor(ctx.project, "author-tests", ctx.rung, undefined, ctx.priorFailures);
     // light lane: Sonnet writes the few small tests; Opus stays for bigger work, on escalation, or when the run or the project routes it
@@ -1441,6 +1446,23 @@ async function gateAll(ctx: StepContext, step: string, treeSha: string, gates: [
   return { failures, category: safety || evidence ? "safety" : lockedFailedIds.length ? "locked-test" : "other", lockedFailedIds };
 }
 
+/** The checks that did not run on this attempt, each with its reason, so the ledger can tell "did not apply" from "never reached". */
+async function notRun(ctx: StepContext, step: string, treeSha: string, skips: [GateDef, string][]): Promise<void> {
+  for (const [def, reason] of skips) await skipGate(def, ctx.ledger, ctx.writer, { step, treeSha }, reason);
+}
+
+/** Why the contract check or the data model check has nothing to compare in this project, when it has not. */
+function contractNotApplicable(ctx: StepContext, wt: string): string | undefined {
+  const c = ctx.project.contract;
+  if (!c?.built) return "the project has no API contract to compare with";
+  if (ctx.project.stack !== "dotnet") return "only a .NET API writes its own document for the comparison";
+  return existsSync(join(wt, c.file)) ? undefined : `the contract file ${c.file} is not in this checkout`;
+}
+function dataModelNotApplicable(ctx: StepContext, wt: string): string | undefined {
+  if (ctx.project.stack !== "dotnet") return "only a .NET backend's database is compared";
+  return existsSync(join(wt, DATA_MODEL_FILE)) || databaseBefore(ctx) ? undefined : "there is no approved data model, and no database from before the run to hold the code to";
+}
+
 /** Failures that leave the previous attempt's code worth building on: only behaviour (or the build) was wrong. */
 // "contract" and "data-model" name each difference from the locked document (a status code, a field, a column): a few lines to
 // change, not a reason to write the task again (run e8ef: TASK-1 passed all 15 locked tests, was reset for two contract
@@ -1798,9 +1820,11 @@ export function implementStep(taskId: string): StepDef {
         await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack), stuck).fileScope], builtDoc);
         await git(wt, ["clean", "-fdX", ...keptOnReset(ctx.project).flatMap((k) => ["-e", k])]);
         ctx.log(`implement ${taskId}: keeping previous attempt's code (${mode.reason}; diff ${saved.slice(0, 8)})`);
+        ctx.note?.("previousCode", "kept"); ctx.note?.("previousCodeWhy", mode.reason); ctx.note?.("previousCodeDiff", saved);
       } else if (head !== start || dirty) {
         const saved = ctx.ledger.putArtifact(await diffIncludingUntracked(wt, start));
         ctx.log(`implement ${taskId}: saved previous attempt's diff (${saved.slice(0, 8)}) and reset (${mode.reason})`);
+        ctx.note?.("previousCode", "wiped"); ctx.note?.("previousCodeWhy", mode.reason); ctx.note?.("previousCodeDiff", saved);
         await resetHard(wt, start, keptOnReset(ctx.project));
       }
       const retry = { retryMode: mode.mode, retryReason: mode.reason };
@@ -1971,6 +1995,8 @@ export function implementStep(taskId: string): StepDef {
           ...(layers ? { deferrable: true } : {}), ...(untouched ? { deferNow: true } : {}) };
       };
       // 1. the diff checks first: a change that touches locked tests, protected files or secrets never gets run
+      const linted = !!ctx.project.design && touchesUiFiles(wt, start, commit);
+      if (!linted) await notRun(ctx, key, commit, [[designFidelityLint, ctx.project.design ? "the task changed no UI files" : "the project has no design set-up to check against"]]);
       const diffGated = await gateAll(ctx, key, commit, [
         [lockSetUnchanged, { diff: diffSha, tests: lockSha }],
         [configIntegrity, { diff: diffSha, plan: ctx.state.steps.get("plan")!.outputs[0]! }],
@@ -1980,9 +2006,15 @@ export function implementStep(taskId: string): StepDef {
         [noEscapeHatches, { diff: diffSha }],
         // a task that changes UI files also passes the token and component lint (design.fidelity-lint),
         // but only in a project that set up its front end (a `design` block): elsewhere the lint has nothing reliable to check against
-        ...(ctx.project.design && touchesUiFiles(wt, start, commit) ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit, designOptions(ctx.project.design))) }] as [GateDef, Record<string, string>]] : []),
+        ...(linted ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit, designOptions(ctx.project.design!))) }] as [GateDef, Record<string, string>]] : []),
       ]);
-      if (diffGated) return failed(diffGated);
+      // the checks on what the code does: named with their reason whenever an attempt ends before them
+      const later = async (why: string, defs: GateDef[] = [testExpectations, contractMatches, dataModelMatches]) => notRun(ctx, key, commit, defs.map((d) => [d,
+        (d === contractMatches ? contractNotApplicable(ctx, wt) : d === dataModelMatches ? dataModelNotApplicable(ctx, wt) : undefined) ?? why] as [GateDef, string]));
+      if (diffGated) {
+        await later(`the change itself was refused first (${[...new Set(diffGated.failures.map((f) => f.check))].join(", ")}), so the code was not built or run`);
+        return failed(diffGated);
+      }
       // 2. only then build and run the tests on that exact commit
       // must pass: this task's own criteria, earlier tasks' criteria and the characterisation tests (behaviour that must not change)
       const expectPass = [...myTests.map((t) => t.testId), ...earlier.keys(), ...lock.characterisation.map((c) => c.testId)];
@@ -1997,11 +2029,16 @@ export function implementStep(taskId: string): StepDef {
         if (first.build.ok && first.testRun.results.some((r) => again.includes(r.id) && r.outcome === "failed")) {
           ctx.log(`implement ${taskId}: ${first.testRun.results.filter((r) => again.includes(r.id) && r.outcome === "failed").length} of the ${again.length} locked test(s) that failed last time still fail; the rest of the suite was not run`);
           const still = await gateAll(ctx, key, commit, [[testExpectations, { run: storeRun(ctx, first).testRun, baseline: baselineSha }]], earlier);
-          if (still) return failed(still, first.testRun);
+          if (still) {
+            await later("the locked tests that failed last time still fail, so the rest of the suite and the checks after it were not run", [contractMatches, dataModelMatches]);
+            return failed(still, first.testRun);
+          }
         }
       }
       const produced = await produce(ctx, `${key}/${ctx.attempt}`, commit, "task", exp, undefined, undefined, undefined, undefined, skipLater.ids.length ? { skipLater } : undefined);
       const run = storeRun(ctx, produced);
+      if (!produced.build.ok) await later("the build failed, so there is no API document or database to compare", [contractMatches, dataModelMatches]);
+      else await notRun(ctx, key, commit, ([[contractMatches, contractNotApplicable(ctx, wt)], [dataModelMatches, dataModelNotApplicable(ctx, wt)]] as [GateDef, string | undefined][]).filter((x): x is [GateDef, string] => !!x[1]));
       // a failed build marks every expected test "Build failed": that's the build, not a regression
       const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? [...contractGate(ctx, wt, commit, true), ...dataModelGate(ctx, wt, commit, true)] : [])], produced.build.ok ? earlier : undefined);
       if (gated) {

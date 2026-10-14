@@ -11,7 +11,8 @@ import { reviewDelivered } from "../merge/once.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
 import { NO_CREDIT } from "../runners/claude-agent.js";
-import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
+import { DEFAULT_LADDER, failureSignature, ladderFacts, nextOnFailure, type AttemptRecord, type LadderAction, type LadderOptions } from "../gates/ladder.js";
+import { attemptSummary, watchAttempt } from "./attempt-summary.js";
 import { checkCaps, checkStartBudget, type CapHit } from "../ledger/caps.js";
 import { PackOverBudgetError } from "../context/pack.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
@@ -379,8 +380,11 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
     const gateAnswers = answersOf(rounds);
     const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
     const key = eventKey(step.key, attempt);
-    const t = share > 1 ? trace.forStep(step.key, attempt) : trace;
     if (share === 1) trace.setStep(step.key, attempt);
+    // the attempt's trace is watched, so its summary can say where the time went and which files it saved
+    const watch = watchAttempt(share > 1 ? trace.forStep(step.key, attempt) : trace);
+    const t = watch.trace;
+    const from = ledger.events().length, startedAt = Date.now();
     const slog = (msg: string) => t.event("log", msg);
     let spent = 0;
     const route = routeRecord(project, step.stage, rung, priorFailures);
@@ -389,6 +393,7 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
 
     const ctx: StepContext = {
       runId, ledger, writer, state, project, policy, attempt, rung, priorFailures, log: slog, trace: t, share,
+      note: (name, value) => { watch.notes[name] = value; },
       ...(gateAnswers.length ? { gateAnswers } : {}), ...(rounds.length >= GATE_ROUNDS && rounds[rounds.length - 1]!.answered ? { carryOn: true } : {}),
       usage: async (u) => {
         spent += u.estUsd;
@@ -411,6 +416,15 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
       else outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
     }
 
+    // however the attempt ends, its summary is the last thing it writes (a summary that cannot be written never stops a run)
+    const summarise = async () => {
+      try {
+        await ledger.append({ type: "attempt.summary", key, data: attemptSummary(ledger.events().slice(from), {
+          step: step.key, attempt, rung, outcome: outcome.kind, startedAt, endedAt: Date.now(), timeMs: watch.timeMs(), files: watch.files(), notes: watch.notes,
+        }) }, writer);
+      } catch (e) { slog(`  the attempt's summary was not written: ${(e as Error).message}`); }
+    };
+    const settle = async (): Promise<ExecuteResult | undefined> => {
     switch (outcome.kind) {
       case "done": {
         const named = outcome.outputs;
@@ -441,28 +455,28 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
         // once: a step that goes back again before anything else completed would loop, so it parks instead
         if (wentBack.has(step.key)) {
           const reason = `${outcome.reason}, but the step it goes back to did not run again`;
-          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true, action: "park", reason } }, writer);
           await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
           return { status: "parked", message: reason };
         }
         wentBack.add(step.key);
-        await ledger.append({ type: "step.interrupted", key, data: { reason: "back" } }, writer);
+        await ledger.append({ type: "step.interrupted", key, data: { reason: "back", why: outcome.reason } }, writer);
         slog(`↩ ${step.key}: ${outcome.reason}`);
         break;
       }
       case "park":
-        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true, ...(outcome.data ?? {}) } }, writer);
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true, action: "park", reason: outcome.reason, ...(outcome.data ?? {}) } }, writer);
         await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
         return { status: "parked", message: outcome.reason };
       case "ask":
         if (!asksGates(state)) {
-          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true, action: "park", reason: outcome.reason } }, writer);
           await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
           return { status: "parked", message: outcome.reason };
         }
         return askRound(ctx, step, key, rounds, outcome.failures, { category: "other", signature: failureSignature(outcome.failures.map((f) => `${f.check}:${f.message}`)), rung }, rung, outcome.reason);
       case "close":
-        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung, action: "close", reason: outcome.reason } }, writer);
         await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
         dropBuildCache(runId);
         return { status: `closed: ${outcome.reason}`, message: outcome.reason };
@@ -471,10 +485,11 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
         const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
         // a locked test is read against its criterion once in a run: after that the ladder climbs as for any other failure
         const judged = new Set(judgedTests(ledger.events()).map((j) => j.testId));
-        const ladder = (a5Done: Set<string>): LadderAction => nextOnFailure([...history, rec2], {
+        const rules = (a5Done: Set<string>): LadderOptions => ({
           // policy.retryBudget (default 6; a trial project can say 2)
           ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), modelSteps: modelSteps(project, step.stage), backoffSpentMs: backoffSpent, a5Done,
         });
+        const ladder = (a5Done: Set<string>): LadderAction => nextOnFailure([...history, rec2], rules(a5Done));
         const first = ladder(judged);
         // the same locked test failed twice at a step that can judge it: its next attempt opens with the test-or-code check
         // instead of the run stopping for a person (a test that only waits for a later task is deferred below, not judged)
@@ -494,7 +509,9 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
         const failuresSha = ledger.putJson(outcome.failures.slice(0, FAILURES_KEPT));
         await ledger.append({
           type: "step.failed", key, outputs: [failuresSha],
-          data: { ...(outcome.data ?? {}), ...rec2, ...(testCheck && action.action === "retry" ? { testCheck } : {}), action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
+          data: { ...(outcome.data ?? {}), ...rec2, ...(testCheck && action.action === "retry" ? { testCheck } : {}), action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason,
+            // what the retry rules looked at: which rule decided, attempts used, rungs left
+            ladder: ladderFacts([...history, rec2], rules(testCheck ? new Set([...judged, ...testCheck]) : judged)) },
         }, writer);
         slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${defer ? "defer" : testCheck && action.action === "retry" ? "test-or-code check" : action.action}`);
         if (defer) { slog(`  ${step.key}: these tests need a task that comes later, so they are checked there`); break; }
@@ -509,6 +526,8 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
       }
     }
     return undefined;
+    };
+    try { return await settle(); } finally { await summarise(); }
   }
 
   trace.startHeartbeat();

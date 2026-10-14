@@ -99,11 +99,23 @@ function whole(doc: Obj, schema: Obj | undefined, depth = 0): Obj | undefined {
   return s;
 }
 
+/** The one type every value of an enum has, when it has one: "string", "integer", "number" or "boolean". */
+function enumType(values: unknown): string | undefined {
+  if (!Array.isArray(values)) return undefined;
+  const real = values.filter((v) => v !== null);
+  const kinds = new Set(real.map((v) => (typeof v === "number" ? (Number.isInteger(v) ? "integer" : "number") : typeof v)));
+  if (kinds.size === 2 && kinds.has("integer") && kinds.has("number")) return "number";
+  const [only] = kinds;
+  return real.length && kinds.size === 1 && (only === "string" || only === "integer" || only === "number" || only === "boolean") ? only : undefined;
+}
+
 /** A schema as flat facts ("body.items[].id" -> "integer"), following $ref; what a generator adds (format, description) is left out. */
 function facts(doc: Obj, schema: Obj | undefined, at: string, out: Map<string, string>, depth = 0, detail = false): void {
   schema = whole(doc, schema);
   if (!schema || depth > 12) return;
-  const type = Array.isArray(schema.type) ? [...schema.type].sort().join("|") : schema.type ?? (schema.properties ? "object" : "any");
+  // a list of allowed values with no type (how .NET writes an enum sent as text) has the type its values have (run e8ef:
+  // `role` was { enum: ["employee", "administrator"] } and was read as "any" against the contract's "string")
+  const type = Array.isArray(schema.type) ? [...schema.type].sort().join("|") : schema.type ?? (schema.properties ? "object" : enumType(schema.enum) ?? "any");
   if (type === "array") return facts(doc, schema.items, `${at}[]`, out, depth + 1, detail);
   if (detail && Array.isArray(schema.enum)) out.set(`${at} values`, schema.enum.map(String).sort().join(", "));
   if (detail && at.includes(".")) out.set(`${at} nullable`, schema.nullable === true ? "yes" : "no");
@@ -161,8 +173,14 @@ export const contractMatches = defineGate<{ contract: { text: string }; built: {
     const have = built.text === undefined ? undefined : readContract(built.text);
     if (!have) return verdict([failure("contract", `The build did not write the API's OpenAPI document at ${built.path}. Keep the project's build-time OpenAPI settings and the AddOpenApi() call.`)], "");
     // one task of several: an operation no task has built yet is not a mismatch; what is built must match, and nothing extra
-    const diff = contractDiff(want, have).filter((d) => !built.partial || !/^missing in the API: [A-Z]+ \S+$/.test(d));
-    return verdict(diff.slice(0, 20).map((d) => failure("contract", `The API does not match the locked contract: ${d}`)), "The API matches the locked contract");
+    const all = contractDiff(want, have);
+    const diff = all.filter((d) => !built.partial || !/^missing in the API: [A-Z]+ \S+$/.test(d));
+    const inContract = operations(want).length, inApi = operations(have).length;
+    return {
+      ...verdict(diff.slice(0, 20).map((d) => failure("contract", `The API does not match the locked contract: ${d}`)), "The API matches the locked contract"),
+      // what was compared, so a pass can be told from a check that had little to look at
+      facts: { operationsInContract: inContract, operationsInApi: inApi, notBuiltYetLeftOut: all.length - diff.length, differences: diff.length, differencesShown: Math.min(diff.length, 20), partial: !!built.partial },
+    };
   },
 });
 

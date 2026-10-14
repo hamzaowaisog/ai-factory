@@ -18,7 +18,7 @@ const ZERO = { usd: 0, calls: 0, input_tokens: 0, output_tokens: 0, cache_read_i
 /** Codex prints a command as the shell call it made: `/bin/bash -lc '<command>'`. */
 const bare = (command) => { const m = /^\S+\s+-l?c\s+(['"])([\s\S]*)\1$/.exec(String(command ?? "")); return m ? m[2] : String(command ?? ""); };
 
-export async function runCodex(job, out, { progress, short, rel }) {
+export async function runCodex(job, out, { progress, short, rel, transcript = () => {}, cut = (v) => v }) {
   const ctx = job.context ?? {};
   const home = process.env.CODEX_HOME ?? "/tmp/codex";
   mkdirSync(home, { recursive: true });
@@ -80,16 +80,18 @@ export async function runCodex(job, out, { progress, short, rel }) {
       if (e.type === "item.started" && it?.type === "command_execution") progress({ kind: "tool", tool: "Bash", target: short(bare(it.command)) });
       if (e.type === "item.completed" && it?.type === "command_execution") {
         progress({ kind: "result", tool: "Bash", target: short(bare(it.command)), chars: String(it.aggregated_output ?? "").length });
+        transcript({ kind: "call", tool: "Bash", input: cut({ command: bare(it.command) }), output: cut(String(it.aggregated_output ?? "")), chars: String(it.aggregated_output ?? "").length, ...(it.exit_code !== undefined ? { exitCode: it.exit_code } : {}) });
         if (WRITING_COMMAND.test(bare(it.command))) sinceEdit = 0;
       }
       if (e.type === "item.completed" && it?.type === "file_change") {
         // the whole path: the core reads these lines to undo a change the file rules do not allow
         for (const c of it.changes ?? []) progress({ kind: "tool", tool: c.kind === "add" ? "Write" : "Edit", target: rel(c.path) });
+        transcript({ kind: "call", tool: "Edit", input: cut({ changes: (it.changes ?? []).map((c) => ({ kind: c.kind, path: rel(c.path) })) }), output: String(it.status ?? ""), chars: 0 });
         if (it.status === "completed") sinceEdit = 0;
       }
-      if (e.type === "item.completed" && it?.type === "agent_message") { answer = it.text; said = it.text; }
+      if (e.type === "item.completed" && it?.type === "agent_message") { answer = it.text; said = it.text; transcript({ kind: "said", text: cut(it.text) }); }
       if (e.type === "turn.completed") usage = e.usage;
-      if (e.type === "error" && e.message) saidWhy = String(e.message);
+      if (e.type === "error" && e.message) { saidWhy = String(e.message); transcript({ kind: "error", text: cut(e.message) }); }
       if (e.type === "turn.failed") failed = e.error?.message ?? "the turn failed";
       if (e.type === "item.completed" || e.type === "turn.completed" || e.type === "turn.failed") await spend();
     }
