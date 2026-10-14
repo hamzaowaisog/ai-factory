@@ -1619,6 +1619,11 @@ async function settleTests(ctx: StepContext, a: {
     return js.map((j) => j.testId);
   };
   const lenient = lenientTests(ctx.project);
+  // a second judgement after a rewrite: what was found and fixed the first time, so the new failure is judged on its own
+  const rewrittenBefore = (id: string) => {
+    const j = judgedTests(ctx.ledger.events()).findLast((x) => x.testId === id && x.rewritten);
+    return j ? { rewrittenBefore: j.why } : {};
+  };
   const mine = a.own.filter((t) => a.asked.includes(t.testId));
   // a test of an earlier task, or one that pins today's behaviour, passed before this task's change: the change broke it
   for (const id of a.asked.filter((x) => !mine.some((t) => t.testId === x))) {
@@ -1635,7 +1640,7 @@ async function settleTests(ctx: StepContext, a: {
     sections: [
       S.template("tpl", JUDGE_TEMPLATE),
       S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => mine.some((t) => t.acId === c.id))),
-      S.artifact("tests", "locked-tests", mine.map((t) => ({ testId: t.testId, acId: t.acId, file: t.file, name: t.name }))),
+      S.artifact("tests", "locked-tests", mine.map((t) => ({ testId: t.testId, acId: t.acId, file: t.file, name: t.name, ...rewrittenBefore(t.testId) }))),
       S.artifact("file-scope", "task-files", { mayChange: a.fileScope, locked: a.lock.lock.map((l) => l.file) }),
       { spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "How the tests failed on the last attempt:\n" + (ctx.priorFailures.filter((f) => mine.some((t) => t.testId === f.testId)).map((f) => `- ${f.testId}: ${f.message}${f.frames.length ? `\n    ${f.frames.join("\n    ")}` : ""}`).join("\n") || "(not recorded: run nothing, read the test and the code)") },
       { spec: { id: "last-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff", content: "The last attempt's change (the code you can read is the code after it):\n" + (change.length > PREV_CHANGE_CAP ? change.slice(0, PREV_CHANGE_CAP) + "\n… (cut; read the files for the rest)" : change || "(no change recorded)") },
@@ -1763,6 +1768,9 @@ async function settleTests(ctx: StepContext, a: {
     if (!kept.ok) return { stop: kept.outcome.kind === "park" ? kept.outcome : { kind: "park", reason: `The check of the rewritten ${ids.join(", ")} did not finish. Resume the run to try it again.` } };
     const loosened = kept.output.verdicts.filter((v) => v.verdict === "loosened" && ids.includes(v.testId));
     if (loosened.length) return { refused: `it asserts less than the locked test did: ${loosened.map((v) => `${v.testId}: ${v.why}`).join("; ")}` };
+    // the fault fixed in one place and left in another (run ae5c, TASK-10: one of three checks made to wait)
+    const partial = kept.output.verdicts.filter((v) => v.verdict === "partial" && ids.includes(v.testId));
+    if (partial.length) return { refused: `the same fault is still in the test: ${partial.map((v) => `${v.testId}: ${v.why}`).join("; ")}` };
     return { at, run: stored.testRun };
   };
   // a refused rewrite goes back to the test writer once with the reason, before the run stops for a person

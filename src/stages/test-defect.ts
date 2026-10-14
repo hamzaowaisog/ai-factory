@@ -112,15 +112,16 @@ export const JudgeOut = z.object({
 
 /** What the check of a rewritten test answers: it still asserts what the locked test did, or it asserts less. */
 export const RewriteCheckOut = z.object({
-  verdicts: z.array(z.object({ testId: z.string(), verdict: z.enum(["keeps", "loosened"]), why: z.string() })),
+  verdicts: z.array(z.object({ testId: z.string(), verdict: z.enum(["keeps", "loosened", "partial"]), why: z.string() })),
 });
 
 export const REWRITE_CHECK_TEMPLATE = `A locked acceptance test was found to be wrong in one respect and has been rewritten. Check the rewrite of each test in "tests" against the test as it was locked.
 You get each test's criterion, what was found wrong with it ("why"), and the change made to its file (lines with - are the locked test, lines with + the rewrite).
 - "keeps": apart from fixing what "why" names, the rewrite asserts everything the locked test asserted. Changing a wait, a selector, an import, a set-up step or the one wrong value named in "why" keeps it.
 - "loosened": the rewrite removes or weakens an assertion that "why" does not name: a check deleted, an exact value turned into "anything", a case dropped, the test body emptied or made to pass on any code.
-Judge only what the change removed or weakened. The locked test was accepted as it was: do not ask the rewrite for assertions the locked test never had.
-Answer with one verdict per test, by its testId, and say in "why" which assertion was lost, quoting its line.`;
+- "partial": nothing was lost, but the fault "why" names is still in another line of the same test that the rewrite left as it was (open the file: unchanged lines are not in the change). Quote that line. Only the fault "why" names counts here.
+Judge only what the change removed or weakened, and whether the fault "why" names is gone. The locked test was accepted as it was: do not ask the rewrite for assertions the locked test never had.
+Answer with one verdict per test, by its testId, and say in "why" which assertion was lost or which line still has the fault, quoting it.`;
 
 export const JUDGE_TEMPLATE = `A locked acceptance test failed on two attempts of a coding task. Decide, for each test in "tests", whether the code or the test is wrong.
 You get the criterion each test was written for, the test (open its file), how it failed, the change the last attempt made, and which files the task may change.
@@ -128,6 +129,7 @@ You get the criterion each test was written for, the test (open its file), how i
 - "test": the test itself is wrong. It asserts something the criterion does not ask for or that contradicts it (another message, status code, order, field name or value); it sets up or looks for something in a way no correct code would satisfy (a wrong import, selector, label or route, a wait shorter than the answer it waits for); or it can only pass by changing a file under "locked" (a locked test, the generated API client, the contract) or another repo's behaviour. Quote the line of the test that is at fault.
 - "scope": the test asks for what the criterion says, and the only thing in the way is the task's file list: to pass, a file that is neither under "mayChange" nor under "locked" has to change (a screen, a route or a shared module another task lists). Give those files in "files", as paths in the repo, the fewest that are needed. Do not choose this for a file under "locked", and do not choose it when code in "mayChange" could make the test pass.
 - "unclear": the criterion can be read both ways, or you cannot tell from what you have.
+A test with "rewrittenBefore" was judged wrong once and rewritten already: judge how it fails now, on the rewritten file. Its earlier fault is fixed unless the failure is still on that line.
 Judge only against the criterion's own words. A test is not wrong because it is strict, and code is not right because it is reasonable.
 A test is also wrong when it fails for a reason other than the code: it reads the real date or time, relies on rows or state another test left behind, expects an order the criterion does not name, compares a computed decimal exactly, asserts a generated value, or looks a value up page-wide when it appears more than once. Say which, and name the line that holds the wrong value or the shared set-up at fault.
 Answer with one verdict per test, by its testId. In "why", say what is wrong in a sentence or two that the one who fixes it can act on.`;

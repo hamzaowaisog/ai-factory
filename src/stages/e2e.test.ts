@@ -116,7 +116,7 @@ let judgeCalls = 0;
 /** "scope": the files the scripted check says the test needs */
 let judgeFiles: string[] = [];
 /** what the scripted check of a rewritten test says, and how often it was asked */
-let rewriteVerdict: "keeps" | "loosened" = "keeps";
+let rewriteVerdict: "keeps" | "loosened" | "partial" = "keeps";
 let rewriteChecks = 0;
 /** the spec also carries a criterion only a person can check */
 let manualCriterion = false;
@@ -1483,7 +1483,18 @@ describe("implement loop across tasks (fakes)", () => {
     expect(r2.message).toMatch(/its rewrite was not accepted: it asserts less than the locked test did.*scripted rewrite check/);
     expect(rewriteChecks).toBe(2);
     expect(judgedIn(second.ledger)[0]).toMatchObject({ verdict: "test", rejected: expect.stringContaining("it asserts less than the locked test did") });
-  }, 60_000);
+
+    // and one that fixes the fault in one place and leaves it in another is refused the same way (run ae5c, TASK-10)
+    rewriteVerdict = "partial";
+    rewriteChecks = 0;
+    lab.edits[TEST_FILE] = [{ [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:Trois */ }\n" }];
+    lab.edits["src/Api/Third.cs"] = [{ "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }];
+    const third = await approved();
+    const r3 = await execute(third.runId);
+    expect(r3.status, r3.message).toBe("parked");
+    expect(r3.message).toMatch(/its rewrite was not accepted: the same fault is still in the test.*scripted rewrite check/);
+    expect(rewriteChecks).toBe(2);
+  }, 90_000);
 
   it("a locked test that is right but needs a later task's file opens that file to the task, and the pull request says so", async () => {
     multi = true;
