@@ -144,3 +144,16 @@ export function parkReason(open: Judged[]): string {
     `${j.testId} (${j.acId}): ${j.verdict === "scope" ? `the test is right but needs a file this task may not change (${j.why}), and none could be opened: ${j.rejected ?? "no file was named"}`
       : j.rejected ? `the test was judged wrong (${j.why}), but its rewrite was not accepted: ${j.rejected}` : j.why || "the check gave no verdict"}`).join("; ")}. Read the test and the last attempt's change, then resume or stop the run.`;
 }
+
+/** A locked test left out of the checks in a lenient run (lenientTests), with why. */
+export interface Disputed { step: string; testId: string; acId: string; file: string; why: string }
+
+/** Every locked test disputed in this run, oldest first, once each. */
+export function disputedTests(events: LedgerEvent[]): Disputed[] {
+  const seen = new Map<string, Disputed>();
+  for (const e of events) if (e.type === "test.disputed") { const d = e.data as unknown as Disputed; if (!seen.has(d.testId)) seen.set(d.testId, d); }
+  return [...seen.values()];
+}
+
+/** Whether a run lets a wrong locked test go instead of parking (lenientTests, or FACTORY_LENIENT_TESTS=1). */
+export const lenientTests = (project: { lenientTests?: boolean }): boolean => project.lenientTests ?? process.env.FACTORY_LENIENT_TESTS === "1";

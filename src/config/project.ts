@@ -84,6 +84,12 @@ export const ProjectConfig = z.object({
    * every criterion there is about a screen, so off would leave no test at all and test writing stops on that (run 1679: 85 of 85).
    */
   screenTests: z.boolean().optional(),
+  /**
+   * true: a locked test the test-or-code check judged wrong, and that could not be rewritten into one that passes, does not park
+   * the run. It is left out of the checks from then on and named on the pull request as not proven, with the check's reason.
+   * Off by default: a person decides on such a test. FACTORY_LENIENT_TESTS=1 does the same for every project.
+   */
+  lenientTests: z.boolean().optional(),
   forge: z.object({
     kind: z.enum(["github", "bitbucket"]), repo: z.string(), tokenEnv: z.string().default("GITHUB_TOKEN"),
     /** GitHub API and git push URLs; set only for GitHub Enterprise or tests (a local fake) */

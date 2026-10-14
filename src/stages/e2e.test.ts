@@ -1376,6 +1376,33 @@ describe("implement loop across tasks (fakes)", () => {
     expect(judgeCalls).toBe(1);
   }, 30_000);
 
+  it("a lenient run: a test judged wrong whose rewrite is refused does not park; it is left out of the checks and named on the PR", async () => {
+    multi = true;
+    proofVerdict = "proves-it";
+    judgeVerdict = "test";
+    process.env.FACTORY_LENIENT_TESTS = "1";
+    try {
+      lab.edits = {
+        "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }],
+        "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+        "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }, { "src/Api/Third.cs": cls("Trois") }],
+        // both rewrites pass on anything, so both are refused
+        [TEST_FILE]: [{ [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:ANYTHING */ }\n" }, { [TEST_FILE]: "namespace Api.Tests; public class GreetTests { /* WANTS:ANYTHING */ }\n" }],
+      };
+      const { runId, ledger } = await approved();
+      const r = await execute(runId);
+      expect(r.status, r.message).toBe("delivered");
+      const disputed = ledger.events().filter((e) => e.type === "test.disputed").map((e) => e.data as { testId: string; why: string });
+      expect(disputed).toHaveLength(1);
+      expect(disputed[0]!.why).toContain("rewrite not accepted");
+      // left out of the checks from then on, its file still locked as it was
+      const s = replay(ledger.events());
+      expect(lockOf(s, ledger).lock.tests.map((t) => t.testId)).not.toContain(disputed[0]!.testId);
+      expect(lockOf(s, ledger).lock.lock.some((l) => l.file === TEST_FILE)).toBe(true);
+      expect(ledger.readCard(`pr-${runId}`)).toContain(`Not proven: locked test left out`);
+    } finally { delete process.env.FACTORY_LENIENT_TESTS; }
+  }, 30_000);
+
   it("a refused rewrite goes back to the test writer once, and the second one is locked", async () => {
     multi = true;
     judgeVerdict = "test";

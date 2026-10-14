@@ -44,7 +44,7 @@ import { family } from "../runners/types.js";
 import { S, think, tracePack } from "./think.js";
 import { changeBase, ensureWorktree, runtime, snapshotFor, toolsAt, uiBase } from "./workspace.js";
 import { replay, splitKey, type RunState } from "../ledger/state.js";
-import { filesToOpen, JUDGE_TEMPLATE, JudgeOut, judgedTests, openedFiles, parkReason, relocked, REWRITE_CHECK_TEMPLATE, REWRITE_RULES, RewriteCheckOut, rewrittenTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
+import { disputedTests, lenientTests, filesToOpen, JUDGE_TEMPLATE, JudgeOut, judgedTests, openedFiles, parkReason, relocked, REWRITE_CHECK_TEMPLATE, REWRITE_RULES, RewriteCheckOut, rewrittenTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
 import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
@@ -101,7 +101,10 @@ export function lockOf(state: RunState, ledger: Ledger): { lock: Lock; sha: stri
   const freed = unlockedFiles(ledger.events());
   const cut = freed.length ? { ...written, lock: written.lock.filter((l) => !freed.some((u) => u.file === l.file)), unlocks: freed.map((u) => ({ what: u.file, human: u.by, reason: u.reason, boundTo: sha })) } : written;
   // a test the test-or-code check rewrote is locked at its new content (test-defect.ts)
-  const lock = withRefreshed(relocked(cut, ledger.events(), sha), ledger.events(), sha);
+  const relock = withRefreshed(relocked(cut, ledger.events(), sha), ledger.events(), sha);
+  // a disputed test (lenientTests) is no longer checked anywhere; its file stays locked
+  const out = disputedTests(ledger.events()).map((d) => d.testId);
+  const lock = out.length ? { ...relock, tests: relock.tests.filter((t) => !out.includes(t.testId)) } : relock;
   return lock === written ? { lock, sha } : { lock, sha: ledger.putJson(lock) };
 }
 
@@ -1603,6 +1606,15 @@ async function settleTests(ctx: StepContext, a: {
   /** how every test stood when this task started */ before?: Pick<TestRun, "results">;
 }): Promise<{ fixed: string[]; opened: string[] } | { outcome: StepOutcome }> {
   const record = async (j: Judged) => { await ctx.ledger.append({ type: "test.judged", key: a.key, data: j as unknown as Record<string, unknown> }, ctx.writer); return j; };
+  // a lenient run: the tests judged wrong that could not be put right are left out and named, instead of parking the run
+  const dispute = async (js: Judged[]): Promise<string[]> => {
+    for (const j of js) {
+      await ctx.ledger.append({ type: "test.disputed", key: a.key, data: { step: a.key, testId: j.testId, acId: j.acId, file: j.file, why: j.rejected ? `${j.why} (rewrite not accepted: ${j.rejected})` : j.why } }, ctx.writer);
+      ctx.log(`implement ${a.taskId}: ${j.testId} (${j.acId}) was judged wrong and could not be put right; left out of the checks (lenient run) and named on the pull request`);
+    }
+    return js.map((j) => j.testId);
+  };
+  const lenient = lenientTests(ctx.project);
   const mine = a.own.filter((t) => a.asked.includes(t.testId));
   // a test of an earlier task, or one that pins today's behaviour, passed before this task's change: the change broke it
   for (const id of a.asked.filter((x) => !mine.some((t) => t.testId === x))) {
@@ -1654,6 +1666,7 @@ async function settleTests(ctx: StepContext, a: {
     } else open.push(await record({ ...j, rejected: refused.join(", ") || "no file was named" }));
   }
   if (!wrong.length) return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: [], opened };
+
 
   // "test": the test writer rewrites those tests and nothing else, and they must fail again on the code before this task
   const files = [...new Set(wrong.map((j) => j.file))];
@@ -1757,6 +1770,7 @@ async function settleTests(ctx: StepContext, a: {
     const why = firstRefusal && firstRefusal !== tried.refused ? `${firstRefusal}; sent back once, and then: ${tried.refused}` : tried.refused;
     await putBack();
     for (const j of wrong) await record({ ...j, rejected: why });
+    if (lenient && !open.length) return { fixed: await dispute(wrong.map((j) => ({ ...j, rejected: why }))), opened };
     return { outcome: { kind: "park", reason: parkReason([...wrong.map((j) => ({ ...j, rejected: why })), ...open]) } };
   }
   for (const j of wrong) {
@@ -1842,8 +1856,8 @@ export function implementStep(taskId: string): StepDef {
       // a plan built in layers shows itself at the first task whose tests need a later layer; from then on those tests wait for it
       const layered = planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack);
       const owners = acOwners(plan, spec, layered);
-      const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
-      const earlier = earlierTests(plan, owners, lock.tests, task.id);
+      let myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
+      let earlier = earlierTests(plan, owners, lock.tests, task.id);
       // criteria held here for requirements an earlier task lists: this task gets those requirements and may change those tasks' files
       const taken = takenOver(plan, spec, task.id, layered, stuck);
       // files of other tasks the test-or-code check opened to this task (test-defect.ts): its change may reach them too
@@ -1867,6 +1881,29 @@ export function implementStep(taskId: string): StepDef {
         // every failure was a test that has now been rewritten: the kept code is judged against the new tests as it is
         retest = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && settled.fixed.includes(f.testId));
       }
+      // a lenient run: a test this task's check rewrote that still fails on two attempts after the rewrite is left out and named,
+      // instead of using up the ladder on a test already judged wrong (run ae5c, TASK-10: a test that read today's date)
+      if (lenientTests(ctx.project)) {
+        const evs = ctx.ledger.events();
+        const out = new Set(disputedTests(evs).map((d) => d.testId));
+        const again = judgedTests(evs).filter((j) => j.step === key && j.verdict === "test" && j.rewritten && !out.has(j.testId)).filter((j) => {
+          const at = evs.find((e) => e.type === "test.judged" && (e.data as { testId?: string; rewritten?: unknown })?.testId === j.testId && (e.data as { rewritten?: unknown }).rewritten)?.seq ?? 0;
+          const after = evs.filter((e) => e.type === "step.failed" && e.seq > at && String(e.key).startsWith(`${key}/`));
+          return after.length >= 2 && ctx.priorFailures.some((f) => LOCKED_CHECKS.has(f.check) && f.testId === j.testId);
+        });
+        for (const j of again) {
+          await ctx.ledger.append({ type: "test.disputed", key, data: { step: key, testId: j.testId, acId: j.acId, file: j.file, why: `${j.why} (rewritten, and still failed on two attempts after)` } }, ctx.writer);
+          ctx.log(`implement ${taskId}: ${j.testId} (${j.acId}) was rewritten as wrong and still fails; left out of the checks (lenient run) and named on the pull request`);
+        }
+        if (again.length) {
+          ({ lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger));
+          const gone = new Set(disputedTests(ctx.ledger.events()).map((d) => d.testId));
+          retest ||= prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && gone.has(f.testId));
+        }
+      }
+      // the lock may have changed above (a rewrite, a disputed test): the tests this task is held to follow it
+      myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
+      earlier = earlierTests(plan, owners, lock.tests, task.id);
       const checked = verdictNote(judgedTests(ctx.ledger.events()).filter((j) => j.step === key));
       // a test rewritten at this task is part of its commit
       const rewrittenHere = [...rewrittenTests(ctx.ledger.events()).filter((j) => j.step === key).map((j) => j.file), ...refreshedClient(ctx.ledger.events()).filter((r) => r.step === key).map((r) => r.file)];
@@ -2297,11 +2334,13 @@ export const acceptStep: StepDef = {
       limits: "Probes cover only endpoints without login (test users/tokens aren't built yet).",
     };
     const sha = ctx.ledger.putJson(evidence);
+    // a lenient run's disputed criteria (every test of it left out as wrong) are not proven here: named on the PR, not a park
+    const disputedAcs = new Set(disputedTests(ctx.ledger.events()).map((d) => d.acId).filter((ac) => !lock.tests.some((t) => t.acId === ac)));
     const problems = [
       ...(acc.boot.attempted && !acc.boot.ok ? [`the app didn't start: ${acc.boot.note ?? ""}`] : []),
-      ...items.filter((i) => i.kind !== "manual" && !i.passed).map((i) => `${i.ac}: ${i.testIds.length ? "" : "no locked test; "}${i.http.filter((h) => h.status !== h.expectStatus).map((h) => `${h.method} ${h.path} answered ${h.status}, expected ${h.expectStatus}`).join("; ") || "locked test didn't pass"}`),
+      ...items.filter((i) => i.kind !== "manual" && !i.passed && !disputedAcs.has(i.ac)).map((i) => `${i.ac}: ${i.testIds.length ? "" : "no locked test; "}${i.http.filter((h) => h.status !== h.expectStatus).map((h) => `${h.method} ${h.path} answered ${h.status}, expected ${h.expectStatus}`).join("; ") || "locked test didn't pass"}`),
     ];
     if (problems.length) return { kind: "park", reason: `Acceptance evidence is missing: ${problems.join(" | ")}` };
-    return { kind: "done", outputs: { evidence: sha, testRun: runSha }, data: { appStarted: acc.boot.ok, probes: acc.probes.length, manualPending: items.filter((i) => i.kind === "manual").map((i) => i.ac) } };
+    return { kind: "done", outputs: { evidence: sha, testRun: runSha }, data: { appStarted: acc.boot.ok, probes: acc.probes.length, manualPending: items.filter((i) => i.kind === "manual").map((i) => i.ac), ...(disputedAcs.size ? { disputed: [...disputedAcs] } : {}) } };
   },
 };

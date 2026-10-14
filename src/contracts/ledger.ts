@@ -19,6 +19,8 @@ export const EventType = z.enum([
   // the plan's stubs did not build on the code the stub commit writes under them (a scaffold, a new product): the plan is
   // patched and approved again before any test is written
   "plan.refused",
+  // a lenient run (lenientTests): a locked test judged wrong that could not be put right; left out of the checks, named on the PR
+  "test.disputed",
   // a check that did not run on an attempt, and why
   "gate.skipped",
   // one per attempt of a step, written when it ends (passed, failed, parked, waiting): what ran, what each check said, what
