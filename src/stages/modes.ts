@@ -21,6 +21,7 @@ import { brownfieldGroundStep, estimateGroundStep, newProductGroundStep } from "
 import { BROWNFIELD_SOURCES } from "./design-inputs.js";
 import { kitComponents } from "../design/kit/kit.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
+import { distillStep } from "./distill.js";
 
 export function brownfieldSteps(state: RunState): StepDef[] {
   const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
@@ -161,13 +162,28 @@ export function designOnlySteps(state: RunState): StepDef[] {
   return [...requirementsHead(state), ...designSteps({ purpose: "design", refs: !!state.info.references?.length })];
 }
 
+/**
+ * A transcript run (docs/superpowers/specs/2026-10-14-transcript-intent-design.md §2, §6): distill comes first (after discover in a
+ * build), and nothing after it is listed until it completes, so no step reads the raw transcript as a request. Seeded runs
+ * (--from-estimate, --from-design, sibling, resize) never carry a transcript.
+ */
+export function withDistill(state: RunState, steps: StepDef[]): StepDef[] {
+  if (!state.info.transcriptSha) return steps;
+  const at = steps[0]?.key === "discover" ? 1 : 0;
+  const head = [...steps.slice(0, at), distillStep];
+  return state.steps.get("distill")?.status === "completed" ? [...head, ...steps.slice(at)] : head;
+}
+
 /** The ordered steps for the run's mode. */
 export function stepsFor(state: RunState): StepDef[] {
-  switch (state.info.mode) {
-    case "brownfield": return brownfieldSteps(state);
-    case "greenfield": return greenfieldSteps(state);
-    case "estimate": return estimateSteps(state);
-    case "design": return designOnlySteps(state);
-    default: throw new Error(`No step list for mode "${state.info.mode}" yet`);
-  }
+  const steps = (() => {
+    switch (state.info.mode) {
+      case "brownfield": return brownfieldSteps(state);
+      case "greenfield": return greenfieldSteps(state);
+      case "estimate": return estimateSteps(state);
+      case "design": return designOnlySteps(state);
+      default: throw new Error(`No step list for mode "${state.info.mode}" yet`);
+    }
+  })();
+  return withDistill(state, steps);
 }

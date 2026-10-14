@@ -408,7 +408,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     showFile();
   };
   fileInput.addEventListener("change", () => takeFile(fileInput.files?.[0]));
-  const drop = h("label", { class: "drop" }, fileInput, icon("upload"), h("strong", {}, "Drop a .md, .txt, .docx or .pdf file here"), h("span", { class: "small" }, "or click to choose one · read like --file"));
+  const drop = h("label", { class: "drop" }, fileInput, icon("upload"), h("strong", {}, "Drop a .md, .txt, .docx or .pdf file here"), h("span", { class: "small" }, "or click to choose one · read like --file · a Google Meet transcript (.docx) is read as a meeting"));
   drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
   drop.addEventListener("dragleave", () => drop.classList.remove("over"));
   drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFile(e.dataTransfer?.files?.[0]); });
@@ -678,7 +678,7 @@ function runsScreen() {
 
 // ---------- one run ----------
 
-const SPEC = new Set(["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "plan", "approve"]);
+const SPEC = new Set(["discover", "distill", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "plan", "approve"]);
 const BUILD = new Set(["stub-commit", "author-tests", "integrate"]);
 const phaseOf = (step) => (SPEC.has(step) ? 0 : BUILD.has(step) || step.startsWith("implement/") ? 1 : 2);
 const PHASES = ["Spec", "Build", "Ship"];
@@ -742,6 +742,7 @@ function pipeline(r) {
     if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below, or type your own answer (or answer in the terminal); the run carries on right after.")));
     if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
     if (REVIEW_CARD_TEXT[r.card?.kind]) return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, REVIEW_CARD_TEXT[r.card.kind].note), h("p", {}, "Read the card, then decide in the panel below (or in the terminal); the run carries on right after.")));
+    if (r.card?.kind === "intent") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The client's intent needs your check"), h("p", {}, "Read what the meeting asked for in the panel below, fix anything wrong, then approve it (or do it in the terminal); the run carries on right after.")));
     if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
     if (r.card?.kind === "manual-check") return h("div", { class: "pipe-note wait" }, icon("check"), h("div", {}, h("strong", {}, "Some criteria need a check by hand"), h("p", {}, "They have no automated test. Try each one, then record the result on the Tests tab (or in the terminal); the run delivers right after.")));
@@ -1033,6 +1034,88 @@ function cardBody(c) {
   return h("div", {}, md(c.markdown.slice(0, at)), h("details", {}, h("summary", { class: "small muted" }, "Technical detail"), md(c.markdown.slice(at))));
 }
 
+/**
+ * A transcript run's client-intent card (spec 2026-10-14 transcript-intent §5c): each requirement with its evidence, a status and a remove box,
+ * requirements to add, each speaker's role; "Save edits" records them like factory edit-intent and the card is rebuilt without a model call.
+ * Then approve, or send it back to be read again, like the plan card. What is typed is kept while the page redraws.
+ */
+const INTENT_STATUSES = ["decided", "open", "deferred", "excluded"];
+function intentPanel(r) {
+  const c = r.card, iv = c.intent;
+  const draft = draftOf(r);
+  if (!draft.intent) draft.intent = { status: {}, remove: {}, add: "", roles: {}, why: "", msg: "", saved: false };
+  const d = draft.intent;
+  const decide = decisionForm(r, {
+    approveLabel: "Approve the intent", rejectLabel: "Send back",
+    noteLabel: "Note (optional)", notePlaceholder: "",
+    reasonLabel: "Or send it back: what is wrong", reasonPlaceholder: "e.g. The SMS reminder was asked for at 00:14:00 and is missing.",
+    reasonHint: "The meeting is read again with your reason. A second send-back stops the run.", reasonNeeded: "Say what is wrong.",
+    approved: "Approved. The run is continuing with this intent…", rejected: "Sent back. The meeting is being read again…",
+  });
+  const terminal = h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd))));
+  if (!iv) {
+    return h("section", { class: "card-box" },
+      h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Check the client's intent"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+      h("div", { class: "body stack" }, h("p", { class: "small muted" }, "The card's details could not be read here: edit it in your terminal, or approve or send it back below."), decide, terminal, md(c.markdown)));
+  }
+  const rows = iv.requirements.map((q) => {
+    const sel = h("select", { "aria-label": `Status of ${q.id}` }, INTENT_STATUSES.map((s) => h("option", { value: s }, s)));
+    sel.value = d.status[q.id] || q.status;
+    sel.addEventListener("change", () => { if (sel.value === q.status) delete d.status[q.id]; else d.status[q.id] = sel.value; });
+    const rm = h("input", { type: "checkbox", "aria-label": `Remove ${q.id}` });
+    rm.checked = !!d.remove[q.id];
+    rm.addEventListener("change", () => { d.remove[q.id] = rm.checked; });
+    const ev = q.quote ? `"${q.quote}" (${q.turn}, ${q.speaker || "?"}, ${q.role || "?"})` : q.added ? `added by ${q.added}` : "";
+    return h("tr", {}, h("td", { class: "mono small" }, q.id), h("td", {}, q.text, ev ? h("div", { class: "small muted" }, ev) : null), h("td", {}, sel), h("td", {}, rm));
+  });
+  const speakers = iv.speakers.map((s) => {
+    const sel = h("select", { "aria-label": `Role of ${s.name}` }, ["client", "team"].map((x) => h("option", { value: x }, x)));
+    sel.value = d.roles[s.name] || s.role;
+    sel.addEventListener("change", () => { if (sel.value === s.role) delete d.roles[s.name]; else d.roles[s.name] = sel.value; });
+    return h("li", {}, h("span", {}, s.name, " "), sel, h("span", { class: "small muted" }, ` (${s.source === "roster" ? "from the team roster" : s.source === "card" ? "set on this card" : "not on the roster"})`));
+  });
+  const add = h("textarea", { id: "i-add", rows: "2", maxlength: "2000", placeholder: "One requirement per line, e.g. Customers get an SMS when the delivery is out" });
+  add.value = d.add;
+  add.addEventListener("input", () => { d.add = add.value; });
+  const why = h("textarea", { id: "i-why", rows: "2", maxlength: "2000", placeholder: "e.g. The client confirmed the 15-second interval by email" });
+  why.value = d.why;
+  why.addEventListener("input", () => { d.why = why.value; });
+  const who = nameInput();
+  who.id = "i-who";
+  const msg = h("p", { class: "small", role: "status" }, d.msg);
+  const save = h("button", { class: "btn", type: "button" }, icon("check"), "Save edits");
+  save.disabled = d.saved;
+  save.addEventListener("click", async () => {
+    const remove = Object.keys(d.remove).filter((k) => d.remove[k]);
+    if (!Object.keys(d.status).length && !remove.length && !d.add.trim() && !Object.keys(d.roles).length) { msg.textContent = d.msg = "Nothing is changed yet."; return; }
+    if (!why.value.trim()) { msg.textContent = d.msg = "Say why you are changing the intent."; why.focus(); return; }
+    save.disabled = true;
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/intent-edit`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hash: c.hash, by: who.value, reason: why.value, status: d.status, remove, add: d.add, roles: d.roles }) });
+      d.saved = true;
+      msg.textContent = d.msg = "Edits saved. The card is being rebuilt with them; it shows here in a moment.";
+    } catch (err) { msg.textContent = d.msg = err.message; save.disabled = false; }
+  });
+  const list = (title, items) => (items.length ? h("details", {}, h("summary", { class: "small muted" }, `${title} (${items.length})`), h("ul", { class: "small" }, items.map((x) => h("li", {}, x)))) : null);
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Check the client's intent"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, "This is what the meeting asked for, each point with the words that were said. Fix anything wrong, save, then approve. Nothing is specified or built before you approve."),
+      iv.warnings.length ? h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Warnings"), h("ul", { class: "small" }, iv.warnings.map((w) => h("li", {}, w))))) : null,
+      h("p", {}, h("strong", {}, iv.project.name || "Client request"), ` · ${iv.project.goal}`),
+      h("table", { class: "runs" }, h("thead", {}, h("tr", {}, h("th", {}, "Id"), h("th", {}, "Requirement and what was said"), h("th", {}, "Status"), h("th", {}, "Remove"))), h("tbody", {}, rows)),
+      h("div", { class: "fld" }, h("label", { for: "i-add" }, "Add requirements the meeting agreed but the card missed"), add),
+      h("div", { class: "fld" }, h("label", {}, "Who is who"), h("ul", { class: "small" }, speakers), h("div", { class: "hint" }, "A role changed here holds for this run; factory team add makes it stick.")),
+      list("Constraints", iv.constraints), list("Open questions (asked at clarify)", iv.openQuestions), list("Dropped: the quote was not in the transcript", iv.dropped),
+      h("div", { class: "fld" }, h("label", { for: "i-who" }, "Your name"), who),
+      h("div", { class: "fld" }, h("label", { for: "i-why" }, "Why these edits"), why, h("div", { class: "hint" }, "Recorded with your name and shown on the card.")),
+      h("div", { class: "row" }, save), msg,
+      decide, terminal,
+      h("details", {}, h("summary", { class: "small muted" }, "The card as text"), md(c.markdown))));
+}
+
 /** The plan card: the spec and plan (for a full-stack product's web run, with the API contract the API run is held to), approve or reject. */
 function planPanel(r) {
   const c = r.card, t = REVIEW_CARD_TEXT[c.kind];
@@ -1150,6 +1233,7 @@ function cardPanel(r) {
   // questions, the design, the plan and a limit are decided on this page (or in the terminal); gate waivers and unlocks only in the terminal
   if (c.questions) return questionPanel(r);
   if (c.kind === "design-approval") return designPanel(r);
+  if (c.kind === "intent") return intentPanel(r);
   if (c.kind === "approval" || REVIEW_CARD_TEXT[c.kind]) return planPanel(r);
   if (c.limit) return limitPanel(r);
   if (c.kind === "manual-check") return h("section", { class: "card-box" },

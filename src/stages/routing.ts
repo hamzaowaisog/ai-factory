@@ -189,9 +189,9 @@ export function lightLaneModel(project: ProjectConfig, stage: "specify" | "autho
   return TIER_TABLE[STEPS[stage]!.vendor].standard.model;
 }
 
-export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "design-triage", "design-read", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens", "review-2"]);
+export const THINKING_STEPS = new Set(["distill", "intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "design-triage", "design-read", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens", "review-2"]);
 /** The model steps an estimate run uses: it never plans, writes tests or code, or reviews, so it does not need those routes set up. */
-export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design", "design-triage", "design-read"] as const;
+export const ESTIMATE_ROUTES = ["distill", "intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design", "design-triage", "design-read"] as const;
 /** A design-only run: the estimate's steps up to the spec, then the design (no breakdown, no sizing). */
 export const DESIGN_ROUTES = ESTIMATE_ROUTES.filter((r) => r !== "breakdown" && r !== "estimate");
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);

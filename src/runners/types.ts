@@ -16,6 +16,8 @@ export interface Job<T = unknown> {
   limits: { maxTurns: number; maxUsd: number; timeoutSec: number; hardTimeout?: boolean; reasks?: number };
   /** agent runners only: the run's worktree */
   workdir?: string;
+  /** api runner: mark the briefing's stable head (pack.userStable) for prompt caching; a step that may call twice over the same input */
+  cacheBriefing?: boolean;
 }
 
 /** config-error: the API said no in a way retrying can't fix (bad key, unknown model, bad request). */

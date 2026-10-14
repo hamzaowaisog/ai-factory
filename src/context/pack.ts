@@ -52,6 +52,7 @@ export interface BuildPackInput {
   redactor: Redactor;
 }
 
+const VOLATILE = new Set<SectionSpec["source"]>(["feedback", "task", "recap"]);
 const ORDER: SectionSpec["source"][] = ["template", "stackpack", "profile", "rules", "artifact", "doc", "image", "pointers", "feedback", "task", "recap"];
 
 // the wrapper's own tags inside untrusted text are defanged (< → &lt;) so the text can't close it early
@@ -129,10 +130,15 @@ export function buildPack(inp: BuildPackInput): ContextPack {
   // images are numbered in the order they are sent, after the sort
   const images = prepared.filter((p) => p.s.spec.source === "image").map((p, i) => { p.imageN = i + 1; return p.s.imageSha!; });
 
+  // the sources that change between calls of one step (a retry's feedback, the task, a repair's recap) are sorted last;
+  // everything before them is the briefing's stable head, which a step may ask to cache (ThinkSpec.cacheBriefing)
   const render = () => {
     const sys = prepared.filter((p) => p.s.spec.placement === "system").map((p) => wrap(p.s, p.text, p.imageN));
-    const usr = prepared.filter((p) => p.s.spec.placement === "user").map((p) => wrap(p.s, p.text, p.imageN));
-    return { system: sys.join("\n\n"), user: usr.join("\n\n") };
+    const userParts = prepared.filter((p) => p.s.spec.placement === "user");
+    const usr = userParts.map((p) => wrap(p.s, p.text, p.imageN));
+    const firstVolatile = userParts.findIndex((p) => VOLATILE.has(p.s.spec.source));
+    const head = firstVolatile === -1 ? usr : usr.slice(0, firstVolatile);
+    return { system: sys.join("\n\n"), user: usr.join("\n\n"), userStable: head.join("\n\n").length };
   };
   const count = () => {
     const r = render();
@@ -182,7 +188,7 @@ export function buildPack(inp: BuildPackInput): ContextPack {
     throw new PackOverBudgetError(tokens, budget, biggest);
   }
 
-  const { system, user } = render();
+  const { system, user, userStable } = render();
   const pointers = prepared.flatMap((p) => p.pointers ?? []);
   const sections = prepared.map((p) => ({ id: p.s.spec.id, tokens: estimateTokens(p.text, inp.model) + (p.imageN ? IMAGE_TOKENS : 0), trimmed: p.trimmed, trust: p.s.spec.trust }));
   // the field is left out when it is "base", so every pack built before it existed hashes the same
@@ -192,7 +198,7 @@ export function buildPack(inp: BuildPackInput): ContextPack {
     packTokens: tokens, budgetTokens: budget, countMethod: "proxy" as const, redactions,
     packSha: hashJson({ ...body, stage: inp.stage, model: inp.model, recipeVersion: inp.recipeVersion }),
   };
-  return { ...body, manifest };
+  return { ...body, manifest, userStable };
 }
 
 /** Deterministic serialisation for storing a pack in the ledger. */

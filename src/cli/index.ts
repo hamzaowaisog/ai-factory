@@ -37,6 +37,9 @@ import { AUTONOMOUS_HELP, autonomousOption, checkChoice, choiceOption, collectMo
 import { cardView } from "../stages/card-summary.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
+import { addMember, loadRoster, readRoster, removeMember, rosterPath } from "../config/team.js";
+import { checkIntentEdit, parseIntentEditArgs } from "../stages/intent-edits.js";
+import type { ClientIntentBody, Transcript } from "../contracts/index.js";
 
 const log = (m: string): void => { process.stdout.write(`${m}\n`); };
 
@@ -115,7 +118,7 @@ program.command("start")
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       models, ...(autonomous !== undefined ? { autonomous } : {}),
-      sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
+      sources: req.sources, references, ...("transcript" in req && req.transcript ? { transcript: req.transcript } : {}), ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
     });
     log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : approved ? `estimate run ${approved.runId}; the build follows its approved spec and design and is held to its budget${replay(Ledger.open(runId).events()).info.mode === "greenfield" ? ", a new product built into an empty repo" : ""}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
     if (approved || fromDesign) await exportSeededNow(runId, designExport, log);
@@ -187,7 +190,7 @@ program.command("estimate")
     // the design run's product details stand unless given again
     else if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
     let lineage: { kind: "change"; approved: Approved } | undefined;
-    let req: { text: string; sources: RequestSource[]; attachments: { name: string; bytes: Buffer }[] };
+    let req: { text: string; sources: RequestSource[]; attachments: { name: string; bytes: Buffer }[]; transcript?: Transcript };
     if (fromDesign) {
       req = { text: fromDesign.request, sources: [{ kind: "prompt" }], attachments: [] };
     } else {
@@ -197,7 +200,7 @@ program.command("estimate")
     // read before the run exists: a reference that cannot be read stops here and costs nothing
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, projectName, userInfo().username, {
-      mode: "estimate", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(lineage ? { lineage } : {}), ...(fromDesign ? { fromDesign } : {}),
+      mode: "estimate", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...("transcript" in req && req.transcript ? { transcript: req.transcript } : {}),  ...(lineage ? { lineage } : {}), ...(fromDesign ? { fromDesign } : {}),
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
     });
     if (fromDesign) await exportSeededNow(runId, designExport, log);
@@ -259,10 +262,35 @@ for (const d of ["approve", "reject"] as const) {
       const data = decision === "approve" ? { note: o.note ?? "", ...(signOff.length ? { signOff } : {}) } : { reason: o.reject ?? o.reason ?? "" };
       const r = await decide(l, { decision, hashPrefix: hash, data });
       if (r.kind === "repeat") return log("Already recorded.");
-      log(decision === "approve" ? "Approved." : design ? "Sent back. Fixing what you pointed at (or redrawing the design if it needs that); a new card follows…" : kind === "understood" ? "Noted. The spec is written with your correction…" : kind === "spec-review" ? "Sent back. Revising the spec with your reason…" : "Rejected. Revising the spec and plan with your reason…");
+      log(decision === "approve" ? "Approved." : design ? "Sent back. Fixing what you pointed at (or redrawing the design if it needs that); a new card follows…" : kind === "understood" ? "Noted. The spec is written with your correction…" : kind === "spec-review" ? "Sent back. Revising the spec with your reason…" : kind === "intent" ? "Sent back. Reading the meeting again with your reason (a second rejection parks the run)…" : "Rejected. Revising the spec and plan with your reason…");
       await runAndReport(l.runId);
     });
 }
+
+// the client-intent card of a transcript run (docs/superpowers/specs/2026-10-14-transcript-intent-design.md §5)
+const collectEach = (v: string, prev: string[] = []) => [...prev, v];
+program.command("edit-intent").argument("<run>").argument("<hash>", "first characters of the intent card's hash")
+  .option("--status <R-n=status>", "set a requirement's status: decided, deferred, excluded or open; repeat it", collectEach)
+  .option("--remove <R-n>", "remove a requirement; repeat it", collectEach)
+  .option("--add <text>", "add a requirement the meeting agreed but the card missed; repeat it", collectEach)
+  .option("--role <Name=client|team>", "fix a speaker's role for this run; repeat it (factory team add makes it stick)", collectEach)
+  .requiredOption("--reason <text>", "why (recorded with your name and shown on the card)")
+  .description("edit the open client-intent card; the card is rebuilt from your edits without asking the model again (terminal only)")
+  .action(async (run: string, hash: string, o: { status?: string[]; remove?: string[]; add?: string[]; role?: string[]; reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const card = replay(l.events()).openCard;
+    if (card?.kind !== "intent") throw new DecisionError("The open card is not a client-intent card.");
+    let edits;
+    try { edits = parseIntentEditArgs(o); } catch (e) { throw new DecisionError((e as Error).message); }
+    const shown = l.getJson<{ intent: ClientIntentBody }>(card.artifactSha)?.intent;
+    const problems = shown ? checkIntentEdit(edits, shown) : ["the card's intent is missing from the run"];
+    if (problems.length) throw new DecisionError(`Can't apply that edit: ${problems.join("; ")}`);
+    const r = await decide(l, { decision: "edit", hashPrefix: hash, data: { edits, reason: o.reason } });
+    if (r.kind === "repeat") return log("Already recorded.");
+    log("Edit recorded. Rebuilding the card…");
+    await runAndReport(l.runId);
+  });
 
 program.command("waive").argument("<run>").argument("<hash>", "first characters of the waiver card's hash")
   .requiredOption("--reason <text>", "why the failing gate is acceptable (recorded with your name)")
@@ -590,6 +618,34 @@ program.command("verify-evidence").argument("<run>").description("re-check every
   log(checks.every((c) => c.ok) ? `All ${checks.length} decisions re-check.` : "Some decisions don't re-check.");
   if (!checks.every((c) => c.ok)) process.exitCode = 1;
 });
+
+// our people, for meeting transcripts (docs/superpowers/specs/2026-10-14-transcript-intent-design.md §4)
+const team = program.command("team").description("our people, for meeting transcripts: a speaker on this list is the team, anyone else the client");
+const rosterOf = (project?: string) => (project ? `project ${project}` : "every project on this machine");
+team.command("list").option("--project <name>", "this project's roster with the shared one (leave it out for the shared roster only)")
+  .description("list the roster")
+  .action((o: { project?: string }) => {
+    if (o.project) loadProject(o.project); // an unknown project is an error, not an empty roster
+    const r = o.project ? loadRoster(o.project) : readRoster();
+    if (!r.members.length) return log(`No one is on the roster for ${rosterOf(o.project)}. Add people with: factory team add "Full Name"${o.project ? ` --project ${o.project}` : ""}`);
+    for (const m of r.members) log(`- ${m.name}${m.aliases?.length ? ` (also: ${m.aliases.join(", ")})` : ""}${m.note ? `: ${m.note}` : ""}`);
+  });
+team.command("add").argument("<name>", "the name as Google Meet shows it, e.g. \"Sam Rivera\"")
+  .option("--alias <name>", "another name this person appears under; repeat it", (v: string, prev: string[] = []) => [...prev, v])
+  .option("--note <text>", "who they are, e.g. architect")
+  .option("--project <name>", "add to this project's roster (leave it out to add for every project)")
+  .description("add a person to the roster, or update them")
+  .action((name: string, o: { alias?: string[]; note?: string; project?: string }) => {
+    if (o.project) loadProject(o.project);
+    if (!name.trim()) throw new Error("Give a name.");
+    addMember({ name: name.trim(), ...(o.alias?.length ? { aliases: o.alias } : {}), ...(o.note ? { note: o.note } : {}) }, o.project);
+    log(`${name.trim()} is on the roster for ${rosterOf(o.project)} (${rosterPath(o.project)}).`);
+  });
+team.command("remove").argument("<name>").option("--project <name>", "remove from this project's roster")
+  .description("take a person off the roster")
+  .action((name: string, o: { project?: string }) => {
+    log(removeMember(name, o.project) ? `${name} is off the roster for ${rosterOf(o.project)}.` : `${name} is not on the roster for ${rosterOf(o.project)}.`);
+  });
 
 program.command("init").argument("<repo>", "a local repo path (Windows paths like /mnt/c/... are fine) or a git URL")
   .option("--branch <name>", "base branch (default: the repo's current branch)")

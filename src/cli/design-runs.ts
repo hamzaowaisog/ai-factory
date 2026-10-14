@@ -98,7 +98,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
       const settings = { ...(o.project && o.repo ? {} : { noRepo: true }), ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}) };
       const runId = await createRun(req.text, projectName, userInfo().username, {
-        mode: "design", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(designExport ? { designExport } : {}),
+        mode: "design", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...("transcript" in req && req.transcript ? { transcript: req.transcript } : {}),  ...(designExport ? { designExport } : {}),
         ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       });
       log(`design run ${runId} (requirements from ${describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : "; no references: the look comes from the requirements and the industry library"})`);
