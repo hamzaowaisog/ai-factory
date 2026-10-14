@@ -1,5 +1,6 @@
 // Policy and the stricter-only merge (gate-engine §2.9, contracts §3).
 import { AsyncLocalStorage } from "node:async_hooks";
+import { DEMO_RETRY_BUDGET, demoMode } from "../util/demo.js";
 export interface Policy {
   allowedAgents: string[];
   allowedModels: string[];
@@ -23,7 +24,8 @@ export const DEFAULT_POLICY: Policy = {
   escapeHatchAllowlist: [],
   registryAllowlist: ["https://api.nuget.org/", "https://registry.npmjs.org/"],
   maxDiffLines: 1500,
-  retryBudget: 6,
+  // DEMO: 3 attempts per step instead of 6 (src/util/demo.ts)
+  retryBudget: demoMode() ? DEMO_RETRY_BUDGET : 6,
   waiverCap: 3,
   minDiffCoverage: 0,
   reviewConfidence: 0.7,

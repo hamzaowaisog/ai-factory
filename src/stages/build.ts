@@ -12,6 +12,7 @@ import {
 } from "../gates/predicates.js";
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
+import { demoAcceptFrom, demoMode, demoTry } from "../util/demo.js";
 import { failureSignature, RUNGS } from "../gates/ladder.js";
 import { changedFiles, cleanIgnored, commitAll, commitFiles, commitWith, diffIncludingUntracked, git, headSha, pathChangedSince, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
 import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
@@ -236,6 +237,36 @@ async function stubsBuiltOrBack(ctx: StepContext, planSha: string, commit: strin
     ctx.log(`stub-commit: the stubs were not built (${e instanceof Error ? e.message.split("\n")[0] : String(e)}); going on without that check`);
     return undefined;
   }
+}
+
+/**
+ * DEMO (src/util/demo.ts): stubs that do not build are dropped instead of sending the plan back. Sending it back cost a planner
+ * call, an approval and a full package install per round, and the planner saw one error at a time (run 95ff: three rounds, then
+ * a park). Round 1 drops the stubs the errors name; if the build still fails, round 2 drops every code stub left. A dropped stub
+ * goes back to the file under it, or is deleted; the task that owns the file writes it.
+ */
+async function demoDropStubs(ctx: StepContext, wt: string, commit: string, under: string, stubs: string[]): Promise<{ commit: string; dropped: string[] }> {
+  const dropped: string[] = [];
+  const named = (e: BuildError, s: string) => !!e.file && (e.file === s || e.file.endsWith(`/${s}`) || s.endsWith(`/${e.file}`));
+  for (let round = 1; round <= 2; round++) {
+    let errors: BuildError[] | undefined;
+    try { errors = await buildErrors(ctx, `stub-commit/demo-${ctx.attempt}-${round}`, commit, "stub-commit"); }
+    catch (e) { ctx.log(`DEMO stub-commit: the stubs were not built (${e instanceof Error ? e.message.split("\n")[0] : String(e)}); going on`); break; }
+    if (!errors) break;
+    const left = stubs.filter((s) => !dropped.includes(s));
+    const hit = left.filter((s) => errors!.some((e) => named(e, s)));
+    const bad = round === 1 && hit.length ? hit : left;
+    if (!bad.length) { ctx.log(`DEMO stub-commit: ${errors.length} build error(s) are not in any stub; going on`); break; }
+    for (const s of bad) {
+      const inUnder = await git(wt, ["cat-file", "-e", `${under}:${s}`]).then(() => true, () => false);
+      if (inUnder) await git(wt, ["checkout", under, "--", s]);
+      else await git(wt, ["rm", "-q", "-f", "--ignore-unmatch", "--", s]);
+    }
+    dropped.push(...bad);
+    commit = await commitAll(wt, `factory: DEMO dropped ${bad.length} stub(s) that do not build for ${ctx.runId}`);
+    ctx.log(`DEMO stub-commit: ${errors.length} build error(s); dropped ${bad.length} stub(s) instead of sending the plan back: ${bad.slice(0, 5).join(", ")}${bad.length > 5 ? ", …" : ""}`);
+  }
+  return { commit, dropped };
 }
 
 /**
@@ -568,7 +599,7 @@ export const stubCommitStep: StepDef = {
     // a stub over a file the scaffold just wrote is left out: the scaffold's file is already the interface its page imports
     // (run 95ff: the plan stubbed all 18 screen containers, every page broke, and three plans in a row were sent back)
     const scaffolded = new Set(scaffoldRec?.written ?? []);
-    const ownStubs = plan.stubs.filter((s) => !scaffolded.has(s.path));
+    let ownStubs = plan.stubs.filter((s) => !scaffolded.has(s.path));
     if (ownStubs.length < plan.stubs.length) ctx.log(`stub-commit: ${plan.stubs.length - ownStubs.length} stub(s) left out: the scaffold already wrote those files`);
     for (const s of ownStubs) {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
@@ -579,11 +610,15 @@ export const stubCommitStep: StepDef = {
       mkdirSync(dirname(join(wt, DATA_MODEL_FILE)), { recursive: true });
       writeFileSync(join(wt, DATA_MODEL_FILE), dataModelYaml(plan.dataModel));
     }
-    const commit = ownStubs.length || plan.dataModel ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
+    let commit = ownStubs.length || plan.dataModel ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
     // the plan could not build its stubs where they sit on files written here first: build them now, before a test is written
     const code = ownStubs.filter((st) => st.path !== ctx.project.contract?.file).map((st) => st.path);
     const newProduct = (() => { try { return repoIsEmpty(ctx.state.info.repoPath!, ctx.state.info.baseCommit!); } catch { return false; } })();
-    if (code.length && (scaf?.layout || newProduct)) {
+    if (code.length && (scaf?.layout || newProduct) && demoMode()) {
+      const d = await demoDropStubs(ctx, wt, commit, underStubs, code);
+      commit = d.commit;
+      ownStubs = ownStubs.filter((s) => !d.dropped.includes(s.path));
+    } else if (code.length && (scaf?.layout || newProduct)) {
       const back = await stubsBuiltOrBack(ctx, ctx.state.steps.get("plan")!.outputs[0]!, commit, underStubs === ctx.state.info.baseCommit ? undefined : underStubs, code);
       if (back) return back;
     }
@@ -1078,11 +1113,14 @@ Before you return, check your list against the criteria: each of these needs at 
     const keep = { ...retry, ...(recheck ? { recheck: true } : {}), commit, out: ctx.ledger.putJson(out) };
     if (tampered.length) return { kind: "fail", category: "safety", failures: tampered, signature: "author-tests:tamper" };
     const missingAc = needTest.filter((a) => !out.tests.some((t) => t.acId === a.id));
-    if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage", data: keep };
+    // DEMO: from the accept attempt on, a criterion with no test goes on untested (named in the log) instead of another attempt
+    const demoAccept = demoMode() && demoTry(ctx.ledger, "author-tests") >= demoAcceptFrom();
+    if (missingAc.length && demoAccept) ctx.log(`DEMO author-tests: no test for ${missingAc.map((a) => a.id).join(", ")}; going on without them`);
+    else if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage", data: keep };
 
     // One lab run finds the real test IDs by method name AND is the first run on the old code: the IDs
     // (and so the expectations) are only known from its results, so they're decided from them.
-    const names = [...out.tests.map((t) => t.name), ...out.characterisation.map((c) => c.name)];
+    let names = [...out.tests.map((t) => t.name), ...out.characterisation.map((c) => c.name)];
     const none: Expectations = { expectPass: [], expectFail: [], compareToBaseline: [] };
     let missing = names;
     let tests: (z.infer<typeof AuthorOut>["tests"][number] & { testId: string; failsOnBase: boolean })[] = [];
@@ -1106,8 +1144,22 @@ Before you return, check your list against the criteria: each of these needs at 
       return exp;
     };
     ctx.log("author-tests: finding the new tests and running them on the old code (1 of 2)");
-    const found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
+    let found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
       labFor(ctx.project).nameFilter(names), undefined, fromResults);
+    // DEMO: test files that still do not compile on the accept attempt are dropped (their criteria go untested) and the rest
+    // are run again, instead of a third writer session on the same errors (runs c944, e8ef: a new compile error each attempt)
+    const badTests = demoAccept && !found.build.ok ? [...new Set(found.build.errors.filter((e) => !!e.file && inTests(e.file)).map((e) => e.file))] : [];
+    if (badTests.length) {
+      const isBad = (f: string) => badTests.some((b) => b === f || b.endsWith(`/${f}`) || f.endsWith(`/${b}`));
+      await git(wt, ["rm", "-q", "-f", "--ignore-unmatch", "--", ...badTests]).catch(() => undefined);
+      await git(wt, ["reset", "--mixed", "-q", start]);
+      commit = await commitAll(wt, `factory: acceptance tests for ${ctx.runId} (DEMO: ${badTests.length} test file(s) that do not compile dropped)`);
+      changed = await changedFiles(wt, start, commit);
+      out = { ...out, tests: out.tests.filter((t) => !isBad(t.file)), characterisation: out.characterisation.filter((c) => !isBad(c.file)) };
+      names = [...out.tests.map((t) => t.name), ...out.characterisation.map((c) => c.name)];
+      ctx.log(`DEMO author-tests: dropped ${badTests.length} test file(s) that do not compile: ${badTests.slice(0, 5).join(", ")}; ${out.tests.length} test(s) left`);
+      found = await produce(ctx, "author-tests/base-1-demo", commit, "author-tests-on-base", none, undefined, labFor(ctx.project).nameFilter(names), undefined, fromResults);
+    }
     keepSchemaBefore(ctx, commit);
     // a build that breaks only in files the test writer may not change is not sent back to it: no rewrite of the tests fixes it
     const outside = found.build.ok ? [] : found.build.errors.filter((e) => e.code !== "RESTORE");
@@ -1142,13 +1194,16 @@ Before you return, check your list against the criteria: each of these needs at 
     if (!firstFails) ctx.log("author-tests: running the new tests on the old code again (2 of 2)");
     const run2 = firstFails ? run1 : storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
-    if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
+    // DEMO: tests that fail on the old code for the wrong reason (an exception, not an assertion) are locked as they are
+    if (!g.passed && demoAccept) ctx.log(`DEMO author-tests: fails-on-base check failed (${(g.failures ?? []).length} finding(s)); locking the tests as they are`);
+    else if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
     // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,
     // since after the lock nothing in the run can change it
     // after a rewrite only the criteria it was sent back for are read again: the others were read and found proven
     const reread = mode.mode === "keep" ? proofNamed(priorFailures) : [];
     const toRead = reread.length ? needTest.filter((a) => reread.includes(a.id)) : needTest;
-    const weak = await weakTests(ctx, commit, toRead.length ? toRead : needTest, tests);
+    // DEMO: the model's read of every test against its criterion is skipped (a model call, and a full rewrite when it finds a weak test)
+    const weak = demoMode() ? { failures: [] as Failure[], weak: [] as WeakTest[] } : await weakTests(ctx, commit, toRead.length ? toRead : needTest, tests);
     if ("outcome" in weak) return weak.outcome;
     if (weak.failures.length) {
       const sent = ctx.ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("author-tests/") && (e.data as { signature?: string } | undefined)?.signature === PROOF_SIGNATURE).length;
@@ -2110,7 +2165,10 @@ export function implementStep(taskId: string): StepDef {
           return { kind: "park", reason: r.error, data: { noCredit: true, rung: ctx.rung, ...(unfinished ? { commit: unfinished } : {}) } };
         }
         if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
-        if (r.status !== "ok") {
+        // DEMO: on the last attempt an agent cut off (turns, budget, timeout: run c944 "exited 143") is judged on what it wrote
+        const demoLast = demoMode() && demoTry(ctx.ledger, key) >= ctx.policy.retryBudget && r.status !== "rate-limited";
+        if (r.status !== "ok" && demoLast) ctx.log(`DEMO implement ${taskId}: the agent stopped (${r.error ?? r.status}) on the last attempt; checking what it wrote`);
+        else if (r.status !== "ok") {
           // out of budget or turns: the code so far is paid for, so it is committed for the retry to finish
           await trackIgnored(wt, fileScope, builtDoc);
           const unfinished = UNFINISHED.has(r.status) && (await dirtyPaths(wt)).length ? await commitAll(wt, `factory: ${task.id} unfinished`) : undefined;
@@ -2138,6 +2196,10 @@ export function implementStep(taskId: string): StepDef {
           // its own tests cannot pass before a later task is done: the same failure twice moves them there instead of parking the run
           ...(layers ? { deferrable: true } : {}), ...(untouched ? { deferNow: true } : {}) };
       };
+      // DEMO (src/util/demo.ts): from the accept attempt on, a task whose build passes is accepted with failing tests, contract or
+      // data-model differences, lint findings or files outside its scope. Never with a safety finding (locked tests, protected files, secrets).
+      const demoAccept = demoMode() && demoTry(ctx.ledger, key) >= demoAcceptFrom();
+      const demoSafe = (g: NonNullable<Awaited<ReturnType<typeof gateAll>>>) => g.failures.every((f) => !["lock-set", "config-integrity", "secret"].includes(f.check));
       // 1. the diff checks first: a change that touches locked tests, protected files or secrets never gets run
       const linted = !!ctx.project.design && touchesUiFiles(wt, start, commit);
       if (!linted) await notRun(ctx, key, commit, [[designFidelityLint, ctx.project.design ? "the task changed no UI files" : "the project has no design set-up to check against"]]);
@@ -2155,7 +2217,8 @@ export function implementStep(taskId: string): StepDef {
       // the checks on what the code does: named with their reason whenever an attempt ends before them
       const later = async (why: string, defs: GateDef[] = [testExpectations, contractMatches, dataModelMatches]) => notRun(ctx, key, commit, defs.map((d) => [d,
         (d === contractMatches ? contractNotApplicable(ctx, wt) : d === dataModelMatches ? dataModelNotApplicable(ctx, wt) : undefined) ?? why] as [GateDef, string]));
-      if (diffGated) {
+      if (diffGated && demoAccept && demoSafe(diffGated)) ctx.log(`DEMO implement ${taskId}: accepting ${diffGated.failures.length} diff finding(s): ${[...new Set(diffGated.failures.map((f) => f.check))].join(", ")}`);
+      else if (diffGated) {
         await later(`the change itself was refused first (${[...new Set(diffGated.failures.map((f) => f.check))].join(", ")}), so the code was not built or run`);
         return failed(diffGated);
       }
@@ -2168,7 +2231,7 @@ export function implementStep(taskId: string): StepDef {
       // a retry on kept code, after locked tests failed: those tests alone first. While one of them still fails, the whole suite
       // would say nothing the attempt can use, so the attempt ends there; once they pass, the whole suite runs as always.
       const again = retry.retryMode === "keep" ? [...new Set(ctx.priorFailures.filter((f) => f.check === "locked-failed" && !!f.testId && expectPass.includes(f.testId)).map((f) => f.testId!))] : [];
-      if (again.length && again.length < expectPass.length) {
+      if (again.length && again.length < expectPass.length && !demoAccept) {
         const first = await produce(ctx, `${key}/${ctx.attempt}-first`, commit, "task", { expectPass: again, expectFail: [], compareToBaseline: [] }, again);
         if (first.build.ok && first.testRun.results.some((r) => again.includes(r.id) && r.outcome === "failed")) {
           ctx.log(`implement ${taskId}: ${first.testRun.results.filter((r) => again.includes(r.id) && r.outcome === "failed").length} of the ${again.length} locked test(s) that failed last time still fail; the rest of the suite was not run`);
@@ -2185,6 +2248,16 @@ export function implementStep(taskId: string): StepDef {
       else await notRun(ctx, key, commit, ([[contractMatches, contractNotApplicable(ctx, wt)], [dataModelMatches, dataModelNotApplicable(ctx, wt)]] as [GateDef, string | undefined][]).filter((x): x is [GateDef, string] => !!x[1]));
       // a failed build marks every expected test "Build failed": that's the build, not a regression
       const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? [...contractGate(ctx, wt, commit, true), ...dataModelGate(ctx, wt, commit, true)] : [])], produced.build.ok ? earlier : undefined);
+      if (gated && demoAccept && produced.build.ok && demoSafe(gated)) {
+        ctx.log(`DEMO implement ${taskId}: build ok; accepting ${gated.failures.length} failing check(s) instead of another attempt: ${gated.failures.slice(0, 3).map((f) => f.message.slice(0, 120)).join("; ")}`);
+        return { kind: "done", outputs: { diff: diffSha, testRun: run.testRun }, treeSha: commit, data: { commit, ...retry, demoAccepted: gated.failures.length, ...(task.estimateTaskId ? { estimateTaskId: task.estimateTaskId } : {}) } };
+      }
+      // DEMO: the last attempt still does not build: the task is dropped (back to where it started) so the run goes on without it
+      if (demoMode() && !produced.build.ok && demoTry(ctx.ledger, key) >= ctx.policy.retryBudget) {
+        await resetHard(wt, start);
+        ctx.log(`DEMO implement ${taskId}: still does not build on the last attempt; dropped, the run goes on without it`);
+        return { kind: "done", outputs: { diff: ctx.ledger.putJson(await diffSummary(wt, start, start, lock)), testRun: run.testRun }, treeSha: start, data: { commit: start, ...retry, demoDropped: true, ...(task.estimateTaskId ? { estimateTaskId: task.estimateTaskId } : {}) } };
+      }
       if (gated) {
         if (!produced.build.ok) {
           gated.failures.unshift(...produced.build.errors.slice(0, 10).map((e) => failure("build", `${e.file}:${e.line} ${e.code} ${e.msg}`)));
