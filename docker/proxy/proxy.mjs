@@ -10,6 +10,7 @@
 // POC limit: feeds are allowlisted by host, not URL prefix (verify-runner §2.3 wants TLS
 // termination with a factory CA; not built yet).
 import { createHash } from "node:crypto";
+import dns from "node:dns/promises";
 import { readFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
@@ -209,17 +210,47 @@ function feedServer() {
       log(`deny CONNECT ${req.url}`);
       return;
     }
-    const up = net.connect(port, host, () => {
+    let up;
+    clientSocket.on("error", () => up?.destroy());
+    connectAny(host, port).then((sock) => {
+      if (clientSocket.destroyed) { sock.destroy(); return; }
+      up = sock;
       clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
       if (head?.length) up.write(head);
+      up.on("error", () => clientSocket.destroy());
       up.pipe(clientSocket);
       clientSocket.pipe(up);
+    }, (e) => {
+      log(`CONNECT ${host} failed: ${e.message}`);
+      clientSocket.end("HTTP/1.1 502 Bad Gateway\r\n\r\n");
     });
-    up.on("error", () => clientSocket.destroy());
-    clientSocket.on("error", () => up.destroy());
     log(`CONNECT ${host}`);
   });
   return server;
+}
+
+// a feed's address that takes this long to answer is passed over for its next one (run 3406: one of the CDN's addresses for
+// api.nuget.org dropped every connection, and the restore waited on it for its whole 15 minutes)
+const CONNECT_TIMEOUT_MS = Number(process.env.CONNECT_TIMEOUT_MS ?? 10_000);
+
+/** A connection to the first of the host's addresses that answers in time, tried one after another. */
+export async function connectAny(host, port, timeoutMs = CONNECT_TIMEOUT_MS, lookup = (h) => dns.lookup(h, { all: true })) {
+  const addrs = (await lookup(host)).map((a) => a.address);
+  let last = new Error(`no address for ${host}`);
+  for (const address of addrs) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const s = net.connect({ host: address, port });
+        const timer = setTimeout(() => { s.destroy(); reject(new Error(`${address} gave no answer in ${Math.round(timeoutMs / 1000)} s`)); }, timeoutMs);
+        s.once("connect", () => { clearTimeout(timer); resolve(s); });
+        s.once("error", (e) => { clearTimeout(timer); reject(e); });
+      });
+    } catch (e) {
+      last = e;
+      log(`CONNECT ${host}: ${address} passed over (${e.message})`);
+    }
+  }
+  throw last;
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {

@@ -3,7 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { actualSize, approvedLevel, fidelityLint, touchesUiFiles } from "./build-checks.js";
+import { actualSize, approvedLevel, fidelityLint, screenLint, themeTokenLint, touchesUiFiles } from "./build-checks.js";
+import { setsMonospace, stitchScaffoldBrief } from "./design-link.js";
 import { overall } from "./fidelity.js";
 import { sizeCapVerdict } from "./gates.js";
 
@@ -103,5 +104,54 @@ describe("project design settings and discover", () => {
     const head = r.commit({ "kit/badge.tsx": "export function Badge() { return <span /> }" });
     expect(actualSize(r.dir, r.base, head, { uiDir: "kit/" }).name).toBe("design-system change");
     expect(actualSize(r.dir, r.base, head).name).not.toBe("design-system change");
+  });
+});
+
+describe("theme tokens a task changes", () => {
+  it("fails a task that changes a theme token when the approved design is a new screen, and passes the rest (run 3f0f)", () => {
+    const r = repo({ ...APP, "app/globals.css": `@import "tailwindcss";\n@import "./theme.css";\n` });
+    // run 3f0f: a task put the approved look's variables in app/globals.css
+    const tokens = r.commit({ "app/globals.css": `@import "tailwindcss";\n@import "./theme.css";\n:root {\n  --primary: oklch(0.5 0.2 250);\n}\n` });
+    expect(themeTokenLint(r.dir, r.base, tokens, "new-screen")).toMatchObject({ check: "theme-tokens", status: "FAIL", items: ["app/globals.css"] });
+    expect(themeTokenLint(r.dir, r.base, tokens, "design-system")).toBeUndefined();
+    // a stylesheet edit that leaves the tokens alone, and a task with no stylesheet
+    const plain = r.commit({ "app/globals.css": `@import "tailwindcss";\n@import "./theme.css";\n:root {\n  --primary: oklch(0.5 0.2 250);\n}\n.card { padding: 1rem; }\n` });
+    expect(themeTokenLint(r.dir, tokens, plain, "tweak")).toMatchObject({ status: "PASS" });
+    const page = r.commit({ "app/page.tsx": `export default function Home() { return <main /> }` });
+    expect(themeTokenLint(r.dir, plain, page, "new-screen")).toBeUndefined();
+  });
+});
+
+describe("a Stitch screen's page against its approved screen", () => {
+  const screen = { id: "S-1", buttons: ["Mark delivered", "Open delivery"], mono: true };
+
+  it("fails a page that leaves out a button, the monospace or fades its text (run 3f0f review)", () => {
+    const r = repo(APP);
+    const bad = r.commit({ "components/screens/s-1/container.tsx": `export function C() { return <div><span className="text-muted-foreground/70">D-1</span><button>Mark delivered</button></div> }` });
+    const out = screenLint(r.dir, r.base, bad, screen);
+    expect(out.map((x) => [x.check, x.status])).toEqual([["design labels", "FAIL"], ["design fonts", "FAIL"], ["design contrast", "FAIL"]]);
+    expect(out[0]!.items).toEqual(["Open delivery"]);
+    expect(out[2]!.items).toEqual(["text-muted-foreground/70"]);
+  });
+
+  it("passes the page that keeps them, wherever its words are written", () => {
+    const r = repo(APP);
+    const good = r.commit({
+      "components/screens/s-1/container.tsx": `export function C() { return <div><span className="font-mono text-muted-foreground">D-1</span><button>{t.mark}</button><a className="hover:text-primary/80">open delivery</a></div> }`,
+      "messages/en.json": JSON.stringify({ mark: "Mark delivered" }),
+    });
+    expect(screenLint(r.dir, r.base, good, screen).every((x) => x.status === "PASS")).toBe(true);
+    // a design with no monospace asks for none
+    expect(screenLint(r.dir, r.base, good, { ...screen, mono: false })[1]!.status).toBe("PASS");
+  });
+
+  it("tells the coding task the same before it starts", () => {
+    const brief = stitchScaffoldBrief({ id: "S-1", container: "components/screens/s-1/container.tsx" }, ["default"], screen.buttons, true);
+    expect(brief).toContain(`("Mark delivered", "Open delivery")`);
+    expect(brief).toContain("keep them in font-mono");
+    expect(brief).toContain("no see-through text");
+    expect(stitchScaffoldBrief({ id: "S-1", container: "c.tsx" }, [])).not.toContain("font-mono");
+    expect(setsMonospace(`<td class="font-mono text-xs">D-4823</td>`)).toBe(true);
+    expect(setsMonospace(`<td class="text-xs">D-4823</td>`)).toBe(false);
   });
 });

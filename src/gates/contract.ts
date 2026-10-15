@@ -2,7 +2,7 @@
 // the document a built API produces says the same. Pure code: no model, no network.
 import { DataModel } from "../contracts/index.js";
 import { DATA_MODEL_FILE, dataModelDiff } from "./data-model.js";
-import { parse } from "yaml";
+import { parse, parseDocument } from "yaml";
 import { defineGate, failure, verdict } from "./engine.js";
 
 type Obj = Record<string, any>;
@@ -83,9 +83,29 @@ export function contractProblems(doc: Obj): string[] {
     for (const [code, r] of rs) {
       const c = deref(doc, r as Obj)?.content?.[JSON_TYPE] as Obj | undefined;
       if (c && c.example === undefined && !c.examples) bad.push(`${op} ${code} has no example (the frontend's tests run against it).`);
+      // the generated test handlers answer with the example, typed by the schema: one that leaves out a required field does not
+      // compile, and was found only when the test writers had been paid for (run b587)
+      const examples = c ? (c.example !== undefined ? [c.example] : Object.values((c.examples ?? {}) as Obj).map((x) => (x as Obj)?.value)) : [];
+      const wrong = examples.flatMap((x) => (x === undefined ? [] : exampleProblems(doc, c!.schema, x, "example")));
+      if (wrong.length) bad.push(`${op} ${code}'s example does not match its schema: ${[...new Set(wrong)].slice(0, 5).join("; ")}. Give every example every field its schema requires, with the schema's types.`);
     }
   }
   return bad;
+}
+
+/** Where an example differs from its schema: a required field it leaves out, or a value of another type. */
+export function exampleProblems(doc: Obj, schema: Obj | undefined, value: unknown, at: string, depth = 0): string[] {
+  const s = whole(doc, schema);
+  if (!s || depth > 12) return [];
+  if (value === null) return s.nullable === true || s.type === "null" || (Array.isArray(s.type) && s.type.includes("null")) ? [] : [`${at} is null and the schema does not allow it`];
+  const type = Array.isArray(s.type) ? s.type.find((t: string) => t !== "null") : s.type ?? (s.properties ? "object" : undefined);
+  const kind = Array.isArray(value) ? "array" : typeof value === "number" ? (Number.isInteger(value) ? "integer" : "number") : typeof value;
+  if (type && !(type === kind || (type === "number" && kind === "integer"))) return [`${at} is ${kind === "object" ? "an object" : `${kind === "array" ? "a list" : `a ${kind}`}`}, the schema says ${type}`];
+  if (kind === "array") return (value as unknown[]).slice(0, 3).flatMap((v, i) => exampleProblems(doc, s.items, v, `${at}[${i}]`, depth + 1));
+  if (kind !== "object") return [];
+  const o = value as Obj;
+  const missing = ((s.required ?? []) as string[]).filter((k) => !(k in o)).map((k) => `${at} has no ${k}, which the schema requires`);
+  return [...missing, ...Object.entries((s.properties ?? {}) as Obj).filter(([k]) => k in o).flatMap(([k, p]) => exampleProblems(doc, p as Obj, o[k], `${at}.${k}`, depth + 1))];
 }
 
 /** What a "$ref" points at, followed to its end: a schema, or a whole answer, request body or parameter kept under components. */
@@ -175,6 +195,62 @@ export function contractDiff(contract: Obj, built: Obj, detail = false): string[
   }
   for (const k of have.keys()) if (!want.has(k) && !under(k, extra)) { extra.push(k); out.push(`not in the contract: ${k}`); }
   return out;
+}
+
+/**
+ * A locked contract with a plan's new operations added: `additions` is YAML (or JSON) with `paths` (the new operations) and,
+ * when they need them, new `components` (schemas, responses, parameters, request bodies). Only what is not there yet goes in:
+ * an operation, or a component of the same name with other content, already in the contract is a problem, not a replacement.
+ * The rest of the file keeps its own layout and comments, so the change reads as an addition in the pull request.
+ */
+export function addToContract(contractText: string, additions: string): { text: string; problems: string[] } {
+  let add: Obj;
+  try { add = parse(additions) as Obj; } catch (e) { return { text: contractText, problems: [`contractAdditions is not YAML: ${(e as Error).message.split("\n")[0]}`] }; }
+  if (!add || typeof add !== "object" || !add.paths || typeof add.paths !== "object") return { text: contractText, problems: ['contractAdditions needs "paths": the new operations, under their paths'] };
+  const json = contractText.trimStart().startsWith("{");
+  const doc = json ? undefined : parseDocument(contractText);
+  const old = (json ? JSON.parse(contractText) : doc!.toJS()) as Obj;
+  const problems: string[] = [];
+  const put = (keys: string[], value: unknown) => {
+    if (doc) doc.setIn(keys, doc.createNode(value));
+    else { let o = old; for (const k of keys.slice(0, -1)) o = (o[k] ??= {}); o[keys.at(-1)!] = value; }
+  };
+  for (const [path, item] of Object.entries(add.paths as Obj)) {
+    const had = (old.paths as Obj | undefined)?.[path] as Obj | undefined;
+    for (const m of METHODS.filter((m) => (item as Obj)?.[m])) {
+      if (had?.[m]) problems.push(`${m.toUpperCase()} ${path} is already in the contract: give only new operations; one already there stays as it is`);
+      else put(["paths", path, m], (item as Obj)[m]);
+    }
+  }
+  for (const [kind, named] of Object.entries((add.components ?? {}) as Obj)) {
+    for (const [name, value] of Object.entries((named ?? {}) as Obj)) {
+      const had = (old.components as Obj | undefined)?.[kind]?.[name];
+      if (had === undefined) put(["components", kind, name], value);
+      else if (JSON.stringify(had) !== JSON.stringify(value)) problems.push(`components.${kind}.${name} is already in the contract with other content: give the new one another name`);
+    }
+  }
+  return { text: doc ? doc.toString({ lineWidth: 0 }) : JSON.stringify(old, null, 2) + "\n", problems };
+}
+
+/**
+ * What a brownfield plan's new version of a locked contract does to it: the operations it adds, and everything else it
+ * changes (an operation removed, a field, status code, parameter or operation id changed or added to an operation that was
+ * already there). The web app is built against the old version, so only `added` may pass without the spec asking for it
+ * (run 3406: an auth flow needed four operations the locked contract lacked, and the plan could not give them).
+ */
+export function contractChange(before: Obj, after: Obj): { added: string[]; changed: string[] } {
+  const was = contractFacts(before, true), now = contractFacts(after, true);
+  const oldOps = new Set(operations(before).map((o) => o.op));
+  const added = operations(after).map((o) => o.op).filter((op) => !oldOps.has(op));
+  const under = (k: string, ops: string[]) => ops.some((g) => k === g || k.startsWith(`${g} `) || k.startsWith(`${g}.`) || k.startsWith(`${g}[`));
+  const changed: string[] = [], removed: string[] = [];
+  for (const [k, v] of was) {
+    if (!now.has(k)) { if (!under(k, removed)) { removed.push(k); changed.push(`removed: ${k}`); } }
+    else if (now.get(k) !== v) changed.push(`${k}: was ${v}, now ${now.get(k)}`);
+  }
+  const grown: string[] = [];
+  for (const k of now.keys()) if (!was.has(k) && !under(k, added) && !under(k, grown)) { grown.push(k); changed.push(`added to an operation already in the contract: ${k}`); }
+  return { added, changed };
 }
 
 /** The API's own OpenAPI document, written by its build, says what the locked contract says. */

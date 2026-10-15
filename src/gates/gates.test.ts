@@ -7,7 +7,7 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { matchesAny } from "../util/glob.js";
 import {
   DEFAULT_POLICY, configIntegrity, diffInScope, evaluate, failsOnBase, isBlocking, isConfigIntegrityPath,
-  isSecretPath, ladderFacts, lockSetUnchanged, mergePolicy, nextOnFailure, noEscapeHatches, planChecks, runGate, skipGate,
+  isSecretPath, ladderFacts, lockSetUnchanged, mergePolicy, nextOnFailure, noClockReads, noEscapeHatches, planChecks, runGate, skipGate,
   testExpectations, verifyEvidence, type AttemptRecord, type DiffSummary, type LadderOptions, RUNGS,
 } from "./index.js";
 
@@ -81,6 +81,16 @@ describe("task gates", () => {
     expect(v.failures).toHaveLength(2);
     expect(noEscapeHatches.predicate({ diff: diff([{ path: "a.ts", added: ["it.only('x', () => {})"] }]) }, DEFAULT_POLICY).passed).toBe(false);
     expect(noEscapeHatches.predicate({ diff: diff([{ path: "a.ts", added: ["const expected = 1;"] }]) }, DEFAULT_POLICY).passed).toBe(true);
+  });
+
+  it("refuses a direct clock read in .NET code, not in its tests or a comment (run 7850)", () => {
+    const v = noClockReads.predicate({ diff: diff([
+      { path: "Api/Trips/TripService.cs", added: ["var now = DateTime.UtcNow;", "var at = DateTimeOffset.Now;", "if (d < DateTime.Today) {}", "var t = time.GetUtcNow(); // not DateTime.UtcNow"] },
+      { path: "Api.Tests/TripTests.cs", added: ["var now = DateTime.UtcNow;"] },
+      { path: "Api/Program.cs", added: ["builder.Services.AddSingleton(TimeProvider.System);"] },
+    ]) }, DEFAULT_POLICY);
+    expect(v.failures.map((f) => f.check)).toEqual(["clock-read", "clock-read", "clock-read"]);
+    expect(v.failures[0]!.message).toMatch(/^Api\/Trips\/TripService\.cs reads the clock directly: var now = DateTime\.UtcNow;.*TimeProvider/);
   });
 });
 

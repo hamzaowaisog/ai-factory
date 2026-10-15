@@ -39,7 +39,7 @@ function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
 }
 
 type Spec = z.infer<typeof SpecDraft>;
-type Plan = z.infer<typeof PlanBody>;
+type Plan = z.infer<typeof PlanBody> & { contractAdded?: string[] };
 
 const gatedSha = (ctx: Pick<StepContext, "state">) => String(ctx.state.steps.get("integrate")!.data!.commit);
 
@@ -196,7 +196,9 @@ export const reviewStep: StepDef = {
       }
     }
     // DEMO: the review's blocking findings are logged and the run goes on to the pull request, where they are listed anyway
-    if (!g.passed && demoMode()) ctx.log(`DEMO review: delivering despite ${(g.failures ?? []).length} blocking finding(s): ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}`);
+    // and kept for the top of the pull request (run 7850: a security finding went through, listed only among the others)
+    const demoBlocking = !g.passed && demoMode() ? (g.failures ?? []).map((f) => f.message) : [];
+    if (demoBlocking.length) ctx.log(`DEMO review: delivering despite ${demoBlocking.length} blocking finding(s): ${demoBlocking.slice(0, 3).join(" | ")}`);
     else if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
     // a criterion the reviewer found no test for at all stops the run here: nothing proves it, and the tests are locked, so
     // a person accepts that by name or stops
@@ -229,7 +231,7 @@ export const reviewStep: StepDef = {
       }
       manualChecks = { by: signed.by, criteria: manual.map((c) => c.id) };
     }
-    return { kind: "done", outputs: { review: reviewSha }, data: { findings: review.findings.length, note: review.note, diffTruncated: truncated, ...(waivers.length ? { waivers } : {}), ...(weakTests.length ? { weakTests } : {}), ...(manualChecks ? { manualChecks } : {}) } };
+    return { kind: "done", outputs: { review: reviewSha }, data: { findings: review.findings.length, note: review.note, diffTruncated: truncated, ...(waivers.length ? { waivers } : {}), ...(weakTests.length ? { weakTests } : {}), ...(manualChecks ? { manualChecks } : {}), ...(demoBlocking.length ? { demoBlocking } : {}) } };
   },
 };
 
@@ -285,12 +287,17 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
   const flaky = a.run.results.filter((r) => r.flaky).map((r) => r.id);
   const security = a.review.findings.filter((f) => f.category === "security");
   // what a person decided at the review: the criteria tried by hand, and any check accepted as it stands
-  const reviewed = ctx.state.steps.get("review")?.data as { manualChecks?: { by: string; criteria: string[] }; waivers?: { gateIds: string[]; human: string; reason: string }[]; weakTests?: { acId: string; why: string }[] } | undefined;
+  const reviewed = ctx.state.steps.get("review")?.data as { manualChecks?: { by: string; criteria: string[] }; waivers?: { gateIds: string[]; human: string; reason: string }[]; weakTests?: { acId: string; why: string }[]; demoBlocking?: string[] } | undefined;
   const weak = reviewed?.weakTests ?? [];
   // a criterion accepted with no test before the tests were locked
   const written = ctx.state.steps.get("author-tests")?.data as { waivers?: { gateIds: string[]; human: string; reason: string }[]; acceptedUntested?: string[] } | undefined;
   const byHand = new Set(reviewed?.manualChecks?.criteria ?? []);
+  // the change size, design size or estimate size accepted at integrate (by a person, or in demo mode without asking)
+  const integrated = ctx.state.steps.get("integrate")?.data as { waivers?: { gateIds: string[]; human: string; reason: string }[] } | undefined;
+  // DEMO: blocking findings delivered anyway, security first, before anything else on the page
+  const demoBlocking = [...(reviewed?.demoBlocking ?? [])].sort((x, y) => Number(/\[security\//.test(y)) - Number(/\[security\//.test(x)));
   return [
+    ...(demoBlocking.length ? [`> [!WARNING]`, `> **Delivered in demo mode with ${demoBlocking.length} blocking review finding${demoBlocking.length === 1 ? "" : "s"}${demoBlocking.some((m) => /\[security\//.test(m)) ? ", including security" : ""}.** Fix before merging:`, ...demoBlocking.map((m) => `> - ${m}`), ``] : []),
     `## What was asked`,
     ...((ctx.state.info.sources ?? []).length ? [`From: ${(ctx.state.info.sources ?? []).map((x) => (x.kind === "jira" ? `[${x.key}](${x.url})` : x.kind === "file" ? x.name : "typed prompt")).join(" + ")}`, ``] : []),
     ...(ctx.state.info.request ?? "").split("\n").map((l) => `> ${l}`),
@@ -311,6 +318,13 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
       `${a.plan.dataModel.tables.length} table${a.plan.dataModel.tables.length === 1 ? "" : "s"}, approved with the plan and kept in \`${DATA_MODEL_FILE}\`.${nearModel(a.plan.dataModel).others ? ` The diagram shows the tables this change adds or changes and the tables joined to them; ${nearModel(a.plan.dataModel).others} other${nearModel(a.plan.dataModel).others === 1 ? " is" : "s are"} unchanged.` : ""}`,
       ``, "```mermaid", erdMermaid(nearModel(a.plan.dataModel).model), "```", ``,
     ] : []),
+    // a locked contract this change added to (approved on the plan card): the web app is still built against the old one
+    ...(a.plan.contractAdded?.length ? [
+      `## API contract change`,
+      `This change adds ${a.plan.contractAdded.length} operation${a.plan.contractAdded.length === 1 ? "" : "s"} to the locked API contract, approved with the plan; nothing already in it changed:`,
+      ...a.plan.contractAdded.map((op) => `- ${op}`),
+      ``, `**The web app is built against the contract as it was: give it the new contract file before its next run.**`, ``,
+    ] : []),
     ...settingsSection(a.settings ?? []),
     `## Checks the factory ran itself`,
     `- ${a.run.results.length} tests in a sealed container; ${a.run.results.filter((r) => r.outcome === "passed").length} passed; no new failures vs the base branch`,
@@ -325,6 +339,7 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     ...(flaky.length ? [`- ⚠ Flaky (passed only on re-run): ${flaky.join(", ")}`] : []),
     ...(written?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})${written?.acceptedUntested?.length ? `. No test covers ${written.acceptedUntested.join(", ")}` : ""}`),
     ...(reviewed?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})`),
+    ...(integrated?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human} at integrate: ${w.gateIds.join(", ")} (${w.reason})`),
     ...(weak.length ? [`- ⚠ ${weak.length} locked test${weak.length === 1 ? "" : "s"} the review judged not to prove ${weak.length === 1 ? "its criterion" : "their criteria"}. ${weak.length === 1 ? "It passes" : "They pass"}, and the run did not stop for ${weak.length === 1 ? "it" : "them"}:`, ...weak.map((w) => `  - ${w.acId}: the test is too weak (${w.why})`)] : []),
     `- Review: ${a.review.findings.length} non-blocking findings${a.review.note ? ` (${a.review.note})` : ""}`,
     ...a.review.findings.map((f) => `  - ${f.id} [${f.severity}] ${f.text}`),

@@ -40,3 +40,22 @@ describe("build gate waivers (B1, B3, B4)", () => {
     expect(buildWaiver(ctx, "review", [{ def: unrequestedBehaviour, failures: [] }], "commit-1", "").kind).toBe("ask");
   });
 });
+
+describe("integrate's size cards in demo mode", () => {
+  it("are accepted without asking and named, and still asked outside demo mode (run 3f0f stopped on one)", async () => {
+    const { integrateWaiver } = await import("../stages/build.js");
+    const { designSizeCap } = await import("../design/gates.js");
+    const ledger = Ledger.create(`20261001-bwd-${Math.random().toString(16).slice(2, 6)}`);
+    await ledger.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x" } }, HUMAN_WRITER);
+    const failed = [{ def: designSizeCap, failures: [failure("design-size", "design-system change, but a new screen was approved")] }];
+    const was = process.env.FACTORY_DEMO;
+    try {
+      delete process.env.FACTORY_DEMO;
+      expect(integrateWaiver(await ctxOf(ledger), failed, "commit-1", "").kind).toBe("ask");
+      process.env.FACTORY_DEMO = "1";
+      expect(integrateWaiver(await ctxOf(ledger), failed, "commit-1", "")).toMatchObject({ kind: "waived", waivers: [{ gateIds: ["design.size-cap"], human: "DEMO mode", reason: "accepted without asking: design-system change, but a new screen was approved" }] });
+    } finally {
+      if (was === undefined) delete process.env.FACTORY_DEMO; else process.env.FACTORY_DEMO = was;
+    }
+  });
+});

@@ -7,8 +7,8 @@ export function demoMode(): boolean {
   return process.env.FACTORY_DEMO === "1";
 }
 
-/** Attempts a step gets in demo mode, at most (the normal budget is policy.retryBudget, 6). */
-export const DEMO_RETRY_BUDGET = 3;
+/** Attempts a step gets in demo mode, at most (the normal budget is policy.retryBudget, 6): the first and one retry. */
+export const DEMO_RETRY_BUDGET = 2;
 
 /**
  * From this attempt on, a demo step accepts what it has instead of retrying: failed locked tests, a weak or missing test,
@@ -29,7 +29,8 @@ export function demoTry(ledger: { events(): { seq: number; type: string; key?: s
   const evs = ledger.events().filter((e) => e.key && (e.key === step || e.key.startsWith(`${step}/`)) && !e.key.slice(step.length + 1).includes("/"));
   const lastDone = Math.max(-1, ...evs.filter((e) => e.type === "step.completed").map((e) => e.seq));
   return 1 + evs.filter((e) => {
-    const d = e.data as { parked?: boolean; category?: string } | undefined;
-    return e.type === "step.failed" && e.seq > lastDone && !d?.parked && d?.category !== "rate-limit";
+    const d = e.data as { parked?: boolean; category?: string; signature?: string } | undefined;
+    // an exception before the agent ran (run 3f0f: ENOENT on a screen's HTML, twice) is not a try of the work
+    return e.type === "step.failed" && e.seq > lastDone && !d?.parked && d?.category !== "rate-limit" && !d?.signature?.startsWith("exception:");
   }).length;
 }

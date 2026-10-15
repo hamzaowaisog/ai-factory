@@ -89,6 +89,20 @@ export const noEscapeHatches = defineGate<{ diff: DiffSummary }>({
   },
 });
 
+/** A direct read of the clock in .NET code. The time comes from an injected TimeProvider, so a test can fix it (run 7850). */
+export const CLOCK_READ = /\bDateTime(?:Offset)?\s*\.\s*(?:UtcNow|Now|Today)\b/;
+const TEST_CODE = /(^|\/)[^/]*\.Tests?(\/|\.)|(^|\/)tests?\//i;
+
+export const noClockReads = defineGate<{ diff: DiffSummary }>({
+  id: "task.no-clock-reads", after: "implement", safety: false, waiver: "none",
+  predicate: ({ diff }) => verdict(
+    diff.files.filter((f) => f.path.endsWith(".cs") && !TEST_CODE.test(f.path)).flatMap((f) => f.added
+      .filter((l) => CLOCK_READ.test(l.replace(/\/\/.*$/, "")))
+      .map((l) => failure("clock-read", `${f.path} reads the clock directly: ${l.trim().slice(0, 120)}. Take an injected TimeProvider and call GetUtcNow() (register TimeProvider.System in Program.cs), so a test can fix the time.`, { location: f.path }))),
+    "No direct clock reads",
+  ),
+});
+
 export const diffSize = defineGate<{ diff: DiffSummary }>({
   id: "integrate.diff-size", after: "integrate", safety: false, waiver: "human",
   predicate: ({ diff }, policy) => {

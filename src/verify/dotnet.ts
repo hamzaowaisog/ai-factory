@@ -72,6 +72,12 @@ export interface ProduceInput {
   schemaOnly?: boolean;
   /** Only restore packages into packagesDir (for the coding container); no build or tests. */
   restoreOnly?: boolean;
+  /**
+   * With restoreOnly: the plan's new packages, restored too although no project file names them yet. The coding container has no
+   * network, so a package the task is to add must already be in packagesDir when its agent starts (run 7850: TASK-1 spent 16 minutes
+   * unable to build without JwtBearer, which was restored only after the agent finished).
+   */
+  plannedPackages?: { name: string; version: string }[];
   /** Stop once the commit is built: no database, no accept, no tests. For the plan's stubs, which only have to compile. */
   buildOnly?: boolean;
   /** Accept: boot the app in the db's namespace and send these probes before the tests run. */
@@ -261,6 +267,41 @@ export function saveBuild(src: string, dir: string, dest: string): void {
   for (const old of others.sort((a, b) => b.t - a.t).slice(KEEP_BUILDS - 1)) rmSync(old.p, { recursive: true, force: true });
 }
 
+/** The target framework of the repo's first project file that names one (net9.0 when none does). */
+export function targetFramework(dir: string): string {
+  const walk = (d: string, depth: number): string | undefined => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.isFile() && e.name.endsWith(".csproj")) {
+        const m = readFileSync(join(d, e.name), "utf8").match(/<TargetFrameworks?>\s*([^;<\s]+)/);
+        if (m) return m[1];
+      }
+    }
+    if (depth >= 3) return undefined;
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory() && !e.name.startsWith(".") && e.name !== "bin" && e.name !== "obj" && e.name !== "node_modules") {
+        const t = walk(join(d, e.name), depth + 1);
+        if (t) return t;
+      }
+    }
+    return undefined;
+  };
+  return walk(dir, 0) ?? "net9.0";
+}
+
+/** A project that names only the plan's packages: restoring it fills the packages folder with them and what they depend on. */
+export function plannedProject(tfm: string, packages: { name: string; version: string }[]): string {
+  const esc = (x: string) => x.replace(/[<>&"]/g, "");
+  return [
+    `<Project Sdk="Microsoft.NET.Sdk">`,
+    `  <PropertyGroup><TargetFramework>${esc(tfm)}</TargetFramework><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup>`,
+    `  <ItemGroup>`,
+    ...packages.map((d) => `    <PackageReference Include="${esc(d.name)}" Version="${esc(d.version)}" />`),
+    `  </ItemGroup>`,
+    `</Project>`,
+    ``,
+  ].join("\n");
+}
+
 export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutput> {
   const { rt, project } = inp;
   const n = `${Date.now()}-${randomBytes(3).toString("hex")}`;
@@ -334,6 +375,22 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         const code = await rt.wait(t, project.dotnet.buildTimeoutSec * 1000);
         phase("ef-tool", `lab: the migrations tool (dotnet-ef ${ef.major}) ${code === 0 ? "is ready" : `could not be fetched (exit ${code ?? "timeout"}); the database is read from startup only`}`, code === 0 ? undefined : { logTail: (await rt.logs(t)).split("\n").slice(-20).join("\n") });
         await finish(t);
+      }
+      if (inp.restoreOnly && rCode === 0 && inp.plannedPackages?.length) {
+        // a scratch project outside the checkout, so the repo's Directory.*.props (central versions) do not apply to it
+        const planned = join(work, "planned");
+        mkdirSync(planned, { recursive: true });
+        writeFileSync(join(planned, "planned.csproj"), plannedProject(targetFramework(src), inp.plannedPackages));
+        const p = await launch({
+          role: "restore", image: project.dotnet.sdkImage, network: FEEDS_NET, workdir: "/planned",
+          env: { ...BASE_ENV, HTTPS_PROXY: FEED_PROXY_URL, HTTP_PROXY: FEED_PROXY_URL, NUGET_CERT_REVOCATION_MODE: "offline" },
+          mounts: [{ src: planned, dst: "/planned" }, { src: nuget, dst: "/nuget" }], cmd: ["dotnet", "restore", "planned.csproj"],
+        });
+        const pCode = await rt.wait(p, project.dotnet.buildTimeoutSec * 1000);
+        const pLog = await rt.logs(p);
+        logs.restore += `\n${pLog}`;
+        phase("restore-planned", `lab: the plan's packages (${inp.plannedPackages.map((d) => `${d.name} ${d.version}`).join(", ")}) ${pCode === 0 ? "restored" : `could not be restored (exit ${pCode ?? "timeout"})`}`, pCode === 0 ? undefined : { logTail: pLog.slice(-LOG_KEPT) });
+        await finish(p);
       }
       if (inp.restoreOnly) {
         const build: BuildRun = { kind: "build", ok: rCode === 0, errors: rCode === 0 ? [] : [{ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` }] };

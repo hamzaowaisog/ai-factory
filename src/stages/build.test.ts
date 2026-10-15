@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, tighteningGroups, failuresToFix, proofGroups, testKitFacts, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, writerGroups, tighteningGroups, failuresToFix, proofGroups, testKitFacts, writerScope, inTests, shownFailures, proofNamed, testWriterTampering, labelRejectionLifted, rewriteHasRoom, laterTests, finishedWriters, mergeAuthorOut } from "./build.js";
 import { ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { attemptSpend, startNeed } from "./executor.js";
@@ -32,6 +32,21 @@ describe("earlier tasks' locked tests", () => {
     expect(out.map((f) => f.check)).toEqual(["regression", "regression", "locked-failed", "new-failure"]);
     expect(out[0]).toEqual({ check: "regression", testId: "t1", frames: ["at A.B()"], message: "Your change broke TASK-1's locked test t1 (AC-1.1): t1 failed: boom" });
     expect(out[1]!.message).toMatch(/^Your change broke TASK-2's locked test t2 \(AC-2\.1\)/);
+  });
+
+  it("calls a failure a regression only when the test passed at its own task (run 7850: TASK-5's tests had never passed)", () => {
+    const passed = new Map([["TASK-1", new Set(["t1"])], ["TASK-2", new Set<string>()]]);
+    const earlier = earlierTests(plan, owners, tests, "TASK-3", (id) => passed.get(id));
+    expect(earlier.get("t1")?.passedThere).toBe(true);
+    expect(earlier.get("t2")?.passedThere).toBe(false);
+    const out = labelRegressions([
+      failure("locked-failed", "t1 failed: boom", { testId: "t1" }),
+      failure("locked-failed", "t2 failed: never passed", { testId: "t2" }),
+    ], earlier);
+    expect(out.map((f) => f.check)).toEqual(["regression", "locked-failed"]);
+    expect(out[1]!.message).toBe("TASK-2's locked test t2 (AC-2.1) has not passed since TASK-2, so this change did not break it; it must pass here: t2 failed: never passed");
+    // no run of the owner to read: a regression, as before
+    expect(labelRegressions([failure("locked-failed", "x", { testId: "t2" })], earlierTests(plan, owners, tests, "TASK-3", () => undefined))[0]!.check).toBe("regression");
   });
 });
 
@@ -179,6 +194,22 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(testRetryMode({ checks: [], rung: 1, interrupted: false, noCredit: true, commit: "abc" }).mode).toBe("keep");
     expect(testRetryMode(prev([{ check: "agent-error", message: "Claude Code returned an error result: Reached maximum budget ($4.01)" }].map(checkOf))).mode).toBe("keep");
     expect(testRetryMode(prev(["ac-coverage"], { interrupted: true })).mode).toBe("reset");
+  });
+
+  it("keeps the writers an interrupted attempt had finished, for the same stub commit and split only (run b587 attempt 4)", () => {
+    const groups = [["AC_1_1", "AC_1_2"], ["AC_2_1"], ["AC_3_1"]];
+    const e = (seq: number, type: string, key: string, data?: unknown) => ({ seq, ts: "", runId: "r", epoch: 0, type, key, data }) as LedgerEvent;
+    const written = (seq: number, index: number, over: object = {}) => e(seq, "tests.written", "author-tests/3", { index, ids: groups[index - 1], start: "s1", out: `o${index}`, files: `f${index}`, ...over });
+    const evs = [e(1, "step.started", "author-tests/3"), written(2, 1), written(3, 3), written(4, 2, { start: "s0" }), written(5, 1), e(6, "step.interrupted", "author-tests/3", { reason: "waiting" })];
+    expect(finishedWriters(evs, "author-tests", "s1", groups).map((f) => f.index)).toEqual([1, 3]);
+    // another split of the criteria, or a later stub commit: written again
+    expect(finishedWriters(evs, "author-tests", "s1", [["AC_1_1"], ["AC_1_2", "AC_2_1"], ["AC_3_1"]]).map((f) => f.index)).toEqual([3]);
+    expect(finishedWriters(evs, "author-tests", "s2", groups)).toEqual([]);
+    // an attempt that failed, or one that completed, keeps nothing
+    expect(finishedWriters([...evs, e(7, "step.failed", "author-tests/4")], "author-tests", "s1", groups)).toEqual([]);
+    expect(finishedWriters([...evs.slice(0, 5), e(6, "step.completed", "author-tests/3")], "author-tests", "s1", groups)).toEqual([]);
+    expect(mergeAuthorOut([{ tests: [{ acId: "a", file: "x", method: "m" }], characterisation: [], probes: [], notes: "n1" }, { tests: [], characterisation: [], probes: [], notes: "" }] as never))
+      .toEqual({ tests: [{ acId: "a", file: "x", method: "m" }], characterisation: [], probes: [], notes: "n1" });
   });
 
   it("lifts a rejection that was only a wrong label, read again from the stored reports", () => {

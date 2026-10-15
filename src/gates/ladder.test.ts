@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LADDER, nextOnFailure, rungKind, type AttemptRecord, type Rung } from "./ladder.js";
+import { DEFAULT_LADDER, ladderFacts, nextOnFailure, rungKind, type AttemptRecord, type Rung } from "./ladder.js";
 
 const opts = (avail: Rung[], modelSteps?: number) => ({
   ...DEFAULT_LADDER, availableRungs: new Set<Rung>(avail), backoffSpentMs: 0, a5Done: new Set<string>(), ...(modelSteps ? { modelSteps } : {}),
@@ -34,5 +34,18 @@ describe("a tier ladder", () => {
     const today = opts(["retry", "raise-effort", "stronger-model"]);
     expect(nextOnFailure([at(0, 1), at(0, 2)], today)).toMatchObject({ rung: 1 });
     expect(nextOnFailure([at(0, 1), at(0, 2), at(1, 1), at(1, 2)], today)).toMatchObject({ rung: 2 });
+  });
+});
+
+describe("a failure that holds its rung", () => {
+  it("retries weak tests at the same rung once, then moves up on the same failure (run b587 attempt 5)", () => {
+    const o = opts(["retry", "raise-effort", "stronger-model"]);
+    const proof: AttemptRecord = { category: "other", signature: "author-tests:proof", rung: 0, holdRung: true };
+    const history = [at(0, 1), proof];
+    expect(nextOnFailure(history, o)).toMatchObject({ action: "retry", rung: 0 });
+    expect(ladderFacts(history, o)).toMatchObject({ rule: "retry", attemptsAtRung: 1 });
+    // without the hold, the second attempt at the rung used it up
+    expect(nextOnFailure([at(0, 1), { ...proof, holdRung: undefined }], o)).toMatchObject({ action: "retry", rung: 1 });
+    expect(nextOnFailure([...history, proof], o)).toMatchObject({ action: "retry", rung: 1 });
   });
 });

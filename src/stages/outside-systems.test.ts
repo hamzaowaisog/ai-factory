@@ -121,3 +121,31 @@ describe("the pull request's settings section", () => {
     expect(body([])).not.toContain("Settings to fill in");
   });
 });
+
+describe("a demo run delivered with blocking review findings", () => {
+  const body = (demoBlocking?: string[]) => prBody({ runId: "run-1", state: { info: { request: "r" }, steps: new Map(demoBlocking ? [["review", { data: { demoBlocking } }]] : []), costUsd: 1 } as never }, {
+    spec: { requirements: [], nfrs: [], outOfScope: [], assumptions: [] } as never, plan: { tasks: [] } as never, lock: { tests: [] },
+    run: { results: [] } as never, review: { findings: [] }, manifestHash: "m", commits: [],
+  });
+
+  it("puts them at the top of the pull request, security first (run 7850, R-1)", () => {
+    const text = body(["R-2 [correctness/high] a.ts:1 wrong total", "R-1 [security/medium] LocationEndpoints.cs:37 any driver can post any vehicle's location"]);
+    expect(text.startsWith("> [!WARNING]\n> **Delivered in demo mode with 2 blocking review findings, including security.**")).toBe(true);
+    expect(text.indexOf("R-1 [security")).toBeLessThan(text.indexOf("R-2 [correctness"));
+    expect(text.indexOf("R-2 [correctness")).toBeLessThan(text.indexOf("## What was asked"));
+  });
+
+  it("says nothing when there were none", () => {
+    expect(body()).not.toContain("demo mode");
+  });
+});
+
+describe("checks accepted at integrate", () => {
+  it("are named on the pull request with who accepted them", () => {
+    const text = prBody({ runId: "run-1", state: { info: { request: "r" }, steps: new Map([["integrate", { data: { waivers: [{ gateIds: ["design.size-cap"], human: "DEMO mode", reason: "accepted without asking: too big" }] } }]]), costUsd: 1 } as never }, {
+      spec: { requirements: [], nfrs: [], outOfScope: [], assumptions: [] } as never, plan: { tasks: [] } as never, lock: { tests: [] },
+      run: { results: [] } as never, review: { findings: [] }, manifestHash: "m", commits: [],
+    });
+    expect(text).toContain("- ⚠ Waived by DEMO mode at integrate: design.size-cap (accepted without asking: too big)");
+  });
+});

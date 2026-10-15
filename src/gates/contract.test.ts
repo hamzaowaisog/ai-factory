@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contractDiff, contractGap, contractMatches, dataModelMatches, contractProblems, contractReadProblem, contractSummary, readContract } from "./contract.js";
+import { addToContract, contractChange, contractDiff, contractGap, contractMatches, dataModelMatches, contractProblems, contractReadProblem, contractSummary, exampleProblems, readContract } from "./contract.js";
 import { DEFAULT_POLICY } from "./policy.js";
 
 // the document a .NET 9 minimal API wrote at build time, with no network (the spike of 2026-10-05)
@@ -37,6 +37,21 @@ const built = () => JSON.parse(builtText) as Record<string, any>;
 const gate = (b: string | undefined) => contractMatches.predicate({ contract: { text: CONTRACT }, built: { ...(b === undefined ? {} : { text: b }), path: "Api/openapi/built.json" } }, DEFAULT_POLICY);
 
 describe("the locked API contract", () => {
+  it("refuses an example that leaves out a required field or has another type, before the plan is approved (run b587)", () => {
+    const doc = { openapi: "3.0.3", paths: {}, components: { schemas: { Plan: { type: "object", required: ["id", "total", "reconciled"], properties: {
+      id: { type: "integer" }, total: { type: "number" }, reconciled: { type: "boolean" }, note: { type: "string", nullable: true }, lots: { type: "array", items: { $ref: "#/components/schemas/Lot" } } } },
+      Lot: { type: "object", required: ["lb"], properties: { lb: { type: "number" } } } } } };
+    const plan = { $ref: "#/components/schemas/Plan" };
+    expect(exampleProblems(doc, plan, { id: 1, total: 2, reconciled: true, note: null, lots: [{ lb: 1.5 }] }, "example")).toEqual([]);
+    expect(exampleProblems(doc, { type: "array", items: plan }, [{ id: 1, total: 2.5, lots: [{}] }], "example")).toEqual([
+      "example[0] has no reconciled, which the schema requires", "example[0].lots[0] has no lb, which the schema requires"]);
+    expect(exampleProblems(doc, plan, { id: "1", total: 2, reconciled: true }, "example")).toEqual(["example.id is a string, the schema says integer"]);
+    const withBad = readContract(CONTRACT)!;
+    const c = withBad.paths["/api/appointments/today"].get.responses["200"].content["application/json"];
+    c.example = Array.isArray(c.example) ? [{}] : {};
+    expect(contractProblems(withBad).join("\n")).toMatch(/GET \/api\/appointments\/today 200's example does not match its schema: .*which the schema requires/);
+  });
+
   it("reads YAML or JSON, lists its operations for the card, and refuses what is not OpenAPI", () => {
     expect(contractSummary(contract)).toEqual(["POST /api/sign-in -> 200, 400", "GET /api/appointments/today -> 200"]);
     expect(readContract(builtText)).toBeTruthy();
@@ -213,5 +228,63 @@ describe("the built database against the approved data model: what an existing b
     const r = gate([t("Orders")], { note: "the app started but created no SQLite database file on startup", noDatabaseBefore: true });
     expect(r.passed).toBe(true);
     expect(r.details).toMatch(/Not compared: the code before this run created no database on startup either/);
+  });
+});
+
+describe("adding to a locked contract (run 3406)", () => {
+  const LOCKED = `openapi: 3.0.3
+info: { title: Orders, version: "1" }
+# the orders API: comments and layout stay
+paths:
+  /accounts:
+    get:
+      operationId: listAccounts
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Account" }, example: { id: 1 } } } }
+components:
+  schemas:
+    Account: { type: object, required: [id], properties: { id: { type: integer } } }
+`;
+  const SIGN_UP = `paths:
+  /auth/sign-up:
+    post:
+      operationId: signUp
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SignUp" } } } }
+      responses:
+        "201": { description: created, content: { application/json: { schema: { $ref: "#/components/schemas/Account" }, example: { id: 2 } } } }
+components:
+  schemas:
+    SignUp: { type: object, required: [email], properties: { email: { type: string } } }
+`;
+
+  it("adds new operations and schemas, keeps the rest of the file as it was, and reports only additions", () => {
+    const r = addToContract(LOCKED, SIGN_UP);
+    expect(r.problems).toEqual([]);
+    expect(r.text).toContain("# the orders API: comments and layout stay");
+    const doc = readContract(r.text)!;
+    expect(contractProblems(doc)).toEqual([]);
+    expect(contractChange(readContract(LOCKED)!, doc)).toEqual({ added: ["POST /auth/sign-up"], changed: [] });
+    // a new method on a path that is already there is an addition too
+    const r2 = addToContract(LOCKED, `paths:\n  /accounts:\n    post: { operationId: createAccount, responses: { "201": { description: created } } }\n`);
+    expect(r2.problems).toEqual([]);
+    expect(contractChange(readContract(LOCKED)!, readContract(r2.text)!).added).toEqual(["POST /accounts"]);
+  });
+
+  it("refuses to replace an operation or a component that is already there", () => {
+    const r = addToContract(LOCKED, `paths:\n  /accounts:\n    get: { operationId: listAll, responses: { "200": { description: ok } } }\ncomponents:\n  schemas:\n    Account: { type: object }\n`);
+    expect(r.problems.join("\n")).toMatch(/GET \/accounts is already in the contract/);
+    expect(r.problems.join("\n")).toMatch(/components.schemas.Account is already in the contract with other content/);
+    expect(addToContract(LOCKED, "info: {}").problems[0]).toMatch(/needs "paths"/);
+  });
+
+  it("names every change to an operation that was already there", () => {
+    const before = readContract(LOCKED)!;
+    const after = readContract(LOCKED.replace("operationId: listAccounts", "operationId: accounts").replace('"200":', '"201":'))!;
+    const c = contractChange(before, after);
+    expect(c.added).toEqual([]);
+    expect(c.changed.join("\n")).toMatch(/GET \/accounts operationId: was listAccounts, now accounts/);
+    expect(c.changed.join("\n")).toMatch(/removed: GET \/accounts 200/);
+    expect(c.changed.join("\n")).toMatch(/added to an operation already in the contract: GET \/accounts 201/);
   });
 });

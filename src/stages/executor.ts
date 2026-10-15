@@ -487,7 +487,7 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
         dropBuildCache(runId);
         return { status: `closed: ${outcome.reason}`, message: outcome.reason };
       case "fail": {
-        const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
+        const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds, ...(outcome.holdRung ? { holdRung: true } : {}) };
         const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
         // a locked test is read against its criterion once in a run (twice when the first rewrote it): after that the ladder
         // climbs as for any other failure

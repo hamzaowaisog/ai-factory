@@ -84,13 +84,25 @@ const q = (s: string): string => JSON.stringify(s);
 
 /** A design route as the Next.js App Router folder: "/accounts/:id" is app/accounts/[id]. Undefined when it cannot be one. */
 export function nextRouteDir(route: string): string | undefined {
-  const path = route.split(/[?#]/)[0]!.replace(/\/+$/, "");
+  const path = dynamicRoute(route.split(/[?#]/)[0]!.replace(/\/+$/, ""));
   const segs = path.split("/").filter(Boolean).map((s) => (s.startsWith(":") ? `[${s.slice(1)}]` : s));
   if (segs.some((s) => !/^(\[[A-Za-z_]\w*\]|[A-Za-z0-9._~-]+)$/.test(s))) return undefined;
   return segs.join("/");
 }
 /** A design route for React Router ("/accounts/[id]" written either way). */
-export const routerPath = (route: string): string => (route.split(/[?#]/)[0]!.replace(/\[([^\]]+)\]/g, ":$1").replace(/\/+$/, "") || "/");
+export const routerPath = (route: string): string => (dynamicRoute(route.split(/[?#]/)[0]!).replace(/\[([^\]]+)\]/g, ":$1").replace(/\/+$/, "") || "/");
+
+/** A path segment that is one record's sample ID (D-4823, V-04, tk-4823, 1042), not a word of the address. */
+const SAMPLE_ID = /^[A-Za-z]{0,4}[-_]?\d{2,}$/;
+
+/**
+ * A designed route with a sample record's ID in it, as a route for every record: "/deliveries/D-4823" is "/deliveries/:id". The
+ * design draws one record, and its ID is data (run 3f0f: only D-4823 had a page, so every other row's link was a 404).
+ */
+export function dynamicRoute(path: string): string {
+  let n = 0;
+  return path.split("/").map((s) => (SAMPLE_ID.test(s) ? `:${++n === 1 ? "id" : `id${n}`}` : s)).join("/");
+}
 
 /** The states a screen opens in by address: the slug, and the demo's name (its layer, its message, its full data). */
 export function screenStates(s: DesignBody["screens"][number]): Record<string, { name: string; overlay?: number; toast?: number; full?: boolean }> {

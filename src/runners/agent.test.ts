@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import http from "node:http";
+import net from "node:net";
 import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
@@ -332,6 +333,21 @@ describe("egress proxy", () => {
     });
     server.close();
     expect(status).toBe(403);
+  });
+
+  it("feed proxy passes over a feed address that does not answer for the next one (run 3406)", async () => {
+    const proxy = await import("../../docker/proxy/proxy.mjs" as string);
+    const feed = net.createServer((s) => s.end());
+    await new Promise<void>((r) => feed.listen(0, "127.0.0.1", r));
+    const port = (feed.address() as { port: number }).port;
+    try {
+      // 192.0.2.1 is a documentation address: nothing answers there, by a timeout or at once
+      const lookup = async () => [{ address: "192.0.2.1" }, { address: "127.0.0.1" }];
+      const s: net.Socket = await proxy.connectAny("api.nuget.org", port, 300, lookup);
+      expect(s.remoteAddress).toBe("127.0.0.1");
+      s.destroy();
+      await expect(proxy.connectAny("api.nuget.org", port, 300, async () => [{ address: "192.0.2.1" }])).rejects.toThrow();
+    } finally { feed.close(); }
   });
 });
 

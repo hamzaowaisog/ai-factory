@@ -36,6 +36,29 @@ export function repoIsEmpty(repo: string, ref: string): boolean {
   return !c || isEmptyTree(git(repo, ["ls-tree", "-r", "--name-only", "-z", c]).split("\0").filter(Boolean));
 }
 
+/** A skeleton the factory starts a new product from has about ten files (`factory fullstack`'s API: 10); a code base has more. */
+export const SKELETON_FILES = 25;
+
+/** The first commit of a repo the factory started itself: `factory init` on an empty repo, or a full-stack product's API skeleton. */
+const FACTORY_ROOT = /^(Start \(factory init: a new product\)|API skeleton \(factory fullstack\))/;
+
+/**
+ * True when the run builds a new product: the repo is empty at `ref`, or holds only a skeleton the factory started (run 7850's
+ * API repo was the fullstack skeleton plus its contract: 10 files). A small repo someone else started is not new.
+ * Never throws: a repo that cannot be read is not taken as new.
+ */
+export function startsNewProduct(repo: string, ref: string): boolean {
+  try {
+    const c = commitAt(repo, ref);
+    if (!c) return true;
+    const files = git(repo, ["ls-tree", "-r", "--name-only", "-z", c]).split("\0").filter(Boolean);
+    if (isEmptyTree(files)) return true;
+    if (files.length > SKELETON_FILES) return false;
+    const root = git(repo, ["rev-list", "--max-parents=0", c]).trim().split("\n").at(-1)!;
+    return FACTORY_ROOT.test(git(repo, ["log", "-1", "--format=%s", root]).trim());
+  } catch { return false; }
+}
+
 /** Files staged or in the working tree that are not starter files (ignored files aside): what an "empty" base commit must not take in. */
 export function uncommittedCode(repo: string): string[] {
   const out = git(repo, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]).split("\0").filter(Boolean);

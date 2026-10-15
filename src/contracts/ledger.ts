@@ -26,6 +26,8 @@ export const EventType = z.enum([
   // one per attempt of a step, written when it ends (passed, failed, parked, waiting): what ran, what each check said, what
   // the retry rules decided and on what, and every file the attempt left in the ledger, by name
   "attempt.summary",
+  // one test writer of several that returned its tests: kept for a resume when the attempt is interrupted before it ends
+  "tests.written",
 ]);
 export type EventType = z.infer<typeof EventType>;
 

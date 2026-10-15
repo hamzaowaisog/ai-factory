@@ -3,18 +3,18 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, uncommittedCode, newProductRefusal } from "./greenfield.js";
+import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, SKELETON_FILES, startsNewProduct, uncommittedCode, newProductRefusal } from "./greenfield.js";
 import { ProjectConfig } from "./project.js";
 import { parse } from "yaml";
 
 const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
-function repo(files?: Record<string, string>): string {
+function repo(files?: Record<string, string>, message = "i"): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-gf-"));
   execFileSync("git", ["init", "-q", "-b", "main"], { cwd: dir, env });
   if (files) {
     for (const [f, t] of Object.entries(files)) writeFileSync(join(dir, f), t);
     execFileSync("git", ["add", "-A"], { cwd: dir, env });
-    execFileSync("git", ["commit", "-q", "--allow-empty", "-m", "i"], { cwd: dir, env });
+    execFileSync("git", ["commit", "-q", "--allow-empty", "-m", message], { cwd: dir, env });
   }
   return dir;
 }
@@ -39,6 +39,18 @@ describe("an empty repo (greenfield)", () => {
     expect(repoIsEmpty(fresh, "main")).toBe(true);
     expect(repoIsEmpty(repo({ "README.md": "# shop" }), "main")).toBe(true);
     expect(repoIsEmpty(repo({ "README.md": "# shop", "index.ts": "" }), "main")).toBe(false);
+  });
+
+  it("takes an empty repo or a skeleton as a new product, and a code base as not (runs 3f0f, 7850)", () => {
+    expect(startsNewProduct(repo(), "main")).toBe(true);
+    expect(startsNewProduct(repo({ "README.md": "# shop" }), "main")).toBe(true);
+    const ten = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`f${i}.cs`, ""]));
+    // a skeleton the factory started (run 7850's API repo: 10 files) is new; a small repo someone else started is not
+    expect(startsNewProduct(repo(ten, "API skeleton (factory fullstack): .NET 9, PostgreSQL, one test"), "main")).toBe(true);
+    expect(startsNewProduct(repo(ten, "Start (factory init: a new product)"), "main")).toBe(true);
+    expect(startsNewProduct(repo(ten), "main")).toBe(false);
+    expect(startsNewProduct(repo(Object.fromEntries(Array.from({ length: SKELETON_FILES + 1 }, (_, i) => [`f${i}.cs`, ""])), "API skeleton (factory fullstack)"), "main")).toBe(false);
+    expect(startsNewProduct(join(tmpdir(), "factory-gf-missing"), "main")).toBe(false);
   });
 
   it("never takes staged or waiting code into the empty base commit (PR #17 review, item 2)", () => {

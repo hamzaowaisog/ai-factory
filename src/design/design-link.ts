@@ -93,12 +93,26 @@ export function stitchBriefHtml(html: string, maxChars = 30_000): string {
   return clean.length <= maxChars ? clean : `${clean.slice(0, maxChars)}<!-- cut: ${clean.length - maxChars} more characters -->`;
 }
 
-/** A greenfield coding task's brief for a scaffolded Stitch screen: build the approved page in its container, keep fixture mode. */
-export function stitchScaffoldBrief(s: { id: string; container: string }, states: string[]): string {
+/**
+ * A greenfield coding task's brief for a scaffolded Stitch screen: build the approved page in its container, keep fixture mode, and
+ * keep what the review's fidelity check reads (run 3f0f: buttons left out, IDs out of monospace, faded text below 4.5:1).
+ */
+export function stitchScaffoldBrief(s: { id: string; container: string }, states: string[], buttons: string[] = [], mono = false): string {
   return `This task builds ${s.id}'s page in ${s.container}: the approved Stitch screen. Rebuild it with the kit's components (components/ui, components/blocks) and the approved theme so it matches the Stitch HTML (layout, sections, order, words); do not paste the Stitch markup or its Tailwind CDN script.
 - Load the real data, handle the page's actions, and keep fixture mode: ?fixture=${s.id}:<state> shows the approved sample content in that state with no backend, for ${states.join(", ") || "default"}.
+- Keep every button and link the screen shows, with its words exactly as approved${buttons.length ? ` (${buttons.map((b) => `"${b}"`).join(", ")})` : ""}; the factory checks they are all there.
+${mono ? "- The screen sets its IDs and codes in monospace: keep them in font-mono.\n" : ""}- Use the theme's text colours as they are: no see-through text (text-muted-foreground/70), which falls below 4.5:1 against its background.
 - Server code, API clients and validation go in the other files of your scope.`;
 }
+
+/** The approved Stitch HTML of a screen's normal page; undefined for a JSON design or a screen with none. */
+export function stitchPageHtml(design: { stitch?: { frames: Record<string, { screen?: string; state?: string; html: string }> } }, screenId: string, read: (sha: string) => string): string | undefined {
+  const f = Object.values(design.stitch?.frames ?? {}).find((x) => x.screen === screenId && (x.state ?? "normal") === "normal");
+  try { return f ? read(f.html) : undefined; } catch { return undefined; }
+}
+
+/** Does the approved HTML set text in monospace (font-mono, or a monospace font family)? */
+export const setsMonospace = (html: string): boolean => /\bfont-mono\b|monospace/i.test(html);
 
 /** Brief screens whose Stitch HTML a coding task reads, and the characters of HTML the whole brief may hold (about 6k tokens). */
 const MAX_STITCH_HTML = 3;

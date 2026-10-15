@@ -603,8 +603,17 @@ export const ImpactBody = z.object({
 export const Impact = withHeader(ImpactBody.shape);
 export type Impact = z.infer<typeof Impact>;
 
+/**
+ * A requirement as a plan task names it: the id alone. A model that writes the id and then what the task does with it
+ * ("REQ-1 — include sign-in ...") meant that id (run 3406: every requirement read as uncovered, twice, and the run parked).
+ */
+export function leadingId(v: unknown): unknown {
+  const m = typeof v === "string" ? /^\s*([A-Z][A-Z0-9]*-\d+)(?![\w-])/.exec(v) : null;
+  return m ? m[1] : v;
+}
+
 export const PlanTask = z.object({
-  id: Id, title: z.string(), reqs: z.array(Id), fileScope: z.array(z.string()).min(1),
+  id: Id, title: z.string(), reqs: z.array(z.preprocess(leadingId, Id)), fileScope: z.array(z.string()).min(1),
   exemplars: z.array(z.string()), conventions: z.array(Id),
   dependsOn: z.array(Id), plannedLoc: z.number().int().nonnegative(),
   newFileKind: z.boolean().optional(),
@@ -675,8 +684,14 @@ export const PlanBody = z.object({
   stubs: z.preprocess(tidyStubs, z.array(InterfaceStub)).default([]),
   /** a backend plan's tables, columns and keys (required where the plan sets up or changes stored data) */
   dataModel: DataModel.optional(),
+  /** a repo with a locked API contract: the operations the spec needs that it lacks, as OpenAPI YAML (`paths`, new `components`) */
+  contractAdditions: z.string().optional(),
 });
-export const Plan = withHeader({ ...PlanBody.shape, complexity: Complexity });
+export const Plan = withHeader({
+  ...PlanBody.shape, complexity: Complexity,
+  /** the operations `contractAdditions` adds to the locked contract (approved on the plan card; the merged file is a stub) */
+  contractAdded: z.array(z.string()).optional(),
+});
 export type Plan = z.infer<typeof Plan>;
 
 export const Approval = withHeader({

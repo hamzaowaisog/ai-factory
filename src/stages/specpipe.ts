@@ -196,6 +196,13 @@ const nothingToRead = (ctx: Pick<StepContext, "state">): boolean => {
 const newWork = (ctx: Pick<StepContext, "state">): boolean => !hasRepo(ctx) || nothingToRead(ctx);
 /** The web side of a full-stack product writing its own spec. An estimate prices the whole request, so its spec keeps every criterion. */
 const webSide = (ctx: Pick<StepContext, "state" | "project">): boolean => ctx.state.info.mode !== "estimate" && apiElsewhere(ctx.project);
+/**
+ * The spec's screens get tests: a web app with screen tests, or an estimate that draws a design. That estimate's spec seeds the
+ * web build of its design, and written for a lab that can't test screens it had no ui criteria (run 3f0f: 0 ui, 2 locked tests
+ * for 20 tasks and 17 screens).
+ */
+const screensTested = (ctx: Pick<StepContext, "state" | "project">): boolean =>
+  testsScreens(ctx.project) || (ctx.state.info.mode === "estimate" && ctx.state.info.estimate?.drawDesign !== false);
 /** Spans a repair dropped; one the API side took over (webSideOnly) is not dropped. */
 const lostHere = (before: Spec, after: Spec, spans: string[]): string[] => {
   const apis = outOfScopeSpans(after.outOfScope, spans, [API_SIDE]);
@@ -244,7 +251,7 @@ ${UNTRUSTED_NOTE}`;
 
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
-    S.template("tpl", draftRules(testsScreens(ctx.project), newWork(ctx), webSide(ctx))),
+    S.template("tpl", draftRules(screensTested(ctx), newWork(ctx), webSide(ctx))),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
     S.artifact("assumptions", "assumptions", i.assumptions),
@@ -453,7 +460,7 @@ export const specifyStep: StepDef = {
     const fresh = newWork(ctx);
     let before: string[] | undefined;
     for (;;) {
-      const d = downgradeUi(fresh ? allAdded(spec) : spec, testsScreens(ctx.project));
+      const d = downgradeUi(fresh ? allAdded(spec) : spec, screensTested(ctx));
       spec = here(d.spec);
       for (const id of d.downgraded) manualUi.add(id);
       const c = await checkSpec(ctx, spec, i, lane.criticEffort);
@@ -510,7 +517,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
             if (!r.ok) return r;
             const stab = Object.fromEntries(before.requirements.map((q) => [q.id, q.stability]));
             const draft = newWork(ctx) ? allAdded(applyRepair(before, r.output)) : applyRepair(before, r.output);
-            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, testsScreens(ctx.project));
+            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, screensTested(ctx));
             for (const id of d.downgraded) manualUi.add(id);
             return { ok: true, spec: here(d.spec) };
           },

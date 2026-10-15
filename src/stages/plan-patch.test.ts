@@ -76,4 +76,15 @@ describe("a plan the schema refused", () => {
     expect(applyToDraft(draft, PlanPatch.parse({}))).toEqual({ problem: "the patch changes nothing" });
     expect(applyToDraft({}, PlanPatch.parse({ dropStubs: ["x"] }))).toMatchObject({ problem: expect.any(String) });
   });
+
+  it("keeps the plan's contract additions unless the patch gives new ones (run 3406)", () => {
+    const withAdds = { ...prev, contractAdditions: "paths: {}" };
+    expect(planOf(applyPlanPatch(withAdds, PlanPatch.parse({ adr: "Other." }))).contractAdditions).toBe("paths: {}");
+    expect(planOf(applyPlanPatch(withAdds, PlanPatch.parse({ contractAdditions: "paths: { /b: {} }" }))).contractAdditions).toBe("paths: { /b: {} }");
+  });
+
+  it("reads a task's requirement by its id when the planner wrote what it does after it (run 3406)", () => {
+    const plan = PlanBody.parse({ ...prev, tasks: [task(1, { reqs: ["REQ-1 — include sign-in, sign-up and recovery operations", " REQ-12: sign-out", "REQ-3"] })] });
+    expect(plan.tasks[0]!.reqs).toEqual(["REQ-1", "REQ-12", "REQ-3"]);
+  });
 });

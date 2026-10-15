@@ -156,6 +156,18 @@ describe("the scaffold", () => {
     expect(routerPath("/accounts/[id]")).toBe("/accounts/:id");
   });
 
+  it("a sample record's ID in a designed route is a route for every record (run 3f0f: only D-4823 had a page)", () => {
+    expect(nextRouteDir("/dispatch/deliveries/D-4823")).toBe("dispatch/deliveries/[id]");
+    expect(nextRouteDir("/dispatch/deliveries/D-4819/reschedule")).toBe("dispatch/deliveries/[id]/reschedule");
+    expect(nextRouteDir("/admin/fleet/V-04/maintenance/new")).toBe("admin/fleet/[id]/maintenance/new");
+    expect(nextRouteDir("/track/tk-4823")).toBe("track/[id]");
+    expect(nextRouteDir("/orders/1042/items/77")).toBe("orders/[id]/items/[id2]");
+    expect(routerPath("/customer/shipments/D-4823")).toBe("/customer/shipments/:id");
+    // words of the address stay
+    expect(nextRouteDir("/api/v2/new")).toBe("api/v2/new");
+    expect(nextRouteDir("/onboarding/step-1")).toBe("onboarding/step-1");
+  });
+
   it("a fresh Next.js app: the kit, the theme, a page per web screen with its blocks, states and fixtures, and the app around them", () => {
     const l = scaffold({ ...base, target: "next-shadcn" });
     expect(l.fresh).toBe(true);

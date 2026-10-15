@@ -8,7 +8,7 @@ import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { contractProblems, contractReadProblem, contractSummary, readContract } from "../gates/contract.js";
+import { addToContract, contractChange, contractProblems, contractReadProblem, contractSummary, readContract } from "../gates/contract.js";
 import { DATA_MODEL_FILE, dataModelBrief, dataModelProblems, dataModelSummary, erdMermaid, mergeDataModel, nearModel, withKnown } from "../gates/data-model.js";
 import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
@@ -24,7 +24,7 @@ import { graphReport } from "./task-graph.js";
 import { requirementSummary, riskLines, spendLine, taskSummary, withSummary } from "./card-summary.js";
 import { gateNotes } from "./gate-questions.js";
 import { settledText } from "./settle.js";
-import { CLIENT_DIR } from "./contract.js";
+import { apiElsewhere, CLIENT_DIR } from "./contract.js";
 import { CriticOut } from "./specpipe.js";
 import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
@@ -261,7 +261,8 @@ BEFORE YOU ANSWER, check the plan against what the factory checks it with (a pla
       ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
       ...(impactNote ? [S.template("impact", impactNote)] : []),
       // a whole product's contract is far over a change request's budget and cannot be cut: the budget grows by it (budgetFor)
-      ...(lockedContract ? [{ ...S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not change the file and do not give a stub for it; a needed change to it is a change request.\n\n${lockedContract}`), whole: true }]
+      ...(lockedContract ? [{ ...S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not give a stub for the file.${apiElsewhere(ctx.project) ? " A needed change to it is made on the API side first; leave contractAdditions out." : `
+Where the spec needs an operation the contract does not have, give it in contractAdditions: OpenAPI 3.0 YAML with "paths" holding only the new operations (each with an operationId, its parameters and request body, and its responses, each JSON response with an example that has every field its schema requires) and "components" holding only the new schemas or responses they use. Reuse the contract's own components by $ref; use the contract's security scheme, or "security: []" for an operation that needs no login. The factory adds them to ${cfile}, and a person approves them on the plan card. Only additions: an operation already in the contract stays exactly as it is (no field, status code or parameter added, changed or removed), so the web app built against it keeps working. Plan the new operations' endpoints in the tasks like any other. Leave contractAdditions out when the contract already has every operation the spec needs.`}\n\n${lockedContract}`), whole: true }]
         : cfile ? [S.template("contract-new", contractRules(cfile))] : []),
       ...(ctx.project.stack !== "node" ? [S.template("data-model", dataModelRules(modelRequired, impact?.entities ?? [], !!existingModel))] : []),
       // a change the impact step found to touch no stored data (a fix in logic, say) gets the tables by name and key only
@@ -313,12 +314,30 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     }
     // an existing backend: the model kept is the whole database, the plan's tables laid over the ones read from it
     const dataModel = existingModel && r.output.dataModel ? mergeDataModel(existingModel, r.output.dataModel) : r.output.dataModel;
-    const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, ...(dataModel ? { dataModel } : {}), complexity: complexityOf(r.output) };
+    // a locked contract the spec needs more of: the plan's new operations are added to it here, and the result is the contract's
+    // stub (written by the stub commit and locked with the tests, as a new product's is); a stub of it from an earlier round is ours
+    // only the API side adds to it: it builds the new operations, and the web app's client is generated from the file
+    const additions = lockedContract && !apiElsewhere(ctx.project) && r.output.contractAdditions?.trim() ? r.output.contractAdditions : undefined;
+    const added = additions ? addToContract(lockedContract!, additions) : undefined;
+    const change = added && !added.problems.length ? (() => { const a = readContract(lockedContract!), b = readContract(added.text); return a && b ? contractChange(a, b) : undefined; })() : undefined;
+    const ownStubs = additions ? r.output.stubs.filter((st) => st.path !== cfile) : r.output.stubs;
+    const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, ...(dataModel ? { dataModel } : {}), complexity: complexityOf(r.output),
+      ...(added && change?.added.length ? { stubs: [...ownStubs, { path: cfile!, reason: "the locked API contract with this plan's new operations added", content: added.text }], contractAdded: change.added } : {}) };
     const fs: Failure[] = [];
     const waivable: BuildFailed[] = [];
     for (const m of scaf ? checkPlanScaffold(plan, scaf) : []) fs.push(failure("plan-scaffold", m));
     const contractStub = cfile ? plan.stubs.find((st) => st.path === cfile) : undefined;
-    if (lockedContract && contractStub) fs.push(failure("plan-contract", `${cfile} is the locked API contract: the plan may not rewrite it. Drop its stub.`));
+    if (lockedContract && contractStub && !additions) fs.push(failure("plan-contract", `${cfile} is the locked API contract: the plan may not rewrite it. Drop its stub; give any operation it lacks in contractAdditions.`));
+    if (added) {
+      for (const p of added.problems) fs.push(failure("plan-contract", p));
+      const doc = added.problems.length ? undefined : readContract(added.text);
+      if (!added.problems.length && !doc) fs.push(failure("plan-contract", `${cfile} with contractAdditions added is not an OpenAPI document: ${contractReadProblem(added.text) ?? 'it needs "openapi" and "paths"'}.`));
+      // only what the additions bring: a problem the locked contract already had is in operations the plan may not change
+      const had = new Set((() => { const old = readContract(lockedContract!); return old ? contractProblems(old) : []; })());
+      if (doc) fs.push(...contractProblems(doc).filter((m) => !had.has(m)).map((m) => failure("plan-contract", m)));
+      if (change && !change.added.length) fs.push(failure("plan-contract", "contractAdditions adds no operation: leave it out, or give the new operations under paths."));
+      for (const c of change?.changed.slice(0, 10) ?? []) fs.push(failure("plan-contract", `contractAdditions changes the locked contract, and only additions are allowed (the web app is built against it): ${c}`));
+    }
     if (cfile && !lockedContract) {
       const doc = contractStub ? readContract(contractStub.content) : undefined;
       if (!contractStub) fs.push(failure("plan-contract", `No stub for the API contract. Give ${cfile} as a stub: the full OpenAPI 3.0 document of every operation the screens call.`));
@@ -412,7 +431,7 @@ export const requirementLines = (spec: Spec): string[] =>
 export const criticLines = (critic: { findings: { severity: string; reqId?: string; finding: string }[]; note?: string }): string[] =>
   [...critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`), ...(critic.note ? [`_${critic.note}_`] : [])];
 
-export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[]; /** spec problems and failing design checks settled by questions, and what was carried as an open risk */ settled?: string[] }): string {
+export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity; contractAdded?: string[] }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[]; /** spec problems and failing design checks settled by questions, and what was carried as an open risk */ settled?: string[] }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
   const notGrounded = files.filter((f) => !grounded.has(f));
@@ -464,7 +483,11 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
       return [
         ...(stubs.length ? [``, `Stub commit (throws NotImplemented until implemented): ${stubs.map((s) => s.path).join(", ")}`] : []),
         // approving the plan approves the contract: from then on it is locked with the tests, for the API and the web app alike
-        ...(doc ? [``, `## API contract (${cfile}; locked with the tests once you approve)`, ...contractSummary(doc).map((l) => `- ${l}`)] : []),
+        // a change to a locked contract: only what it adds (nothing else may change); the web app takes it after this run
+        ...(doc && a.plan.contractAdded?.length ? [``, `## API contract change (${cfile}; ${a.plan.contractAdded.length} operation${a.plan.contractAdded.length === 1 ? "" : "s"} added, nothing else changed; locked with the tests once you approve)`,
+          ...contractSummary(doc).filter((l) => a.plan.contractAdded!.some((op) => l.startsWith(`${op} -> `))).map((l) => `- ${l}`),
+          `The web app is built against the contract as it was: give it the new ${cfile} before its next run.`]
+          : doc ? [``, `## API contract (${cfile}; locked with the tests once you approve)`, ...contractSummary(doc).map((l) => `- ${l}`)] : []),
         // approving the plan approves the data model too: the built database is compared with it after every build
         ...(a.plan.dataModel ? (() => {
           // an existing backend: the tables this plan adds or changes and the ones joined to them; the whole database is on the Data model page
