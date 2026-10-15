@@ -1649,7 +1649,10 @@ describe("factory ui: design exports", () => {
 
   it("a run started from the UI can choose mobile design, and the projects list says each project's setting", async () => {
     _resetStarting();
-    expect(((await call("/api/projects")).json().projects as { name: string; mobileDesign: boolean }[]).find((p) => p.name === "web")!.mobileDesign).toBe(true);
+    const web = ((await call("/api/projects")).json().projects as { name: string; mobileDesign: boolean; designEngine?: string }[]).find((p) => p.name === "web")!;
+    expect(web.mobileDesign).toBe(true);
+    // a project that names no page-drawing engine: the form shows "mobile design" only when Stitch is picked
+    expect(web.designEngine).toBeUndefined();
     const b = await post({ project: "web", prompt: "Add an orders page", mobileDesign: false });
     expect(b.status).toBe(201);
     expect(replay(Ledger.open(b.json().runId).events()).info.mobileDesign).toBe(false);

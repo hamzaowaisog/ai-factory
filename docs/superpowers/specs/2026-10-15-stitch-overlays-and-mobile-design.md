@@ -35,9 +35,10 @@ phone drawings on or off when starting a run.
 
 - New run setting `mobileDesign` (true or false), saved with the run when it is created, so a resume or a send-back keeps it.
 - Order: the run's setting, then the project's `design.stitch.phone`, then on (as today).
-- Web form: when a design engine (Google Stitch, or the model drawing the pages) is picked on the design row, a
-  "Mobile design" select (Yes / No) appears beside "planned by". It starts at the chosen project's setting; it is sent only
-  when changed. The new-product (full stack) form does not show it.
+- Web form: when a design engine (Google Stitch, or the model drawing the pages) is picked on the design row, or nothing is
+  picked there and the chosen project's `design.engine` is one, a "Mobile design" select (Yes / No) appears beside "planned by".
+  It starts at the chosen project's setting until a person changes it. Whenever it is shown, its value is sent and saved with
+  the run, so the run keeps what the form showed. The new-product (full stack) form does not show it.
 - CLI: `--mobile-design <true|false>` on `factory start`, `factory estimate` and `factory design start`.
 - Extra states stay a project setting (`design.stitch.states`).
 

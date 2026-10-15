@@ -363,7 +363,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}`))) : null);
   const buildFrom = () => ({ kind: fromEst.value.slice(0, 1), id: fromEst.value.slice(2) });
   // the run it starts from decides the project
-  const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) project.value = p; };
+  const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) { project.value = p; project.dispatchEvent(new Event("change")); } };
   const syncEst = () => {
     for (const id of ["reqblock", "refblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = !!fromEst.value; }
     const { kind: k, id } = buildFrom();
@@ -517,7 +517,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const picker = modelPicker(catalogue, "modelpreset");
   const modelPreset = picker.preset, modelsTable = picker.table, modelsHint = picker.hint, modelsPicked = picker.picked;
   // "mobile design" starts at the chosen project's design.stitch.phone
-  const syncMobile = () => picker.setMobileDefault(meta.projects.find((p) => p.name === project.value)?.mobileDesign ?? true);
+  const syncMobile = () => { const p = meta.projects.find((x) => x.name === project.value); picker.setMobileDefault(p?.mobileDesign ?? true, !!p?.designEngine); };
   project.addEventListener("change", syncMobile);
   syncMobile();
   const modelsBlock = estimating ? sect(designing ? 7 : 8, "Models", "The model each step runs on.", h("div", { class: "fld" }, h("label", { for: "modelpreset" }, "Preset"), modelPreset), modelsTable, modelsHint)
@@ -2548,6 +2548,8 @@ async function dashboardScreen() {
  * `catalogue` is GET /api/models/:mode. Returns the preset select, the table of steps, the hint, and `picked()`: what goes in the POST body.
  */
 function modelPicker(catalogue, id, also = "", mobile = true) {
+  // the chosen project draws its pages itself (design.engine stitch or pages): "mobile design" shows with no pick on the design row
+  let projectDraws = false;
   const mName = (m) => catalogue.models.find((x) => x.id === m)?.name ?? m;
   const mPrice = (m) => { const x = catalogue.models.find((y) => y.id === m); return x ? `$${x.input} in / $${x.output} out per million tokens${x.unconfirmed ? " (not confirmed)" : ""}` : ""; };
   const preset = h("select", { id }, h("option", { value: "" }, "Defaults"), catalogue.presets.map((p) => h("option", { value: p }, p[0].toUpperCase() + p.slice(1))));
@@ -2578,7 +2580,8 @@ function modelPicker(catalogue, id, also = "", mobile = true) {
       if (planner) {
         planner.hidden = plannerLabel.hidden = !engine;
         if (engine) plannerAuto.textContent = `${mName(engine.planner)} (default)`; else planner.value = "";
-        if (mobileSel) mobileSel.hidden = mobileLabel.hidden = !engine;
+        // shown when this run draws pages: an engine picked here, or none picked and the project's design.engine is one
+        if (mobileSel) mobileSel.hidden = mobileLabel.hidden = !(engine || (!pick.value && projectDraws));
       }
       // a spec step on the model its critic runs on: allowed, and said here as the start check says it
       const other = s.apart ? rows.find((r) => r.step === s.apart) : undefined;
@@ -2595,14 +2598,18 @@ function modelPicker(catalogue, id, also = "", mobile = true) {
   function syncAll() { rows.forEach((r) => r.sync()); }
   preset.addEventListener("change", syncAll);
   syncAll();
-  // the project's design.stitch.phone: the select starts there, and only a change from it is sent
-  let mobileDefault = true;
-  const setMobileDefault = (on) => { mobileDefault = on; for (const r of rows) if (r.mobileSel) r.mobileSel.value = String(on); };
-  setMobileDefault(true);
+  // the select starts at the project's design.stitch.phone until a person changes it; a shown select is always sent, so the run keeps it
+  let mobileTouched = false;
+  for (const r of rows) r.mobileSel?.addEventListener("change", () => { mobileTouched = true; });
+  const setMobileDefault = (on, draws = false) => {
+    projectDraws = draws;
+    if (!mobileTouched) for (const r of rows) if (r.mobileSel) r.mobileSel.value = String(on);
+    syncAll();
+  };
   const picked = () => {
     const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.value()]));
     const m = rows.find((r) => r.mobileSel && !r.mobileSel.hidden)?.mobileSel;
-    const mobileChoice = m && m.value !== String(mobileDefault) ? { mobileDesign: m.value === "true" } : {};
+    const mobileChoice = m ? { mobileDesign: m.value === "true" } : {};
     return { ...(preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {}), ...mobileChoice };
   };
   const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
