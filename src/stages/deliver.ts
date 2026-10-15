@@ -25,6 +25,7 @@ import { modelFor } from "./routing.js";
 import { S, think } from "./think.js";
 import { changeBase, ensureWorktree, toolsAt } from "./workspace.js";
 import { recordTestLesson } from "../context/lessons.js";
+import { demoMode } from "../util/demo.js";
 import { followUpSection, readImpact } from "./impact.js";
 import { disputedTests, openedFiles, rewrittenTests, type Disputed, type Judged } from "./test-defect.js";
 import { contractLockFiles, provedByApi, provenHere } from "./contract.js";
@@ -166,7 +167,9 @@ export const reviewStep: StepDef = {
     // stronger model, rather than asking a person to fix what the model should simply redo.
     const cg = await runGate(reviewCoversCriteria, ctx.ledger, ctx.writer,
       { review: reviewSha, spec: specSha }, ctx.policy, { step: "review", treeSha: head });
-    if (!cg.passed) {
+    // DEMO: a review that left criteria without a verdict goes on; those criteria are logged (and stay unreviewed on the PR)
+    if (!cg.passed && demoMode()) ctx.log(`DEMO review: going on without a verdict for ${(cg.failures ?? []).length} criteria: ${(cg.failures ?? []).slice(0, 8).map((f) => f.message.match(/AC-[\w.]+/)?.[0] ?? f.message).join(", ")}`);
+    else if (!cg.passed) {
       return {
         kind: "fail", category: "other",
         failures: cg.failures ?? [failure("coverage", cg.details)],
@@ -192,7 +195,9 @@ export const reviewStep: StepDef = {
         waivers = w.waivers;
       }
     }
-    if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
+    // DEMO: the review's blocking findings are logged and the run goes on to the pull request, where they are listed anyway
+    if (!g.passed && demoMode()) ctx.log(`DEMO review: delivering despite ${(g.failures ?? []).length} blocking finding(s): ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}`);
+    else if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
     // a criterion the reviewer found no test for at all stops the run here: nothing proves it, and the tests are locked, so
     // a person accepts that by name or stops
     // (one a person accepted before the tests were locked is not asked about again)

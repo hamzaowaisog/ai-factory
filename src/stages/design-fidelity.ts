@@ -32,6 +32,7 @@ import type { RunState } from "../ledger/state.js";
 import type { DesignPackage } from "../design/package.js";
 import { AGENT_IMAGE, ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { ensureWorktree, runtime } from "./workspace.js";
+import { demoMode } from "../util/demo.js";
 
 export const FIDELITY_DIR = "design-fidelity";
 export const DEFAULT_INSTALL = "npm install --no-audit --no-fund";
@@ -106,6 +107,8 @@ export const designFidelityStep: StepDef = {
       return done({ kind: "design-fidelity", levels: [], findings: [], pages: [], overall: "unchecked", ran: [], notes: [], skipped: why });
     };
     if (ctx.project.design?.fidelity === false) return skip("switched off (design.fidelity: false in the project config)");
+    // DEMO: no fidelity check in demo mode (about 8-10 minutes and a waiver card per web run; src/util/demo.ts)
+    if (demoMode()) return skip("DEMO: switched off in demo mode (FACTORY_DEMO=1)");
     const approved = approvedDesignFor<Approved>(ctx.state, ctx.ledger);
     if (!approved) return skip("the run has no approved design");
     const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");

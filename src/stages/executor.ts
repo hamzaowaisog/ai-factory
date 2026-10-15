@@ -135,6 +135,11 @@ export async function createRun(request: string, projectName: string, operator: 
   if (lin) copyArtifacts(ledger, lin.approved);
   if (opts.fromDesign) {
     copyArtifacts(ledger, opts.fromDesign);
+    // the design names each screen's HTML and picture by hash; those files stay in the design run's ledger unless copied too
+    // (run 3f0f: implement parked on ENOENT opening screen ST-17's HTML)
+    const from = Ledger.open(opts.fromDesign.runId);
+    const named = new Set(Object.values(opts.fromDesign.artifacts).flatMap((v) => JSON.stringify(v).match(/\b[0-9a-f]{64}\b/g) ?? []));
+    for (const sha of named) if (!ledger.hasArtifact(sha) && from.hasArtifact(sha)) ledger.putArtifact(from.getArtifact(sha));
     // a spec with no critic record of its own: an empty one, stated as inherited
     if (!opts.fromDesign.ref.criticSha) opts.fromDesign.ref.criticSha = ledger.putJson({ findings: [], note: `inherited from approved design ${opts.fromDesign.runId}` });
   }

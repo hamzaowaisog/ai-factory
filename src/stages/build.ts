@@ -2432,7 +2432,12 @@ export const integrateStep: StepDef = {
           approved: ctx.ledger.putJson({ level: uiApproved }),
         }] as [GateDef, Record<string, string>]] : []),
     ]);
-    if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
+    // DEMO: failing locked tests (or contract/model findings) on a built app are recorded and the run goes on to delivery;
+    // a safety finding, or an app that did not build (no test passed), still parks
+    const demoIntegrate = gated && demoMode() && gated.category !== "safety" && ctx.ledger.getJson<TestRun>(testRun).results.some((r) => r.outcome === "passed")
+      && gated.failures.every((f) => !["lock-set", "config-integrity", "secret"].includes(f.check));
+    if (demoIntegrate) ctx.log(`DEMO integrate: accepting ${gated.failures.length} failing check(s) instead of parking: ${gated.failures.slice(0, 5).map((f) => f.message.split("\n")[0]).join("; ")}`);
+    else if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
     // the environment check (a web app's tests): the passing locked tests once more at another instant and in a shuffled order.
     // A test that passes only at the usual instant or order depends on something other than the code (the real clock, rows
     // another test left, the order). Found here, it is named before delivery instead of breaking the next run that touches it.
@@ -2446,7 +2451,8 @@ export const integrateStep: StepDef = {
         const moved = lock.tests.filter((t) => ids.includes(t.testId) && !ok.has(t.testId));
         const said = (id: string) => (shifted.testRun.results.find((r) => r.id === id)?.message ?? "").split("\n").map((l) => l.trim()).find(Boolean)?.slice(0, 200) ?? "";
         if (!moved.length) ctx.log(`integrate: environment check passed: ${ids.length} test(s) also pass at another instant and in another order`);
-        else if (lenientTests(ctx.project)) {
+        else if (lenientTests(ctx.project) || demoMode()) {
+          // DEMO: treated as a lenient run (named on the pull request, not a park)
           for (const t of moved) {
             await ctx.ledger.append({ type: "test.disputed", key: "integrate", data: { step: "integrate", testId: t.testId, acId: t.acId, file: t.file, why: `It passes only at the usual test instant or order, so it depends on something other than the code: ${said(t.testId)}` } }, ctx.writer);
           }
@@ -2532,7 +2538,9 @@ export const acceptStep: StepDef = {
       ...(acc.boot.attempted && !acc.boot.ok ? [`the app didn't start: ${acc.boot.note ?? ""}`] : []),
       ...items.filter((i) => i.kind !== "manual" && !i.passed && !disputedAcs.has(i.ac)).map((i) => `${i.ac}: ${i.testIds.length ? "" : "no locked test; "}${i.http.filter((h) => h.status !== h.expectStatus).map((h) => `${h.method} ${h.path} answered ${h.status}, expected ${h.expectStatus}`).join("; ") || "locked test didn't pass"}`),
     ];
-    if (problems.length) return { kind: "park", reason: `Acceptance evidence is missing: ${problems.join(" | ")}` };
+    // DEMO: a started app with criteria not proven goes on to delivery, the gaps named in the log and the evidence; an app that did not start still parks
+    if (problems.length && demoMode() && !(acc.boot.attempted && !acc.boot.ok)) ctx.log(`DEMO accept: delivering with ${problems.length} criteria not proven: ${problems.slice(0, 5).join(" | ")}`);
+    else if (problems.length) return { kind: "park", reason: `Acceptance evidence is missing: ${problems.join(" | ")}` };
     return { kind: "done", outputs: { evidence: sha, testRun: runSha }, data: { appStarted: acc.boot.ok, probes: acc.probes.length, manualPending: items.filter((i) => i.kind === "manual").map((i) => i.ac), ...(disputedAcs.size ? { disputed: [...disputedAcs] } : {}) } };
   },
 };
