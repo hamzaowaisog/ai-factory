@@ -78,6 +78,8 @@ export const toastLabel = (t: { text: string }): string => `Toast: ${t.text.leng
 const KIND_NAME: Record<string, string> = { modal: "Dialog", drawer: "Panel", sheet: "Sheet", confirm: "Confirm", menu: "Menu" };
 /** An overlay's tab in the demo: "Dialog: Add payee". It is a demo tab, not a state the estimate counts. */
 export const overlayLabel = (o: { kind: string; title: string }): string => `${KIND_NAME[o.kind] ?? "Dialog"}: ${o.title}`;
+/** The frame state of a Stitch screen's i-th overlay, drawn as its page with the layer open: "overlay-1". */
+export const overlayFrameState = (i: number): string => `overlay-${i + 1}`;
 export const FULL_DATA = "Full data";
 
 /** The order the demo lists a screen's states: the normal page first, then success, validation, loading, empty, error. Screenshots use the same order. */

@@ -29,6 +29,10 @@ const plan = (over: Record<string, unknown> = {}) => ({
   ],
   noScreen: [], brand: { colours: ["#0F766E"], fonts: [] }, ...over,
 });
+const withOverlays = () => plan({ screens: [{ ...plan().screens[0], states: ["empty"], phone: true, overlays: [
+  { kind: "modal", title: "Add payee", trigger: "Add payee", content: "Name, bank and IBAN fields; Save payee and Cancel." },
+  { kind: "confirm", title: "Delete payee", trigger: "Delete", content: "Says the payee and their history are removed for good." },
+] }, plan().screens[1]] });
 const md = (brand = "#0F766E") => `# Design System: Payees\n## 1. Visual Theme & Atmosphere\nCalm, balanced, a daily banking app with clear hierarchy and quiet surfaces throughout.\n## 2. Color Palette & Roles\n- **Canvas** (#F9FAFB) — background\n- **Brand Teal** (${brand}) — the one accent\n## 3. Typography Rules\n- **Display:** Geist\n## 4. Component Stylings\nFlat buttons.\n## 5. Layout Principles\nGrid first.\n## 7. Anti-Patterns (Banned)\n- No emojis`;
 
 let answers: unknown[] = [];
@@ -357,6 +361,36 @@ describe("extra states", () => {
     const out = await drawWithStitch(ctxFor(memoryLedger(), 0, { stitch: { states: ["validation", "loading"] } }), spec);
     expect(out.kind).toBe("done");
     expect(made.generated.map((g) => /in its (\w+) state/.exec(g.prompt)?.[1] ?? "normal").sort()).toEqual(["loading", "normal", "normal", "validation"]);
+  });
+});
+
+describe("overlays", () => {
+  it("draws each overlay once as a frame of its page, after its states and before its phone drawing", () => {
+    const jobs = stitchJobs(withOverlays().screens as never, ["empty"], undefined, true);
+    expect(jobs.filter((j) => j.id === "S-1").map((j) => j.state)).toEqual(["normal", "empty", "overlay-1", "overlay-2", "phone"]);
+    const modal = jobs.find((j) => j.state === "overlay-1")!;
+    expect(modal.prompt).toContain('the dialog "Add payee" open over it, as the "Add payee" control opens it');
+    expect(modal.prompt).toContain("It holds: Name, bank and IBAN fields; Save payee and Cancel.");
+    expect(modal.prompt).toContain("Keep the layout, navigation and header of the page behind identical to the normal page.");
+    expect(jobs.find((j) => j.state === "overlay-2")!.prompt).toContain('the confirmation dialog "Delete payee"');
+    // an overlay has no state or phone drawing of its own
+    expect(jobs.filter((j) => j.state.startsWith("overlay-"))).toHaveLength(2);
+  });
+
+  it("tells the screen list to keep popups on their page and not to invent screens", async () => {
+    answers = [plan(), { designMd: md(), theme }];
+    await drawWithStitch(ctxFor(memoryLedger()), spec);
+    const listCall = systems[0] + users[0];
+    expect(listCall).toContain("Do not invent screens the requirements do not need.");
+    expect(listCall).toContain('"overlays" lists what opens over this page instead of a page of its own');
+    expect(listCall).not.toContain("(sign in, a confirmation, a message that access is refused)");
+  });
+
+  it("refuses a screen list with two overlays of the same title on one page", async () => {
+    const o = { kind: "modal", title: "Add payee", trigger: "Add payee", content: "Name, bank and IBAN fields; Save payee and Cancel." };
+    answers = [plan({ screens: [{ ...plan().screens[0], overlays: [o, { ...o, trigger: "New payee" }] }, plan().screens[1]] })];
+    const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
+    expect(out).toMatchObject({ kind: "fail", failures: [expect.objectContaining({ check: "design-duplicate-overlay" })] });
   });
 });
 

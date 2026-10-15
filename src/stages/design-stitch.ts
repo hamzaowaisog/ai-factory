@@ -19,7 +19,7 @@ import type { DesignRefsArt } from "./design-refs.js";
 import { stitchFacts, type StitchFacts } from "../design/stitch-facts.js";
 import { stitchClient, type StitchClient, type StitchDevice } from "../design/stitch.js";
 import { checkStitchA11y } from "../design/stitch-a11y.js";
-import { buildDemo, frameDataUri, stateKind } from "../design/demo.js";
+import { buildDemo, frameDataUri, overlayFrameState, stateKind } from "../design/demo.js";
 import { LIVE_DIR, stitchLiveHtml, type LiveScreen } from "../design/stitch-live.js";
 import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
 import { failure } from "../gates/engine.js";
@@ -40,6 +40,10 @@ export const StitchPlan = z.object({
     reqs: z.array(z.string()), states: z.array(z.string()).default([]), prompt: z.string().min(20),
     links: z.array(z.object({ label: z.string().min(1), to: z.string() })).default([]),
     shell: z.string().optional(), phone: z.boolean().optional(),
+    /** what opens over this page instead of a page of its own: each drawn once, as the page with it open */
+    overlays: z.array(z.object({
+      kind: z.enum(["modal", "drawer", "sheet", "confirm"]), title: z.string().min(1).max(60), trigger: z.string().min(1), content: z.string().min(10),
+    })).max(3).default([]),
   })).min(1),
   shells: z.array(z.object({ id: z.string().min(1), header: z.string().min(20) })).default([]),
   sample: z.string().default(""),
@@ -49,7 +53,8 @@ export const StitchPlan = z.object({
 type Plan = z.infer<typeof StitchPlan>;
 
 const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch to draw, one prompt per screen.
-- One screen per page a user sees: ids S-1, S-2, ..., each with its route, a proposed file path and the requirement ids it serves in "reqs".
+- One screen per page a user sees: ids S-1, S-2, ..., each with its route, a proposed file path and the requirement ids it serves in "reqs". Do not invent screens the requirements do not need.
+- "overlays" lists what opens over this page instead of a page of its own, three at most: kind "modal" (a short form or record, such as Add payee), "drawer" (a side panel with a record's details or filters), "sheet" (a bottom sheet on a phone) or "confirm" (a yes-or-no before a step that deletes, cancels, pays or cannot be undone); its "title"; its "trigger", the exact words on the control on this page that opens it; and its "content", what it holds (its fields and buttons, the record's facts, or what the step does). One of these is never a screen of its own and never in "links". A page with an address of its own (a booking's confirmation page, a record's page) stays a screen. A message that an action worked is a line on the page it happened on, not a screen, unless the requirements give it a page.
 - Every requirement is on a screen, or in "noScreen" with the reason it has no page of its own.
 - Each "prompt" describes that page alone, in its normal state (its other states are drawn apart, from "states"): its purpose, its sections in order, and real sample content from the product's domain (names, amounts, dates). No lorem ipsum, no generic names, nothing the requirements do not ask for.
 - "links" lists every way from this page to another screen: its menu items and the buttons and links that open one, each with the exact words on the control ("label") and the screen id it opens ("to"). A screen has one label, the same on every page that links to it; a button that stays on its page is not listed. The prompt uses those same words for those controls. The pages one kind of user sees share one menu: the same items, labels and order on each of them, and never a page meant for another kind of user.
@@ -63,7 +68,7 @@ const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch t
 - A page never repeats its menu as a panel of links or tiles. A row that opens a record is itself the link, or has one control that does; no checkbox or radio on a row unless the page acts on several rows at once. Filters apply as they are chosen, with no Apply button. A page shows no field, id, switch, building, gate or device that neither the requirements nor "sample" name.
 - "phone": true on the pages a person opens on a phone on the move (the main tasks of the largest group of users), five at most; each is drawn a second time at phone width.
 - Each prompt composes its page like a finished product, not a wireframe: one thing the eye meets first (named, with its size against the rest), then the sections in the order the user needs them, what sits beside what on a wide screen, and where the page is left empty on purpose. Give real figures, names and dates enough to fill every list and table with believable rows.
-- "taste" holds the layout rules, the anti-patterns and the component replacements the design system is written by. Compose each page by them: where a page would have a component from the left column of its table, the prompt asks for the one on the right, with this product's content (one headline figure with its context above a dense table, never four cards of figures with sparklines; a list or a table, never a grid of near-equal tiles; no row of three equal cards). Its lines about colours, fonts, shadows, motion and CSS are the design system's and stay out of a prompt, and its lines about heroes, pricing, testimonials and footers apply to a public marketing page alone. A page outside any shell that holds one task (sign in, a confirmation, a message that access is refused) is not a hero: its heading, its one sentence and its one action sit in a single panel no wider than 440 px, centred on the page both ways, with the brand's mark and words above the panel and nothing else on the page (no header bar, no footer, no office or place name). The requirements, and a rule above, win over it.
+- "taste" holds the layout rules, the anti-patterns and the component replacements the design system is written by. Compose each page by them: where a page would have a component from the left column of its table, the prompt asks for the one on the right, with this product's content (one headline figure with its context above a dense table, never four cards of figures with sparklines; a list or a table, never a grid of near-equal tiles; no row of three equal cards). Its lines about colours, fonts, shadows, motion and CSS are the design system's and stay out of a prompt, and its lines about heroes, pricing, testimonials and footers apply to a public marketing page alone. A page outside any shell that holds one task (sign in, a message that access is refused) is not a hero: its heading, its one sentence and its one action sit in a single panel no wider than 440 px, centred on the page both ways, with the brand's mark and words above the panel and nothing else on the page (no header bar, no footer, no office or place name). The requirements, and a rule above, win over it.
 - "states" lists the page's extra states besides its normal page (empty, loading, error, success, validation) only where the requirements need them.
 - "brand" lists the client's colours (hex) and fonts only when the requirements or references name them; otherwise leave it empty.`;
 
@@ -109,13 +114,22 @@ const ONE_STATE = "\nDraw this one state only: no tabs, chips or buttons that sw
 /** Stitch draws a still page unless the prompt asks for the motion itself, so each one does, and names the design's two motions. */
 const moving = (m: StitchMotion | undefined) => `\nMotion: write the design system's motion tokens and keyframes into a <style> block and use them, in CSS only (no JavaScript): the entrance sequence on load, and a hover, focus and pressed state on every control.${m ? ` The signature motion: ${m.signature.trim()} The one ambient animation: ${m.ambient.trim()}` : ""} Include a prefers-reduced-motion rule.`;
 
-/** What to draw: each screen's normal page, then each state it lists that the project allows (once per kind). */
 /** The frame a phone-width drawing of a screen is kept as (beside its normal page and its extra states). */
 export const PHONE_STATE = "phone";
 /** The most screens drawn a second time at phone width: each is one more Stitch generation. */
 export const MAX_PHONE_FRAMES = 5;
 const AT_PHONE = "\nShow the page in its normal state at phone width (about 390 px), whatever the header line says of a wide screen: one column, the brand and a menu button in the header with the menu behind it, each table as stacked labelled records, the primary action within reach of a thumb, nothing scrolling sideways.";
 
+/** How each overlay is named and placed in its drawing. */
+const OVERLAY_WORD: Record<string, string> = { modal: "dialog", drawer: "side panel", sheet: "bottom sheet", confirm: "confirmation dialog" };
+const OVERLAY_PLACE: Record<string, string> = {
+  modal: "Centre it over the page, which is dimmed behind it.",
+  drawer: "It comes in from the right edge, full height, over the dimmed page.",
+  sheet: "It rises from the bottom edge over the dimmed page.",
+  confirm: "A small dialog centred over the dimmed page: what will happen in one sentence, the action's button and Cancel.",
+};
+
+/** What to draw: each screen's normal page, each state it lists that the project allows (once per kind), each overlay open over it, then its phone drawing. */
 export function stitchJobs(screens: Plan["screens"], allowed: readonly string[], motion?: StitchMotion, phone = false): { id: string; state: string; prompt: string; device?: StitchDevice }[] {
   const narrow = new Set(phone ? screens.filter((s) => s.phone).slice(0, MAX_PHONE_FRAMES).map((s) => s.id) : []);
   const ids = new Set(screens.map((s) => s.id));
@@ -126,6 +140,7 @@ export function stitchJobs(screens: Plan["screens"], allowed: readonly string[],
     return [
       { id: s.id, state: "normal", prompt: `${s.prompt}${names}\nShow the page in its normal state.${ONE_STATE}${FOLLOW}` },
       ...kinds.map((k) => ({ id: s.id, state: k, prompt: `${s.prompt}${names}\nShow this same page in its ${k} state: ${STATE_HINT[k]}. Keep the layout, navigation and header identical to the normal page.${ONE_STATE}${FOLLOW}` })),
+      ...(s.overlays ?? []).map((o, i) => ({ id: s.id, state: overlayFrameState(i), prompt: `${s.prompt}${names}\nShow this same page with the ${OVERLAY_WORD[o.kind] ?? "dialog"} "${o.title.trim()}" open over it, as the "${o.trigger.trim()}" control opens it. It holds: ${o.content.trim()} ${OVERLAY_PLACE[o.kind] ?? OVERLAY_PLACE.modal} Keep the layout, navigation and header of the page behind identical to the normal page.${ONE_STATE}${FOLLOW}` })),
       ...(narrow.has(s.id) ? [{ id: s.id, state: PHONE_STATE, prompt: `${s.prompt}${names}${AT_PHONE}${ONE_STATE}${FOLLOW}`, device: "MOBILE" as const }] : []),
     ];
   });
@@ -263,6 +278,7 @@ function planFaults(reqIds: string[], p: Plan): Failure[] {
     ...p.screens.filter((s) => s.shell && !p.shells.some((x) => x.id === s.shell)).map((s) => failure("design-unknown-shell", `${s.id} names the shell "${s.shell}", which "shells" does not list`)),
     ...dup(p.screens.map((s) => s.id)).map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
     ...dup(p.screens.map((s) => s.route.trim().toLowerCase().replace(/\/+$/, "") || "/")).map((x) => failure("design-duplicate-route", `two screens share the route ${x}`)),
+    ...p.screens.flatMap((s) => dup((s.overlays ?? []).map((o) => o.title.trim().toLowerCase())).map((x) => failure("design-duplicate-overlay", `${s.id} has two overlays titled "${x}"; give each its own title or drop one`))),
   ];
 }
 
@@ -393,7 +409,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   if (!prev.stitch.prompts || frames.some((f) => !f.screen || !f.state)) { ctx.log("design: the earlier Stitch design predates per-screen frames; it is drawn again"); return undefined; }
   const plan: Plan = {
     flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] }, shells: [], sample: "",
-    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
+    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], overlays: [], ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
   };
   // the spec may have changed since the design was drawn: screens that no longer cover it are drawn again
   const specReqs = spec.requirements.map((q) => q.id);
