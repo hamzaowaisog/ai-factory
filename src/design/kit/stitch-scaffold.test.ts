@@ -45,3 +45,11 @@ describe("a Stitch screen in the greenfield scaffold", () => {
     expect(own(l)).toEqual(own(plain));
   });
 });
+
+describe("a Stitch screen's overlays in the scaffold", () => {
+  it("lists each overlay as a state of its screen", async () => {
+    const { screenStates } = await import("./scaffold.js");
+    const st = screenStates(DesignBody.parse({ ...sampleDesign(), screens: [{ id: "S-9", route: "/payees", file: "app/payees/page.tsx", reqs: ["R-9"], frames: ["ST-1", "ST-2"], overlays: [{ kind: "confirm", title: "Delete payee", trigger: "Delete" }], facts }] }).screens[0]!);
+    expect(Object.values(st).find((v) => v.name === "Confirm: Delete payee")).toMatchObject({ overlay: 0 });
+  });
+});

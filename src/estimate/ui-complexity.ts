@@ -74,13 +74,16 @@ const and = (xs: string[]): string => xs.length < 2 ? xs.join("") : `${xs.slice(
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** The screen's UI, counted from its sample page and listed states. A screen with no sample page has no level. */
-export function screenUi(s: { states?: string[]; size?: string; mock?: ScreenMock; facts?: { ui?: [number, string][] } }): ScreenUi {
+export function screenUi(s: { states?: string[]; size?: string; mock?: ScreenMock; facts?: { ui?: [number, string][] }; overlays?: { kind: string }[] }): ScreenUi {
   const m = s.mock, states = (s.states ?? []).filter((x) => !/^(default|normal)$/i.test(x.trim()));
   const parts: Part[] = [];
   if (states.length) parts.push([states.length, `${plural(states.length, "state")} (${states.join(", ")})`]);
   // a Stitch screen: no design JSON, but its HTML was counted in the same points when it was drawn
   const counted = !m && s.facts?.ui ? s.facts.ui : undefined;
   if (counted) parts.push(...counted);
+  // a Stitch screen's overlays: drawn as frames of their own, not in the page's HTML, so counted here as the JSON track counts them
+  const sov = !m ? s.overlays ?? [] : [];
+  if (sov.length) parts.push([sov.length * 2, `${plural(sov.length, "overlay")} (${sov.map((o) => o.kind).join(", ")})`]);
   if (m) {
     for (const b of m.blocks) parts.push(...blockParts(b));
     const ov = (m.overlays ?? []).map(overlayParts);
@@ -113,7 +116,7 @@ export function uiFactors(d: { apps?: { name: string; device: string }[]; locale
 }
 
 /** Each screen's UI and the product-wide factors, for the breakdown and the estimate. */
-export function designUi(d: { skipped?: boolean; screens: { id: string; states?: string[]; size?: string; mock?: ScreenMock }[] } & Parameters<typeof uiFactors>[0]): { screens: Record<string, ScreenUi>; factors: string[] } | undefined {
+export function designUi(d: { skipped?: boolean; screens: { id: string; states?: string[]; size?: string; mock?: ScreenMock; overlays?: { kind: string }[] }[] } & Parameters<typeof uiFactors>[0]): { screens: Record<string, ScreenUi>; factors: string[] } | undefined {
   if (d.skipped || !d.screens.length) return undefined;
   return { screens: Object.fromEntries(d.screens.map((s) => [s.id, screenUi(s)])), factors: uiFactors(d) };
 }

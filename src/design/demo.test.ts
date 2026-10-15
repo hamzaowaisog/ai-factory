@@ -110,3 +110,24 @@ describe("laying a page out and colouring its statuses", () => {
     expect(tone("Economy")).toBe("info");
   });
 });
+
+describe("a Stitch screen's overlays on the demo", () => {
+  it("gives each overlay its own tab with its own picture, and leaves a screen with none as it was", async () => {
+    const { demoStates, frameDataUri, frameStateOf } = await import("./demo.js");
+    const pic = (n: number) => frameDataUri("x.png", Buffer.from(`89504e470d0a1a0a0000000d494844${n}${n}`, "hex"), 0)!;
+    const s = { id: "S-1", route: "/payees", file: "app/payees/page.tsx", reqs: ["REQ-1"], states: [], size: "new" as const, frames: ["ST-1", "ST-2"], overlays: [{ kind: "modal", title: "Add payee", trigger: "Add payee" }] };
+    expect(demoStates(s)).toEqual(["default", "Dialog: Add payee"]);
+    expect(frameStateOf(s, "Dialog: Add payee", 1)).toBe("overlay-1");
+    expect(frameStateOf(s, "Phone", 2)).toBe("phone");
+    expect(frameStateOf(s, "empty", 1)).toBe("empty");
+    expect(frameStateOf(s, "default", 0)).toBe("normal");
+    const html = buildDemo({
+      title: "Payees", flow: "Payees", requirements: { "REQ-1": "The system shall list payees." }, noScreen: [], screens: [s],
+      frames: { "ST-1": { name: "a.png", state: "normal", dataUri: pic(5) }, "ST-2": { name: "b.png", state: "overlay-1", dataUri: pic(6) } },
+    });
+    expect(html).toContain("Dialog: Add payee");
+    expect(html).toContain(pic(6));
+    // a Stitch screen stored before overlays: its states as before
+    expect(demoStates({ ...s, overlays: undefined })).toEqual(["default"]);
+  });
+});

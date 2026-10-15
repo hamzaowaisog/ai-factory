@@ -392,6 +392,33 @@ describe("overlays", () => {
     const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
     expect(out).toMatchObject({ kind: "fail", failures: [expect.objectContaining({ check: "design-duplicate-overlay" })] });
   });
+
+  it("keeps each screen's overlays in the design, with their frames after its states", async () => {
+    answers = [withOverlays(), { designMd: md(), theme }];
+    const ledger = memoryLedger();
+    const out = await drawWithStitch(ctxFor(ledger, 0, { stitch: { phone: false } }), spec);
+    const d = ledger.getJson<{ screens: { id: string; frames: string[]; overlays?: { kind: string; title: string; trigger: string }[] }[]; stitch: { frames: Record<string, { state: string }> } }>((out as { outputs: { design: string } }).outputs.design);
+    const s1 = d.screens.find((s) => s.id === "S-1")!;
+    expect(s1.frames.map((f) => d.stitch.frames[f]!.state)).toEqual(["normal", "empty", "overlay-1", "overlay-2"]);
+    expect(s1.overlays).toEqual([
+      { kind: "modal", title: "Add payee", trigger: "Add payee", content: "Name, bank and IBAN fields; Save payee and Cancel." },
+      { kind: "confirm", title: "Delete payee", trigger: "Delete", content: "Says the payee and their history are removed for good." },
+    ]);
+    expect(d.screens.find((s) => s.id === "S-2")!.overlays).toBeUndefined();
+  });
+
+  it("keeps a patched screen's overlays and draws them again", async () => {
+    const ledger = memoryLedger();
+    answers = [withOverlays(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger, 0, { stitch: { phone: false } }), spec);
+    const prev = ledger.getJson((out as { outputs: { design: string } }).outputs.design);
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    answers = [{ redraw: false, screens: [{ id: "S-1", change: "Make the IBAN column wider." }] }];
+    const again = await drawWithStitch(ctxFor(ledger, 0, { stitch: { phone: false } }), spec, { previous: prev as never, feedback: ["The IBAN column is too narrow."] });
+    const d = ledger.getJson<{ screens: { id: string; overlays?: unknown[] }[] }>((again as { outputs: { design: string } }).outputs.design);
+    expect(d.screens.find((s) => s.id === "S-1")!.overlays).toHaveLength(2);
+    expect(made.generated.filter((g) => g.prompt.includes("open over it"))).toHaveLength(2);
+  });
 });
 
 describe("the approval preview's frames", () => {

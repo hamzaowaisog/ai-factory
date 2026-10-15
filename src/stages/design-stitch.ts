@@ -294,7 +294,9 @@ export interface StitchMeta { projectId: string; model: string; designMd: string
 export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta, reqIds: string[]) {
   const ordered = p.screens.flatMap((s) => {
     const own = assets.filter((a) => a.id === s.id);
-    const rank = (a: StitchAsset) => (a.state === "normal" ? -1 : a.state === PHONE_STATE ? s.states.length : s.states.findIndex((x) => stateKind(x) === a.state));
+    const rank = (a: StitchAsset) => (a.state === "normal" ? -1
+      : a.state.startsWith("overlay-") ? s.states.length + Number(a.state.slice(8)) - 1
+      : a.state === PHONE_STATE ? s.states.length + (s.overlays?.length ?? 0) : s.states.findIndex((x) => stateKind(x) === a.state));
     return own.sort((x, y) => rank(x) - rank(y));
   });
   const fid = new Map(ordered.map((a, i) => [a, `ST-${i + 1}`]));
@@ -306,7 +308,8 @@ export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta,
     screens: p.screens.map((s) => {
       const own = ordered.filter((a) => a.id === s.id);
       const facts = own.find((a) => a.state === "normal")?.facts;
-      return { id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: own.map((a) => fid.get(a)!), ...(facts ? { facts } : {}) };
+      return { id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: own.map((a) => fid.get(a)!), ...(facts ? { facts } : {}),
+        ...(s.overlays?.length ? { overlays: s.overlays.map(({ kind, title, trigger, content }) => ({ kind, title, trigger, content })) } : {}) };
     }),
     noScreen: p.noScreen,
     mapping: { unmappedReqs: reqIds.filter((r) => !onScreen.has(r) && !p.noScreen.some((n) => n.req === r)), orphanScreens: p.screens.filter((s) => !s.reqs.length).map((s) => s.id) },
@@ -354,7 +357,7 @@ export function stitchDraftPreview(ctx: Pick<StepContext, "ledger" | "state" | "
     }
     put("index.html", buildDemo({
       title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: plan.flow,
-      screens: plan.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: assets.filter((a) => a.id === s.id).map(fid), ...(page(s.id)?.facts ? { facts: page(s.id)!.facts! } : {}) })),
+      screens: plan.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: assets.filter((a) => a.id === s.id).map(fid), ...(page(s.id)?.facts ? { facts: page(s.id)!.facts! } : {}), ...(s.overlays?.length ? { overlays: s.overlays.map(({ kind, title, trigger }) => ({ kind, title, trigger })) } : {}) })),
       requirements: Object.fromEntries(spec.requirements.map((q) => [q.id, q.ears])), noScreen: plan.noScreen, frames,
       ...(theme ? { theme: stitchThemeToDesign(theme, plan.flow) } : {}),
     }));
@@ -409,7 +412,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   if (!prev.stitch.prompts || frames.some((f) => !f.screen || !f.state)) { ctx.log("design: the earlier Stitch design predates per-screen frames; it is drawn again"); return undefined; }
   const plan: Plan = {
     flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] }, shells: [], sample: "",
-    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], overlays: [], ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
+    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], overlays: (s.overlays ?? []).map((o) => ({ kind: o.kind as "modal" | "drawer" | "sheet" | "confirm", title: o.title, trigger: o.trigger, content: o.content ?? o.title })), ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
   };
   // the spec may have changed since the design was drawn: screens that no longer cover it are drawn again
   const specReqs = spec.requirements.map((q) => q.id);

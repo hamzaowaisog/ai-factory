@@ -95,7 +95,7 @@ export const routerPath = (route: string): string => (route.split(/[?#]/)[0]!.re
 /** The states a screen opens in by address: the slug, and the demo's name (its layer, its message, its full data). */
 export function screenStates(s: DesignBody["screens"][number]): Record<string, { name: string; overlay?: number; toast?: number; full?: boolean }> {
   const out: Record<string, { name: string; overlay?: number; toast?: number; full?: boolean }> = {};
-  const overlays = (s.mock?.overlays ?? []).map(overlayLabel), toasts = (s.mock?.toasts ?? []).map(toastLabel);
+  const overlays = (s.mock?.overlays ?? s.overlays ?? []).map(overlayLabel), toasts = (s.mock?.toasts ?? []).map(toastLabel);
   for (const name of demoStates(s)) {
     const o = overlays.indexOf(name), t = toasts.indexOf(name);
     out[slug(name)] = { name, ...(o >= 0 ? { overlay: o } : {}), ...(t >= 0 ? { toast: t } : {}), ...(name === FULL_DATA ? { full: true } : {}) };

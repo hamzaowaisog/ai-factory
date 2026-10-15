@@ -77,4 +77,10 @@ describe("UI counted from the approved demo", () => {
     expect(card).toMatch(/S-2 \/track \(b\.tsx\) -> R-2; UI: complex \(map with a route and stops; live chat; /);
     expect(card).toContain("UI across the product (the estimate sizes every UI task with these): both colour modes: every page in light and dark, with a switch");
   });
+
+  it("sizes a Stitch screen's overlays as parts of its page", () => {
+    const facts = { title: "Payees", buttons: [], fields: [], columns: [], headings: [], ui: [[3, "a table"]] as [number, string][] };
+    expect(screenUi({ facts, overlays: [{ kind: "modal" }, { kind: "confirm" }] })).toMatchObject({ points: 7, drivers: ["2 overlays (modal, confirm)", "a table"] });
+    expect(screenUi({ facts })).toMatchObject({ points: 3 });
+  });
 });
