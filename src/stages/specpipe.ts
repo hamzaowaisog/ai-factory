@@ -14,10 +14,11 @@ import { LANE, lightSpec, specLane } from "./lane.js";
 import { settles, specRefused, unsettled, type Found } from "../estimate/settled.js";
 import { settle, settledAnswers, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
-import { repoIsEmpty } from "../config/greenfield.js";
+import { repoIsEmpty, startsNewProduct } from "../config/greenfield.js";
 import { testsScreens } from "./stack-text.js";
 import { apiElsewhere } from "./contract.js";
 import { lightLaneModel, stepOff } from "./routing.js";
+import { accountsDefault, accountsProblems, ACCOUNTS_ID } from "./accounts.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -226,7 +227,20 @@ function inputsOf(ctx: StepContext) {
   const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
   const cb = requireOutput<CB>(ctx.state, ctx.ledger, "ground");
   const c = clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2"));
-  return { intent, cb, ...c };
+  const accounts = accountsFor(ctx);
+  return { intent, cb, ...c, ...(accounts ? { answers: [...c.answers, accounts] } : {}) };
+}
+
+/**
+ * A new product's sign-up and log-in, as the factory's answer (src/stages/accounts.ts): read from the whole request, and in a
+ * request specified per module given to the first module alone, so the product has one sign-up, not one per module.
+ */
+function accountsFor(ctx: Pick<StepContext, "state">): Answer | undefined {
+  const m = ctx.state.info.moduleOf;
+  // a new product: no repo, an empty one, or the factory's own skeleton (a full-stack product's API repo)
+  const fresh = !hasRepo(ctx) || startsNewProduct(ctx.state.info.repoPath!, ctx.state.info.baseCommit!);
+  if (!fresh || (m && !m.first)) return undefined;
+  return accountsDefault(m?.request ?? request(ctx));
 }
 
 const draftRules = (screens: boolean, newWork = false, apiSide = false): string => `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
@@ -257,6 +271,7 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
     S.artifact("assumptions", "assumptions", i.assumptions),
     S.artifact("cb", "current-behaviour", i.cb),
     S.untrusted("request", "cli", request(ctx)),
+    ...(i.answers.some((a) => a.id === ACCOUNTS_ID) ? [S.template("accounts", `The product has user accounts (answer ${ACCOUNTS_ID}): write its sign-up, log-in and log-out as requirements with their criteria, citing ${ACCOUNTS_ID} in sources, and the refusal of what needs a login without one. They are decided, not a capability you added.`)] : []),
     // a guided run: what the person corrected on the "what I understood" card
     ...(correction(ctx.state) ? [{ spec: { id: "correction", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `Before the spec was written, the requester read what was understood (the answers and assumptions above) and corrected it. Where this differs from an assumption, this wins:\n${correction(ctx.state)}` }] : []),
   ];
@@ -332,6 +347,11 @@ async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inpu
     spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, decisions, excluded, estimate: ctx.state.info.mode === "estimate",
     anchorOk: (id) => (spec.requirements.find((q) => q.id === id)?.anchors ?? []).every((a) => checkEvidence(snap, a).ok),
   });
+  // a new product given the factory's sign-up and log-in must have them (src/stages/accounts.ts)
+  if (i.answers.some((a) => a.id === ACCOUNTS_ID)) {
+    const fails = accountsProblems(spec);
+    lint.push({ check: "L-accounts", passed: !fails.length, blocking: true, fails, details: fails.length ? fails.join("; ") : "ok" });
+  }
   // the critic runs only when a model was picked for it at the start (or the project file routes it)
   const criticOff = stepOff(ctx.project, "critic");
   const [critic, restate] = await Promise.all([

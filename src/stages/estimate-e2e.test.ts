@@ -28,7 +28,7 @@ import { setTuneTrigger } from "../estimate/tune.js";
 
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 const REQS = [
-  { id: "REQ-1", ears: "When a user signs in with valid credentials, the system shall open the dashboard.", acceptance: [{ id: "AC-1.1", given: "a registered user", when: "they sign in", then: "the response is 200 with the dashboard in the body", level: "api" }] },
+  { id: "REQ-1", ears: "When a user signs in with valid credentials, the system shall open the dashboard.", acceptance: [{ id: "AC-1.1", given: "a user who signs up", when: "they sign in", then: "the response is 200 with the dashboard in the body", level: "api" }] },
   { id: "REQ-2", ears: "When a user asks for a report, the system shall produce a PDF.", acceptance: [{ id: "AC-2.1", given: "a report exists", when: "the user exports", then: "the response body is a PDF file", level: "api" }] },
 ];
 const draft = {

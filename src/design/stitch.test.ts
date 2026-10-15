@@ -99,6 +99,8 @@ describe("a Stitch call whose connection drops", () => {
     await expect(stitchClient().generate("p", "x", "DESKTOP")).rejects.toThrow("quota exceeded");
     expect(calls).toBe(1);
     expect(dropped(new Error("Unauthorized"))).toBe(false);
+    // the SDK keeps a broken transport after an error (run e220): a new client is the way back
+    expect(dropped(new Error("Already connected to a transport. Call close() before connecting to a new transport"))).toBe(true);
     // a 5xx error page (run 95ff) is retried once too, and a second one is named plainly instead of quoting the page
     const page = () => new Error("Streamable HTTP error: Error POSTing to endpoint: <!DOCTYPE html><title>Error 502 (Server Error)!!1</title>");
     calls = 0;

@@ -93,6 +93,28 @@ export function contractProblems(doc: Obj): string[] {
   return bad;
 }
 
+/** A security requirement list that asks for something: [] or [{}] asks for none. */
+const asksLogin = (sec: unknown): boolean => Array.isArray(sec) && sec.some((r) => r && typeof r === "object" && Object.keys(r).length > 0);
+const SIGN_IN_OP = /log-?in|sign-?in|token|sessions?\b|authenticate/i;
+const SIGN_UP_OP = /sign-?up|register|registration/i;
+
+/**
+ * A new product's contract that needs a login must also say how to get one: an open (no login) POST to sign up and one to log
+ * in. A greenfield run built JWT checks on every operation and no way to get a token, so every call failed.
+ */
+export function contractAuthProblems(doc: Obj): string[] {
+  const base = basePath(doc);
+  const ops = Object.entries((doc.paths ?? {}) as Obj).flatMap(([path, item]) => METHODS.filter((m) => (item as Obj)?.[m]).map((m) => ({ m, path, def: (item as Obj)[m] as Obj })));
+  const needs = (def: Obj) => (def.security !== undefined ? asksLogin(def.security) : asksLogin(doc.security));
+  if (!ops.some((o) => needs(o.def))) return [];
+  const open = ops.filter((o) => o.m === "post" && !needs(o.def));
+  const named = (re: RegExp) => open.some((o) => re.test(o.path) || re.test(String(o.def.operationId ?? "")));
+  const missing = [...(named(SIGN_UP_OP) ? [] : [`POST ${base}/auth/register (operationId register)`]), ...(named(SIGN_IN_OP) ? [] : [`POST ${base}/auth/login (operationId login, answering with the token)`])];
+  return missing.length
+    ? [`The contract asks for a login on its operations, but has no open operation to ${missing.length === 2 ? "sign up or log in" : missing[0]!.includes("register") ? "sign up" : "log in"}: add ${missing.join(" and ")}, each with "security: []", or every call that needs a login fails.`]
+    : [];
+}
+
 /** Where an example differs from its schema: a required field it leaves out, or a value of another type. */
 export function exampleProblems(doc: Obj, schema: Obj | undefined, value: unknown, at: string, depth = 0): string[] {
   const s = whole(doc, schema);

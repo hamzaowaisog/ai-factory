@@ -170,8 +170,12 @@ function within<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   return Promise.race([p, late]).finally(() => clearTimeout(timer));
 }
 
-/** A request whose connection dropped (Node's fetch says only "fetch failed"; the reason is in its cause). */
-export const dropped = (e: unknown): boolean => /fetch failed|socket hang up|ECONNRESET|other side closed/i.test(`${(e as Error)?.message ?? ""} ${causeOf(e)}`);
+/**
+ * A request whose connection dropped (Node's fetch says only "fetch failed"; the reason is in its cause). "Already connected to a
+ * transport" too: after a transport error the SDK marks itself unconnected but keeps the old transport, so every later call fails
+ * (run e220); a new client is the only way back.
+ */
+export const dropped = (e: unknown): boolean => /fetch failed|socket hang up|ECONNRESET|other side closed|already connected to a transport/i.test(`${(e as Error)?.message ?? ""} ${causeOf(e)}`);
 const causeOf = (e: unknown): string => {
   const c = (e as { cause?: { code?: string; message?: string } })?.cause;
   return c ? [c.code, c.message].filter(Boolean).join(" ") : "";

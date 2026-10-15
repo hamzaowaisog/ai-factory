@@ -133,7 +133,8 @@ export function checkEvidence(snap: Snapshot, ev: { path: string; lineStart: num
   // allow a little slack: the quote must appear within ±2 lines of the stated range
   const window = lines.slice(Math.max(0, ev.lineStart - 3), Math.min(lines.length, ev.lineEnd + 2)).join("\n");
   // a long line quoted cut short with "…" (run 5d51: every attempt did, and only a stronger model passed): the parts around it, in order
-  const parts = norm(ev.quote).split("…").map((p) => p.trim()).filter(Boolean);
+  // and a secret the model saw masked as «SECRET_n» (run afd1: the skeleton's example connection string): the parts around it too
+  const parts = norm(ev.quote).split(/…|«SECRET_\d+»/).map((p) => p.trim()).filter(Boolean);
   let at = 0;
   const found = parts.length > 0 && parts.every((p) => { const i = norm(window).indexOf(p, at); at = i + p.length; return i >= 0; });
   return found

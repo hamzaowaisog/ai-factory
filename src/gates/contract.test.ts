@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addToContract, contractChange, contractDiff, contractGap, contractMatches, dataModelMatches, contractProblems, contractReadProblem, contractSummary, exampleProblems, readContract } from "./contract.js";
+import { addToContract, contractAuthProblems, contractChange, contractDiff, contractGap, contractMatches, dataModelMatches, contractProblems, contractReadProblem, contractSummary, exampleProblems, readContract } from "./contract.js";
 import { DEFAULT_POLICY } from "./policy.js";
 
 // the document a .NET 9 minimal API wrote at build time, with no network (the spike of 2026-10-05)
@@ -286,5 +286,77 @@ components:
     expect(c.changed.join("\n")).toMatch(/GET \/accounts operationId: was listAccounts, now accounts/);
     expect(c.changed.join("\n")).toMatch(/removed: GET \/accounts 200/);
     expect(c.changed.join("\n")).toMatch(/added to an operation already in the contract: GET \/accounts 201/);
+  });
+});
+
+describe("a contract that needs a login says how to get one", () => {
+  const doc = (extra: string) => readContract(`openapi: 3.0.3
+info:
+  title: Shop
+  version: "1"
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      responses:
+        "200":
+          description: ok
+${extra}`)!;
+  it("fails with no open sign-up or log-in", () => {
+    expect(contractAuthProblems(doc(""))[0]).toMatch(/sign up or log in/);
+  });
+  it("fails when the log-in itself needs a login", () => {
+    const d = doc(`  /auth/register:
+    post:
+      operationId: register
+      security: []
+      responses:
+        "201":
+          description: ok
+  /auth/login:
+    post:
+      operationId: login
+      responses:
+        "200":
+          description: ok
+`);
+    expect(contractAuthProblems(d)[0]).toMatch(/log in: add POST \/auth\/login/);
+  });
+  it("passes with open register and login, or with no login at all", () => {
+    const d = doc(`  /auth/register:
+    post:
+      operationId: register
+      security: []
+      responses:
+        "201":
+          description: ok
+  /auth/login:
+    post:
+      operationId: login
+      security: []
+      responses:
+        "200":
+          description: ok
+`);
+    expect(contractAuthProblems(d)).toEqual([]);
+    expect(contractAuthProblems(readContract(`openapi: 3.0.3
+info:
+  title: Shop
+  version: "1"
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      responses:
+        "200":
+          description: ok
+`)!)).toEqual([]);
   });
 });

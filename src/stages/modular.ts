@@ -38,7 +38,7 @@ export function moduleView(state: RunState, ledger: Ledger, modules: Module[], m
     const sha = ledger.putJson({ ...intent, spans: spansOf(intent, modules, m) });
     steps.set("intake", { ...intake, outputs: [sha, ...intake.outputs.slice(1)] });
   }
-  return { ...state, info: { ...state.info, request: m.text }, steps };
+  return { ...state, info: { ...state.info, request: m.text, moduleOf: { request: state.info.request ?? "", first: modules[0]?.id === m.id } }, steps };
 }
 
 export function scoped(def: StepDef, modules: Module[], m: Module): StepDef {

@@ -40,6 +40,7 @@ import { readPreview } from "./preview.js";
 import { talkView } from "./talk.js";
 import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
+import { drawsPages } from "../config/design-route.js";
 import { githubConfigured, NO_GITHUB_TOKEN } from "../forge/repos.js";
 import { newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
 
@@ -67,7 +68,7 @@ export function findRun(run: string): Ledger | undefined {
 // ---------- projects ----------
 
 /** `empty`: a Node project whose repo is still empty, where an approved design for a new product is built (greenfield) */
-export interface ProjectRow { name: string; busy?: { runId: string }; empty?: true }
+export interface ProjectRow { name: string; busy?: { runId: string }; empty?: true; /** design.stitch.phone: the start form's "mobile design" starts at it */ mobileDesign: boolean; /** design.engine when it draws the pages (stitch, pages): the form shows "mobile design" with no engine picked */ designEngine?: "stitch" | "pages" }
 
 export function projectNames(): string[] {
   const dir = join(factoryHome(), "projects");
@@ -132,9 +133,12 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
-    let empty = false;
-    try { const p = loadProject(name); empty = p.stack === "node" && repoIsEmpty(p.repo, p.baseBranch); } catch { /* a broken config is listed as it is */ }
-    projects.push({ name, ...(busy ? { busy } : {}), ...(empty ? { empty: true as const } : {}) });
+    let empty = false, mobileDesign = true, designEngine: ProjectRow["designEngine"];
+    try {
+      const p = loadProject(name); empty = p.stack === "node" && repoIsEmpty(p.repo, p.baseBranch); mobileDesign = p.design?.stitch?.phone ?? true;
+      if (drawsPages(p.design?.engine)) designEngine = p.design!.engine as ProjectRow["designEngine"];
+    } catch { /* a broken config is listed as it is */ }
+    projects.push({ name, mobileDesign, ...(designEngine ? { designEngine } : {}), ...(busy ? { busy } : {}), ...(empty ? { empty: true as const } : {}) });
   }
   const configured = jiraConfigured();
   return {

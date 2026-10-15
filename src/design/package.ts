@@ -17,7 +17,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { DesignTheme } from "../contracts/artifacts.js";
-import { COMPONENTS_ID, demoStates, stateKind } from "./demo.js";
+import { COMPONENTS_ID, demoStates, frameStateOf } from "./demo.js";
 import { captureDemo, type Shot, type ShotResult, type ScreenShotInput, type Viewport } from "./screenshots.js";
 import { designTokens } from "./tokens.js";
 import { factoryHome } from "../util/paths.js";
@@ -293,7 +293,7 @@ function ownShots(p: PackageInput, outDir: string): ShotResult & { states: Map<s
   for (const s of p.design.screens) {
     const drawn: string[] = [];
     demoStates(s as never).forEach((st, k) => {
-      const pic = p.pictures!.find((x) => x.id === s.id && x.kind === (k === 0 ? "normal" : stateKind(st)));
+      const pic = p.pictures!.find((x) => x.id === s.id && x.kind === frameStateOf(s as never, st, k));
       if (!pic) { missing.push(`${s.id} ${st}`); return; }
       const file = `${fileSlug(s.id)}-${fileSlug(st)}-${pic.viewport}.png`;
       if (shots.some((x) => x.file === file)) return;

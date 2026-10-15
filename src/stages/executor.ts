@@ -92,7 +92,7 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; /** the models the person starting the run chose */ models?: Choice; /** a build that asks whatever its project says (the API side of a new product) */ asks?: boolean; /** false: a guided run; left out, the project decides */ autonomous?: boolean; /** a Google Meet transcript request: stored for the distill step */ transcript?: Transcript } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; mobileDesign?: boolean; /** the models the person starting the run chose */ models?: Choice; /** a build that asks whatever its project says (the API side of a new product) */ asks?: boolean; /** false: a guided run; left out, the project decides */ autonomous?: boolean; /** a Google Meet transcript request: stored for the distill step */ transcript?: Transcript } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
   const choice: Choice = { ...(opts.models?.picks && Object.keys(opts.models.picks).length ? { picks: opts.models.picks } : {}), ...(opts.models?.preset ? { preset: opts.models.preset } : {}) };
@@ -165,6 +165,7 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.fromDesign ? { designRef: opts.fromDesign.ref } : {}),
       ...(opts.designExport?.length ? { designExport: opts.designExport } : {}),
       ...(opts.uiTarget ? { uiTarget: opts.uiTarget } : {}),
+      ...(opts.mobileDesign !== undefined ? { mobileDesign: opts.mobileDesign } : {}),
       // a build that asks (src/estimate/settled.ts, settles): fixed here, so a paused run resumes with the steps it began with
       ...(opts.mode === "greenfield" || ((opts.mode ?? "brownfield") === "brownfield" && (opts.asks || project.brownfield?.questions)) ? { asks: true } : {}),
       ...((opts.autonomous ?? project.autonomous) === false ? { autonomous: false } : {}),

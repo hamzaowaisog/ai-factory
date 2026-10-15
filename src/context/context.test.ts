@@ -48,6 +48,8 @@ describe("secrets", () => {
       "<PasswordField password={password} onChange={setPassword} />",
       "const schema = z.object({ password: z.string().min(8) });",
       "var request = new SignIn { Password = model.Password };",
+      // a parameter before a return type (run e220)
+      "export async function login(email: string, password: string): Promise<AuthResult> {",
     ]) expect(scanText(line.includes("var ") ? "a.cs" : "a.tsx", line), line).toEqual([]);
     // the lines of run 1679's sign-in screen and session file that the scan reported or could have, as the three attempts wrote them
     for (const line of [
@@ -128,6 +130,8 @@ describe("snapshot and tools", () => {
     expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "CancellationToken ct) … public async" }).ok).toBe(false);
     expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public void Invented(…" }).ok).toBe(false);
     expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "…" }).ok).toBe(false);
+    // a secret the model saw masked (run afd1): the parts around the placeholder
+    expect(checkEvidence(snap, { path: "src/OrderSync.cs", lineStart: 4, lineEnd: 4, quote: "public async Task<int> «SECRET_3»(int customerId, CancellationToken ct)" }).ok).toBe(true);
   });
 
   it("extracts C# symbols", () => {

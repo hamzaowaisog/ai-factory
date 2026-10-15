@@ -1657,6 +1657,19 @@ describe("factory ui: design exports", () => {
     expect((await post({ project: "web", mode: "estimate", prompt: "x", uiTarget: "repo" })).json().error).toMatch(/chosen for a build/);
   });
 
+  it("a run started from the UI can choose mobile design, and the projects list says each project's setting", async () => {
+    _resetStarting();
+    const web = ((await call("/api/projects")).json().projects as { name: string; mobileDesign: boolean; designEngine?: string }[]).find((p) => p.name === "web")!;
+    expect(web.mobileDesign).toBe(true);
+    // a project that names no page-drawing engine: the form shows "mobile design" only when Stitch is picked
+    expect(web.designEngine).toBeUndefined();
+    const b = await post({ project: "web", prompt: "Add an orders page", mobileDesign: false });
+    expect(b.status).toBe(201);
+    expect(replay(Ledger.open(b.json().runId).events()).info.mobileDesign).toBe(false);
+    _resetStarting();
+    expect((await post({ project: "web", prompt: "x", mobileDesign: "yes" })).json().error).toMatch(/Mobile design is true or false/);
+  });
+
   it("a run started from the UI can choose its models, like --preset and --model; a model a step cannot run on is refused", async () => {
     _resetStarting();
     const b = await post({ project: "web", prompt: "Add an orders page", models: { preset: "economy", picks: { plan: "gpt-6-sol", ground: "" } } });

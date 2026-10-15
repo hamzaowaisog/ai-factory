@@ -29,7 +29,8 @@ const CODE_FILE = /\.(?:[cm]?[jt]sx?|cs|cshtml|razor)$/i;
 function isCodeValue(prefix: string, value: string, before: string): boolean {
   if (/["']$/.test(prefix)) return false;
   if (((before.match(/["'`]/g) ?? []).length) % 2) return false;
-  return /^[{(]*[A-Za-z_$][\w$.?!()[\]<>|&{]*$/.test(value);
+  // a parameter's type before a return type reads "string):" (run e220: login(email: string, password: string): Promise<…>)
+  return /^[{(]*[A-Za-z_$][\w$.?!()[\]<>|&{:]*$/.test(value);
 }
 
 /**

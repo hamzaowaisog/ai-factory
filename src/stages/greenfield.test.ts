@@ -386,7 +386,7 @@ describe("a new product end to end (greenfield, fakes)", () => {
 
   it("one run from the request alone: reads it, writes the spec, draws the design on the kit, then builds it", async () => {
     // no mode and no design run: a plain start on a Node project whose repo is empty
-    const runId = await createRun("A portal where clinic staff sign in", "shop", "tester");
+    const runId = await createRun("A portal where clinic staff sign up and sign in", "shop", "tester");
     const ledger = Ledger.open(runId);
     expect(replay(ledger.events()).info.mode).toBe("greenfield");
     // every greenfield run asks (settles its spec and design checks by questions), fixed at the start

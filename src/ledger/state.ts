@@ -101,6 +101,10 @@ export interface RunInfo {
   designExport?: string[];
   /** `--ui-target`: the stack the approved design is built in when the project sets none (docs/estimates-design.md, "Kit and scaffold") */
   uiTarget?: "next-shadcn" | "vite-shadcn" | "repo";
+  /** `--mobile-design` or the start form: whether a Stitch or pages design draws its main pages at phone width too; over the project's design.stitch.phone. Set at the start, so a run keeps what it began with */
+  mobileDesign?: boolean;
+  /** a request specified per module (src/stages/modular.ts, moduleView): the whole request, and whether this is the first module. Only in that view, never stored */
+  moduleOf?: { request: string; first: boolean };
   /**
    * a build that settles its spec problems and failing design checks by questions and reads a large request per module, as an
    * estimate does (src/estimate/settled.ts, settles): every greenfield run, and a brownfield run whose project turns

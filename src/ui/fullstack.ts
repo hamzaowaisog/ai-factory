@@ -134,7 +134,7 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   }
   let p: Product;
-  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true, choiceFrom(input.models)); } catch (e) { throw new StartError((e as Error).message); }
+  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true, choiceFrom(input.models), undefined, typeof input.mobileDesign === "boolean" ? input.mobileDesign : undefined); } catch (e) { throw new StartError((e as Error).message); }
   (deps.execute ?? runDetached)(p.web.run!);
   return { name: p.name, webRun: p.web.run! };
 }

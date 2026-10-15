@@ -8,7 +8,7 @@ import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { addToContract, contractChange, contractProblems, contractReadProblem, contractSummary, readContract } from "../gates/contract.js";
+import { addToContract, contractAuthProblems, contractChange, contractProblems, contractReadProblem, contractSummary, readContract } from "../gates/contract.js";
 import { DATA_MODEL_FILE, dataModelBrief, dataModelProblems, dataModelSummary, erdMermaid, mergeDataModel, nearModel, withKnown } from "../gates/data-model.js";
 import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
@@ -171,6 +171,8 @@ const contractRules = (file: string): string => `API CONTRACT. This product has 
 - Write it in block style, one key per line with two-space indents: no {...} or [...] on a line except an empty value ("security: []", "{}"). Put any text with an apostrophe, a colon or a # in double quotes. A file with whole operations on one line stops parsing at the first stray quote.
 - No YAML anchors, aliases or merge keys (&name, *name, <<): what is used twice is a schema, a response or a parameter under components, pointed at with $ref.
 - Every operation has an operationId (camelCase), its request body where it takes one, and every status code it answers with.
+- Where operations need a login (a securitySchemes entry and "security" on them), the contract also has the open operations that give one: POST /auth/register and POST /auth/login, each with "security: []", login answering with the token the others take.
+- Sign-up and log-in are with an email and a password, even where the spec or the design names Google or another provider (that needs the provider's keys before anyone can log in): no provider's log-in in the contract. The task that delivers the spec's sign-in requirement (else the first task that builds a screen) also builds the sign-up and log-in pages and keeps the token for the other calls.
 - Schemas go under components/schemas with "required" lists. Take the field names and types from the approved screens' sample data; an id is an integer.
 - Every JSON response carries an "example" with believable data (the approved screens' sample rows): the web app's tests run against these examples.
 - The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client, and put no path under lib/api in a stub or in a task's fileScope: the factory generates that folder.
@@ -342,7 +344,7 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
       const doc = contractStub ? readContract(contractStub.content) : undefined;
       if (!contractStub) fs.push(failure("plan-contract", `No stub for the API contract. Give ${cfile} as a stub: the full OpenAPI 3.0 document of every operation the screens call.`));
       else if (!doc) fs.push(failure("plan-contract", `${cfile} is not an OpenAPI document: ${contractReadProblem(contractStub.content) ?? 'it needs "openapi" and "paths"'}.`));
-      else fs.push(...contractProblems(doc).map((m) => failure("plan-contract", m)));
+      else fs.push(...[...contractProblems(doc), ...contractAuthProblems(doc)].map((m) => failure("plan-contract", m)));
     }
     if (cfile && ctx.project.stack === "node") for (const m of clientFolderProblems(plan, cfile)) fs.push(failure("plan-contract", m));
     if (ctx.project.stack === "node" && plan.dataModel) fs.push(failure("plan-data-model", "A web app has no data model of its own: its data comes from the API. Drop dataModel."));

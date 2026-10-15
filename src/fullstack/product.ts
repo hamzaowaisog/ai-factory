@@ -140,7 +140,7 @@ async function putOnGithub(p: Product, acct: GithubAccount): Promise<void> {
  * and nothing is estimated. `github`: put both repos on GitHub first (`putOnGithub`); GitHub is asked before anything is made.
  * `models`: the models for both runs, checked before anything is made and kept with the product for the API run.
  */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[]; transcript?: Transcript } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}, autonomous?: boolean): Promise<Product> {
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[]; transcript?: Transcript } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}, autonomous?: boolean, mobileDesign?: boolean): Promise<Product> {
   const from = seed && ("design" in seed ? seed.design : seed.estimate);
   const text = from?.request ?? request?.text;
   if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
@@ -159,6 +159,8 @@ export async function startProduct(name: string, dir: string, request: { text: s
     ...(autonomous !== undefined ? { autonomous } : {}),
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     ...(chosen ? { models } : {}),
+    // only the web run draws a design
+    ...(mobileDesign !== undefined ? { mobileDesign } : {}),
     ...(from ? { sources: [{ kind: "prompt" as const }] } : request?.sources ? { sources: request.sources } : {}),
     // a meeting transcript: the web run distills it first, and the API run later reads the brief that came out (startApiRun)
     ...(!from && request?.transcript ? { transcript: request.transcript } : {}),

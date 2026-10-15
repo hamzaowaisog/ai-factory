@@ -66,11 +66,12 @@ export function stateKind(state: string): StateKind {
 }
 
 /** The states a screen's demo lists: its own, in order, then each overlay shown open, each toast shown, and a "Full data" page when the design gave dense sample data. */
-export function demoStates(s: { states?: string[]; frames?: string[]; mockFull?: unknown; mock?: { overlays?: { kind: string; title: string }[]; toasts?: { text: string }[] } }): string[] {
+export function demoStates(s: { states?: string[]; frames?: string[]; mockFull?: unknown; mock?: { overlays?: { kind: string; title: string }[]; toasts?: { text: string }[] }; overlays?: { kind: string; title: string }[] }): string[] {
   // the normal page always comes first: a screen whose listed states are all special (loading, empty, error) still opens on its real content
   const listed = s.states ?? [];
   const own = orderStates(listed.some((st) => stateKind(st) === "normal") ? listed : ["default", ...listed]);
-  if (s.frames?.length) return own;
+  // a Stitch screen's overlays are frames of their own, each a tab after the states
+  if (s.frames?.length) return [...own, ...(s.overlays ?? []).map(overlayLabel)];
   return [...own, ...(s.mock?.overlays ?? []).map(overlayLabel), ...(s.mock?.toasts ?? []).map(toastLabel), ...(s.mockFull ? [FULL_DATA] : [])];
 }
 /** A toast's tab in the demo: "Toast: Payment sent". Like an overlay's, a demo tab, not a counted state. */
@@ -78,6 +79,15 @@ export const toastLabel = (t: { text: string }): string => `Toast: ${t.text.leng
 const KIND_NAME: Record<string, string> = { modal: "Dialog", drawer: "Panel", sheet: "Sheet", confirm: "Confirm", menu: "Menu" };
 /** An overlay's tab in the demo: "Dialog: Add payee". It is a demo tab, not a state the estimate counts. */
 export const overlayLabel = (o: { kind: string; title: string }): string => `${KIND_NAME[o.kind] ?? "Dialog"}: ${o.title}`;
+/** The frame state of a Stitch screen's i-th overlay, drawn as its page with the layer open: "overlay-1". */
+export const overlayFrameState = (i: number): string => `overlay-${i + 1}`;
+/** The frame state a demo tab of a Stitch screen shows: the page, its phone drawing, an overlay open over it, or a state. */
+export function frameStateOf(s: { overlays?: { kind: string; title: string }[] }, tab: string, k: number): string {
+  if (k === 0) return "normal";
+  if (tab === PHONE_TAB) return "phone";
+  const i = (s.overlays ?? []).findIndex((o) => overlayLabel(o) === tab);
+  return i >= 0 ? overlayFrameState(i) : stateKind(tab);
+}
 export const FULL_DATA = "Full data";
 
 /** The order the demo lists a screen's states: the normal page first, then success, validation, loading, empty, error. Screenshots use the same order. */
@@ -1789,7 +1799,7 @@ export function buildDemo(d: DemoInput): string {
     const listed = s.frames.map(frame).filter((f) => !!f);
     const stitched = listed.length > 0 && listed.every((f) => !!f!.state);
     const statePane = (st: string, k: number): string => {
-      const kind = k === 0 ? "normal" : st === PHONE_TAB ? "phone" : stateKind(st);
+      const kind = frameStateOf(s, st, k);
       const f = listed.find((x) => x!.state === kind && (x!.dataUri || x!.live));
       const pic = f?.dataUri ? `<img src="${f.dataUri}" alt="${esc(f.name)}">` : "";
       // the page itself, live: sandboxed (no access to the demo or whoever serves it), and what it may load is its own policy's
