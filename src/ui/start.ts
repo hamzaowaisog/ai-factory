@@ -73,6 +73,8 @@ export interface StartInput {
   fresh?: unknown;
   /** a build: the stack the approved design is built in when the project sets none, like --ui-target */
   uiTarget?: unknown;
+  /** whether a Stitch design draws its main pages at phone width too, like --mobile-design; over the project's design.stitch.phone */
+  mobileDesign?: unknown;
   /** the models for this run, like --preset and --model: { preset?: "economy" | "balanced" | "quality", picks?: { step: model } } */
   models?: unknown;
 }
@@ -228,6 +230,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   if (uiTargetIn && greenfieldAsked) throw new StartError("A new product is built on the factory's own kit; there is no UI target to choose.");
   let uiTarget: UiTarget | undefined;
   try { uiTarget = uiTargetOption(uiTargetIn || undefined); } catch (err) { throw new StartError((err as Error).message.replace("--ui-target", "The UI target")); }
+  if (input.mobileDesign !== undefined && input.mobileDesign !== null && typeof input.mobileDesign !== "boolean") throw new StartError("Mobile design is true or false.");
+  const mobileDesign = typeof input.mobileDesign === "boolean" ? input.mobileDesign : undefined;
 
   const fromEstimate = str(input.fromEstimate)?.trim();
   if (fromEstimate && estimating) throw new StartError(designing ? "A design run starts from requirements, not from an estimate." : "A build starts from an estimate; an estimate cannot.");
@@ -339,6 +343,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
     ...(designExport ? { designExport } : {}),
     ...(uiTarget ? { uiTarget } : {}),
+    ...(mobileDesign !== undefined ? { mobileDesign } : {}),
     models,
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });

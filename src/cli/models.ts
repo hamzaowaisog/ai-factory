@@ -8,7 +8,15 @@ import type { LedgerEvent } from "../contracts/index.js";
 
 export const MODEL_HELP = "the model for one step, as step=model (factory models lists the steps and the models each takes); repeat it. A group name sets every step in it: thinking, design, coding or review";
 export const PRESET_HELP = `set every step from the tier table: ${PRESETS.join(", ")} (a --model still wins for its step)`;
-export const collectModel = (v: string, prev: string[] = []): string[] => [...prev, v];
+export const MOBILE_DESIGN_HELP = "true or false: whether a Google Stitch design draws its main pages (five at most) at phone width too; over the project's design.stitch.phone (default true)";
+/** `--mobile-design`: true, false, or not given. */
+export function mobileDesignOption(v: string | undefined): boolean | undefined {
+  if (v === undefined) return undefined;
+  const t = v.trim().toLowerCase();
+  if (t === "true" || t === "false") return t === "true";
+  throw new Error(`--mobile-design takes true or false, not "${v}"`);
+}
+export const collectModel =(v: string, prev: string[] = []): string[] => [...prev, v];
 
 /** What `--model` and `--preset` say, as a choice. A group name is spread over the steps of that group this run uses. */
 export function choiceOption(model: string[] | undefined, preset: string | undefined, mode?: string): Choice {

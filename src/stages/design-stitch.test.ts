@@ -421,6 +421,29 @@ describe("overlays", () => {
   });
 });
 
+describe("mobile design per run", () => {
+  const withRun = (ctx: StepContext, mobileDesign: boolean): StepContext => ({ ...ctx, state: replay([{ ...(CREATED as object), data: { ...(CREATED as { data: object }).data, mobileDesign } } as never]) });
+  const phones = () => plan({ screens: plan().screens.map((x) => ({ ...x, phone: true, states: [] })) });
+
+  it("the run's choice beats the project's", async () => {
+    answers = [phones(), { designMd: md(), theme }];
+    await drawWithStitch(withRun(ctxFor(memoryLedger(), 0, { stitch: { phone: true } }), false), spec);
+    expect(made.generated.map((g) => g.device)).toEqual(["DESKTOP", "DESKTOP"]);
+
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    answers = [phones(), { designMd: md(), theme }];
+    await drawWithStitch(withRun(ctxFor(memoryLedger(), 0, { stitch: { phone: false } }), true), spec);
+    expect(made.generated.map((g) => g.device).sort()).toEqual(["DESKTOP", "DESKTOP", "MOBILE", "MOBILE"]);
+  });
+
+  it("follows the project, then on, when the run says nothing", async () => {
+    const { phoneViews } = await import("./design-stitch.js");
+    expect(phoneViews(ctxFor(memoryLedger()))).toBe(true);
+    expect(phoneViews(ctxFor(memoryLedger(), 0, { stitch: { phone: false } }))).toBe(false);
+    expect(phoneViews(withRun(ctxFor(memoryLedger(), 0, { stitch: { phone: false } }), true))).toBe(true);
+  });
+});
+
 describe("the approval preview's frames", () => {
   it("lists an image frame too large to embed, but not a missing or non-image one", async () => {
     const { previewFrames } = await import("./design-approve.js");

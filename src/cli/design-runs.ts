@@ -12,7 +12,7 @@ import { designRunView, formatDesignRun, listDesignRuns } from "../design/runs.j
 import type { Ledger } from "../ledger/ledger.js";
 import { createRun } from "../stages/executor.js";
 import { DESIGN_ROUTES } from "../stages/routing.js";
-import { checkChoice, choiceOption, collectModel, MODEL_HELP, PRESET_HELP } from "./models.js";
+import { checkChoice, choiceOption, collectModel, MOBILE_DESIGN_HELP, mobileDesignOption, MODEL_HELP, PRESET_HELP } from "./models.js";
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { EXPORT_MODES, listExports, parseFormats, parseList, type ExportOptions } from "../design/export.js";
@@ -85,8 +85,10 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
     .option("--design-export <formats>", DESIGN_EXPORT_HELP)
     .option("--model <step=model>", MODEL_HELP, collectModel)
     .option("--preset <name>", PRESET_HELP)
+    .option("--mobile-design <true|false>", MOBILE_DESIGN_HELP)
     .description("design only: clarify the requirements, write the spec and draw the design (mock, clickable demo, look) from the requirements and any references; a lead approves it in the terminal. Nothing is sized or built.")
-    .action(async (prompt: string | undefined, o: { project?: string; file?: string; jira?: string; frames?: string; ref?: string[]; repo: boolean; client?: string; projectName?: string; maxCost?: string; fresh?: boolean; designExport?: string; model?: string[]; preset?: string }) => {
+    .action(async (prompt: string | undefined, o: { project?: string; file?: string; jira?: string; frames?: string; ref?: string[]; repo: boolean; client?: string; projectName?: string; maxCost?: string; fresh?: boolean; designExport?: string; model?: string[]; preset?: string; mobileDesign?: string }) => {
+      const mobileDesign = mobileDesignOption(o.mobileDesign);
       if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
       const designExport = designExportOption(o.designExport);
       const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
@@ -100,6 +102,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       const runId = await createRun(req.text, projectName, userInfo().username, {
         mode: "design", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(designExport ? { designExport } : {}),
         ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
+        ...(mobileDesign !== undefined ? { mobileDesign } : {}),
       });
       log(`design run ${runId} (requirements from ${describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : "; no references: the look comes from the requirements and the industry library"})`);
       await deps.runAndReport(runId);

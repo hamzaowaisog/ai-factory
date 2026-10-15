@@ -66,7 +66,7 @@ export function findRun(run: string): Ledger | undefined {
 // ---------- projects ----------
 
 /** `empty`: a Node project whose repo is still empty, where an approved design for a new product is built (greenfield) */
-export interface ProjectRow { name: string; busy?: { runId: string }; empty?: true }
+export interface ProjectRow { name: string; busy?: { runId: string }; empty?: true; /** design.stitch.phone: the start form's "mobile design" starts at it */ mobileDesign: boolean }
 
 export function projectNames(): string[] {
   const dir = join(factoryHome(), "projects");
@@ -131,9 +131,9 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
-    let empty = false;
-    try { const p = loadProject(name); empty = p.stack === "node" && repoIsEmpty(p.repo, p.baseBranch); } catch { /* a broken config is listed as it is */ }
-    projects.push({ name, ...(busy ? { busy } : {}), ...(empty ? { empty: true as const } : {}) });
+    let empty = false, mobileDesign = true;
+    try { const p = loadProject(name); empty = p.stack === "node" && repoIsEmpty(p.repo, p.baseBranch); mobileDesign = p.design?.stitch?.phone ?? true; } catch { /* a broken config is listed as it is */ }
+    projects.push({ name, mobileDesign, ...(busy ? { busy } : {}), ...(empty ? { empty: true as const } : {}) });
   }
   const configured = jiraConfigured();
   return {

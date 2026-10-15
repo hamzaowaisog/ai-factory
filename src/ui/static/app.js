@@ -516,6 +516,10 @@ async function requestScreen(kind = "brownfield", preset = []) {
     h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
   const picker = modelPicker(catalogue, "modelpreset");
   const modelPreset = picker.preset, modelsTable = picker.table, modelsHint = picker.hint, modelsPicked = picker.picked;
+  // "mobile design" starts at the chosen project's design.stitch.phone
+  const syncMobile = () => picker.setMobileDefault(meta.projects.find((p) => p.name === project.value)?.mobileDesign ?? true);
+  project.addEventListener("change", syncMobile);
+  syncMobile();
   const modelsBlock = estimating ? sect(designing ? 7 : 8, "Models", "The model each step runs on.", h("div", { class: "fld" }, h("label", { for: "modelpreset" }, "Preset"), modelPreset), modelsTable, modelsHint)
     : h("div", { class: "field" }, h("label", { for: "modelpreset" }, "Models"), modelPreset, modelsTable, modelsHint);
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
@@ -2543,7 +2547,7 @@ async function dashboardScreen() {
  * The model each step runs on, chosen once, at the start: a preset fills every row, and any row can be changed by hand.
  * `catalogue` is GET /api/models/:mode. Returns the preset select, the table of steps, the hint, and `picked()`: what goes in the POST body.
  */
-function modelPicker(catalogue, id, also = "") {
+function modelPicker(catalogue, id, also = "", mobile = true) {
   const mName = (m) => catalogue.models.find((x) => x.id === m)?.name ?? m;
   const mPrice = (m) => { const x = catalogue.models.find((y) => y.id === m); return x ? `$${x.input} in / $${x.output} out per million tokens${x.unconfirmed ? " (not confirmed)" : ""}` : ""; };
   const preset = h("select", { id }, h("option", { value: "" }, "Defaults"), catalogue.presets.map((p) => h("option", { value: p }, p[0].toUpperCase() + p.slice(1))));
@@ -2558,8 +2562,11 @@ function modelPicker(catalogue, id, also = "") {
     const plannerAuto = h("option", { value: "" });
     const planner = s.engines?.length ? h("select", { "aria-label": `Model that plans for ${s.step}`, hidden: true }, plannerAuto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m)))) : null;
     const plannerLabel = planner ? h("span", { class: "faint small", hidden: true }, " planned by ") : null;
+    // a design engine draws at phone width too unless the run says no: shown beside the planner, starting at the project's setting
+    const mobileSel = s.engines?.length && mobile ? h("select", { "aria-label": "Mobile design", hidden: true }, h("option", { value: "true" }, "Yes"), h("option", { value: "false" }, "No")) : null;
+    const mobileLabel = mobileSel ? h("span", { class: "faint small", hidden: true }, " mobile design ") : null;
     const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
-      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, plannerLabel, planner, " ", tag, note));
+      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, plannerLabel, planner, mobileLabel, mobileSel, " ", tag, note));
     // the model the row would run on, and whether a person moved it off its default (a pick, or a preset)
     const on = () => (pick && pick.value) || (preset.value ? s.presets[preset.value] : s.model);
     const moved = () => !!((pick && pick.value) || preset.value);
@@ -2571,6 +2578,7 @@ function modelPicker(catalogue, id, also = "") {
       if (planner) {
         planner.hidden = plannerLabel.hidden = !engine;
         if (engine) plannerAuto.textContent = `${mName(engine.planner)} (default)`; else planner.value = "";
+        if (mobileSel) mobileSel.hidden = mobileLabel.hidden = !engine;
       }
       // a spec step on the model its critic runs on: allowed, and said here as the start check says it
       const other = s.apart ? rows.find((r) => r.step === s.apart) : undefined;
@@ -2582,18 +2590,24 @@ function modelPicker(catalogue, id, also = "") {
     if (pick) pick.addEventListener("change", () => syncAll());
     // what the run is started with: the engine alone, or engine:model when a planner is named
     const value = () => (pick?.value && planner?.value ? `${pick.value}:${planner.value}` : pick?.value ?? "");
-    return { step: s.step, pick, sync, row, on, moved, value };
+    return { step: s.step, pick, sync, row, on, moved, value, mobileSel };
   });
   function syncAll() { rows.forEach((r) => r.sync()); }
   preset.addEventListener("change", syncAll);
   syncAll();
+  // the project's design.stitch.phone: the select starts there, and only a change from it is sent
+  let mobileDefault = true;
+  const setMobileDefault = (on) => { mobileDefault = on; for (const r of rows) if (r.mobileSel) r.mobileSel.value = String(on); };
+  setMobileDefault(true);
   const picked = () => {
     const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.value()]));
-    return preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {};
+    const m = rows.find((r) => r.mobileSel && !r.mobileSel.hidden)?.mobileSel;
+    const mobileChoice = m && m.value !== String(mobileDefault) ? { mobileDesign: m.value === "true" } : {};
+    return { ...(preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {}), ...mobileChoice };
   };
   const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
     catalogue.models.map((m) => `${m.name} $${m.input}/$${m.output}${m.unconfirmed ? " (not confirmed)" : ""}`).join(" · "), " per million tokens in/out.");
-  return { preset, table: h("table", { class: "models" }, h("tbody", {}, rows.map((r) => r.row))), hint, picked };
+  return { preset, table: h("table", { class: "models" }, h("tbody", {}, rows.map((r) => r.row))), hint, picked, setMobileDefault };
 }
 
 /**
@@ -2607,7 +2621,7 @@ async function greenfieldScreen(preset = []) {
   const [products, meta, catalogue] = await Promise.all([api("/api/fullstack"), api("/api/projects"), api("/api/models/greenfield")]);
   const err = h("div", { class: "error", hidden: true });
   const fail = (m) => { err.replaceChildren(icon("alert"), h("span", {}, m)); err.hidden = false; };
-  const picker = modelPicker(catalogue, "fs-models", "With the API, the API run uses the same choice. ");
+  const picker = modelPicker(catalogue, "fs-models", "With the API, the API run uses the same choice. ", false);
   const name = h("input", { type: "text", id: "fs-name", maxlength: "31", placeholder: "e.g. orders", autocomplete: "off" });
   const dir = h("input", { type: "text", id: "fs-dir", value: "~/projects", autocomplete: "off" });
   // the backend: built with the product (an API repo held to the contract the web plan writes), or the client's own

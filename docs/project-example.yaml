@@ -64,6 +64,8 @@ agentEnv:                          # dummy values so the app compiles where the 
 #   stitch:                          # the stitch engine (engine: stitch)
 #     device: DESKTOP                # MOBILE | DESKTOP | TABLET | AGNOSTIC
 #     states: [empty, error]         # extra states drawn per screen that lists them; each is one more call
+#     phone: true                    # also draw the main pages (five at most) at phone width; each is one more call. A run's
+#                                    # --mobile-design or the start form's "mobile design" wins over it
 #     mood: futuristic               # the look asked of the design system: calm | bold | futuristic; default: chosen from the product
 #     maxCalls: 40                   # most Stitch calls per run (draws, edits, fixes); the run parks before passing it. Default: no limit
 #     usdPerCall: 0                  # USD per call, counted in the run's cost limit; Stitch is free within its quota today

@@ -483,6 +483,11 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
  */
 const ofSystem = (check: string): boolean => /^stitch-designmd-|^design-(off-reference|neon|copied|no-basis|ref-colour|ref-family)$/.test(check);
 
+/** Whether a design drawn for a wide screen draws its main pages at phone width too: the run's choice, then the project's, then on. */
+export function phoneViews(ctx: Pick<StepContext, "state" | "project">): boolean {
+  return ctx.state.info.mobileDesign ?? ctx.project.design?.stitch?.phone ?? true;
+}
+
 export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: StitchInputs = {}): Promise<StepOutcome> {
   const reqIds = spec.requirements.map((q) => q.id);
   // a sent-back Stitch design: fix only the screens the lead named when that is all they asked
@@ -590,8 +595,8 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   // each screen's prompt now carries its heading, its shell's header, the sample data, the look's own values and the design system's rules for a page, and is kept that way
   const ownLook = stitchLook(out.theme, out.palette);
   plan = withShared(plan, ownLook, out.digest);
-  // a design drawn for a wide screen shows its most used pages at phone width too, unless the project says no
-  const jobs = stitchJobs(plan.screens, allowed, out.motion, device === "DESKTOP" && (ctx.project.design?.stitch?.phone ?? true));
+  // a design drawn for a wide screen shows its most used pages at phone width too, unless the run or the project says no
+  const jobs = stitchJobs(plan.screens, allowed, out.motion, device === "DESKTOP" && phoneViews(ctx));
   // a resumed run keeps the Stitch project and the screens it already drew, when the plan and design system are the same
   const key = hashJson({ plan, designMd: mdSha, theme: out.theme, device, allowed, ...(out.motion ? { motion: out.motion } : {}) });
   const saved = readProgress(ctx, key);

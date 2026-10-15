@@ -33,7 +33,7 @@ import type { RequestSource } from "../sources/request.js";
 import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
 import type { Proposal } from "../estimate/assemble.js";
 import { ESTIMATE_ROUTES } from "../stages/routing.js";
-import { AUTONOMOUS_HELP, autonomousOption, checkChoice, choiceOption, collectModel, GUIDED_HELP, MODEL_HELP, PRESET_HELP, registerModels } from "./models.js";
+import { AUTONOMOUS_HELP, autonomousOption, checkChoice, choiceOption, collectModel, GUIDED_HELP, MOBILE_DESIGN_HELP, mobileDesignOption, MODEL_HELP, PRESET_HELP, registerModels } from "./models.js";
 import { cardView } from "../stages/card-summary.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
@@ -80,11 +80,13 @@ program.command("start")
   .option("--ui-target <target>", UI_TARGET_HELP)
   .option("--model <step=model>", MODEL_HELP, collectModel)
   .option("--preset <name>", PRESET_HELP)
+  .option("--mobile-design <true|false>", MOBILE_DESIGN_HELP)
   .option("--guided", GUIDED_HELP)
   .option("--autonomous", AUTONOMOUS_HELP)
   .description("create a run from a prompt, a file or a Jira ticket (any one, or several) and execute until a card, a park, or delivery")
-  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string; uiTarget?: string; model?: string[]; preset?: string; guided?: boolean; autonomous?: boolean }) => {
+  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string; uiTarget?: string; model?: string[]; preset?: string; mobileDesign?: string; guided?: boolean; autonomous?: boolean }) => {
     const autonomous = autonomousOption(o);
+    const mobileDesign = mobileDesignOption(o.mobileDesign);
     const designExport = designExportOption(o.designExport);
     const uiTarget = uiTargetOption(o.uiTarget);
     const project = loadProject(o.project);
@@ -116,6 +118,7 @@ program.command("start")
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       models, ...(autonomous !== undefined ? { autonomous } : {}),
       sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
+      ...(mobileDesign !== undefined ? { mobileDesign } : {}),
     });
     log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : approved ? `estimate run ${approved.runId}; the build follows its approved spec and design and is held to its budget${replay(Ledger.open(runId).events()).info.mode === "greenfield" ? ", a new product built into an empty repo" : ""}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
     if (approved || fromDesign) await exportSeededNow(runId, designExport, log);
@@ -145,11 +148,13 @@ program.command("estimate")
   .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings (hands-off or reviewed too) are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
   .option("--model <step=model>", MODEL_HELP, collectModel)
   .option("--preset <name>", PRESET_HELP)
+  .option("--mobile-design <true|false>", MOBILE_DESIGN_HELP)
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory, then write two workbooks; a person answers the questions and approves it unless --hands-off")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string; model?: string[]; preset?: string }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string; model?: string[]; preset?: string; mobileDesign?: string }) => {
+    const mobileDesign = mobileDesignOption(o.mobileDesign);
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
     if (o.design === false) {
@@ -199,6 +204,7 @@ program.command("estimate")
     const runId = await createRun(req.text, projectName, userInfo().username, {
       mode: "estimate", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(lineage ? { lineage } : {}), ...(fromDesign ? { fromDesign } : {}),
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
+      ...(mobileDesign !== undefined ? { mobileDesign } : {}),
     });
     if (fromDesign) await exportSeededNow(runId, designExport, log);
     log(`estimate run ${runId} (requirements from ${o.resize ? `estimate run ${o.resize}, with its spec and approved design; only the sizing is new` : fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"}${settings.drawDesign === false ? ", no design" : ""})`);
