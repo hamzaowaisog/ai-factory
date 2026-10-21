@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Spec } from "../contracts/index.js";
 import type { Failure } from "../contracts/common.js";
-import { designMdFaults, DesignMdOut, offBlack, FIELD_RULES, loadTasteSkill, moodRules, tastePageRules, TASTE_OVERRIDES, type StitchMotion, type StitchPalette, type StitchTheme } from "../design/stitch-taste.js";
+import { designMdFaults, DesignMdOut, offBlack, FIELD_RULES, loadTasteSkill, moodRules, STITCH_FONTS, tastePageRules, TASTE_OVERRIDES, type StitchMotion, type StitchPalette, type StitchTheme } from "../design/stitch-taste.js";
 import { stitchTells, type StitchTell } from "../design/stitch-tells.js";
 import { digestLine, lookLine, stitchLook, type StitchLook } from "../design/stitch-theme.js";
 import { stitchThemeToDesign } from "../design/stitch-theme.js";
@@ -394,15 +394,46 @@ const STITCH_REF_RULES = `CLIENT REFERENCES. The client attached design referenc
 - Say in section 1 which reference the look came from and what was taken ("R-1: violet primary action, 4 px corners").
 - A colour you use from a reference is written exactly as listed in "client-references"; never sample one from a picture.`;
 
-export const StitchTriage = z.object({ redraw: z.boolean(), screens: z.array(z.object({ id: z.string(), change: z.string().min(3) })) });
-const TRIAGE_RULES = `The lead sent a Google Stitch design back. Read their reasons against the screens listed.
-- Name each screen the reasons ask to change, with the change in one plain sentence Stitch can apply to that screen alone.
-- Set "redraw" true when a reason is about the whole look (colours, fonts, density), the flow, or which screens exist; then "screens" may be empty.
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const StitchTriage = z.object({
+  redraw: z.boolean(),
+  screens: z.array(z.object({ id: z.string(), change: z.string().min(3) })),
+  /** a new look for every page: the values the reasons give (the rest kept), and the one change every page is edited with */
+  look: z.object({
+    customColor: Hex.optional(), colorMode: z.enum(["LIGHT", "DARK"]).optional(), headlineFont: z.enum(STITCH_FONTS).optional(), bodyFont: z.enum(STITCH_FONTS).optional(),
+    roundness: z.enum(["ROUND_FOUR", "ROUND_EIGHT", "ROUND_TWELVE", "ROUND_FULL"]).optional(),
+    canvas: Hex.optional(), surface: Hex.optional(), ink: Hex.optional(), muted: Hex.optional(), rule: Hex.optional(),
+    change: z.string().min(3),
+  }).optional(),
+  /** new pages, each drawn on its own; "from" are the screens that get a control opening it */
+  add: z.array(z.object({
+    title: z.string().min(1), route: z.string().min(1), file: z.string().min(1), reqs: z.array(z.string()).min(1), user: z.string().optional(), prompt: z.string().min(20),
+    from: z.array(z.object({ id: z.string(), label: z.string().min(1) })).default([]),
+  })).default([]),
+});
+const TRIAGE_RULES = `The lead sent a Google Stitch design back. Read their reasons against the screens listed. Every page they do not ask to change stays exactly as approved, so answer with the smallest set of changes.
+- Name each screen the reasons ask to change, with the change in one plain sentence Stitch can apply to that screen alone. A change asked of several screens names each of them.
+- A reason about the colours, fonts or corners of every page goes in "look": the values the reasons give (hex codes; fonts from Stitch's list: ${STITCH_FONTS.join(", ")}; roundness), leaving out what they do not change, and "change", one sentence Stitch can apply to any page ("Use #1D4ED8 for buttons, links and the selected menu item, #DBEAFE for selected rows and badges, white page and card backgrounds, #0F172A text and #E2E8F0 borders."). Every page is edited with it and keeps its layout and words: do not name each screen for it, and it is never a reason to redraw.
+- A new page the reasons ask for goes in "add": its title, its route, a file path like the other screens', the requirement ids it serves (from "requirements"), the kind of user who opens it ("user", as the screens list has them; none for sign-in or sign-up), a prompt describing that page alone in its normal state with real sample content, and "from": each listed screen with a control that opens it and that control's exact words. Those screens get the control added: do not also name them for it.
+- Set "redraw" true only when the reasons ask for every page to be drawn again, for a different style or layout on every page, or for a different flow (pages removed or merged); then the rest may be empty.
 - Never name a screen the reasons do not touch.`;
 
+/** A route as the screens compare it. */
+const routeKey = (r: string) => r.trim().toLowerCase().replace(/\/+$/, "") || "/";
+/** What a new page takes from a page of the same kind of user: its shared lines (heading, header, sample data, look, rules). */
+function sharedTail(prompt: string, title: string, sameShell: boolean): string {
+  const at = ["\nThe page's one heading", "\nThe page's header", "\nThe product's sample data", "\nThe look,"].map((m) => prompt.indexOf(m)).filter((i) => i >= 0);
+  if (!at.length) return "";
+  let tail = prompt.slice(Math.min(...at));
+  tail = tail.replace(/\nThe page's one heading reads "[^"]*"\./, sameShell ? titled(title) : "");
+  return sameShell ? tail : tail.replace(/\nThe page's header, the same on every page: [^\n]*/, "");
+}
+
 /**
- * A sent-back Stitch design: Stitch edits only the screens the lead named (and redraws their extra states); every other screen
- * keeps its frames, HTML and words. Undefined when the whole design has to be drawn again (the triage says so, or names no screen).
+ * A sent-back Stitch design: Stitch edits only the screens the lead's reasons touch, each frame in place (its normal page, its
+ * states, its phone drawing), draws only the pages the lead added, and edits every page in place for a new look; every other
+ * screen keeps its frames, HTML and words. Undefined when the whole design has to be drawn again (the triage says so, or
+ * asks for nothing the design can do in place).
  */
 async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: string[], spec: Spec): Promise<StepOutcome | undefined> {
   // the reasons the design already answers (its revision) and the new ones; with no new one this is not a send-back to answer:
@@ -422,58 +453,86 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   if (planFaults(specReqs, plan).length) { ctx.log("design: the earlier Stitch screens no longer cover the spec; the design is drawn again"); return undefined; }
 
   const t = await think(ctx, {
-    stage: "design", label: "design rework triage (stitch)", route: "design-triage", cls: "read-small", budgetTokens: 14000, tools: [], schema: StitchTriage, maxTurns: 2,
-    sections: [S.template("tpl", TRIAGE_RULES), S.artifact("sent-back", "lead-feedback", { reasons: fresh, alreadyAnswered: feedback.slice(0, answered) }), S.artifact("screens", "screens", prev.screens.map((x) => ({ id: x.id, route: x.route, title: x.facts?.title ?? x.id })))],
+    stage: "design", label: "design rework triage (stitch)", route: "design-triage", cls: "read-small", budgetTokens: 20000, tools: [], schema: StitchTriage, maxTurns: 2,
+    sections: [S.template("tpl", TRIAGE_RULES), S.artifact("sent-back", "lead-feedback", { reasons: fresh, alreadyAnswered: feedback.slice(0, answered) }),
+      S.artifact("screens", "screens", prev.screens.map((x) => ({ id: x.id, route: x.route, title: x.facts?.title ?? x.id, ...(x.user ? { user: x.user } : {}) }))),
+      S.artifact("requirements", "requirements", spec.requirements.map((q) => ({ id: q.id, ears: q.ears })))],
   });
   if (!t.ok) return t.outcome;
-  const named = t.output.screens.filter((x) => prev.screens.some((s) => s.id === x.id));
-  const unpaged = named.filter((n) => !frames.some((f) => f.screen === n.id && f.state === "normal"));
-  if (t.output.redraw || !named.length || unpaged.length) { ctx.log("design: the send-back needs the whole Stitch design drawn again"); return undefined; }
+  const look = t.output.look;
+  // each new page once, at a route no screen has
+  const added = t.output.add.filter((a, i, all) => !plan.screens.some((s) => routeKey(s.route) === routeKey(a.route)) && all.findIndex((b) => routeKey(b.route) === routeKey(a.route)) === i);
+  // what each screen is edited with: the lead's change, the controls that open a new page, the new look
+  const changes = new Map<string, string[]>();
+  const change = (id: string, line: string) => { if (plan.screens.some((s) => s.id === id)) changes.set(id, [...(changes.get(id) ?? []), line]); };
+  for (const x of t.output.screens) change(x.id, x.change);
+  let next = Math.max(0, ...plan.screens.map((s) => Number(s.id.slice(2)) || 0));
+  const fresher: Plan["screens"] = [];
+  const theme = prev.stitch.theme ? { ...(prev.stitch.theme as StitchTheme), ...Object.fromEntries(Object.entries(look ?? {}).filter(([k, v]) => v !== undefined && ["customColor", "colorMode", "headlineFont", "bodyFont", "roundness"].includes(k))) } as StitchTheme : undefined;
+  const palette = prev.stitch.palette ? { ...prev.stitch.palette, ...Object.fromEntries(Object.entries(look ?? {}).filter(([k, v]) => v !== undefined && ["canvas", "surface", "ink", "muted", "rule"].includes(k))) } as StitchPalette : undefined;
+  const oldLine = prev.stitch.theme ? lookLine(stitchLook(prev.stitch.theme as StitchTheme, prev.stitch.palette)) : "";
+  const newLine = theme ? lookLine(stitchLook(theme, palette)) : "";
+  for (const a of added) {
+    const id = `S-${++next}`;
+    const like = plan.screens.find((s) => (s.shell ?? "") === (a.user ?? "")) ?? plan.screens[0]!;
+    fresher.push({ id, title: a.title, route: a.route, file: a.file, reqs: a.reqs, states: [], prompt: `${a.prompt}${sharedTail(like.prompt, a.title, (like.shell ?? "") === (a.user ?? ""))}`, links: [], overlays: [], ...(a.user ? { shell: a.user } : {}) });
+    for (const f of a.from) {
+      const s = plan.screens.find((x) => x.id === f.id);
+      if (!s) continue;
+      s.links = [...s.links, { label: f.label, to: id }];
+      change(f.id, `Add a control worded "${f.label}" that opens the ${a.title} page, where such a control belongs on this page.`);
+    }
+  }
+  if (look) for (const s of plan.screens) change(s.id, look.change);
+  plan.screens.push(...fresher);
+  // a new look is told to every prompt, so a page drawn later (a state, a page added on a later send-back) is told it too
+  if (oldLine && newLine && oldLine !== newLine) for (const s of plan.screens) s.prompt = s.prompt.replace(oldLine, newLine);
+  const touched = [...changes.keys()];
+  const unpaged = touched.filter((id) => !frames.some((f) => f.screen === id && f.state === "normal"));
+  if (t.output.redraw || (!touched.length && !fresher.length) || unpaged.length) { ctx.log("design: the send-back needs the whole Stitch design drawn again"); return undefined; }
+  if (planFaults(specReqs, plan).length) { ctx.log("design: the pages the send-back adds do not fit the spec; the design is drawn again"); return undefined; }
 
-  const kept: StitchAsset[] = frames.filter((f) => !named.some((n) => n.id === f.screen)).map((f) => ({
+  const kept: StitchAsset[] = frames.filter((f) => !changes.has(f.screen)).map((f) => ({
     id: f.screen, state: f.state, name: f.name, screenId: f.screenId, html: f.html, image: f.image,
     ...(f.state === "normal" && prev.screens.find((s) => s.id === f.screen)?.facts ? { facts: prev.screens.find((s) => s.id === f.screen)!.facts! } : {}),
   }));
   const device = ctx.project.design?.stitch?.device ?? "DESKTOP";
-  const allowed = ctx.project.design?.stitch?.states ?? DEFAULT_STITCH_STATES;
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
-  // each named screen is one edit, and its extra states are drawn again
   const motion = prev.stitch.motion;
-  const calls = named.reduce((n, x) => n + stitchJobs([plan.screens.find((s) => s.id === x.id)!], allowed, undefined, true).length, 0);
-  const over = ownDrawer(ctx) ? undefined : stitchBudgetProblem(ctx, calls);
+  // each frame of a changed screen is one edit in place (its layout and words stay), and each new page one drawing
+  const edits = frames.filter((f) => changes.has(f.screen));
+  const draws = stitchJobs(fresher, [], motion, false);
+  const over = ownDrawer(ctx) ? undefined : stitchBudgetProblem(ctx, edits.length + draws.length);
   if (over) return { kind: "park", reason: over };
   const by = drawerFor(ctx), c = by.client;
   let edited: StitchAsset[];
   let open: A11yOpen[] = [];
+  const redone = [...touched, ...fresher.map((s) => s.id)];
   try {
     mkdirSync(framesDir, { recursive: true });
-    ctx.log(`design: ${by.name} edits ${named.map((n) => n.id).join(", ")}; ${plan.screens.length - named.length} screen(s) kept as approved`);
-    edited = (await inPool(named, STITCH_SIDE_BY_SIDE, async (n) => {
-      const normal = frames.find((f) => f.screen === n.id && f.state === "normal")!;
-      const page = await saveAsset(ctx, c, framesDir, n.id, "normal", await c.edit(prev.stitch.projectId, normal.screenId, `${n.change}${FOLLOW_SYSTEM}`, device));
-      // its extra states follow the change: drawn again from the screen's prompt with the change added
-      const screen = plan.screens.find((s) => s.id === n.id)!;
-      const states = stitchJobs([{ ...screen, prompt: `${screen.prompt}\nChange: ${n.change}` }], allowed, motion, true).filter((j) => j.state !== "normal");
-      const drawn = await inPool(states, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(prev.stitch.projectId, j.prompt, j.device ?? device)));
-      return [page, ...drawn];
-    })).flat();
-    // only the edited screens are checked: an approved screen is never changed for accessibility on a send-back
-    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, named.map((n) => n.id), prev.stitch.theme ? stitchLook(prev.stitch.theme as StitchTheme, prev.stitch.palette) : undefined, undefined, by.name);
+    ctx.log(`design: ${by.name} edits ${touched.join(", ") || "no screen"}${fresher.length ? `, draws ${fresher.map((s) => `${s.id} ${s.route}`).join(", ")}` : ""}; ${prev.screens.length - touched.length} screen(s) kept as approved`);
+    const KEEP = "\nKeep everything else on the page as it is: its layout, sections, words and pictures.";
+    edited = [
+      ...await inPool(edits, STITCH_SIDE_BY_SIDE, async (f) => saveAsset(ctx, c, framesDir, f.screen, f.state, await c.edit(prev.stitch.projectId, f.screenId, `${changes.get(f.screen)!.join(" ")}${KEEP}${FOLLOW_SYSTEM}`, f.state === PHONE_STATE ? "MOBILE" : device))),
+      ...await inPool(draws, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(prev.stitch.projectId, j.prompt, j.device ?? device))),
+    ];
+    // only the edited and new screens are checked: an approved screen is never changed for accessibility on a send-back
+    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, redone, theme ? stitchLook(theme, palette) : undefined, undefined, by.name);
     edited = fixed.assets;
-    open = [...(prev.stitch.a11y ?? []).filter((x) => !named.some((n) => n.id === x.screen)), ...fixed.open];
+    open = [...(prev.stitch.a11y ?? []).filter((x) => !redone.includes(x.screen)), ...fixed.open];
   } catch (e) {
     return { kind: "park", reason: by.failed(e) };
   } finally {
     await c.close().catch(() => undefined);
   }
-  const theme = prev.stitch.theme as StitchTheme | undefined;
   // the revision counts the send-backs answered, as on the JSON track: a rerun with no new one does not rework again
   const round = feedback.length;
-  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}), ...(prev.stitch.palette ? { palette: prev.stitch.palette } : {}), ...(motion ? { motion } : {}) }, specReqs);
+  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}), ...(palette ? { palette } : {}), ...(motion ? { motion } : {}) }, specReqs);
+  const lines = [...touched.map((id) => `${id}: ${changes.get(id)!.join(" ")}`), ...fresher.map((s) => `${s.id}: new page ${s.route}`)];
   const design = {
     ...drawn, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) },
     revision: round,
-    rework: [...(prev.rework ?? []), { round, mode: "patch" as const, patched: named.map((n) => n.id), lines: named.map((n) => `${n.id}: ${n.change}`), kept: plan.screens.filter((s) => !named.some((n) => n.id === s.id)).map((s) => s.id), notDesign: [], fine: [] }],
+    rework: [...(prev.rework ?? []), { round, mode: "patch" as const, patched: redone, lines, kept: prev.screens.filter((s) => !changes.has(s.id)).map((s) => s.id), notDesign: [], fine: [] }],
     header: header(ctx.runId, "design", "design", "", t.model),
   };
   return { kind: "done", outputs: { design: ctx.ledger.putJson(design) }, data: { screens: plan.screens.length, engine: "stitch", rework: "patch" } };

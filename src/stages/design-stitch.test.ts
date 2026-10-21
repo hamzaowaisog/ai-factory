@@ -411,7 +411,7 @@ describe("overlays", () => {
     expect(d.screens.find((s) => s.id === "S-2")!.overlays).toBeUndefined();
   });
 
-  it("keeps a patched screen's overlays and draws them again", async () => {
+  it("keeps a patched screen's overlays and edits each in place", async () => {
     const ledger = memoryLedger();
     answers = [withOverlays(), { designMd: md(), theme }];
     const out = await drawWithStitch(ctxFor(ledger, 0, { stitch: { phone: false } }), spec);
@@ -421,7 +421,9 @@ describe("overlays", () => {
     const again = await drawWithStitch(ctxFor(ledger, 0, { stitch: { phone: false } }), spec, { previous: prev as never, feedback: ["The IBAN column is too narrow."] });
     const d = ledger.getJson<{ screens: { id: string; overlays?: unknown[] }[] }>((again as { outputs: { design: string } }).outputs.design);
     expect(d.screens.find((s) => s.id === "S-1")!.overlays).toHaveLength(2);
-    expect(made.generated.filter((g) => g.prompt.includes("open over it"))).toHaveLength(2);
+    // its normal page, its empty state and its two overlays: each edited, none drawn again
+    expect(made.edits.map((e) => e.prompt)).toEqual(Array(4).fill(expect.stringContaining("Make the IBAN column wider.")));
+    expect(made.generated).toEqual([]);
   });
 });
 
@@ -486,6 +488,42 @@ describe("rework of a Stitch design", () => {
     expect(d.stitch.projectId).toBe(prev.stitch.projectId);
     expect(d.revision).toBe(1);
     expect(d.rework?.[0]?.patched).toEqual(["S-2"]);
+  });
+
+  it("a new colour scheme edits every page in place and becomes the design's look (run e220 redrew the whole design)", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    const change = "Use #1D4ED8 for buttons, links and the selected menu item, white backgrounds and #0F172A text.";
+    answers = [{ redraw: false, screens: [], look: { customColor: "#1D4ED8", canvas: "#FFFFFF", ink: "#0F172A", change } }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["Colour scheme: blue and white, primary #1D4ED8."], previous: prev as never });
+    expect(out.kind).toBe("done");
+    // S-1's page and empty state, S-2's page: each edited with the change, nothing drawn again
+    expect(made.edits.map((e) => e.prompt)).toEqual(Array(3).fill(expect.stringContaining(change)));
+    expect(made.edits[0]!.prompt).toContain("Keep everything else on the page as it is");
+    expect(made.generated).toEqual([]);
+    expect(made.projects).toEqual([]);
+    const d = ledger.getJson<D & { theme: { brand: string }; stitch: { theme: { customColor: string } } }>((out as { outputs: { design: string } }).outputs.design);
+    expect(d.theme.brand).toBe("#1D4ED8");
+    expect(d.stitch.theme.customColor).toBe("#1D4ED8");
+    expect(d.rework?.[0]?.patched).toEqual(["S-1", "S-2"]);
+  });
+
+  it("a new page is drawn on its own, linked from the page that opens it, and the rest is kept", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    answers = [{ redraw: false, screens: [], add: [{ title: "Sign up", route: "/sign-up", file: "app/sign-up/page.tsx", reqs: ["REQ-1"], prompt: "A sign-up form: name, email and password; Sign up.", from: [{ id: "S-1", label: "Create an account" }] }] }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["Add a sign-up page, linked from the payees list."], previous: prev as never });
+    expect(out.kind).toBe("done");
+    expect(made.generated).toHaveLength(1);
+    expect(made.generated[0]!.prompt).toContain("A sign-up form");
+    // S-1's page and empty state get the control; S-2 is untouched
+    expect(made.edits).toHaveLength(2);
+    expect(made.edits[0]!.prompt).toContain(`"Create an account"`);
+    const d = ledger.getJson<D & { screens: { id: string; route: string }[]; stitch: { links: Record<string, { label: string; to: string }[]> } }>((out as { outputs: { design: string } }).outputs.design);
+    expect(d.screens.map((s) => [s.id, s.route])).toEqual([["S-1", "/payees"], ["S-2", "/payees/new"], ["S-3", "/sign-up"]]);
+    expect(d.stitch.links["S-1"]).toContainEqual({ label: "Create an account", to: "S-3" });
+    const s2 = (x: D) => Object.values(x.stitch.frames).filter((f) => f.screen === "S-2");
+    expect(s2(d)).toEqual(s2(prev));
   });
 
   it("redraws the whole design when the triage says so", async () => {
