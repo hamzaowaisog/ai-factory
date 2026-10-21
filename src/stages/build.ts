@@ -56,6 +56,7 @@ import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
 import { testsCoverCriteria } from "../gates/coverage.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
+import { savedPhoto, savePhotos, stitchPhotos } from "../design/stitch-photos.js";
 import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, setsMonospace, stitchHtmlFor, stitchPageHtml, stitchScaffoldBrief, type ApprovedDesign } from "../design/design-link.js";
 import { nextRouteDir, routerPath, scaffoldSummary, writeScaffold } from "../design/kit/index.js";
 import { loadKit } from "../design/kit/kit.js";
@@ -583,6 +584,13 @@ export const stubCommitStep: StepDef = {
     if (scaf?.layout) {
       const l = scaf.layout;
       const written = writeScaffold(l, wt);
+      // the approved Stitch pages' photos, saved with the scaffold so the coding tasks show them (run 4049 drew grey boxes)
+      const approved = approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design;
+      const pages = l.screens.filter((x) => x.stitch).flatMap((x) => {
+        const html = approved ? stitchPageHtml(approved as never, x.id, (sha) => ctx.ledger.getArtifact(sha).toString("utf8")) : undefined;
+        return html ? [{ id: x.id, html }] : [];
+      });
+      if (pages.length) written.push(...await savePhotos(wt, pages, ctx.log));
       let scaffoldCommit = written.length ? await commitAll(wt, `factory: scaffold ${l.target} (kit ${l.kit.id} ${l.kit.version}) for ${ctx.runId}`) : undefined;
       // a generated Node app has no lockfile until its first install writes one: install now and commit it as part of the
       // scaffold, so every later install is the same, and the file is neither charged to the test writer nor counted as the
@@ -2192,7 +2200,12 @@ export function implementStep(taskId: string): StepDef {
       const briefScreens = screen ? [screen] : fromScaffold ? [fromScaffold] : screensForTask(approvedDesign, task);
       // a Stitch screen this task builds the page of: what its page must keep, told up front and checked when it finishes
       const stitchHtml = scaffoldScreen?.stitch && approvedDesign ? stitchPageHtml(approvedDesign as never, scaffoldScreen.id, (sha) => ctx.ledger.getArtifact(sha).toString("utf8")) : undefined;
-      const stitchScreen = scaffoldScreen?.stitch ? { id: scaffoldScreen.id, buttons: fromScaffold?.facts?.buttons ?? [], mono: !!stitchHtml && setsMonospace(stitchHtml) } : undefined;
+      const stitchScreen = scaffoldScreen?.stitch ? {
+        id: scaffoldScreen.id, buttons: fromScaffold?.facts?.buttons ?? [], mono: !!stitchHtml && setsMonospace(stitchHtml),
+        // the kinds of user the frame lists pages for, and the page's photos the stub commit saved
+        users: [...new Set(approvedDesign?.screens.flatMap((x) => (x.user ? [x.user] : [])) ?? [])],
+        photos: stitchHtml ? stitchPhotos(scaffoldScreen.id, stitchHtml).flatMap((p) => { const file = savedPhoto(wt, p); return file ? [{ ...p, file }] : []; }) : [],
+      } : undefined;
       const approvedScreen = !approvedDesign || !briefScreens.length ? undefined
         : briefScreens.length === 1 ? screenBrief(approvedDesign, briefScreens[0]!) : screensBrief(approvedDesign, briefScreens);
       // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and time
@@ -2226,7 +2239,7 @@ export function implementStep(taskId: string): StepDef {
           // the design lint's rule, said before the work and not only after it (run ae5c: TASK-2 and TASK-3 each lost an attempt to it)
           ...(ctx.project.design && task.fileScope.some((f) => /\.(tsx|jsx|css)$/.test(f)) ? [S.template("design-lint", designSystemTask ? DESIGN_LINT_RULE : `${DESIGN_LINT_RULE}\n${THEME_TOKEN_RULE}`)] : []),
           // a Stitch page in a greenfield scaffold: the coding task builds the page itself in its container
-          ...(scaffoldScreen?.stitch ? [S.template("stitch-page", stitchScaffoldBrief(scaffoldScreen, Object.values(scaffoldScreen.states), stitchScreen?.buttons, stitchScreen?.mono))] : []),
+          ...(scaffoldScreen?.stitch ? [S.template("stitch-page", stitchScaffoldBrief(scaffoldScreen, Object.values(scaffoldScreen.states), stitchScreen?.buttons, stitchScreen?.mono, { users: stitchScreen?.users, photos: stitchScreen?.photos }))] : []),
           ...(scaffoldScreen && !scaffoldScreen.stitch ? [S.template("behaviour-only", `This task fills in ${scaffoldScreen.id}'s container, ${scaffoldScreen.container}. The page itself is ${scaffoldScreen.screen}: the approved blocks, states, layers and text, generated from the approved design and not editable. Its sample data is ${scaffoldScreen.fixtures}, which is the shape the real data must take.
 - Write behaviour only: load the real data in the fixtures' shape and pass it as \`data\`, handle the page's actions in \`onAction(label, at)\`, and pass \`state\` for loading, empty, error, success and validation (the states the design drew: ${Object.keys(scaffoldScreen.states).join(", ")}).
 - Do not restyle or rebuild the page: no new markup, classes, colours or components for what the page already draws. Keep the fixture branch (\`?fixture=${scaffoldScreen.id}:<state>\` shows the approved sample data with no backend).

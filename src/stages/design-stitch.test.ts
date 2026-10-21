@@ -205,6 +205,10 @@ describe("the stitch design artifact", () => {
     // the design keeps the prompt as drawn, so a state drawn again after a send-back is told the same
     expect(stitchArtifact(shared as never, [], { projectId: "p", model: "m", designMd: "m" }, ["REQ-1", "REQ-2"]).stitch.prompts["S-1"]).toContain("The page's header");
     expect(withShared(plan({ shells: [], sample: "" }) as never).screens[0]!.prompt).toBe(plan().screens[0]!.prompt);
+    // the design keeps the product's name and each page's kind of user, for the app's frame (run 4049 read the repo name and listed every page to everyone)
+    const body = stitchArtifact({ ...shared, product: " Payees Online " } as never, [], { projectId: "p", model: "m", designMd: "m" }, ["REQ-1", "REQ-2"]);
+    expect(body.product).toBe("Payees Online");
+    expect(body.screens.map((s) => s.user)).toEqual(["customer", undefined]);
   });
 
   it("tells Stitch the words of each link the screen list gave, and keeps where each leads for the live demo", () => {

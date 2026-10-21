@@ -115,4 +115,24 @@ describe("a full-stack product: two repos, one contract", () => {
     expect(() => writeRunFiles(p)).toThrow(/Both runs must be delivered/);
     expect(existsSync(join(dir, "clinic-run"))).toBe(false);
   });
+
+  it("starts each run's branch as it is now: a fix committed on the PR after delivery is in the next start", async () => {
+    const p = setUpProduct("clinic", dir);
+    for (const side of [p.web, p.api]) {
+      side.run = await createRun("A portal where clinic staff sign in", side.project, "tester");
+      await done(Ledger.open(side.run), "deliver", [Ledger.open(side.run).putJson({})]);
+      git(side.repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "delivered");
+      git(side.repo, "branch", `factory/${side.run}`);
+    }
+    saveProduct(p);
+    const out = writeRunFiles(p);
+    const head = (s: string) => git(join(out, s), "log", "-1", "--format=%s").trim();
+    expect(head("web")).toBe("delivered");
+    // the PR's fix: a later commit on the run's branch
+    const fix = git(p.web.repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit-tree", "-m", "fix", "-p", `factory/${p.web.run}`, `factory/${p.web.run}^{tree}`).trim();
+    git(p.web.repo, "update-ref", `refs/heads/factory/${p.web.run}`, fix);
+    writeRunFiles(p);
+    expect(head("web")).toBe("fix");
+    expect(head("api")).toBe("delivered");
+  });
 });

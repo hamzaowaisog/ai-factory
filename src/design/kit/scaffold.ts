@@ -115,6 +115,8 @@ export function screenStates(s: DesignBody["screens"][number]): Record<string, {
   return out;
 }
 
+/** a sign-in, log-in, sign-up or register page */
+const AUTH_ROUTE = /(^|\/)(sign-?in|log-?in|sign-?up|register)(\/|$)/i;
 const header = (tag: string, what: string): string => `// ${OWNED_MARK} from ${tag}.\n// ${what}\n`;
 
 /** The scaffold for a design: every file, and what each task gets. Pure: reads the repo through `src` only. */
@@ -351,10 +353,15 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     }
   }
 
-  // the frame: each app's navigation (its pages without a record id, in their groups)
+  // the frame: each app's navigation (its pages without a record id, in their groups); signing in or up is no place to
+  // go once signed in (run 4049 listed both in every page's nav)
   const frameApps = kitApps.map((a) => {
     const own = out.filter((x) => inApp(o.design.screens.find((s) => s.id === x.id)!, a));
-    const nav = own.filter((x) => !/[:[]/.test(x.route)).map((x) => ({ label: x.title, route: routerPath(x.route), ...(o.design.screens.find((s) => s.id === x.id)?.group ? { group: o.design.screens.find((s) => s.id === x.id)!.group } : {}) }));
+    // each page for its own kind of user (run 4049 listed the admin pages to employees and the gate guard)
+    const nav = own.filter((x) => !/[:[]/.test(x.route) && !AUTH_ROUTE.test(x.route)).map((x) => {
+      const s = o.design.screens.find((y) => y.id === x.id);
+      return { label: x.title, route: routerPath(x.route), ...(s?.group ? { group: s.group } : {}), ...(s?.user ? { roles: [s.user] } : {}) };
+    });
     const shellOf = (): string => {
       if (a.shell && a.shell !== "auto") return a.shell;
       const tool = own.filter((x) => o.design.screens.find((s) => s.id === x.id)?.mock?.blocks.some((b) => b.type === "table" || b.type === "stats")).length;

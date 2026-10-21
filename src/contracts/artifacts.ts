@@ -524,6 +524,8 @@ export type MockBlock = z.infer<typeof MockBlock>;
 
 export const DesignBody = z.object({
   flow: z.string(),
+  /** the product's name as its pages show it (Folio3 Parking), for the frame and the page title */
+  product: z.string().optional(),
   screens: z.array(z.object({
     id: Id, route: z.string(), file: z.string(), reqs: z.array(Id),
     states: z.array(z.string()).optional(), size: z.enum(["new", "tweak", "design-system", "reuse"]).optional(), frames: z.array(z.string()).optional(),
@@ -532,6 +534,8 @@ export const DesignBody = z.object({
     app: z.string().optional(),
     /** the navigation group it is listed under in a sidebar or drawer */
     group: z.string().optional(),
+    /** the kind of user whose pages these are (a Stitch plan's shell: employee, admin); absent, a page for everyone (sign-in) */
+    user: z.string().optional(),
     /** the design references (R-1, ...) that shaped this screen */
     refs: z.array(z.string()).optional(),
     /** a design note's words for what changes on this page (no mock is drawn) */

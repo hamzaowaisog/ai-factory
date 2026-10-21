@@ -97,7 +97,8 @@ export function scaffoldForRun(o: { state: RunState; project: ProjectConfig; des
   const tag = o.pkg ? designTag(o.pkg) : `ai-factory design ${o.designSha.slice(0, 12)}`;
   const layout = scaffold({
     design: o.design, kit: loadKit(), target: t.target as KitTarget,
-    product: o.state.info.estimate?.projectName ?? o.design.apps?.[0]?.name ?? o.project.project, tag,
+    // the name the design gave it before a repo name (run 4049's frame read "folio-parking-app-web")
+    product: o.state.info.estimate?.projectName ?? o.design.product ?? o.design.apps?.[0]?.name ?? o.project.project, tag,
     ...(src ? { src } : {}),
     ...(t.detected.target === t.target && t.detected.root !== undefined ? { root: t.detected.root, alias: !!t.detected.alias } : {}),
     ...(diff ? { changed: diff.changed, removed: diff.removed } : {}),

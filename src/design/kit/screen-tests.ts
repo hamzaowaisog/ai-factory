@@ -9,6 +9,8 @@ import { OWNED_MARK } from "./scaffold.js";
 /** exact, like the kit's packages: every scaffold installs the same versions */
 export const SCREEN_TEST_PACKAGES: Record<string, string> = {
   "@testing-library/dom": "10.4.2",
+  // toBeVisible, toBeInTheDocument, toHaveValue...: run 4049's writers used them and every screen test crashed without it
+  "@testing-library/jest-dom": "6.9.1",
   "@testing-library/react": "16.3.3",
   "@testing-library/user-event": "14.6.7",
   jsdom: "28.1.0",
@@ -91,6 +93,7 @@ export const screenSetupFile = (tag: string, next = true): string => `// ${OWNED
 // a page with no router and no browser: navigation is recorded in ./screen, and the few browser parts jsdom lacks are
 // filled in. A plain *.test.ts file is not affected.
 import { afterEach, beforeEach, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
 import { resetNav, TEST_NOW } from "./screen";
 
 // The same instant and time zone on every run and machine. Only Date is faked, and it moves on with real time from TEST_NOW,

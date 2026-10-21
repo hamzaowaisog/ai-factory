@@ -247,6 +247,9 @@ export function writeRunFiles(p: Product): string {
   for (const [side, at] of [[p.web, "web"], [p.api, "api"]] as const) {
     const wt = join(out, at);
     if (!existsSync(wt)) git(side.repo, ["worktree", "add", "-q", "--detach", wt, `factory/${side.run}`]);
+    // every start runs the branch as it is now: a fix committed on the run's PR after delivery is started too (the parking
+    // product kept running its delivered commits)
+    else git(wt, ["checkout", "-q", "--detach", `factory/${side.run}`]);
   }
   const pg = databaseOf(p) === "postgres";
   writeFileSync(join(out, "docker-compose.yml"), stringify({

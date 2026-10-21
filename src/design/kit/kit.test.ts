@@ -215,6 +215,8 @@ describe("the scaffold", () => {
       expect(file("vitest.config.ts").text).toContain(`setupFiles: ["tests/support/setup.ts"]`);
       expect(file("vitest.config.ts").text).toContain(`oxc: { jsx: { runtime: "automatic" } }`);
       expect(file(SCREEN_SETUP).text).toContain(`vi.mock("@/lib/nav"`);
+      // run 4049: the writers used toBeVisible and every screen test crashed without the matchers
+      expect(file(SCREEN_SETUP).text).toContain(`import "@testing-library/jest-dom/vitest";`);
       // render() gives a page what the frame gives it, and both parts are in the kit
       expect(file(SCREEN_SETUP).text).toContain(`vi.mock("@testing-library/react"`);
       for (const part of ["tooltip", "sonner"]) {
@@ -227,6 +229,28 @@ describe("the scaffold", () => {
         expect(file(SCREEN_SETUP).text.includes(`vi.mock("${pkg}"`), `${target} ${pkg}`).toBe(mine);
       expect(l.protected).toEqual(expect.arrayContaining([SCREEN_SETUP, SCREEN_HELPER]));
     }
+  });
+
+  it("the frame's navigation leaves out signing in and up (run 4049 listed both on every page)", () => {
+    const auth = (id: string, route: string) => ({ ...design.screens.find((s) => s.id === "S-3")!, id, route, file: `app${route}/page.tsx`, group: undefined });
+    const l = scaffold({ ...base, target: "next-shadcn", design: { ...design, screens: [...design.screens, auth("S-8", "/sign-in"), auth("S-9", "/sign-up")] } });
+    const frame = l.files.find((f) => f.path === "components/screens/frame.ts")!.text;
+    expect(l.screens.map((s) => s.route)).toEqual(expect.arrayContaining(["/sign-in", "/sign-up"]));
+    expect(frame).toContain(`"route": "/settings"`);
+    expect(frame).not.toContain(`"route": "/sign-in"`);
+    expect(frame).not.toContain(`"route": "/sign-up"`);
+  });
+
+  it("each nav item carries its page's kind of user, and the kit gives the sign-in a place to store it (run 4049 listed every page to everyone)", () => {
+    const page = (id: string, route: string, user?: string) => ({ ...design.screens.find((s) => s.id === "S-3")!, id, route, file: `app${route}/page.tsx`, group: undefined, ...(user ? { user } : {}) });
+    const l = scaffold({ ...base, target: "next-shadcn", design: { ...design, screens: [page("S-1", "/sign-in"), page("S-2", "/dashboard", "employee"), page("S-3", "/admin/settings", "admin")] } });
+    const frame = l.files.find((f) => f.path === "components/screens/frame.ts")!.text;
+    const apps = JSON.parse(frame.slice(frame.indexOf("= [") + 2, frame.lastIndexOf("]") + 1)) as { nav: { route: string; roles?: string[] }[] }[];
+    expect(apps[0]!.nav).toEqual([expect.objectContaining({ route: "/dashboard", roles: ["employee"] }), expect.objectContaining({ route: "/admin/settings", roles: ["admin"] })]);
+    expect(l.files.find((f) => f.path === "lib/session-role.ts")?.text).toContain("export function setSessionRole");
+    expect(l.files.find((f) => f.path === "components/frame/app-frame.tsx")?.text).toContain("getSessionRole()");
+    // a design with no kinds of user lists its pages as before
+    expect(scaffold({ ...base, target: "next-shadcn" }).files.find((f) => f.path === "components/screens/frame.ts")!.text).not.toContain(`"roles"`);
   });
 
   it("screen tests are ready only when the checkout has the packages and the setup file", () => {

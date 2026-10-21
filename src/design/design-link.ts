@@ -8,9 +8,10 @@ import { localeBrief } from "./locale.js";
 import { designTokens } from "./tokens.js";
 import { matchesAny } from "../util/glob.js";
 import { load } from "cheerio";
+import { stitchPhotos } from "./stitch-photos.js";
 
 import type { StitchFacts } from "./stitch-facts.js";
-export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string; facts?: StitchFacts }
+export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string; facts?: StitchFacts; user?: string }
 export interface ApprovedDesign { skipped?: boolean; flow?: string; screens: ApprovedScreen[]; theme?: unknown; themeSource?: "new" | "repo"; locale?: unknown; note?: boolean }
 
 /** The approved screen an estimate task builds, if any. */
@@ -78,14 +79,19 @@ const KEPT_ATTRS = new Set(["class", "role", "type", "href"]);
  * screen-reader-only text, and no attributes but class, role, type and a plain href), whitespace collapsed, and at most
  * `maxChars` (the rest named in a closing comment), so the brief stays within its budget.
  */
-export function stitchBriefHtml(html: string, maxChars = 30_000): string {
+export function stitchBriefHtml(html: string, maxChars = 30_000, screenId?: string): string {
+  // a photo the stub commit saved keeps a src naming it (photo:s-3-1), so the brief can say which file it is
+  const photos = new Map(screenId ? stitchPhotos(screenId, html).map((p) => [p.url, p.name]) : []);
   const $ = load(html);
   $(NOT_SHOWN).remove();
   // comments are words no one approved on the card
   $("*").contents().filter((_, n) => n.type === "comment").remove();
   $("*").each((_, el) => {
     const attribs = (el as { attribs?: Record<string, string> }).attribs ?? {};
+    const photo = (el as { name?: string }).name === "img" ? photos.get((attribs.src ?? "").trim()) : undefined;
+    if (photo) attribs.src = `photo:${photo}`;
     for (const [name, value] of Object.entries(attribs)) {
+      if (photo && name === "src") continue;
       if (!KEPT_ATTRS.has(name.toLowerCase()) || (name.toLowerCase() === "href" && /^\s*(javascript|vbscript|data):/i.test(value))) $(el).removeAttr(name);
     }
   });
@@ -97,12 +103,17 @@ export function stitchBriefHtml(html: string, maxChars = 30_000): string {
  * A greenfield coding task's brief for a scaffolded Stitch screen: build the approved page in its container, keep fixture mode, and
  * keep what the review's fidelity check reads (run 3f0f: buttons left out, IDs out of monospace, faded text below 4.5:1).
  */
-export function stitchScaffoldBrief(s: { id: string; container: string }, states: string[], buttons: string[] = [], mono = false): string {
+export function stitchScaffoldBrief(s: { id: string; container: string }, states: string[], buttons: string[] = [], mono = false, o: { users?: string[]; photos?: { name: string; file: string; alt: string }[] } = {}): string {
+  // run 4049: every page listed every other kind of user's pages, and each photo was drawn as a grey box
+  const users = o.users?.length ? `\n- The product's pages are for different kinds of user (${o.users.join(", ")}), and the frame lists each page only for its own kind. Wherever this page signs a person in, call setSessionRole from "@/lib/session-role" with the one of those kinds their role in the API's answer is; wherever it signs them out, call setSessionRole(null).` : "";
+  const photos = o.photos?.length ? `\n- The page's approved photos are saved in the app: ${o.photos.map((p) => `photo:${p.name} is /${p.file.replace(/^public\//, "")}${p.alt ? ` (${p.alt})` : ""}`).join("; ")}. Where the Stitch HTML shows one (src="photo:..."), show that file with an <img> (alt="" when the words beside it say what it is, object-cover, in the same place and size). A photo stands for a place or a kind of thing; where it would stand for one person or record of the data (a person's portrait, a vehicle's own plate, a camera's live picture), show that record's own picture or the person's initials instead, never the sample photo.` : "";
   return `This task builds ${s.id}'s page in ${s.container}: the approved Stitch screen. Rebuild it with the kit's components (components/ui, components/blocks) and the approved theme so it matches the Stitch HTML (layout, sections, order, words); do not paste the Stitch markup or its Tailwind CDN script.
 - Load the real data, handle the page's actions, and keep fixture mode: ?fixture=${s.id}:<state> shows the approved sample content in that state with no backend, for ${states.join(", ") || "default"}.
 - Keep every button and link the screen shows, with its words exactly as approved${buttons.length ? ` (${buttons.map((b) => `"${b}"`).join(", ")})` : ""}; the factory checks they are all there.
+- The frame (components/frame/app-frame.tsx) already draws the product's top bar, name and navigation around every page: build only what sits inside it, and leave out the Stitch screen's own top bar, product name and navigation (run 4049's gate page drew a second header). A sign-out button the screen shows goes in the page's own title row.
+- The screen's names, dates and numbers are sample data: outside fixture mode each one comes from the API, the signed-in session or today's date, never from text written into the page (run 4049's gate page always showed one guard and one day).
 ${mono ? "- The screen sets its IDs and codes in monospace: keep them in font-mono.\n" : ""}- Use the theme's text colours as they are: no see-through text (text-muted-foreground/70), which falls below 4.5:1 against its background.
-- Server code, API clients and validation go in the other files of your scope.`;
+- Server code, API clients and validation go in the other files of your scope.${users}${photos}`;
 }
 
 /** The approved Stitch HTML of a screen's normal page; undefined for a JSON design or a screen with none. */
@@ -128,7 +139,7 @@ export function stitchHtmlFor(design: { stitch?: { frames: Record<string, { scre
   }).slice(0, MAX_STITCH_HTML);
   // one budget for the whole brief, shared by its screens
   const each = Math.floor(budget / Math.max(1, picked.length));
-  return picked.map((x) => ({ id: x.id, html: stitchBriefHtml(read(x.sha), each) }));
+  return picked.map((x) => ({ id: x.id, html: stitchBriefHtml(read(x.sha), each, x.id) }));
 }
 
 /** What the implementer is told about the screen it builds. The look is the existing app's when the design says so. */

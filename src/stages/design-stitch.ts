@@ -46,6 +46,7 @@ export const StitchPlan = z.object({
     })).max(3).default([]),
   })).min(1),
   shells: z.array(z.object({ id: z.string().min(1), header: z.string().min(20) })).default([]),
+  product: z.string().default(""),
   sample: z.string().default(""),
   noScreen: z.array(z.object({ req: z.string(), reason: z.string() })).default([]),
   brand: z.object({ colours: z.array(z.string()).default([]), fonts: z.array(z.string()).default([]) }).default({ colours: [], fonts: [] }),
@@ -62,6 +63,7 @@ const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch t
 - "field-ideas", when given, tells how the leading real products of this field arrange their pages. Where a requirement fits one of their patterns, the prompt asks for that component by what it is and what it holds (a boarding-pass strip with the route set large, a balance in large tabular figures above the latest movements), with this product's own content. Never a product's name, logo or wording, and never a colour from that list: the design system sets the colours.
 - "client-references", when given, are the client's own references with their pictures (R-1, R-2, ...). Stitch never sees them, so the prompt says in words what is taken: for a "layout" or "match" reference, the navigation and the regions in the order its picture shows, on the screens it relates to; for an "inspire" reference, its feel (how dense, how much white, how large the pictures and headings). The requirements beat a reference.
 - "shells" lists the frame each kind of user's pages share, one per kind (ids such as "employee", "admin"). Its "header" says in two or three sentences what the header holds, the same on every page: the brand's words as written, where the menu sits (beside the brand or centred), and what is on the right (the signed-in user's name and role, say; whether their picture is a photograph or initials, and on which side of the name it sits), and the brand's mark in one phrase (a small square in the accent with a white "P", or the words alone). Each screen names its shell in "shell"; a page outside any (sign-in) leaves it out. Every prompt of a shell is given that header word for word, so a prompt never describes the header itself.
+- "product" is the product's name as its pages show it, in the words the shells' headers use for the brand ("Folio3 Parking"), never a repo or file name.
 - "sample" is the product's sample data, the same on every page: each person with their name, department and role, what the pages show of them (their space, their vehicle and its plate), the place's one time zone, and the counts more than one page shows (capacity per floor, totals), all agreeing with each other, and, when any page lists events (a log, a history, a report, a check), one dated list of them (when, who, what, where, the result) that those pages all take their rows from, with counts that add up to it. Every prompt takes its names, figures and dates from it and never contradicts it; one person is never two people's photograph.
 - Labels, headings and messages use the plain words a user of this product would say ("Give up my space today", "3 spaces free"), never system or legal wording ("relinquish", "allocation governance", "materialize"). Each page has one primary action; one that cannot be undone says so beside its button.
 - "title" is the page's one heading. A page the menu opens has its menu label as its title, word for word; a menu label names a place ("My space", "Free spaces"), never an action, in three words at most.
@@ -305,10 +307,11 @@ export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta,
     engine: "stitch" as const,
     ...(meta.theme ? { theme: { ...stitchThemeToDesign(meta.theme, meta.mood ?? p.flow), ...(meta.basis?.length ? { basis: meta.basis } : {}), ...(meta.departure ? { departure: meta.departure } : {}) }, themeSource: "new" as const } : {}),
     flow: p.flow,
+    ...(p.product?.trim() ? { product: p.product.trim() } : {}),
     screens: p.screens.map((s) => {
       const own = ordered.filter((a) => a.id === s.id);
       const facts = own.find((a) => a.state === "normal")?.facts;
-      return { id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: own.map((a) => fid.get(a)!), ...(facts ? { facts } : {}),
+      return { id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: own.map((a) => fid.get(a)!), ...(facts ? { facts } : {}), ...(s.shell ? { user: s.shell } : {}),
         ...(s.overlays?.length ? { overlays: s.overlays.map(({ kind, title, trigger, content }) => ({ kind, title, trigger, content })) } : {}) };
     }),
     noScreen: p.noScreen,
@@ -411,8 +414,8 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   // a design stored before frames named their screen and state, or before prompts were kept, can only be drawn again
   if (!prev.stitch.prompts || frames.some((f) => !f.screen || !f.state)) { ctx.log("design: the earlier Stitch design predates per-screen frames; it is drawn again"); return undefined; }
   const plan: Plan = {
-    flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] }, shells: [], sample: "",
-    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], overlays: (s.overlays ?? []).map((o) => ({ kind: o.kind as "modal" | "drawer" | "sheet" | "confirm", title: o.title, trigger: o.trigger, content: o.content ?? o.title })), ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
+    flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] }, shells: [], product: prev.product ?? "", sample: "",
+    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, ...(s.user ? { shell: s.user } : {}), route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], overlays: (s.overlays ?? []).map((o) => ({ kind: o.kind as "modal" | "drawer" | "sheet" | "confirm", title: o.title, trigger: o.trigger, content: o.content ?? o.title })), ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
   };
   // the spec may have changed since the design was drawn: screens that no longer cover it are drawn again
   const specReqs = spec.requirements.map((q) => q.id);
