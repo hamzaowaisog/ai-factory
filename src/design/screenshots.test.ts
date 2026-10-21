@@ -9,7 +9,7 @@ beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
 afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
 import { ScreenMock } from "../contracts/artifacts.js";
 import { buildDemo } from "./demo.js";
-import { captureDemo, checkDemoLayout, findChromium, LAYOUT_CHECK } from "./screenshots.js";
+import { captureDemo, checkDemoLayout, fileSlug, findChromium, LAYOUT_CHECK } from "./screenshots.js";
 
 const screens = [
   { id: "S-1", route: "/pay", file: "app/pay/page.tsx", reqs: ["REQ-1"], states: ["default", "error"], size: "new", frames: [] },
@@ -190,4 +190,15 @@ describe("demo screenshots", () => {
     const r = await captureDemo(f, sc.map((x) => ({ id: x.id, route: x.route, states: [] })), join(d, "shots"));
     expect(r.shots.filter((x) => x.state === "In Arabic").map((x) => x.file).sort()).toEqual(["s-1-in-arabic-desktop.png", "s-1-in-arabic-phone.png", "s-2-in-arabic-desktop.png", "s-2-in-arabic-phone.png"]);
   }, 60_000);
+});
+
+describe("a screenshot's file name", () => {
+  it("cuts a long state name and keeps two apart (run 4049: a whole layout description, past the 255-byte limit)", () => {
+    expect(fileSlug("Empty")).toBe("empty");
+    const a = fileSlug(`Employee without dedicated parking ${"layout heading dashboard ".repeat(20)} one`);
+    const b = fileSlug(`Employee without dedicated parking ${"layout heading dashboard ".repeat(20)} two`);
+    expect(a.length).toBeLessThanOrEqual(60);
+    expect(a).not.toBe(b);
+    expect(a).toMatch(/^employee-without-dedicated-parking-layout-heading-[0-9a-f]{8}$/);
+  });
 });

@@ -24,7 +24,7 @@ export const DEFAULT_POLICY: Policy = {
   escapeHatchAllowlist: [],
   registryAllowlist: ["https://api.nuget.org/", "https://registry.npmjs.org/"],
   maxDiffLines: 1500,
-  // DEMO: 3 attempts per step instead of 6 (src/util/demo.ts)
+  // DEMO: 2 attempts per step instead of 6 (src/util/demo.ts)
   retryBudget: demoMode() ? DEMO_RETRY_BUDGET : 6,
   waiverCap: 3,
   minDiffCoverage: 0,

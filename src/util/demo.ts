@@ -1,6 +1,7 @@
 // DEMO MODE (FACTORY_DEMO=1): relaxed gates so a run reaches a delivered product for a presentation.
 // Every relaxation reads demoMode() and logs "DEMO:" in the run log. Unset FACTORY_DEMO to get the normal gates back;
 // to remove the mode for good, delete this file and every `demoMode()` branch (grep DEMO).
+// What each branch relaxes, what it never relaxes, and how to change it: docs/demo-mode.md.
 
 /** Demo mode is on for this process. */
 export function demoMode(): boolean {

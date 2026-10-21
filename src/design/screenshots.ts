@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { sha256 } from "../util/hash.js";
 
 export const VIEWPORTS = { phone: { width: 390, height: 844 }, tablet: { width: 820, height: 1180 }, desktop: { width: 1280, height: 800 } } as const;
 export type Viewport = keyof typeof VIEWPORTS;
@@ -150,7 +151,15 @@ export async function readDemoLayout(demoFile: string, ids: string[]): Promise<R
   }
 }
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
+/**
+ * A screen's or state's name as a file-name part. A long one is cut, with a short hash so two still differ (run 4049: a Stitch
+ * state named by its whole layout description gave a name past the system's 255-byte limit, and design-export parked).
+ */
+export const fileSlug = (s: string): string => {
+  const out = s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
+  return out.length <= 60 ? out : `${out.slice(0, 50).replace(/-$/, "")}-${sha256(out).slice(0, 8)}`;
+};
+const slug = fileSlug;
 
 /** Screenshot the demo page. `outDir` gets `<screen>-<state>-<viewport>.png`. Never throws. */
 export async function captureDemo(demoFile: string, screens: ScreenShotInput[], outDir: string, o: WalkOptions = {}): Promise<ShotResult> {

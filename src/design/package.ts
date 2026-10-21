@@ -18,7 +18,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, s
 import { join, relative } from "node:path";
 import type { DesignTheme } from "../contracts/artifacts.js";
 import { COMPONENTS_ID, demoStates, frameStateOf } from "./demo.js";
-import { captureDemo, type Shot, type ShotResult, type ScreenShotInput, type Viewport } from "./screenshots.js";
+import { captureDemo, fileSlug, type Shot, type ShotResult, type ScreenShotInput, type Viewport } from "./screenshots.js";
 import { designTokens } from "./tokens.js";
 import { factoryHome } from "../util/paths.js";
 import { STANDALONE_PROJECT } from "../config/project.js";
@@ -283,7 +283,6 @@ export interface PackageInput {
 /** `kind` is the state as the demo reads it (normal, empty, error, ...; src/design/demo.ts stateKind). */
 export interface OwnPicture { id: string; kind: string; viewport: Viewport; png: Uint8Array }
 
-const fileSlug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
 
 /** The design's own pictures as the package's shots: one per screen state that has one, named as the demo's are. */
 function ownShots(p: PackageInput, outDir: string): ShotResult & { states: Map<string, string[]> } {
