@@ -239,6 +239,22 @@ describe("the scaffold", () => {
     expect(frame).toContain(`"route": "/settings"`);
     expect(frame).not.toContain(`"route": "/sign-in"`);
     expect(frame).not.toContain(`"route": "/sign-up"`);
+    // shown without the frame (run 4049's sign-in listed the pages, and their prefetched redirect sent the person back there)
+    expect(frame).toMatch(/"auth": \[\s*"\/sign-in",\s*"\/sign-up"\s*\]/);
+    expect(l.files.find((f) => f.path === "components/frame/app-frame.tsx")!.text).toContain("app.auth?.some(");
+  });
+
+  it("with no page at \"/\", the address opens the first page listed (run 4049's \"/\" was a 404)", () => {
+    const page = (id: string, route: string) => ({ ...design.screens.find((s) => s.id === "S-3")!, id, route, file: `app${route}/page.tsx`, group: undefined });
+    const screens = [page("S-1", "/sign-in"), page("S-2", "/dashboard"), page("S-3", "/admin/settings")];
+    const next = scaffold({ ...base, target: "next-shadcn", design: { ...design, screens } });
+    expect(next.files.find((f) => f.path === "app/page.tsx")!.text).toContain(`redirect("/dashboard")`);
+    const vite = scaffold({ ...base, target: "vite-shadcn", design: { ...design, screens } }).files.find((f) => f.path.endsWith("design-routes.tsx"))!.text;
+    expect(vite).toContain(`{ path: "/", element: <Navigate to="/dashboard" replace /> }`);
+    expect(vite).toContain(`import { Navigate, useSearchParams`);
+    // a design with its own page at "/" keeps it
+    const own = scaffold({ ...base, target: "next-shadcn", design: { ...design, screens: [page("S-1", "/"), page("S-2", "/dashboard")] } });
+    expect(own.files.find((f) => f.path === "app/page.tsx")!.text).not.toContain("redirect(");
   });
 
   it("each nav item carries its page's kind of user, and the kit gives the sign-in a place to store it (run 4049 listed every page to everyone)", () => {

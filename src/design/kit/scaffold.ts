@@ -368,8 +368,13 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
       return own.length > 0 && tool * 2 >= own.length ? "sidebar" : "topbar";
     };
     const sw = "switcher" in a && a.switcher ? a.switcher : kitApps.length < 2 ? o.design.switcher : undefined;
-    return { id: a.id || "app", name: a.name, shell: shellOf(), nav, ...(sw ? { switcher: sw } : {}), routes: own.map((x) => routerPath(x.route)) };
+    // sign-in and sign-up draw their own brand and show no frame: run 4049's sign-in listed the pages, and their prefetched
+    // redirect to sign-in sent the person back there after signing in
+    const auth = own.filter((x) => AUTH_ROUTE.test(x.route)).map((x) => routerPath(x.route));
+    return { id: a.id || "app", name: a.name, shell: shellOf(), nav, ...(sw ? { switcher: sw } : {}), routes: own.map((x) => routerPath(x.route)), ...(auth.length ? { auth } : {}) };
   });
+  // the address alone opens the product: with no page at "/", it goes to the first page listed (run 4049's "/" was a 404)
+  const home = routes.has(next ? "" : "/") ? undefined : (frameApps[0]?.nav[0]?.route ?? frameApps[0]?.routes.find((r) => !r.includes(":")));
   const lang = o.design.locale?.languages[0] ?? "en";
   const framePath = at("components/screens/frame.ts");
   const providersPath = at("components/screens/providers.tsx");
@@ -397,6 +402,15 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     `}`,
     ``,
   ].join("\n"), "glue", true);
+  if (next && home) add(at("app/page.tsx"), [
+    header(o.tag, `The product's address: it opens ${home}.`),
+    `import { redirect } from "next/navigation";`,
+    ``,
+    `export default function Home() {`,
+    `  redirect(${q(home)});`,
+    `}`,
+    ``,
+  ].join("\n"), "glue", true);
   }
 
   // the product's words in its other language
@@ -418,7 +432,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     add(rp, [
       header(o.tag, "A route per approved page, each opening in any state with ?fixture=S-3:empty. Add them to the app's router."),
       `import type { ReactNode } from "react";`,
-      `import { useSearchParams, type RouteObject } from "react-router";`,
+      `import { ${fresh && home ? "Navigate, " : ""}useSearchParams, type RouteObject } from "react-router";`,
       `import { fixtureState } from "${imp("lib/fixture", rp)}";`,
       ...out.filter((x) => x.page).map((x) => `import { ${x.containerName} } from "${imp(`components/screens/${x.id.toLowerCase()}/container`, rp)}";`),
       ``,
@@ -429,6 +443,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
       ``,
       `export const designRoutes: RouteObject[] = [`,
       ...out.filter((x) => x.page).map((x) => `  { path: ${q(routerPath(x.route))}, element: <Fixture id=${q(x.id)} page={(f) => <${x.containerName} fixture={f} />} /> },`),
+      ...(fresh && home ? [`  { path: "/", element: <Navigate to=${q(home)} replace /> },`] : []),
       `];`,
       ``,
     ].join("\n"), "glue", true);
