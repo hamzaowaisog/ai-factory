@@ -106,6 +106,20 @@ describe("the locked API contract", () => {
     expect(gate(JSON.stringify(noRoute)).passed).toBe(false);
     const more = built(); more.paths["/api/extra"] = { get: { responses: { "200": { description: "OK" } } } };
     expect(contractDiff(contract, more)).toEqual(["not in the contract: GET /api/extra"]);
+    expect(part(more)).toBe(false);
+  });
+
+  it("leaves out a later task's stubbed operation while a task is checked, but not at integrate (run 9071)", () => {
+    // the interface stubs map every operation from the start; the build documents one as a bare 200 with no body or request
+    const stubbed = built();
+    stubbed.paths["/api/appointments/today"] = { get: { tags: ["Stubs"], responses: { "200": { description: "OK" } } } };
+    stubbed.paths["/api/sign-in"] = { post: { responses: { "200": { description: "OK" } } } };
+    const part = (b: Record<string, any>) => contractMatches.predicate({ contract: { text: CONTRACT }, built: { text: JSON.stringify(b), path: "x", partial: true } }, DEFAULT_POLICY);
+    expect(part(stubbed)).toMatchObject({ passed: true });
+    expect(gate(JSON.stringify(stubbed)).passed).toBe(false);
+    // a built operation is still held to the contract: a body with a wrong field is no stub
+    const wrong = built(); wrong.components.schemas.Session.properties.userId = { type: "string" };
+    expect(part(wrong).passed).toBe(false);
   });
 
   it("reads a shared answer, a shared request body and allOf around a pointer as what they point at (runs e8ef, e1b5)", () => {

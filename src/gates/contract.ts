@@ -275,6 +275,10 @@ export function contractChange(before: Obj, after: Obj): { added: string[]; chan
   return { added, changed };
 }
 
+/** An operation that declares no request body and no answer with a body: what an interface stub looks like in the built document. */
+const isStub = (doc: Obj, def: Obj): boolean =>
+  !deref(doc, def.requestBody)?.content && Object.values((def.responses ?? {}) as Obj).every((r) => !deref(doc, r as Obj)?.content);
+
 /** The API's own OpenAPI document, written by its build, says what the locked contract says. */
 export const contractMatches = defineGate<{ contract: { text: string }; built: { text?: string; path: string; partial?: boolean } }>({
   id: "contract.matches", after: "implement", safety: false, waiver: "none",
@@ -285,7 +289,12 @@ export const contractMatches = defineGate<{ contract: { text: string }; built: {
     if (!have) return verdict([failure("contract", `The build did not write the API's OpenAPI document at ${built.path}. Keep the project's build-time OpenAPI settings and the AddOpenApi() call.`)], "");
     // one task of several: an operation no task has built yet is not a mismatch; what is built must match, and nothing extra
     const all = contractDiff(want, have);
-    const diff = all.filter((d) => !built.partial || !/^missing in the API: [A-Z]+ \S+$/.test(d));
+    // a stub is not built yet either: the interface stubs put every operation in the API from the start, with no body or request
+    // declared (run 9071: each task lost its first attempt to a later task's stubbed operations, "missing … 200 body / 401")
+    const planned = new Set(operations(want).map(({ op }) => op));
+    const stubs = built.partial ? operations(have).filter(({ op, def }) => planned.has(op) && isStub(have, def)).map(({ op }) => op) : [];
+    const ofStub = (d: string) => { const k = d.replace(/^(missing in the API|not in the contract): /, ""); return stubs.some((s) => k === s || k.startsWith(`${s} `)); };
+    const diff = all.filter((d) => !built.partial || (!/^missing in the API: [A-Z]+ \S+$/.test(d) && !ofStub(d)));
     const inContract = operations(want).length, inApi = operations(have).length;
     return {
       ...verdict(diff.slice(0, 20).map((d) => failure("contract", `The API does not match the locked contract: ${d}`)), "The API matches the locked contract"),

@@ -112,7 +112,7 @@ class FakeRuntime implements ContainerRuntime {
   specs = new Map<string, ContainerSpec>();
   removed: string[] = [];
   n = 0;
-  constructor(private readonly behave: { install?: number; build?: number; buildLog?: string; reports?: string[]; exit?: number }) {}
+  constructor(private readonly behave: { install?: number; build?: number; buildLog?: string; tscLog?: string; reports?: string[]; exit?: number }) {}
   async version() { return "fake"; }
   async create(s: ContainerSpec) { const id = `c${++this.n}`; this.specs.set(id, s); return id; }
   async start() {}
@@ -129,7 +129,7 @@ class FakeRuntime implements ContainerRuntime {
   }
   async exec() { return { code: 0, stdout: "", stderr: "" }; }
   async isRunning() { return true; }
-  async logs(id: string) { return this.specs.get(id)!.cmd.includes("build") ? this.behave.buildLog ?? "" : ""; }
+  async logs(id: string) { const c = this.specs.get(id)!.cmd; return c.includes("build") ? this.behave.buildLog ?? "" : c[0]!.endsWith("tsc") ? this.behave.tscLog ?? "" : ""; }
   async stop() {}
   async remove(id: string) { this.removed.push(id); }
   async listByLabel() { return []; }
@@ -227,6 +227,26 @@ describe("Node producer (fake runtime)", () => {
     const out = await produceNodeTests({ runId: "r1", key: "k", repo, commit, stage: "author-tests-on-base", project, rt, buildOnly: true, exp: { expectPass: [], expectFail: [], compareToBaseline: [] } });
     expect(out.build.ok).toBe(true);
     expect([...rt.specs.values()].some((s) => s.cmd.includes("vitest"))).toBe(false);
+  });
+
+  it("type-checks new acceptance tests: a wrong import or a missing matcher fails them before they are locked (run 4049)", async () => {
+    const { repo, commit } = repoWithCommit({ ...app, "tsconfig.json": "{}", "node_modules/.bin/tsc": "" });
+    const tscLog = [
+      "tests/acceptance.part2.test.tsx(2,68): error TS2459: Module '\"vitest\"' declares 'waitFor' locally, but it is not exported.",
+      "tests/acceptance.part3.test.tsx(66,107): error TS2339: Property 'toBeVisible' does not exist on type 'Assertion<void, HTMLElement>'.",
+      "components/screens/s-1/container.tsx(3,1): error TS2304: Cannot find name 'x'.",
+    ].join("\n");
+    const exp = { expectPass: [], expectFail: [], compareToBaseline: [] };
+    const out = await produceNodeTests({ runId: "r1", key: "k", repo, commit, stage: "author-tests-on-base", project, rt: new FakeRuntime({ tscLog, reports: [pass] }), exp });
+    expect(out.build.ok).toBe(false);
+    // only the test files' errors: the app's own code is next build's to check
+    expect(out.build.errors.map((e) => `${e.file}:${e.code}`)).toEqual(["tests/acceptance.part2.test.tsx:TS2459", "tests/acceptance.part3.test.tsx:TS2339"]);
+    // a task's run and the stubs' build-only run are not type-checked
+    for (const [stage, buildOnly] of [["task", false], ["author-tests-on-base", true]] as const) {
+      const rt = new FakeRuntime({ tscLog, reports: [pass] });
+      expect((await produceNodeTests({ runId: "r1", key: "k", repo, commit, stage, project, rt, buildOnly, exp })).build.ok).toBe(true);
+      expect([...rt.specs.values()].some((s) => s.cmd[0]!.endsWith("tsc"))).toBe(false);
+    }
   });
 
   it("reports build errors from the log", async () => {

@@ -50,6 +50,9 @@ export function parseNodeBuildErrors(log: string): BuildRun["errors"] {
   return out;
 }
 
+/** A test file: under a tests folder, or named *.test.* / *.spec.* */
+const TEST_FILE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;
+
 /** More test files than this are not left out one by one: the command line would not hold them. */
 const MAX_SKIP_FILES = 400;
 
@@ -137,6 +140,17 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
       return failedRun({ kind: "build", ok: false, errors: errors.length ? errors : [{ file: "", line: 0, code: "BUILD", msg: `npm run build failed (exit ${bCode ?? "timeout"}): ${logs.build.split("\n").filter(Boolean).slice(-3).join(" ").slice(0, 400)}` }] }, toolVersions);
     }
     if (cached) saveBuild(src, inp.buildCache!, cached);
+    }
+    // new acceptance tests are type-checked too: `next build` checks only the app, and vitest runs a test with a wrong import or
+    // a matcher the app lacks until that line (run 4049: `waitFor` from "vitest" and jest-dom's `toBeVisible` were locked, and
+    // five tasks each lost an attempt to tests no code could pass). Only errors in test files count.
+    if (inp.stage === "author-tests-on-base" && !inp.buildOnly && existsSync(join(src, "tsconfig.json")) && existsSync(join(src, "node_modules", ".bin", "tsc"))) {
+      const tc = await launch({ role: "producer", image: project.node.image, network: "none", workdir: "/src", env: NODE_ENV, mounts: [{ src, dst: "/src" }], cmd: ["node_modules/.bin/tsc", "--noEmit", "-p", "."] });
+      await rt.wait(tc, project.node.buildTimeoutSec * 1000);
+      const errors = parseNodeBuildErrors(await rt.logs(tc)).filter((e) => TEST_FILE.test(e.file));
+      await finish(tc);
+      phase("typecheck", `lab: tests type-check ${errors.length ? `FAILED (${errors.length} error(s))` : "ok"}`);
+      if (errors.length) return failedRun({ kind: "build", ok: false, errors }, toolVersions);
     }
     const build: BuildRun = { kind: "build", ok: true, errors: [] };
     if (inp.buildOnly) {

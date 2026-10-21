@@ -81,16 +81,24 @@ export class Redactor {
 /** A connection string whose server is this machine (Host, Server or Data Source = 127.0.0.1, localhost or ::1). */
 const LOOPBACK_DB = /\b(?:host|server|data source)\s*=\s*(?:127\.0\.0\.1|localhost|\[?::1\]?)(?=[;:,"'\s]|$)/i;
 
+/**
+ * A test file or an OpenAPI contract: its passwords are made-up test or example data (run 9071: a test account's "…2025!" and a
+ * fake `password=…` in an error; run 4049: the contract's example sign-in request and token). Both parked deliver.
+ */
+const TEST_FILE = /(^|\/)(tests?|__tests__)\/|\.Tests?\/|\.(test|spec)\.[cm]?[jt]sx?$|Tests?\.cs$|(^|\/)openapi\.(ya?ml|json)$/i;
+
 /** Scan without redacting: where secrets are (for per-commit scans). Values are never returned. */
 export function scanText(file: string, text: string): { file: string; line: number; rule: string }[] {
   const hits: { file: string; line: number; rule: string }[] = [];
   const lines = text.split("\n");
   const code = CODE_FILE.test(file);
+  // in a test file only the password rule is off: a key or token with a known shape (AWS, GitHub, OpenAI, a private key) is still caught
+  const test = TEST_FILE.test(file);
   lines.forEach((line, i) => {
     const r = new Redactor({ code }).redact(line);
     // a database on this machine: its password opens nothing anyone else can reach (run e1b5: a test's unreachable 127.0.0.1 string)
     const local = LOOPBACK_DB.test(line);
-    for (const h of r.hits) if (!(local && h.rule === "password-assignment")) hits.push({ file, line: i + 1, rule: h.rule });
+    for (const h of r.hits) if (!((local || test) && h.rule === "password-assignment")) hits.push({ file, line: i + 1, rule: h.rule });
   });
   // multi-line private keys
   if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text) && !hits.some((h) => h.rule === "private-key")) {

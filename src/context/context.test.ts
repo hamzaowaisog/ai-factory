@@ -79,6 +79,19 @@ describe("secrets", () => {
     expect(scanText(".env", "PASSWORD=hunter2222").map((h) => h.rule)).toEqual(["password-assignment"]);
     expect(scanText("a.yaml", "password: hunter2222").map((h) => h.rule)).toEqual(["password-assignment"]);
   });
+  it("does not report a test file's made-up passwords, and still reports a key with a known shape there (run 9071)", () => {
+    for (const [file, line] of [
+      ["App.Tests/AcceptancePart4Tests.cs", '  var r = new { email = "a@example.test", password = "Parking2025!" };'],
+      ["App.Tests/AcceptancePart4Tests.cs", '  throw new NpgsqlException("SQL SELECT x; password=Part4Secret; connection refused");'],
+      ["tests/acceptance.part1.test.tsx", '  await user.type(field, "Hunter2222!"); const password = "Hunter2222!";'],
+      // a contract's example request and answer (run 4049)
+      ["contracts/openapi.yaml", '              password: "Parking2025!"'],
+      ["contracts/openapi.yaml", '              accessToken: "eyJhbGciOi-example-token"'],
+    ]) expect(scanText(file!, line!), line).toEqual([]);
+    expect(scanText("App.Tests/AcceptancePart4Tests.cs", 'var k = "AKIAABCDEFGHIJKLMNOP";').map((h) => h.rule)).toEqual(["aws-access-key"]);
+    // the same line outside a test file is still a secret
+    expect(scanText("App.Api/Program.cs", 'var r = new { password = "Parking2025!" };').map((h) => h.rule)).toEqual(["password-assignment"]);
+  });
   it("does not report the password of a database on this machine, and still reports any other (run e1b5)", () => {
     expect(scanText("a.cs", "const string c = \"Host=127.0.0.1;Port=1;Database=x;Username=nobody;Password=nobody;Timeout=3\";")).toEqual([]);
     expect(scanText("a.json", "\"App\": \"Server=localhost;Database=x;Password=postgres1\"")).toEqual([]);
