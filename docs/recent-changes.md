@@ -143,6 +143,7 @@ From Muhammad Owais (PR 42, merged in f6eb771), plus fixes in 8a261ec.
 - [src/gates/policy.ts](../src/gates/policy.ts): a comment corrected, demo mode gives 2 attempts, not 3.
 - [src/util/demo.ts](../src/util/demo.ts): a pointer to the demo mode guide.
 - **Long screenshot names (run 4049).** A Stitch state named by its whole layout description gave a screenshot file name past the system's 255-byte limit, and design-export parked with ENAMETOOLONG twice. `fileSlug` in [src/design/screenshots.ts](../src/design/screenshots.ts), also used by [src/design/package.ts](../src/design/package.ts), now cuts a name to 60 characters with a short hash.
+- **vitest 5.0.5 for new apps (run 4049).** npm 10 crashes when it tries to install `vitest@5.0.4` ("Cannot read properties of null (reading 'edgesOut')"), even when vitest is the only package. Stub-commit parked after the same error twice. `VITEST_VERSION` in [src/design/kit/e2e.ts](../src/design/kit/e2e.ts) is now `5.0.5`, which installs cleanly. An app already scaffolded with 5.0.4 needs that one line in its package.json changed and committed in its worktree before it is resumed (run 4049: commit `7308601`).
 
 ## Known gaps
 
